@@ -7,46 +7,57 @@ import javax.tools._
 import javax.tools.JavaFileManager.Location
 import javax.tools.JavaFileObject.Kind
 import org.scalatest.FreeSpec
+import parsing.AttributeInfo.{Code, SourceFile}
 import scala.collection.JavaConverters._
 import java.nio.ByteBuffer
-import svm.ClassLoader.ConstantInfo.Utf8
-import svm.ClassLoader.{ConstantInfo, MethodInfo}
-
+import parsing.ConstantInfo.Utf8
+import parsing.{Access, ClassFile, ConstantInfo, MethodInfo}
+import ConstantInfo.{Class => ConstClass}
 class ClassloaderTests extends FreeSpec{
+  object Cp{ def unapply(index: Short)(implicit cp: Seq[ConstantInfo]): Option[ConstantInfo] = {
+    cp.lift(index)
+  }}
+  val CafeBabe =  0xcafebabe
+
+  object Print{ def unapply[A](thing: A): Option[A] = {
+    println(thing)
+    Some(thing)
+  }}
+
   "hello world" in {
     val files = compile("helloworld")
-    val classData = ClassLoader.ClassFile.read(ByteBuffer.wrap(files("helloworld.HelloWorld")))
-    import classData._
-    implicit class withConst(n: Short){
-      def const = constant_pool(n)
-    }
-    assert(java.lang.Integer.toHexString(magic) === "cafebabe")
-    val Seq() = interfaces
-    val Seq() = fields
-    val Utf8("helloworld/HelloWorld") =
-        this_class.const
-                  .asInstanceOf[ConstantInfo.Class]
-                  .name_index
-                  .const
-
-    val Utf8("java/lang/Object") =
-      super_class.const
-        .asInstanceOf[ConstantInfo.Class]
-        .name_index
-        .const
-
-    val Seq(
-      MethodInfo(1, name1, desc1, _),
-      MethodInfo(9, name2, desc2, _)
-    ) = methods
-
-    val Utf8("<init>") = name1.const
-    val Utf8("()V") = desc1.const
-
-    val Utf8("main") = name2.const
-    val Utf8("([Ljava/lang/String;)V") = desc2.const
-
+    val classData = ClassFile.read(ByteBuffer.wrap(files("helloworld.HelloWorld")))
+    implicit val constantPool = classData.constant_pool
+    val AccessFlags = (Access.Super | Access.Public)
+    val ClassFile(
+      CafeBabe,  // magic
+      0,  // minor_version
+      51, // major_version
+      _,  // constant_pool
+      AccessFlags,  // access_flags
+      Cp(ConstClass(Cp(Utf8("helloworld/HelloWorld")))),  // this_class
+      Cp(ConstClass(Cp(Utf8("java/lang/Object")))),  // super_class
+      Seq(),  // interfaces
+      Seq(),  // fields
+      Seq(
+        MethodInfo(_,
+          Cp(Utf8("<init>")),
+          Cp(Utf8("()V")),
+          Seq(Code(_, _, initBytes, _, _))
+        ),
+        MethodInfo(_,
+          Cp(Utf8("main")),
+          Cp(Utf8("([Ljava/lang/String;)V")),
+          Seq(Code(_, _, mainBytes, _, _))
+        )
+      ),  // methods
+      Seq(SourceFile(Cp(Utf8("HelloWorld.java"))))   // attributes
+    ) = classData
   }
+
+
+
+
 
   def compile(path: String): Map[String, Array[Byte]] = {
     val compiler = ToolProvider.getSystemJavaCompiler
@@ -77,7 +88,6 @@ class ClassloaderTests extends FreeSpec{
     }
     class MemSourceFile(name: String, code: String)
       extends SimpleJavaFileObject(URI.create("string:///" + name),Kind.SOURCE) {
-
       override def getCharContent(ignoreEncodingErrors: Boolean) = code
     }
 
