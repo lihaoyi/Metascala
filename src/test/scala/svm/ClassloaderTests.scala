@@ -10,35 +10,41 @@ import org.scalatest.FreeSpec
 import scala.collection.JavaConverters._
 import java.nio.ByteBuffer
 import svm.ClassLoader.ConstantInfo.Utf8
-import svm.ClassLoader.MethodInfo
+import svm.ClassLoader.{ConstantInfo, MethodInfo}
 
 class ClassloaderTests extends FreeSpec{
   "hello world" in {
     val files = compile("helloworld")
     val classData = ClassLoader.ClassFile.read(ByteBuffer.wrap(files("helloworld.HelloWorld")))
     import classData._
-    println("ClassData")
-    val Utf8("helloworld/HelloWorld") = constant_pool(constant_pool(this_class).asInstanceOf[ClassLoader.ConstantInfo.Class].name_index)
+    implicit class withConst(n: Short){
+      def const = constant_pool(n)
+    }
+    assert(java.lang.Integer.toHexString(magic) === "cafebabe")
+    val Seq() = interfaces
+    val Seq() = fields
+    val Utf8("helloworld/HelloWorld") =
+        this_class.const
+                  .asInstanceOf[ConstantInfo.Class]
+                  .name_index
+                  .const
+
+    val Utf8("java/lang/Object") =
+      super_class.const
+        .asInstanceOf[ConstantInfo.Class]
+        .name_index
+        .const
+
     val Seq(
       MethodInfo(1, name1, desc1, _),
       MethodInfo(9, name2, desc2, _)
     ) = methods
 
-    val Utf8("<init>") = constant_pool(name1)
-    val Utf8("main") = constant_pool(name2)
-    val Utf8("()V") = constant_pool(desc1)
-    val Utf8("([Ljava/lang/String;)V") = constant_pool(desc2)
+    val Utf8("<init>") = name1.const
+    val Utf8("()V") = desc1.const
 
-    /*println(classData.constant_pool(classData.super_class))
-    println("Methods")
-    classData.methods.map(x => classData.constant_pool(x.name_index)).foreach(println)
-    println("Constants")
-    classData.constant_pool.foreach(println)*/
-    /*println("Fields")
-    classData.fields.foreach(println)
-
-    println("Methods")
-    classData.methods.foreach(println)*/
+    val Utf8("main") = name2.const
+    val Utf8("([Ljava/lang/String;)V") = desc2.const
 
   }
 
@@ -83,10 +89,8 @@ class ClassloaderTests extends FreeSpec{
         .map{f => new MemSourceFile(f.getName(), Source.fromFile(f).getLines().mkString("\n"))}
 
 
-    println(compilationUnits.toSeq)
     val task = compiler.getTask(new OutputStreamWriter(System.out), ClassFileManager, diagnostics, null, null, compilationUnits.toIterable.asJava)
-    println(task.call())
-    diagnostics.getDiagnostics.toArray().foreach(println)
+    task.call()
     ClassFileManager.finish
   }
 }
