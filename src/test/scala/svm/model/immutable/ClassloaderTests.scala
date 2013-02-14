@@ -1,36 +1,61 @@
-package svm
+package svm.model.immutable
 
-import io.Source
+import scala.io.Source
 import java.io._
 import java.net.URI
 import javax.tools._
 import javax.tools.JavaFileManager.Location
 import javax.tools.JavaFileObject.Kind
 import org.scalatest.FreeSpec
-import parsing.AttributeInfo.{Code, SourceFile}
+import AttributeInfo.{Code, SourceFile}
 import scala.collection.JavaConverters._
 import java.nio.ByteBuffer
-import parsing.ConstantInfo.Utf8
-import parsing.{Access, ClassFile, ConstantInfo, MethodInfo}
+import ConstantInfo.Utf8
 import ConstantInfo.{Class => ConstClass}
+import org.objectweb.asm.{ClassReader, MethodVisitor, ClassVisitor}
+import org.objectweb.asm.commons.InstructionAdapter
+import org.objectweb.asm.util.{TraceClassVisitor, Printer, Textifier}
+import scala.Some
+import svm.model.opcodes.OpCodes
+
+
+class MethodPrinterVisitor(api: Int) extends ClassVisitor(api){
+  override def visitMethod(access: Int, name: String, desc: String, signature: String, exceptions: Array[String]) ={
+    println("\n"+name+desc);
+    new InstructionAdapter(new MethodVisitor(4) {}){
+      override def visitInsn(opcode: Int) {
+        println(opcode);
+        super.visitInsn(opcode);
+      }
+    }
+  }
+}
+
 class ClassloaderTests extends FreeSpec{
   object Cp{ def unapply(index: Short)(implicit cp: Seq[ConstantInfo]): Option[ConstantInfo] = {
     cp.lift(index)
   }}
-  val CafeBabe =  0xcafebabe
 
   object Print{ def unapply[A](thing: A): Option[A] = {
     println(thing)
     Some(thing)
   }}
 
+  def printClass(data: Array[Byte]) = {
+    val r = new ClassReader(data)
+    val tracer = new TraceClassVisitor(new PrintWriter(System.out))
+    r.accept(tracer, 0)
+  }
+
   "hello world" in {
+
     val files = compile("helloworld")
     val classData = ClassFile.read(ByteBuffer.wrap(files("helloworld.HelloWorld")))
+    printClass(files("helloworld.HelloWorld"))
     implicit val constantPool = classData.constant_pool
     val AccessFlags = (Access.Super | Access.Public)
     val ClassFile(
-      CafeBabe,  // magic
+      0xcafebabe,  // magic
       0,  // minor_version
       51, // major_version
       _,  // constant_pool
@@ -53,6 +78,14 @@ class ClassloaderTests extends FreeSpec{
       ),  // methods
       Seq(SourceFile(Cp(Utf8("HelloWorld.java"))))   // attributes
     ) = classData
+
+    println(initBytes)
+    println(Seq(
+      OpCodes.ALoad.id,
+      OpCodes.InvokeSpecial.id,
+      OpCodes.Return.id
+    ))
+    println(mainBytes)
   }
 
 

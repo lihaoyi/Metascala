@@ -1,25 +1,21 @@
 package svm
 
-/**
- * Created with IntelliJ IDEA.
- * User: Haoyi
- * Date: 10/13/12
- * Time: 11:47 PM
- * To change this template use File | Settings | File Templates.
- */
+import model.immutable.{ConstantInfo, ClassFile}
+
 class VirtualMachine{
-  val threads = List[Thread]()
-  val heap = ???
-  val methodArea = ???
+  val threads = List[VmThread](VmThread())
+  var heap = Set.empty[model.mutable.Object]
+  var classes = Map.empty[String, model.mutable.Class]
 }
-case class VMThread(
+
+case class VmThread(
   var pc: Int = 0,
-  var stack: Seq[Frame] = Seq()
+  var stack: List[Frame] = List()
 )
 
-case class Frame(
-  locals: Seq[Any],
-  operandStack: Seq[Any],
-  runtimeConstantPool: Any
+class Frame(
+  var locals: Seq[Any],
+  var operandStack: List[Any],
+  var constantPool: Seq[ConstantInfo]
 )
 

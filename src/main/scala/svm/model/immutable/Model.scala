@@ -1,10 +1,11 @@
-package svm.parsing
+package svm.model.immutable
 
 import io.Source
 import java.io.FileInputStream
 import java.nio.ByteBuffer
 import akka.util.ByteString
-import svm.parsing.ConstantInfo.DummyZeroConstant
+import svm.model._
+import immutable.ConstantInfo.DummyZeroConstant
 
 
 object ClassFile{
@@ -13,6 +14,7 @@ object ClassFile{
     val minor_version = u2
     val major_version = u2
     implicit val constant_pool = DummyZeroConstant +: (u2-1) ** ConstantInfo.item(input)
+
     ClassFile(
       magic,
       minor_version,
@@ -26,6 +28,7 @@ object ClassFile{
       u2 ** MethodInfo.read,
       u2 ** AttributeInfo.read
     )
+
   }
 }
 case class ClassFile(magic: u4,
@@ -161,11 +164,3 @@ object Access{
   val Abstract  = 0x0400 // 1024
   val Strict    = 0x0800 // 2048
 }
-
-
-
-
-
-
-
-
