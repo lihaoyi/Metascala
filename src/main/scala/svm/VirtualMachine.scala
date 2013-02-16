@@ -1,11 +1,24 @@
 package svm
 
-import model.immutable.{ConstantInfo, ClassFile}
+import model.{ClassFile, ConstantInfo}
+import java.io.DataInputStream
+import java.nio.ByteBuffer
 
 class VirtualMachine{
   val threads = List[VmThread](VmThread())
-  var heap = Set.empty[model.mutable.Object]
-  var classes = Map.empty[String, model.mutable.Class]
+  var heap = Set.empty[Object]
+  var classes = Map.empty[String, Class]
+                   .withDefault(name => loadClass(name))
+
+  def loadClass(name: String) = {
+    val stream = new DataInputStream(getClass.getResourceAsStream(name))
+    val bytes = new Array[Byte](stream.available())
+    stream.readFully(bytes)
+    val classData = ClassFile.read(ByteBuffer.wrap(bytes))
+    new Class(classData)
+  }
+
+
 }
 
 case class VmThread(
@@ -15,7 +28,7 @@ case class VmThread(
 
 class Frame(
   var locals: Seq[Any],
-  var operandStack: List[Any],
+  var frameStack: List[Any],
   var constantPool: Seq[ConstantInfo]
 )
 
