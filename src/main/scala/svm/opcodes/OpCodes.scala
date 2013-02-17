@@ -338,11 +338,11 @@ object OpCodes {
   }
 
   val IfNull = StackOpCode(198, "ifnull"){case (TwoBytes(offset), ctx, ref :: stack) =>
-    if (ref == null) ctx.thread.pc = ctx.thread.pc + offset
+    if (ref == null) ctx.frame.pc = ctx.frame.pc + offset
     stack
   }
   val IfNonNull = StackOpCode(199, "ifnonnull"){case (TwoBytes(offset), ctx, ref :: stack) =>
-    if (ref != null) ctx.thread.pc = ctx.thread.pc + offset
+    if (ref != null) ctx.frame.pc = ctx.frame.pc + offset
     stack
   }
 

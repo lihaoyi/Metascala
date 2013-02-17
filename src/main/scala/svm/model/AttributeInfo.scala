@@ -8,7 +8,8 @@ import svm.model.AttributeInfo.LocalVariableTable.LocalVariableData
 
 object AttributeInfo{
   def read(implicit input: ByteBuffer, constant_pool: Seq[ConstantInfo]): AttributeInfo = {
-    val attribute_name = constant_pool(u2)
+    val index = u2
+    val attribute_name = constant_pool(index)
     val attribute_length = u4
     attribute_name match {
       case Utf8("ConstantValue") => ConstantValue.read
@@ -16,10 +17,14 @@ object AttributeInfo{
       case Utf8("Exceptions") => Exceptions.read
       case Utf8("InnerClasses") => InnerClasses.read
       case Utf8("Synthetic") => Synthetic
+      case Utf8("Signature") => Signature.read
       case Utf8("SourceFile") => SourceFile.read
       case Utf8("LineNumberTable") => LineNumberTable.read
       case Utf8("LocalVariableTable") => LocalVariableTable.read
       case Utf8("Deprecated") => Deprecated
+      case Utf8("StackMapTable") =>
+        input.get(new Array[Byte](attribute_length))
+        new AttributeInfo {}
     }
   }
 
@@ -30,7 +35,6 @@ object AttributeInfo{
   }
   case class ConstantValue(constantvalue_index: u2)
                            extends AttributeInfo
-
 
   object Code{
     def read(implicit input: ByteBuffer, constant_pool: Seq[ConstantInfo]) = {
@@ -86,6 +90,14 @@ object AttributeInfo{
   case class InnerClasses(classes: Seq[ClassData]) extends AttributeInfo
 
   case object Synthetic extends AttributeInfo
+
+  object Signature{
+    def read(implicit input: ByteBuffer) = {
+      Signature(u2)
+    }
+  }
+  case class Signature(signature_index: u2)
+    extends AttributeInfo
 
   object SourceFile{
     def read(implicit input: ByteBuffer) = {

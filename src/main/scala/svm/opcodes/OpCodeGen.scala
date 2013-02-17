@@ -96,7 +96,7 @@ object OpCodeGen {
   trait Branch extends OpCode{
     def op = { (inst, ctx) =>
       val (offset, newStack) = branchOp(inst, ctx.thread, ctx.stack)
-      ctx.thread.pc = ctx.thread.pc + offset
+      ctx.frame.pc = ctx.frame.pc + offset
       ctx.thread.stack.head.frameStack = newStack
     }
 

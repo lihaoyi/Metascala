@@ -7,7 +7,7 @@ class ConstantInfo(tag: Byte)
 object ConstantInfo{
   def item(implicit input: ByteBuffer) = {
     val x = u1
-    x match{
+    val res = x match{
       case 7 => ClassRef.read
       case 9 => FieldRef.read
       case 10 => MethodRef.read
@@ -20,6 +20,7 @@ object ConstantInfo{
       case 12 => NameAndType.read
       case 1 => Utf8.read
     }
+    res
   }
   object DummyZeroConstant extends ConstantInfo(-1)
   object ClassRef{

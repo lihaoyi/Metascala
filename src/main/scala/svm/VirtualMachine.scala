@@ -22,11 +22,11 @@ class VirtualMachine{
 }
 
 case class VmThread(
-  var pc: Int = 0,
   var stack: List[Frame] = List()
 )
 
 class Frame(
+  var pc: Int = 0,
   var locals: Seq[Any],
   var frameStack: List[Any],
   var constantPool: Seq[ConstantInfo]
