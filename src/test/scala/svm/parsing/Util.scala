@@ -75,6 +75,7 @@ object Util{
 
     val compilationUnits =
       recursiveListFiles(new File(s"src/test/resources/$path"))
+        .filter{_.getName.endsWith(".java")}
         .map{f => new MemSourceFile(f.getName(), Source.fromFile(f).getLines().mkString("\n"))}
 
 
