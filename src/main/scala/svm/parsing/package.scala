@@ -2,7 +2,7 @@ package svm
 
 import java.nio.ByteBuffer
 
-package object model {
+package object parsing {
   def u1(implicit input: ByteBuffer) = input.get
   type u1 = Byte
   def u2(implicit input: ByteBuffer) = input.getShort

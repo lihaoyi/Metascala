@@ -1,20 +1,19 @@
 package svm
 
-import model.AttributeInfo.Code
-import model.ConstantInfo.Utf8
-import model.opcodes.OpCodeGen.Context
-import model.opcodes.OpCodes
-import model.{MethodInfo, ClassFile}
+import parsing.Attribute.Code
+import parsing.ConstantInfo.Utf8
+import parsing.opcodes.OpCodeGen.Context
+import parsing.opcodes.OpCodes
+import parsing.{MethodInfo, ClassFile}
 import java.io.DataInputStream
 import java.nio.ByteBuffer
 import collection.mutable
 
 class VirtualMachine(classLoader: String => Array[Byte]){
-  val threads = List(new VmThread(classes = classes))
-  var heap = Set.empty[Object]
   val classes = mutable.Map.empty[String, Class]
                            .withDefault(name => loadClass(classLoader(name)))
-
+  val threads = List(new VmThread(classes = classes))
+  var heap = Set.empty[Object]
 
   def loadClass(bytes: Array[Byte]) = {
 
@@ -30,7 +29,7 @@ class VirtualMachine(classLoader: String => Array[Byte]){
       classes(bootClass)
         .classFile
         .methods
-        .find(x => cp(x.name_index) == Utf8(mainMethod))
+        .find(x => x.name == mainMethod)
         .get
     )
   }

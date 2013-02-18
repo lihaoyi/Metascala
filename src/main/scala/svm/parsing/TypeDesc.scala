@@ -1,4 +1,4 @@
-package svm.model
+package svm.parsing
 
 
 object TypeDesc{

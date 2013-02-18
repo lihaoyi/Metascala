@@ -1,4 +1,4 @@
-package svm.model
+package svm.parsing
 
 import org.objectweb.asm.{ClassReader, MethodVisitor, ClassVisitor}
 import org.objectweb.asm.commons.InstructionAdapter

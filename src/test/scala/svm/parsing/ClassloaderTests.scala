@@ -1,17 +1,16 @@
-package svm.model
+package svm.parsing
 
 import org.scalatest.FreeSpec
-import svm.model.AttributeInfo.{Exceptions, LineNumberTable, Code, SourceFile}
+import svm.parsing.Attribute.{Exceptions, LineNumberTable, Code, SourceFile}
 import java.nio.ByteBuffer
-import svm.model.ConstantInfo.{ClassRef, Utf8}
+import svm.parsing.ConstantInfo.{ZeroConstant, ClassRef, Utf8}
 import java.io.DataInputStream
-import svm.model.AttributeInfo.LineNumberTable.LineNumberData
-import svm.model.Util.Print
+import svm.parsing.Attribute.LineNumberTable.LineNumberData
+import svm.parsing.Util.Print
+import svm.Access
 
 class ClassloaderTests extends FreeSpec{
-  object Cp{ def unapply(index: Short)(implicit cp: Seq[ConstantInfo]): Option[ConstantInfo] = {
-    cp.lift(index)
-  }}
+
 
   "loading class files" - {
     "hello world" in {
@@ -27,23 +26,23 @@ class ClassloaderTests extends FreeSpec{
         51, // major_version
         _,  // constant_pool
         AccessFlags,  // access_flags
-        Cp(ClassRef(Cp(Utf8("helloworld/HelloWorld")))),  // this_class
-        Cp(ClassRef(Cp(Utf8("java/lang/Object")))),  // super_class
+        ClassRef("helloworld/HelloWorld"),  // this_class
+        ClassRef("java/lang/Object"),  // super_class
         Nil,  // interfaces
         Nil,  // fields
         Seq(
           MethodInfo(_,
-            Cp(Utf8("<init>")),
-            Cp(Utf8("()V")),
+            "<init>",
+            "()V",
             Seq(Code(_, _, initBytes, _, _))
           ),
           MethodInfo(_,
-            Cp(Utf8("main")),
-            Cp(Utf8("([Ljava/lang/String;)V")),
+            "main",
+            "([Ljava/lang/String;)V",
             Seq(Code(_, _, mainBytes, _, _))
           )
         ),  // methods
-        Seq(SourceFile(Cp(Utf8("HelloWorld.java"))))   // attributes
+        Seq(SourceFile("HelloWorld.java"))   // attributes
       ) = classData
     }
     "java.lang.Object" in {
@@ -65,29 +64,29 @@ class ClassloaderTests extends FreeSpec{
         51, // major_version
         _,  // constant_pool
         PublicSuper,  // access_flags
-        Cp(ClassRef(Cp(Utf8("java/lang/Object")))),  // this_class
-        0,  // super_class
+        ClassRef("java/lang/Object"),  // this_class
+        null,  // super_class
         Nil,  // interfaces
         Nil,  // fields
         Seq(
-          MethodInfo(Public, Cp(Utf8("<init>")), Cp(Utf8("()V")), Seq(
+          MethodInfo(Public, "<init>", "()V", Seq(
             Code(_, _, Seq(-79), Nil, Seq(LineNumberTable(Seq(LineNumberData(_, _)))))
           )),
-          MethodInfo(Protected, Cp(Utf8("clone")), Cp(Utf8("()Ljava/lang/Object;")),
-            Seq(Code(_, _, _, _, _), Exceptions(Seq(Cp(ClassRef(Cp(Utf8("java/lang/CloneNotSupportedException")))))))
+          MethodInfo(Protected, "clone", "()Ljava/lang/Object;",
+            Seq(Code(_, _, _, _, _), Exceptions(Seq(ClassRef("java/lang/CloneNotSupportedException"))))
           ),
-          MethodInfo(PrivateStaticNative, Cp(Utf8("clone")), Cp(Utf8("(Ljava/lang/Object;)Ljava/lang/Object;")), Nil),
-          MethodInfo(Access.Public, Cp(Utf8("equals")), Cp(Utf8("(Ljava/lang/Object;)Z")), _),
-          MethodInfo(Access.Protected, Cp(Utf8("finalize")), Cp(Utf8("()V")), _),
-          MethodInfo(PublicFinal, Cp(Utf8("getClass")), Cp(Utf8(_)), _),
-          MethodInfo(PrivateStaticNative, Cp(Utf8("getVMClass")), Cp(Utf8("(Ljava/lang/Object;)Lavian/VMClass;")), Nil),
-          MethodInfo(PublicNative, Cp(Utf8("hashCode")), Cp(Utf8("()I")), Nil),
-          MethodInfo(PublicNativeFinal, Cp(Utf8("notify")), Cp(Utf8("()V")), Nil),
-          MethodInfo(PublicNativeFinal, Cp(Utf8("notifyAll")), Cp(Utf8("()V")), Nil),
-          MethodInfo(PublicNative, Cp(Utf8("toString")), Cp(Utf8("()Ljava/lang/String;")), Nil),
-          MethodInfo(PublicFinal, Cp(Utf8("wait")), Cp(Utf8("()V")), _),
-          MethodInfo(PublicNativeFinal, Cp(Utf8("wait")), Cp(Utf8("(J)V")), _),
-          MethodInfo(PublicFinal, Cp(Utf8("wait")), Cp(Utf8("(JI)V")), _)
+          MethodInfo(PrivateStaticNative, "clone", "(Ljava/lang/Object;)Ljava/lang/Object;", Nil),
+          MethodInfo(Access.Public, "equals", "(Ljava/lang/Object;)Z", _),
+          MethodInfo(Access.Protected, "finalize", "()V", _),
+          MethodInfo(PublicFinal, "getClass", _, _),
+          MethodInfo(PrivateStaticNative, "getVMClass", "(Ljava/lang/Object;)Lavian/VMClass;", Nil),
+          MethodInfo(PublicNative, "hashCode", "()I", Nil),
+          MethodInfo(PublicNativeFinal, "notify", "()V", Nil),
+          MethodInfo(PublicNativeFinal, "notifyAll", "()V", Nil),
+          MethodInfo(PublicNative, "toString", "()Ljava/lang/String;", Nil),
+          MethodInfo(PublicFinal, "wait", "()V", _),
+          MethodInfo(PublicNativeFinal, "wait", "(J)V", _),
+          MethodInfo(PublicFinal, "wait", "(JI)V", _)
         ),  // methods
         _   // attributes
       ) = classData

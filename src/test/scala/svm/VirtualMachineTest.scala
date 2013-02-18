@@ -1,6 +1,6 @@
 package svm
 
-import model.Util
+import parsing.Util
 import org.scalatest.FreeSpec
 import java.io.DataInputStream
 

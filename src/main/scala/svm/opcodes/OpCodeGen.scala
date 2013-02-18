@@ -1,26 +1,19 @@
-package svm.model.opcodes
+package svm.parsing.opcodes
 
 import svm.{Frame, VmThread, VirtualMachine}
-import svm.model.ConstantInfo
+import svm.parsing.ConstantInfo
 
 
 object OpCodeGen {
 
   case class Context(thread: VmThread,
                      frame: Frame,
-                     rcp: Seq[ConstantInfo],
+                     rcp: Seq[Any],
                      stack: List[Any],
                      classes: String => svm.Class,
                      nextByte: () => Byte,
                      returnVal: Option[Any] => Unit){
-    object Cp{
-      def unapply(index: Short): Option[ConstantInfo] = {
-        rcp.lift(index)
-      }
-      def unapply(index: Int): Option[ConstantInfo] = {
-        rcp.lift(index)
-      }
-    }
+
     def twoBytes() = nextByte() << 8 | nextByte()
   }
 
@@ -60,7 +53,7 @@ object OpCodeGen {
   }
 
   case class PushConstOpCode(id: Byte, name: String, pop: Context => Int) extends StackOpCode{
-    def stackOp = (ctx, stack) => ctx.rcp(pop(ctx)).value(ctx.rcp) :: stack
+    def stackOp = (ctx, stack) => ctx.rcp(pop(ctx)) :: stack
   }
 
   case class StoreLocal(id: Byte, name: String, index: Int) extends OpCode{

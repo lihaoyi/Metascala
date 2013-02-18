@@ -1,10 +1,10 @@
-package svm.model
+package svm.parsing
 package opcodes
 
 
-import svm.model.ConstantInfo
+import svm.parsing.ConstantInfo
 import ConstantInfo._
-import svm.model.ConstantInfo
+import svm.parsing.ConstantInfo
 import svm.Frame
 
 
@@ -237,23 +237,26 @@ object OpCodes {
 
   val GetStatic = StackOpCode(178, "getstatic"){case (ctx, stack) =>
     import ctx.{stack => _, _}; import ConstantInfo._
-
-    val Cp(FieldRef(
-      Cp(ClassRef(Cp(Utf8(name)))),
-      Cp(Utf8(fieldName))
-    )) = ctx.twoBytes()
-
+    val index = ctx.twoBytes()
+    println("GetStatic!")
+    println(ctx.rcp(index))
+    val FieldRef(
+      ClassRef(name),
+      NameAndType(fieldName, descriptor)
+    ) = ctx.rcp(index)
+    println(name + " " + fieldName + " " + descriptor)
+    println(ctx.classes)
     val myClass = ctx.classes(name)
-
+    println(myClass)
     myClass.statics(fieldName) :: stack
   }
   val PutStatic = StackOpCode(179, "putstatic"){case (ctx, value :: stack) =>
     import ctx.{stack => _, _}; import ConstantInfo._
 
-    val Cp(FieldRef(
-      Cp(ClassRef(Cp(Utf8(name)))),
-      Cp(Utf8(fieldName))
-    )) = ctx.twoBytes()
+    val FieldRef(
+      ClassRef(name),
+      NameAndType(fieldName, descriptor)
+    ) = ctx.rcp(ctx.twoBytes())
 
     val myClass = ctx.classes(name)
     myClass.statics(fieldName) = value
@@ -264,20 +267,20 @@ object OpCodes {
   val GetField = StackOpCode(180, "getfield"){case (ctx, (objectRef: svm.Object) :: stack) =>
     import ctx.{stack => _, _}; import ConstantInfo._
 
-    val Cp(FieldRef(
+    val FieldRef(
       _,
-      Cp(Utf8(fieldName))
-    )) = ctx.twoBytes()
+      NameAndType(fieldName, descriptor)
+    ) = ctx.rcp(ctx.twoBytes())
 
     objectRef.members(fieldName) :: stack
   }
   val PutField = StackOpCode(181, "putfield"){case (ctx, value :: (objectRef: svm.Object) :: stack) =>
     import ctx.{stack => _, _}; import ConstantInfo._
 
-    val Cp(FieldRef(
+    val FieldRef(
       _,
-      Cp(Utf8(fieldName))
-    )) = ctx.twoBytes()
+      NameAndType(fieldName, descriptor)
+    ) = ctx.rcp(ctx.twoBytes())
 
 
     objectRef.members(fieldName) = value
@@ -289,13 +292,15 @@ object OpCodes {
   val InvokeStatic = OpCode(184, "invokestatic"){case ctx =>
     import ctx._
 
-    val Cp(MethodRef(Cp(ClassRef(Cp(Utf8(className)))), Cp(NameAndType(Cp(Utf8(name)), Cp(Utf8(methodType)))))) = ctx.twoBytes()
+    val MethodRef(
+      ClassRef(className), NameAndType(name, methodType)
+    ) = ctx.rcp(ctx.twoBytes())
     thread.threadStack.push(new Frame(
       runningClass = classes(className),
       method = classes(className)
                  .classFile
                  .methods
-                 .find(x => ctx.rcp(x.name_index) == Utf8(name))
+                 .find(x => x.name == name)
                  .get
 
     ))
@@ -307,7 +312,7 @@ object OpCodes {
   val New = OpCode(187, "new"){case ctx =>
     import ctx.{stack => _, _};
 
-    val Cp(ConstantInfo.ClassRef(nameIndex)) = ctx.twoBytes()
+    val ConstantInfo.ClassRef(name) = ctx.rcp(ctx.twoBytes())
 
     //objectRef.members(fieldName) = value
     //stack
