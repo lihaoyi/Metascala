@@ -5,6 +5,7 @@ package opcodes
 import svm.model.ConstantInfo
 import ConstantInfo._
 import svm.model.ConstantInfo
+import svm.Frame
 
 
 object OpCodes {
@@ -12,7 +13,7 @@ object OpCodes {
   import OpCodeGen._
   implicit def intToByte(n: I) = n.toByte
 
-  val Nop = OpCode(0, "nop"){ (_, _) => ()}
+  val Nop = OpCode(0, "nop")()
   val AConstNull = PushOpCode(1, "aconst_null", null)
   val IConstNull = PushOpCode(2, "iconst_m1", -1)
 
@@ -33,12 +34,12 @@ object OpCodes {
   val DConst0 = PushOpCode(14, "dconst_0", 0d)
   val DConst1 = PushOpCode(15, "dconst_1", 1d)
 
-  val BiPush = PushValOpCode(16, "bipush", b => b(1))
-  val SiPush = PushValOpCode(17,"sipush", b => b(1) << 8 + b(2))
+  val BiPush = PushValOpCode(16, "bipush", ctx => ctx.nextByte())
+  val SiPush = PushValOpCode(17,"sipush", ctx => (ctx.nextByte() << 8) + ctx.nextByte())
 
-  val Ldc = PushConstOpCode(18, "ldc", b => b(1))
-  val LdcW = PushConstOpCode(19, "ldc_w", b => b(1) << 8 + b(2))
-  val Ldc2W = PushConstOpCode(20, "ldc2_w", b => b(1) << 8 + b(2))
+  val Ldc = PushConstOpCode(18, "ldc", ctx => ctx.nextByte())
+  val LdcW = PushConstOpCode(19, "ldc_w", ctx => (ctx.nextByte() << 8) + ctx.nextByte())
+  val Ldc2W = PushConstOpCode(20, "ldc2_w", ctx => (ctx.nextByte() << 8) + ctx.nextByte())
 
   val ILoad = PushLocalIndexed(21, "iLoad", -1)
   val LLoad = PushLocalIndexed(22, "lLoad", -1)
@@ -177,7 +178,7 @@ object OpCodes {
   val IXOr = PureStackOpCode(130, "ixor"){ case s :+ (x: I) :+ (y: I) => s :+ (x ^ y) }
   val LXOr = PureStackOpCode(131, "lxor"){ case s :+ (x: J) :+ (y: I) => s :+ (x ^ y) }
 
-  val IInc = OpCode(132, "iinc"){ case (Seq(index, const), ctx) => ctx.frame.locals = ctx.frame.locals.updated(index, ctx.frame.locals(index).asInstanceOf[Int] + const)}
+  val IInc = OpCode(132, "iinc"){ case ctx => val index = ctx.nextByte(); ctx.frame.locals(index) = ctx.frame.locals(index).asInstanceOf[Int] + ctx.nextByte()}
 
   val I2L = PureStackOpCode(133, "i2l"){ case (x: I) :: s => x.toLong :: s}
   val I2F = PureStackOpCode(134, "i2f"){ case (x: I) :: s => x.toFloat :: s }
@@ -224,87 +225,95 @@ object OpCodes {
   val Goto = UnaryBranch(167, "goto"){x => true}
   val Jsr = JsrBranch(168, "jsr")
   val Ret = RetBranch(169, "ret")
-  val TableSwitch = OpCode(170, "tableswitch")(???)
-  val LookupSwitch = OpCode(171, "lookupswitch")(???)
+  val TableSwitch = OpCode(170, "tableswitch")()
+  val LookupSwitch = OpCode(171, "lookupswitch")()
 
-  val IReturn = ReturnStuff(172, "ireturn")
-  val LReturn = ReturnStuff(173, "lreturn")
-  val FReturn = ReturnStuff(174, "freturn")
-  val DReturn = ReturnStuff(175, "dreturn")
-  val AReturn = ReturnStuff(176, "areturn")
-  val Return = ReturnStuff(177, "return")
+  val IReturn = OpCode(172, "ireturn"){ ctx => ctx.returnVal(Some(ctx.stack.head)) }
+  val LReturn = OpCode(173, "lreturn"){ ctx => ctx.returnVal(Some(ctx.stack.head)) }
+  val FReturn = OpCode(174, "freturn"){ ctx => ctx.returnVal(Some(ctx.stack.head)) }
+  val DReturn = OpCode(175, "dreturn"){ ctx => ctx.returnVal(Some(ctx.stack.head)) }
+  val AReturn = OpCode(176, "areturn"){ ctx => ctx.returnVal(Some(ctx.stack.head)) }
+  val Return = OpCode(177, "return"){ ctx => ctx.returnVal(None) }
 
-  val GetStatic = StackOpCode(178, "getstatic"){case (TwoBytes(i), ctx, stack) =>
+  val GetStatic = StackOpCode(178, "getstatic"){case (ctx, stack) =>
     import ctx.{stack => _, _}; import ConstantInfo._
 
     val Cp(FieldRef(
       Cp(ClassRef(Cp(Utf8(name)))),
       Cp(Utf8(fieldName))
-    )) = i
+    )) = ctx.twoBytes()
 
-    val myClass = ctx.vm.classes(name)
+    val myClass = ctx.classes(name)
 
     myClass.statics(fieldName) :: stack
   }
-  val PutStatic = StackOpCode(179, "putstatic"){case (TwoBytes(i), ctx, value :: stack) =>
+  val PutStatic = StackOpCode(179, "putstatic"){case (ctx, value :: stack) =>
     import ctx.{stack => _, _}; import ConstantInfo._
 
     val Cp(FieldRef(
       Cp(ClassRef(Cp(Utf8(name)))),
       Cp(Utf8(fieldName))
-    )) = i
+    )) = ctx.twoBytes()
 
-    val myClass = ctx.vm.classes(name)
+    val myClass = ctx.classes(name)
     myClass.statics(fieldName) = value
 
     stack
   }
 
-  val GetField = StackOpCode(180, "getfield"){case (TwoBytes(i), ctx, (objectRef: svm.Object) :: stack) =>
+  val GetField = StackOpCode(180, "getfield"){case (ctx, (objectRef: svm.Object) :: stack) =>
     import ctx.{stack => _, _}; import ConstantInfo._
 
     val Cp(FieldRef(
       _,
       Cp(Utf8(fieldName))
-    )) = i
+    )) = ctx.twoBytes()
 
     objectRef.members(fieldName) :: stack
   }
-  val PutField = StackOpCode(181, "putfield"){case (TwoBytes(i), ctx, value :: (objectRef: svm.Object) :: stack) =>
+  val PutField = StackOpCode(181, "putfield"){case (ctx, value :: (objectRef: svm.Object) :: stack) =>
     import ctx.{stack => _, _}; import ConstantInfo._
 
     val Cp(FieldRef(
       _,
       Cp(Utf8(fieldName))
-    )) = i
+    )) = ctx.twoBytes()
 
 
     objectRef.members(fieldName) = value
     stack
   }
 
-  val InvokeVirtual = OpCode(182, "invokevirtual")(???)
-  val InvokeSpecial = OpCode(183, "invokespecial")(???)
-  val InvokeStatic = OpCode(184, "invokestatic"){case (TwoBytes(i), ctx) =>
+  val InvokeVirtual = OpCode(182, "invokevirtual")()
+  val InvokeSpecial = OpCode(183, "invokespecial")()
+  val InvokeStatic = OpCode(184, "invokestatic"){case ctx =>
     import ctx._
 
-    val Cp(MethodRef(Cp(ClassRef(classIndex)), Cp(NameAndType(Cp(Utf8(name)), Cp(Utf8(methodType)))))) = i
+    val Cp(MethodRef(Cp(ClassRef(Cp(Utf8(className)))), Cp(NameAndType(Cp(Utf8(name)), Cp(Utf8(methodType)))))) = ctx.twoBytes()
+    thread.threadStack.push(new Frame(
+      runningClass = classes(className),
+      method = classes(className)
+                 .classFile
+                 .methods
+                 .find(x => ctx.rcp(x.name_index) == Utf8(name))
+                 .get
 
+    ))
     //new Array[Object](count) :: stack
   }
-  val InvokeInterface = OpCode(185, "invokeinterface")(???)
-  val InvokeDynamic = OpCode(186, "invokedynamic")(???)
+  val InvokeInterface = OpCode(185, "invokeinterface")()
+  val InvokeDynamic = OpCode(186, "invokedynamic")()
 
-  val New = OpCode(187, "new"){case (TwoBytes(i), ctx) =>
+  val New = OpCode(187, "new"){case ctx =>
     import ctx.{stack => _, _};
 
-    val Cp(ConstantInfo.ClassRef(nameIndex)) = i
+    val Cp(ConstantInfo.ClassRef(nameIndex)) = ctx.twoBytes()
 
     //objectRef.members(fieldName) = value
     //stack
   }
-  val NewArray = StackOpCode(188, "newarray"){case (Seq(atype), ctx, (count: Int) :: stack) =>
-    val newArray = atype match{
+  val NewArray = StackOpCode(188, "newarray"){case (ctx, (count: Int) :: stack) =>
+    val newArray = ctx.nextByte() match{
       case 4 => new Array[Boolean](count)
       case 5 => new Array[Char](count)
       case 6 => new Array[Float](count)
@@ -316,39 +325,40 @@ object OpCodes {
     }
     newArray :: stack
   }
-  val ANewArray = StackOpCode(189, "anewarray"){case (TwoBytes(i), ctx, (count: Int) :: stack) =>
+  val ANewArray = StackOpCode(189, "anewarray"){case (ctx, (count: Int) :: stack) =>
+    ctx.twoBytes()
     new Array[Object](count) :: stack
   }
 
   val ArrayLength = PureStackOpCode(190, "arraylength"){case (array: Array[_]) :: stack =>
     array.length :: stack
   }
-  val AThrow = OpCode(191, "athrow")(???)
-  val CheckCast = OpCode(192, "checkcast")(???)
-  val InstanceOf = OpCode(193, "instanceof")(???)
-  val MonitorEnter = OpCode(194, "monitorenter")(???)
-  val MonitorExit = OpCode(195, "monitorexit")(???)
-  val Wide = OpCode(196, "wide")(???)
-  val MultiANewArray = StackOpCode(197, "multianewarray"){case (Seq(b1, b2, dimCount), ctx, stack) =>
-    val i = b1 << 8 | b2
-    val (dims, newStack) = stack.splitAt(dimCount)
+  val AThrow = OpCode(191, "athrow")()
+  val CheckCast = OpCode(192, "checkcast")()
+  val InstanceOf = OpCode(193, "instanceof")()
+  val MonitorEnter = OpCode(194, "monitorenter")()
+  val MonitorExit = OpCode(195, "monitorexit")()
+  val Wide = OpCode(196, "wide")()
+  val MultiANewArray = StackOpCode(197, "multianewarray"){case (ctx, stack) =>
+    val i = ctx.nextByte() << 8 | ctx.nextByte()
+    val (dims, newStack) = stack.splitAt(ctx.nextByte())
     val dimArray = dims.map(x => x.asInstanceOf[Int])
     val array = java.lang.reflect.Array.newInstance(classOf[Object], dimArray:_*)
     array :: newStack
   }
 
-  val IfNull = StackOpCode(198, "ifnull"){case (TwoBytes(offset), ctx, ref :: stack) =>
-    if (ref == null) ctx.frame.pc = ctx.frame.pc + offset
+  val IfNull = StackOpCode(198, "ifnull"){case (ctx, ref :: stack) =>
+    if (ref == null) ctx.frame.pc = ctx.frame.pc + ctx.twoBytes()
     stack
   }
-  val IfNonNull = StackOpCode(199, "ifnonnull"){case (TwoBytes(offset), ctx, ref :: stack) =>
-    if (ref != null) ctx.frame.pc = ctx.frame.pc + offset
+  val IfNonNull = StackOpCode(199, "ifnonnull"){case (ctx, ref :: stack) =>
+    if (ref != null) ctx.frame.pc = ctx.frame.pc + ctx.twoBytes()
     stack
   }
 
-  val GotoW = OpCode(200, "goto_w")(???)
-  val JsrW = OpCode(201, "jsr_w")(???)
-
+  val GotoW = OpCode(200, "goto_w")()
+  val JsrW = OpCode(201, "jsr_w")()
+  def apply(n: Int) = all((n + 256) % 256)
   val all = Seq(
     Nop,
     AConstNull,
@@ -371,6 +381,46 @@ object OpCodes {
     Ldc,
     LdcW,
     Ldc2W,
+
+    ILoad,
+    LLoad,
+    FLoad,
+    DLoad,
+    ALoad,
+
+    ILoad0,
+    ILoad1,
+    ILoad2,
+    ILoad3,
+
+    LLoad0,
+    LLoad1,
+    LLoad2,
+    LLoad3,
+
+    FLoad0,
+    FLoad1,
+    FLoad2,
+    FLoad3,
+
+    DLoad0,
+    DLoad1,
+    DLoad2,
+    DLoad3,
+
+    ALoad0,
+    ALoad1,
+    ALoad2,
+    ALoad3,
+
+    IALoad,
+    LALoad,
+    FALoad,
+    DALoad,
+    AALoad,
+    BALoad,
+    CALoad,
+    SALoad,
 
     IStore,
     LStore,
@@ -402,42 +452,6 @@ object OpCodes {
     AStore1,
     AStore2,
     AStore3,
-
-    IAStore,
-    LAStore,
-    FAStore,
-    DAStore,
-    AAStore,
-    BAStore,
-    CAStore,
-    SAStore,
-
-    IStore,
-    LStore,
-    FStore,
-    DStore,
-    AStore,
-
-    IStore0,
-    IStore1,
-    IStore2,
-    IStore3,
-
-    FStore0,
-    FStore1,
-    FStore2,
-    FStore3,
-
-    DStore0,
-    DStore1,
-    DStore2,
-    DStore3,
-
-    AStore0,
-    AStore1,
-    AStore2,
-    AStore3,
-
 
     IAStore,
     LAStore,

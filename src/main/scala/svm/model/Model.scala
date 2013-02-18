@@ -9,7 +9,7 @@ object ClassFile{
     val magic = u4
     val minor_version = u2
     val major_version = u2
-    implicit val constant_pool = DummyZeroConstant +: (u2-1) ** ConstantInfo.item(input)
+    implicit val constant_pool = DummyZeroConstant +: ((u2-1) *** ConstantInfo.item(input))
 
     ClassFile(
       magic,

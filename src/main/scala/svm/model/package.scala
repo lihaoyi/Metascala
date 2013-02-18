@@ -18,6 +18,15 @@ package object model {
   implicit def createArray(n: Short) = new createArray(n: Int)
   implicit class createArray[A](n: Int){
     def **[A](f: => A) = (0 until n).map{_ => f}
+    def ***[A](f: => Seq[A]) = {
+      var out = Seq[Seq[A]]()
+      var count = 0
+      while(count < n){
+        out = f +: out
+        count += out.head.length
+      }
+      out.reverse.flatten
+    }
   }
 
 

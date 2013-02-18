@@ -13,85 +13,86 @@ class ClassloaderTests extends FreeSpec{
     cp.lift(index)
   }}
 
+  "loading class files" - {
+    "hello world" in {
 
-  "hello world" in {
+      val files = Util.compile("helloworld")
+      val classData = ClassFile.read(ByteBuffer.wrap(files("helloworld.HelloWorld")))
+      Util.printClass(files("helloworld.HelloWorld"))
+      implicit val constantPool = classData.constant_pool
+      val AccessFlags = (Access.Super | Access.Public)
+      val ClassFile(
+        0xcafebabe,  // magic
+        0,  // minor_version
+        51, // major_version
+        _,  // constant_pool
+        AccessFlags,  // access_flags
+        Cp(ClassRef(Cp(Utf8("helloworld/HelloWorld")))),  // this_class
+        Cp(ClassRef(Cp(Utf8("java/lang/Object")))),  // super_class
+        Nil,  // interfaces
+        Nil,  // fields
+        Seq(
+          MethodInfo(_,
+            Cp(Utf8("<init>")),
+            Cp(Utf8("()V")),
+            Seq(Code(_, _, initBytes, _, _))
+          ),
+          MethodInfo(_,
+            Cp(Utf8("main")),
+            Cp(Utf8("([Ljava/lang/String;)V")),
+            Seq(Code(_, _, mainBytes, _, _))
+          )
+        ),  // methods
+        Seq(SourceFile(Cp(Utf8("HelloWorld.java"))))   // attributes
+      ) = classData
+    }
+    "java.lang.Object" in {
+      val classBytes = getClass.getResourceAsStream("/classpath/java/lang/Object.class")
+      val byteArray = new Array[Byte](classBytes.available())
+      new DataInputStream(classBytes).readFully(byteArray)
+      //Util.printClass(byteArray)
+      val classData = ClassFile.read(ByteBuffer.wrap(byteArray))
+      implicit val constantPool = classData.constant_pool
+      import Access._
+      val PublicSuper = (Super | Public)
+      val PublicNative = Public | Native
+      val PublicFinal = Public | Final
+      val PublicNativeFinal = PublicNative | Final
+      val PrivateStaticNative = Private | Static | Native
+      val ClassFile(
+        0xcafebabe,  // magic
+        0,  // minor_version
+        51, // major_version
+        _,  // constant_pool
+        PublicSuper,  // access_flags
+        Cp(ClassRef(Cp(Utf8("java/lang/Object")))),  // this_class
+        0,  // super_class
+        Nil,  // interfaces
+        Nil,  // fields
+        Seq(
+          MethodInfo(Public, Cp(Utf8("<init>")), Cp(Utf8("()V")), Seq(
+            Code(_, _, Seq(-79), Nil, Seq(LineNumberTable(Seq(LineNumberData(_, _)))))
+          )),
+          MethodInfo(Protected, Cp(Utf8("clone")), Cp(Utf8("()Ljava/lang/Object;")),
+            Seq(Code(_, _, _, _, _), Exceptions(Seq(Cp(ClassRef(Cp(Utf8("java/lang/CloneNotSupportedException")))))))
+          ),
+          MethodInfo(PrivateStaticNative, Cp(Utf8("clone")), Cp(Utf8("(Ljava/lang/Object;)Ljava/lang/Object;")), Nil),
+          MethodInfo(Access.Public, Cp(Utf8("equals")), Cp(Utf8("(Ljava/lang/Object;)Z")), _),
+          MethodInfo(Access.Protected, Cp(Utf8("finalize")), Cp(Utf8("()V")), _),
+          MethodInfo(PublicFinal, Cp(Utf8("getClass")), Cp(Utf8(_)), _),
+          MethodInfo(PrivateStaticNative, Cp(Utf8("getVMClass")), Cp(Utf8("(Ljava/lang/Object;)Lavian/VMClass;")), Nil),
+          MethodInfo(PublicNative, Cp(Utf8("hashCode")), Cp(Utf8("()I")), Nil),
+          MethodInfo(PublicNativeFinal, Cp(Utf8("notify")), Cp(Utf8("()V")), Nil),
+          MethodInfo(PublicNativeFinal, Cp(Utf8("notifyAll")), Cp(Utf8("()V")), Nil),
+          MethodInfo(PublicNative, Cp(Utf8("toString")), Cp(Utf8("()Ljava/lang/String;")), Nil),
+          MethodInfo(PublicFinal, Cp(Utf8("wait")), Cp(Utf8("()V")), _),
+          MethodInfo(PublicNativeFinal, Cp(Utf8("wait")), Cp(Utf8("(J)V")), _),
+          MethodInfo(PublicFinal, Cp(Utf8("wait")), Cp(Utf8("(JI)V")), _)
+        ),  // methods
+        _   // attributes
+      ) = classData
 
-    val files = Util.compile("helloworld")
-    val classData = ClassFile.read(ByteBuffer.wrap(files("helloworld.HelloWorld")))
-    Util.printClass(files("helloworld.HelloWorld"))
-    implicit val constantPool = classData.constant_pool
-    val AccessFlags = (Access.Super | Access.Public)
-    val ClassFile(
-      0xcafebabe,  // magic
-      0,  // minor_version
-      51, // major_version
-      _,  // constant_pool
-      AccessFlags,  // access_flags
-      Cp(ClassRef(Cp(Utf8("helloworld/HelloWorld")))),  // this_class
-      Cp(ClassRef(Cp(Utf8("java/lang/Object")))),  // super_class
-      Nil,  // interfaces
-      Nil,  // fields
-      Seq(
-        MethodInfo(_,
-          Cp(Utf8("<init>")),
-          Cp(Utf8("()V")),
-          Seq(Code(_, _, initBytes, _, _))
-        ),
-        MethodInfo(_,
-          Cp(Utf8("main")),
-          Cp(Utf8("([Ljava/lang/String;)V")),
-          Seq(Code(_, _, mainBytes, _, _))
-        )
-      ),  // methods
-      Seq(SourceFile(Cp(Utf8("HelloWorld.java"))))   // attributes
-    ) = classData
-
-    println(initBytes)
-
-    println(mainBytes)
-  }
-  "java.lang.Object" in {
-    val classBytes = getClass.getResourceAsStream("/classpath/java/lang/Object.class")
-    val byteArray = new Array[Byte](classBytes.available())
-    new DataInputStream(classBytes).readFully(byteArray)
-    //Util.printClass(byteArray)
-    val classData = ClassFile.read(ByteBuffer.wrap(byteArray))
-    implicit val constantPool = classData.constant_pool
-
-    val AccessFlags = (Access.Super | Access.Public)
-    val ClassFile(
-      0xcafebabe,  // magic
-      0,  // minor_version
-      51, // major_version
-      _,  // constant_pool
-      AccessFlags,  // access_flags
-      Cp(ClassRef(Cp(Utf8("java/lang/Object")))),  // this_class
-      0,  // super_class
-      Nil,  // interfaces
-      Nil,  // fields
-      Seq(
-        MethodInfo(Access.Public, Cp(Utf8("<init>")), Cp(Utf8("()V")), Seq(
-          Code(_, _, Seq(-79), Nil, Seq(LineNumberTable(Seq(LineNumberData(_, _)))))
-        )),
-        MethodInfo(Access.Protected, Cp(Utf8("clone")), Cp(Utf8("()Ljava/lang/Object;")),
-          Seq(Code(_, _, _, _, _), Exceptions(Seq(Cp(ClassRef(Cp(Utf8("java/lang/CloneNotSupportedException")))))))
-        ),
-        MethodInfo(_, Cp(Utf8("clone")), Cp(Utf8("(Ljava/lang/Object;)Ljava/lang/Object;")), Nil),
-        MethodInfo(Access.Public, Cp(Utf8("equals")), Cp(Utf8("(Ljava/lang/Object;)Z")), _),
-        MethodInfo(Access.Protected, Cp(Utf8("finalize")), Cp(Utf8("()V")), _),
-        MethodInfo(_, Cp(Utf8("getClass")), Cp(Utf8(_)), _),
-        MethodInfo(_, Cp(Utf8("getVMClass")), Cp(Utf8("(Ljava/lang/Object;)Lavian/VMClass;")), _),
-        MethodInfo(_, Cp(Utf8("hashCode")), Cp(Utf8("()I")), _),
-        MethodInfo(_, Cp(Utf8("notify")), Cp(Utf8("()V")), _),
-        MethodInfo(_, Cp(Utf8("notifyAll")), Cp(Utf8("()V")), _),
-        MethodInfo(_, Cp(Utf8("toString")), Cp(Utf8("()Ljava/lang/String;")), _),
-        MethodInfo(_, Cp(Utf8("wait")), Cp(Utf8("()V")), _),
-        MethodInfo(_, Cp(Utf8("wait")), Cp(Utf8("(J)V")), _),
-        MethodInfo(_, Cp(Utf8("wait")), Cp(Utf8("(JI)V")), _)
-      ),  // methods
-      _   // attributes
-    ) = classData
-
+    }
   }
   "TypeDescriptor tests" - {
     "hello word" in {
