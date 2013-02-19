@@ -6,6 +6,7 @@ import svm.model.ConstantInfo
 import ConstantInfo._
 import svm.model.ConstantInfo
 import svm.Frame
+import collection.mutable
 
 
 object OpCodes {
@@ -292,13 +293,16 @@ object OpCodes {
     val MethodRef(
       ClassRef(className), NameAndTypeInfo(name, methodType)
     ) = ctx.rcp(ctx.twoBytes())
+    val cls = classes(className)
+    val method = cls.classFile
+                    .methods
+                    .find(_.name == name)
+                    .get
+
     thread.threadStack.push(new Frame(
-      runningClass = classes(className),
-      method = classes(className)
-                 .classFile
-                 .methods
-                 .find(x => x.name == name)
-                 .get
+      runningClass = cls,
+      method = method,
+      locals = mutable.Seq.fill(method.code.maxLocals)(null)
 
     ))
     //new Array[Object](count) :: stack
@@ -360,6 +364,7 @@ object OpCodes {
 
   val GotoW = OpCode(200, "goto_w")()
   val JsrW = OpCode(201, "jsr_w")()
+
   def apply(n: Int) = all((n + 256) % 256)
   val all = Seq(
     Nop,

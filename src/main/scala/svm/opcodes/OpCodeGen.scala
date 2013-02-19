@@ -14,7 +14,7 @@ object OpCodeGen {
     def stack = frame.stack
     def twoBytes() = nextByte() << 8 | nextByte()
     def nextByte() = {
-      val bytes = frame.method.attributes.collect{case x: Code => x: Code}.head.code
+      val bytes = frame.method.attributes.collect{case x: Code => x: Code}.head.bytes
       val result = bytes(frame.pc)
       frame.pc += 1
       result
@@ -68,7 +68,13 @@ object OpCodeGen {
   case class StoreLocal(id: Byte, name: String, index: Int) extends OpCode{
     def op = { ctx =>
       val (last :: newOpStack) = ctx.frame.stack
-      val newIndex = if (index > 0) index else ctx.nextByte()
+      println("omgomgomg")
+      println(index)
+      val newIndex = if (index >= 0) index else ctx.nextByte()
+
+      println(ctx.frame.locals.length)
+      println(newIndex)
+      println("wtfwtfwtf")
       ctx.frame.locals(newIndex) = last
       ctx.frame.stack = newOpStack
     }
@@ -76,8 +82,8 @@ object OpCodeGen {
 
   case class PushLocalIndexed(id: Byte, name: String, index: Int) extends OpCode{
     def op = { ctx =>
-      val newIndex = if (index > 0) index else ctx.nextByte()
-      ctx.frame.stack :+ ctx.frame.locals(newIndex)
+      val newIndex = if (index >= 0) index else ctx.nextByte()
+      ctx.frame.stack = ctx.frame.locals(newIndex) :: ctx.frame.stack
     }
   }
 

@@ -17,21 +17,21 @@ import java.util.concurrent.Callable;
  * control flow when calling continuations.
  *
  * <p>A continuation is a snapshot of a thread's call stack which can
- * be captured via <code>callWithCurrentContinuation</code> and later
+ * be captured via <bytes>callWithCurrentContinuation</bytes> and later
  * restored any number of times.  The program may restore this
  * snapshot by either feeding it a result (to be returned by
- * <code>callWithCurrentContinuation</code>) or feeding it an
+ * <bytes>callWithCurrentContinuation</bytes>) or feeding it an
  * exception (to be thrown by
- * <code>callWithCurrentContinuation</code>).  Continuations may be
+ * <bytes>callWithCurrentContinuation</bytes>).  Continuations may be
  * used to implement features such as coroutines, generators, and
  * cooperative multitasking.
  *
  * <p>This class provides two static methods,
- * <code>callWithCurrentContinuation</code> and
- * <code>dynamicWind</code>, with similar semantics to the Scheme
- * functions <code>call-with-current-continuation</code> and
- * <code>dynamic-wind</code>, respectively.  In addition, we define
- * how continuations work with respect to native code, exceptions,
+ * <bytes>callWithCurrentContinuation</bytes> and
+ * <bytes>dynamicWind</bytes>, with similar semantics to the Scheme
+ * functions <bytes>call-with-current-continuation</bytes> and
+ * <bytes>dynamic-wind</bytes>, respectively.  In addition, we define
+ * how continuations work with respect to native bytes, exceptions,
  * try/finally blocks, synchronized blocks, and multithreading.
  *
  * <h3>Continuations and Continuation Contexts</h3>
@@ -43,9 +43,9 @@ import java.util.concurrent.Callable;
  * recent chain of Java frames - it ends just prior to the most recent
  * native frame in the stack.  The reason for this is that the VM
  * cannot, in general, safely capture and restore native frames.
- * Therefore, each call from native code to Java (including the
- * original invocation of <code>main(String[])</code> or
- * <code>Thread.run()</code>) represents a new continuation context in
+ * Therefore, each call from native bytes to Java (including the
+ * original invocation of <bytes>main(String[])</bytes> or
+ * <bytes>Thread.run()</bytes>) represents a new continuation context in
  * which continuations may be captured, and these will only contain
  * frames from within that context.
  *
@@ -67,8 +67,8 @@ import java.util.concurrent.Callable;
  *
  * <ul>
  *
- *   <li>If the return type of "A" is <code>void</code>, the return
- *   type of "B" may be anything, including <code>void</code></li>
+ *   <li>If the return type of "A" is <bytes>void</bytes>, the return
+ *   type of "B" may be anything, including <bytes>void</bytes></li>
  *
  *   <li>If the return type of "A" is a primitive type, the return
  *   type of "B" must match exactly</li>
@@ -113,7 +113,7 @@ import java.util.concurrent.Callable;
  *
  * <p>Alternatively, one might wish to acquire and release a resource
  * each time control (re)winds to or unwinds from a continuation,
- * respectively.  In this case, one may use <code>dynamicWind</code>
+ * respectively.  In this case, one may use <bytes>dynamicWind</bytes>
  * to register functions which will run every time that frame is
  * passed, regardless of how the stack is wound or unwound.
  */
@@ -125,7 +125,7 @@ public class Continuations {
    * specified receiver.
    *
    * <p>This method will either return the result returned by
-   * <code>receiver.receive(Callback)</code>, propagate the exception
+   * <bytes>receiver.receive(Callback)</bytes>, propagate the exception
    * thrown by that method, return the result passed to the
    * handleResult(T) method of the continuation, or throw the
    * exception passed to the handleException(Throwable) method of the
@@ -139,28 +139,28 @@ public class Continuations {
    * continuation containing the call is wound or unwound,
    * respectively.
    *
-   * <p>This method first calls <code>before.run()</code>, then
-   * <code>thunk.call()</code>, and finally <code>after.run()</code>,
+   * <p>This method first calls <bytes>before.run()</bytes>, then
+   * <bytes>thunk.call()</bytes>, and finally <bytes>after.run()</bytes>,
    * returning the result of the second call.  If
-   * <code>before.run()</code> does not return normally, the second
-   * and third calls will not happen.  If <code>thunk.call()</code>
-   * throws an exception, <code>after.run()</code>, will be called
+   * <bytes>before.run()</bytes> does not return normally, the second
+   * and third calls will not happen.  If <bytes>thunk.call()</bytes>
+   * throws an exception, <bytes>after.run()</bytes>, will be called
    * before the exception is propagated.
    *
-   * <p>If <code>thunk.call()</code> calls a continuation (directly or
+   * <p>If <bytes>thunk.call()</bytes> calls a continuation (directly or
    * via a subroutine) which does not include the current call to
-   * <code>dynamicWind</code>, <code>after.run()</code> will be called
+   * <bytes>dynamicWind</bytes>, <bytes>after.run()</bytes> will be called
    * before control passes to that continuation.  If this call throws
    * an exception, the exception will propagate to the current caller
-   * of <code>dynamicWind</code>.
+   * of <bytes>dynamicWind</bytes>.
    *
-   * <p>If <code>thunk.call()</code> creates a continuation which is
+   * <p>If <bytes>thunk.call()</bytes> creates a continuation which is
    * later called from a continuation which does not include the
-   * current call to <code>dynamicWind</code>,
-   * <code>before.run()</code> will be called before control passes to
+   * current call to <bytes>dynamicWind</bytes>,
+   * <bytes>before.run()</bytes> will be called before control passes to
    * that continuation.  As above, if this call throws an exception,
    * the exception will propagate to the current caller of
-   * <code>dynamicWind</code>.
+   * <bytes>dynamicWind</bytes>.
    */
   public static <T> T dynamicWind(Runnable before,
                                   Callable<T> thunk,

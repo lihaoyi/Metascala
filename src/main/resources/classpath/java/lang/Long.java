@@ -146,7 +146,7 @@ public final class Long extends Number implements Comparable<Long> {
         number += digit * factor;
         factor /= radix;
       } else {
-        throw new NumberFormatException("invalid character " + c + " code " +
+        throw new NumberFormatException("invalid character " + c + " bytes " +
                                         (int) c);
       }
     }

@@ -1,8 +1,10 @@
-package svm
+package svm.helloworld
 
 import org.scalatest.FreeSpec
 import java.io.DataInputStream
-import svm.Util.SingleClassVirtualMachine
+import svm.Util._
+import svm.Util
+import scala.Some
 
 class MathTest extends FreeSpec{
   import Util.loadClass

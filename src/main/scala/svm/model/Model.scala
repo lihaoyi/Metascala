@@ -2,6 +2,7 @@ package svm.model
 
 import java.nio.ByteBuffer
 import svm.model.ConstantInfo.{ClassRef, ZeroConstant}
+import svm.model.Attribute.Code
 
 
 object ClassFile{
@@ -68,6 +69,9 @@ object MethodInfo{
 case class MethodInfo(access_flags: u2,
                       name: String,
                       descriptor: String,
-                      attributes: Seq[Attribute])
+                      attributes: Seq[Attribute]){
+  lazy val code = codeOpt.get
+  lazy val codeOpt = attributes.collect{case x: Code => x}.headOption
+}
 
 

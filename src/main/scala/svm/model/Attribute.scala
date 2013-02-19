@@ -9,9 +9,9 @@ import svm.model.Attribute.LocalVariableTable.LocalVariableData
 object Attribute{
   def read(implicit cp: Seq[Any], input: ByteBuffer): Attribute = {
     val index = u2
-    val attribute_name = cp(index)
-    val attribute_length = u4
-    attribute_name match {
+    val attributeName = cp(index)
+    val attributeLength = u4
+    attributeName match {
       case "ConstantValue" => ConstantValue.read
       case "Code" => Code.read
       case "Exceptions" => Exceptions.read
@@ -23,7 +23,7 @@ object Attribute{
       case "LocalVariableTable" => LocalVariableTable.read
       case "Deprecated" => Deprecated
       case "StackMapTable" =>
-        input.get(new Array[Byte](attribute_length))
+        input.get(new Array[Byte](attributeLength))
         new Attribute {}
     }
   }
@@ -51,13 +51,13 @@ object Attribute{
         ExceptionData(u2, u2, u2, cp(u2).asInstanceOf[ClassRef])
       }
     }
-    case class ExceptionData(start_pc: u2, end_pc: u2, handler_pc: u2, catch_type: ClassRef)
+    case class ExceptionData(startPc: u2, endPc: u2, handlerPc: u2, catchType: ClassRef)
   }
-  case class Code(max_stack: u2,
-                  max_locals: u2,
-                  code: Seq[Byte],
-                  exception_table: Seq[Code.ExceptionData],
-                  attribute_info: Seq[Attribute])
+  case class Code(maxStack: u2,
+                  maxLocals: u2,
+                  bytes: Seq[Byte],
+                  exceptionTable: Seq[Code.ExceptionData],
+                  attributeInfo: Seq[Attribute])
                   extends Attribute
 
   object Exceptions{
@@ -86,7 +86,7 @@ object Attribute{
     case class ClassData(innerClass: ClassRef,
                          outerClass: ClassRef,
                          innerName: String,
-                         inner_class_access_flags: u2)
+                         innerClassAccessFlags: u2)
                          extends Attribute
   }
   case class InnerClasses(classes: Seq[ClassData]) extends Attribute
@@ -120,10 +120,10 @@ object Attribute{
         LineNumberData(u2, u2)
       }
     }
-    case class LineNumberData(start_pc: u2,
-                              line_number: u2)
+    case class LineNumberData(startPc: u2,
+                              lineNumber: u2)
   }
-  case class LineNumberTable(line_number_table: Seq[LineNumberData])
+  case class LineNumberTable(lineNumberTable: Seq[LineNumberData])
                              extends Attribute
 
   object LocalVariableTable{
@@ -144,14 +144,14 @@ object Attribute{
         )
       }
     }
-    case class LocalVariableData(start_pc: u2,
+    case class LocalVariableData(startPc: u2,
                                  length: u2,
                                  name: String,
                                  descriptor: String,
                                  index: u2)
 
   }
-  case class LocalVariableTable(local_variable_table: Seq[LocalVariableData])
+  case class LocalVariableTable(localVariableTable: Seq[LocalVariableData])
                                 extends Attribute
 
 

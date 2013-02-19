@@ -48,27 +48,29 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
 
   def step() = {
     val topFrame = threadStack.head
-    val bytes = topFrame.method.attributes.collect{case x: Code => x: Code}.head.code
+    val bytes = topFrame.method.code.bytes
     val opcode = OpCodes(bytes(topFrame.pc))
 
     topFrame.pc += 1
+    println("-------------------------------------- "+opcode)
     opcode.op(Context(this))
+    println(topFrame.stack)
   }
 
   def invoke(cls: Class, method: MethodInfo) = {
-    val invokeId = util.Random.nextInt(100)
-    val code = method.attributes.collect{case x: Code => x: Code}.head
-
+    println("Invoking " + method.name)
+    println(method.code)
     val dummyFrame = new Frame(
       runningClass = cls,
       method = MethodInfo(0.toShort, "Dummy", "", Nil),
-      locals = mutable.Seq(),
+      locals = mutable.Seq.empty,
       stack = Nil
     )
+    println("MaxLocals " + method.code.maxLocals)
     val startFrame = new Frame(
       runningClass = cls,
       method = method,
-      locals = mutable.Seq.fill(code.max_locals)(null),
+      locals = mutable.Seq.fill(method.code.maxLocals)(null),
       stack = Nil
     )
 
@@ -76,6 +78,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
 
     while(threadStack.head != dummyFrame) step()
 
+    println("Ending " + method.name)
     threadStack.pop().stack.headOption
   }
 }
@@ -84,7 +87,7 @@ class Frame(
   var pc: Int = 0,
   val runningClass: Class,
   val method: MethodInfo,
-  val locals: mutable.Seq[Any] = mutable.Seq(),
+  val locals: mutable.Seq[Any] = mutable.Seq.empty,
   var stack: List[Any] = Nil){
 
 }

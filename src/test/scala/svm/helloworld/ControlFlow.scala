@@ -1,7 +1,9 @@
-package svm
+package svm.helloworld
 
 import org.scalatest.FreeSpec
-import svm.Util.SingleClassVirtualMachine
+import svm.Util._
+import svm.Util
+import scala.Some
 
 class ControlFlow extends FreeSpec{
   import Util.loadClass
