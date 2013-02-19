@@ -1,7 +1,6 @@
 package svm
 
 import model.Attribute.Code
-import model.ConstantInfo.Utf8Info
 import model.opcodes.OpCodeGen.Context
 import model.opcodes.OpCodes
 import model.{MethodInfo, ClassFile}
@@ -45,7 +44,17 @@ class VirtualMachine(classLoader: String => Array[Byte]){
   }
 }
 
-class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), classes: String => svm.Class){
+class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val classes: String => svm.Class){
+
+  def step() = {
+    val topFrame = threadStack.head
+    val bytes = topFrame.method.attributes.collect{case x: Code => x: Code}.head.code
+    val opcode = OpCodes(bytes(topFrame.pc))
+
+    topFrame.pc += 1
+    opcode.op(Context(this))
+  }
+
   def invoke(cls: Class, method: MethodInfo) = {
     val invokeId = util.Random.nextInt(100)
     val code = method.attributes.collect{case x: Code => x: Code}.head
@@ -62,33 +71,11 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), classes:
       locals = mutable.Seq.fill(code.max_locals)(null),
       stack = Nil
     )
+
     threadStack.push(dummyFrame, startFrame)
 
+    while(threadStack.head != dummyFrame) step()
 
-    while(threadStack.head != dummyFrame){
-      val topFrame = threadStack.head
-      val bytes = topFrame.method.attributes.collect{case x: Code => x: Code}.head.code
-      val opcode = OpCodes(bytes(topFrame.pc))
-
-      val ctx = Context(
-        this,
-        topFrame,
-        topFrame.runningClass.classFile.constant_pool,
-        topFrame.stack,
-        classes,
-        {() =>
-          val result = bytes(topFrame.pc)
-          topFrame.pc += 1
-          result
-        },
-        { x =>
-          threadStack.pop()
-          x.foreach(value => threadStack.head.stack = value :: threadStack.head.stack)
-        }
-      )
-      topFrame.pc += 1
-      opcode.op(ctx)
-    }
     threadStack.pop().stack.headOption
   }
 }

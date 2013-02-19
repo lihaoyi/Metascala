@@ -2,19 +2,27 @@ package svm.model.opcodes
 
 import svm.{Frame, VmThread, VirtualMachine}
 import svm.model.ConstantInfo
+import svm.model.Attribute.Code
 
 
 object OpCodeGen {
 
-  case class Context(thread: VmThread,
-                     frame: Frame,
-                     rcp: Seq[Any],
-                     stack: List[Any],
-                     classes: String => svm.Class,
-                     nextByte: () => Byte,
-                     returnVal: Option[Any] => Unit){
-
+  case class Context(thread: VmThread){
+    def classes = thread.classes
+    def frame = thread.threadStack.head
+    def rcp = frame.runningClass.classFile.constant_pool
+    def stack = frame.stack
     def twoBytes() = nextByte() << 8 | nextByte()
+    def nextByte() = {
+      val bytes = frame.method.attributes.collect{case x: Code => x: Code}.head.code
+      val result = bytes(frame.pc)
+      frame.pc += 1
+      result
+    }
+    def returnVal(x: Option[Any]) = {
+      thread.threadStack.pop()
+      x.foreach(value => thread.threadStack.head.stack = value :: thread.threadStack.head.stack)
+    }
   }
 
   object OpCode{ // mutates the world
