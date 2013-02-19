@@ -32,13 +32,11 @@ class VirtualMachine(classLoader: String => Array[Byte]){
   }
 
   def run(bootClass: String, mainMethod: String) = {
-    val bc = classes(bootClass)
-    val cp = bc.classFile.constant_pool
-    //println("Looking for: " + mainMethod)
+    val bc = getClassFor(bootClass)
 
     threads(0).run(
       bc,
-      classes(bootClass)
+      getClassFor(bootClass)
         .classFile
         .methods
         .find(x => x.name == mainMethod)

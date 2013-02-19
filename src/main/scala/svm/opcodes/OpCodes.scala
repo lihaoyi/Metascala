@@ -132,7 +132,6 @@ object OpCodes {
   val Swap = PureStackOpCode(95, "swap"){ case x :: y :: s=> y :: x :: s }
 
   val IAdd = PureStackOpCode(96, "iadd"){ stack =>
-
     val (x: I) :: (y: I) :: s = stack
     (x + y) :: s
   }
