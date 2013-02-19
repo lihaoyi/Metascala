@@ -226,7 +226,10 @@ object OpCodes {
   val IfACmpEq = BinaryBranch(165, "if_acmpeq")(_ == _)
   val IfACmpNe = BinaryBranch(166, "if_acmpne")(_ != _)
 
-  val Goto = UnaryBranch(167, "goto"){x => true}
+  val Goto = OpCode(167, "goto"){ ctx =>
+    ctx.frame.pc += ctx.twoBytes() - 1
+  }
+
   val Jsr = JsrBranch(168, "jsr")
   val Ret = RetBranch(169, "ret")
   val TableSwitch = OpCode(170, "tableswitch")()

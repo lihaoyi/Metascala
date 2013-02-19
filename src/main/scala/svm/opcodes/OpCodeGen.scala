@@ -102,7 +102,7 @@ object OpCodeGen {
   trait Branch extends OpCode{
     def op = { ctx =>
       val currentPc = ctx.frame.pc
-      val (offset, newStack) = branchOp(ctx, ctx.thread, ctx.stack)
+      val (offset, newStack) = branchOp(ctx, ctx.stack)
       println("OldPC " + ctx.frame.pc)
       offset match{
         case Some(o) => ctx.frame.pc = currentPc + o - 1
@@ -113,16 +113,17 @@ object OpCodeGen {
       println("NewPC " + ctx.frame.pc)
     }
 
-    def branchOp: (Context, VmThread, List[Any]) => (Option[Int], List[Any])
+    def branchOp: (Context, List[Any]) => (Option[Int], List[Any])
   }
+
   case class UnaryBranch(id: Byte, name: String)(bop: Int => Boolean) extends Branch{
-    def branchOp = { case (ctx, thread, (top: Int) :: baseStack) =>
+    def branchOp = { case (ctx, (top: Int) :: baseStack) =>
       val offset = ctx.twoBytes()
       (if (bop(top)) Some(offset) else None , baseStack)
     }
   }
   case class BinaryBranch(id: Byte, name: String)(bop: (Int, Int) => Boolean) extends Branch{
-    def branchOp = { case (ctx, thread, (top: Int) :: (next: Int) :: baseStack) =>
+    def branchOp = { case (ctx, (top: Int) :: (next: Int) :: baseStack) =>
       val offset = ctx.twoBytes()
       println(bop(next, top) + " " + offset)
       (if (bop(next, top)) Some(offset) else None, baseStack)
@@ -130,14 +131,14 @@ object OpCodeGen {
   }
 
   case class JsrBranch(id: Byte, name: String) extends Branch{
-    def branchOp = { case (ctx, thread, (top: Int) :: (next: Int) :: baseStack) =>
+    def branchOp = { case (ctx, (top: Int) :: (next: Int) :: baseStack) =>
       (Some(ctx.twoBytes()), baseStack)
     }
   }
 
   case class RetBranch(id: Byte, name: String) extends Branch{
-    def branchOp = { case (ctx, thread, (top: Int) :: (second: Int) :: baseStack) =>
-      (Some(thread.threadStack.head.locals(ctx.nextByte()).asInstanceOf[Int]), baseStack)
+    def branchOp = { case (ctx, (top: Int) :: (second: Int) :: baseStack) =>
+      (Some(ctx.frame.locals(ctx.nextByte()).asInstanceOf[Int]), baseStack)
     }
   }
 

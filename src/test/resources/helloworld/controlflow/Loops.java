@@ -19,7 +19,7 @@ public class Loops {
         while(c > 10) c++;
         return c;
     }
-    public static int basicLoop(){
+    public static int basicWhile(){
         int c = 1;
         while(c < 1000) c = c * 2;
         return c;
