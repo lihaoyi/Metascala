@@ -27,60 +27,59 @@ object OpCodeGen {
 
   object OpCode{ // mutates the world
     def unapply(o: OpCode) = (o.id, o.name, o.op)
-    def apply(id: Byte, name: String)(op: Context => Unit = (x) => ()) =
-      BaseOpCode(id, name, op)
+    def apply(id: Byte, name: String, width: Int)(op: Context => Unit = (x) => ()) =
+      BaseOpCode(id, name, width, op)
   }
 
-  case class BaseOpCode(id: Byte, name: String, op: Context => Unit) extends OpCode
+  case class BaseOpCode(id: Byte, name: String, width: Int, op: Context => Unit) extends OpCode
   trait OpCode{
     def id: Byte
     def name: String
+    def width: Int
     def op: Context => Unit
   }
 
 
   object StackOpCode{
-    def apply(id: Byte, name: String)(stackOp: (Context, List[Any]) => List[Any]) =
-      BaseStackOpCode(id, name, stackOp)
+    def apply(id: Byte, name: String, width: Int)(stackOp: (Context, List[Any]) => List[Any]) =
+      BaseStackOpCode(id, name, width, stackOp)
   }
-  case class BaseStackOpCode(id: Byte, name: String, stackOp: (Context, List[Any]) => List[Any]) extends StackOpCode
+  case class BaseStackOpCode(id: Byte, name: String, width: Int, stackOp: (Context, List[Any]) => List[Any]) extends StackOpCode
   trait StackOpCode extends OpCode{
     def op = (ctx) => ctx.frame.stack = stackOp(ctx, ctx.stack)
     def stackOp: (Context, List[Any]) => List[Any]
   }
 
   case class PureStackOpCode(id: Byte, name: String)(pureStackOp: List[Any] => List[Any]) extends StackOpCode{
+    def width = 0
     def stackOp = (_, s) => pureStackOp(s)
   }
 
   case class PushOpCode[T](id: Byte, name: String, value: T) extends StackOpCode{
+    def width = 0
     def stackOp = (_, stack) => value :: stack
   }
 
-  case class PushValOpCode(id: Byte, name: String, valOp: Context => Any) extends StackOpCode{
+  case class PushValOpCode(id: Byte, name: String, width: Int, valOp: Context => Any) extends StackOpCode{
     def stackOp = (ctx, stack) => valOp(ctx) :: stack
   }
 
-  case class PushConstOpCode(id: Byte, name: String, pop: Context => Int) extends StackOpCode{
+  case class PushConstOpCode(id: Byte, name: String, width: Int, pop: Context => Int) extends StackOpCode{
     def stackOp = (ctx, stack) => ctx.rcp(pop(ctx)) :: stack
   }
 
   case class StoreLocal(id: Byte, name: String, index: Int) extends OpCode{
+    def width = if (index >= 0) 0 else 1
     def op = { ctx =>
       val (last :: newOpStack) = ctx.frame.stack
-      println("omgomgomg")
-      println(index)
       val newIndex = if (index >= 0) index else ctx.nextByte()
-
-      println(ctx.frame.locals.length)
-      println(newIndex)
-      println("wtfwtfwtf")
       ctx.frame.locals(newIndex) = last
       ctx.frame.stack = newOpStack
     }
   }
 
   case class PushLocalIndexed(id: Byte, name: String, index: Int) extends OpCode{
+    def width = if (index >= 0) 0 else 1
     def op = { ctx =>
       val newIndex = if (index >= 0) index else ctx.nextByte()
       ctx.frame.stack = ctx.frame.locals(newIndex) :: ctx.frame.stack
@@ -88,12 +87,14 @@ object OpCodeGen {
   }
 
   case class PushFromArray(id: Byte, name: String) extends StackOpCode{
+    def width = 0
     def stackOp = { case (_, (index: Int) :: (arrayRef: Seq[Any]) :: baseStack) =>
       arrayRef(index) :: baseStack
     }
   }
 
   case class StoreArray(id: Byte, name: String) extends StackOpCode{
+    def width = 0
     def stackOp = { case (_, value :: (index: Int) :: (arrayRef: Seq[Any]) :: baseStack ) =>
       arrayRef.updated(index, value) :: baseStack
     }
@@ -117,12 +118,14 @@ object OpCodeGen {
   }
 
   case class UnaryBranch(id: Byte, name: String)(bop: Int => Boolean) extends Branch{
+    def width = 2
     def branchOp = { case (ctx, (top: Int) :: baseStack) =>
       val offset = ctx.twoBytes()
       (if (bop(top)) Some(offset) else None , baseStack)
     }
   }
   case class BinaryBranch(id: Byte, name: String)(bop: (Int, Int) => Boolean) extends Branch{
+    def width = 2
     def branchOp = { case (ctx, (top: Int) :: (next: Int) :: baseStack) =>
       val offset = ctx.twoBytes()
       println(bop(next, top) + " " + offset)
@@ -131,12 +134,14 @@ object OpCodeGen {
   }
 
   case class JsrBranch(id: Byte, name: String) extends Branch{
+    def width = 2
     def branchOp = { case (ctx, (top: Int) :: (next: Int) :: baseStack) =>
       (Some(ctx.twoBytes()), baseStack)
     }
   }
 
   case class RetBranch(id: Byte, name: String) extends Branch{
+    def width = 1
     def branchOp = { case (ctx, (top: Int) :: (second: Int) :: baseStack) =>
       (Some(ctx.frame.locals(ctx.nextByte()).asInstanceOf[Int]), baseStack)
     }

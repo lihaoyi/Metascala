@@ -14,7 +14,7 @@ object OpCodes {
   import OpCodeGen._
   implicit def intToByte(n: I) = n.toByte
 
-  val Nop = OpCode(0, "nop")()
+  val Nop = OpCode(0, "nop", 0)()
   val AConstNull = PushOpCode(1, "aconst_null", null)
   val IConstNull = PushOpCode(2, "iconst_m1", -1)
 
@@ -35,12 +35,12 @@ object OpCodes {
   val DConst0 = PushOpCode(14, "dconst_0", 0d)
   val DConst1 = PushOpCode(15, "dconst_1", 1d)
 
-  val BiPush = PushValOpCode(16, "bipush", ctx => ctx.nextByte().toInt)
-  val SiPush = PushValOpCode(17,"sipush", ctx => ((ctx.nextByte() << 8) + ctx.nextByte()).toInt)
+  val BiPush = PushValOpCode(16, "bipush", 1, _.nextByte().toInt)
+  val SiPush = PushValOpCode(17,"sipush", 1, _.twoBytes())
 
-  val Ldc = PushConstOpCode(18, "ldc", ctx => ctx.nextByte())
-  val LdcW = PushConstOpCode(19, "ldc_w", ctx => (ctx.nextByte() << 8) + ctx.nextByte())
-  val Ldc2W = PushConstOpCode(20, "ldc2_w", ctx => (ctx.nextByte() << 8) + ctx.nextByte())
+  val Ldc = PushConstOpCode(18, "ldc", 1, _.nextByte())
+  val LdcW = PushConstOpCode(19, "ldc_w", 2, _.twoBytes())
+  val Ldc2W = PushConstOpCode(20, "ldc2_w", 3, _.twoBytes())
 
   val ILoad = PushLocalIndexed(21, "iLoad", -1)
   val LLoad = PushLocalIndexed(22, "lLoad", -1)
@@ -182,7 +182,7 @@ object OpCodes {
   val IXOr = PureStackOpCode(130, "ixor"){ case s :+ (x: I) :+ (y: I) => s :+ (x ^ y) }
   val LXOr = PureStackOpCode(131, "lxor"){ case s :+ (x: J) :+ (y: I) => s :+ (x ^ y) }
 
-  val IInc = OpCode(132, "iinc"){ case ctx => val index = ctx.nextByte(); ctx.frame.locals(index) = ctx.frame.locals(index).asInstanceOf[Int] + ctx.nextByte()}
+  val IInc = OpCode(132, "iinc", 1){ case ctx => val index = ctx.nextByte(); ctx.frame.locals(index) = ctx.frame.locals(index).asInstanceOf[Int] + ctx.nextByte()}
 
   val I2L = PureStackOpCode(133, "i2l"){ case (x: I) :: s => x.toLong :: s}
   val I2F = PureStackOpCode(134, "i2f"){ case (x: I) :: s => x.toFloat :: s }
@@ -226,23 +226,23 @@ object OpCodes {
   val IfACmpEq = BinaryBranch(165, "if_acmpeq")(_ == _)
   val IfACmpNe = BinaryBranch(166, "if_acmpne")(_ != _)
 
-  val Goto = OpCode(167, "goto"){ ctx =>
+  val Goto = OpCode(167, "goto", 2){ ctx =>
     ctx.frame.pc += ctx.twoBytes() - 1
   }
 
   val Jsr = JsrBranch(168, "jsr")
   val Ret = RetBranch(169, "ret")
-  val TableSwitch = OpCode(170, "tableswitch")()
-  val LookupSwitch = OpCode(171, "lookupswitch")()
+  val TableSwitch = OpCode(170, "tableswitch", 0)()
+  val LookupSwitch = OpCode(171, "lookupswitch", 0)()
 
-  val IReturn = OpCode(172, "ireturn"){ ctx => ctx.returnVal(Some(ctx.stack.head)) }
-  val LReturn = OpCode(173, "lreturn"){ ctx => ctx.returnVal(Some(ctx.stack.head)) }
-  val FReturn = OpCode(174, "freturn"){ ctx => ctx.returnVal(Some(ctx.stack.head)) }
-  val DReturn = OpCode(175, "dreturn"){ ctx => ctx.returnVal(Some(ctx.stack.head)) }
-  val AReturn = OpCode(176, "areturn"){ ctx => ctx.returnVal(Some(ctx.stack.head)) }
-  val Return = OpCode(177, "return"){ ctx => ctx.returnVal(None) }
+  val IReturn = OpCode(172, "ireturn", 0){ ctx => ctx.returnVal(Some(ctx.stack.head)) }
+  val LReturn = OpCode(173, "lreturn", 0){ ctx => ctx.returnVal(Some(ctx.stack.head)) }
+  val FReturn = OpCode(174, "freturn", 0){ ctx => ctx.returnVal(Some(ctx.stack.head)) }
+  val DReturn = OpCode(175, "dreturn", 0){ ctx => ctx.returnVal(Some(ctx.stack.head)) }
+  val AReturn = OpCode(176, "areturn", 0){ ctx => ctx.returnVal(Some(ctx.stack.head)) }
+  val Return = OpCode(177, "return", 0){ ctx => ctx.returnVal(None) }
 
-  val GetStatic = StackOpCode(178, "getstatic"){case (ctx, stack) =>
+  val GetStatic = StackOpCode(178, "getstatic", 2){case (ctx, stack) =>
     val index = ctx.twoBytes()
 
     val FieldRef(
@@ -253,7 +253,7 @@ object OpCodes {
     val myClass = ctx.classes(name)
     myClass.statics(fieldName) :: stack
   }
-  val PutStatic = StackOpCode(179, "putstatic"){case (ctx, value :: stack) =>
+  val PutStatic = StackOpCode(179, "putstatic", 2){case (ctx, value :: stack) =>
 
     val FieldRef(
       ClassRef(name),
@@ -265,7 +265,7 @@ object OpCodes {
     stack
   }
 
-  val GetField = StackOpCode(180, "getfield"){case (ctx, (objectRef: svm.Object) :: stack) =>
+  val GetField = StackOpCode(180, "getfield", 2){case (ctx, (objectRef: svm.Object) :: stack) =>
     import ctx.{stack => _, _}; import ConstantInfo._
 
     val FieldRef(
@@ -275,7 +275,7 @@ object OpCodes {
 
     objectRef.members(fieldName) :: stack
   }
-  val PutField = StackOpCode(181, "putfield"){case (ctx, value :: (objectRef: svm.Object) :: stack) =>
+  val PutField = StackOpCode(181, "putfield", 2){case (ctx, value :: (objectRef: svm.Object) :: stack) =>
     import ctx.{stack => _, _}; import ConstantInfo._
 
     val FieldRef(
@@ -288,9 +288,9 @@ object OpCodes {
     stack
   }
 
-  val InvokeVirtual = OpCode(182, "invokevirtual")()
-  val InvokeSpecial = OpCode(183, "invokespecial")()
-  val InvokeStatic = OpCode(184, "invokestatic"){case ctx =>
+  val InvokeVirtual = OpCode(182, "invokevirtual", 0)()
+  val InvokeSpecial = OpCode(183, "invokespecial", 0)()
+  val InvokeStatic = OpCode(184, "invokestatic", 3){case ctx =>
     import ctx._
 
     val MethodRef(
@@ -310,10 +310,10 @@ object OpCodes {
     ))
     //new Array[Object](count) :: stack
   }
-  val InvokeInterface = OpCode(185, "invokeinterface")()
-  val InvokeDynamic = OpCode(186, "invokedynamic")()
+  val InvokeInterface = OpCode(185, "invokeinterface", 0)()
+  val InvokeDynamic = OpCode(186, "invokedynamic", 0)()
 
-  val New = OpCode(187, "new"){case ctx =>
+  val New = OpCode(187, "new", 0){case ctx =>
     import ctx.{stack => _, _};
 
     val ConstantInfo.ClassRef(name) = ctx.rcp(ctx.twoBytes())
@@ -321,7 +321,7 @@ object OpCodes {
     //objectRef.members(fieldName) = value
     //stack
   }
-  val NewArray = StackOpCode(188, "newarray"){case (ctx, (count: Int) :: stack) =>
+  val NewArray = StackOpCode(188, "newarray", 0){case (ctx, (count: Int) :: stack) =>
     val newArray = ctx.nextByte() match{
       case 4 => new Array[Boolean](count)
       case 5 => new Array[Char](count)
@@ -334,7 +334,7 @@ object OpCodes {
     }
     newArray :: stack
   }
-  val ANewArray = StackOpCode(189, "anewarray"){case (ctx, (count: Int) :: stack) =>
+  val ANewArray = StackOpCode(189, "anewarray", 0){case (ctx, (count: Int) :: stack) =>
     ctx.twoBytes()
     new Array[Object](count) :: stack
   }
@@ -342,13 +342,13 @@ object OpCodes {
   val ArrayLength = PureStackOpCode(190, "arraylength"){case (array: Array[_]) :: stack =>
     array.length :: stack
   }
-  val AThrow = OpCode(191, "athrow")()
-  val CheckCast = OpCode(192, "checkcast")()
-  val InstanceOf = OpCode(193, "instanceof")()
-  val MonitorEnter = OpCode(194, "monitorenter")()
-  val MonitorExit = OpCode(195, "monitorexit")()
-  val Wide = OpCode(196, "wide")()
-  val MultiANewArray = StackOpCode(197, "multianewarray"){case (ctx, stack) =>
+  val AThrow = OpCode(191, "athrow", 0)()
+  val CheckCast = OpCode(192, "checkcast", 0)()
+  val InstanceOf = OpCode(193, "instanceof", 0)()
+  val MonitorEnter = OpCode(194, "monitorenter", 0)()
+  val MonitorExit = OpCode(195, "monitorexit", 0)()
+  val Wide = OpCode(196, "wide", 0)()
+  val MultiANewArray = StackOpCode(197, "multianewarray", 0){case (ctx, stack) =>
     val i = ctx.nextByte() << 8 | ctx.nextByte()
     val (dims, newStack) = stack.splitAt(ctx.nextByte())
     val dimArray = dims.map(x => x.asInstanceOf[Int])
@@ -356,17 +356,17 @@ object OpCodes {
     array :: newStack
   }
 
-  val IfNull = StackOpCode(198, "ifnull"){case (ctx, ref :: stack) =>
+  val IfNull = StackOpCode(198, "ifnull", 2){case (ctx, ref :: stack) =>
     if (ref == null) ctx.frame.pc = ctx.frame.pc + ctx.twoBytes()
     stack
   }
-  val IfNonNull = StackOpCode(199, "ifnonnull"){case (ctx, ref :: stack) =>
+  val IfNonNull = StackOpCode(199, "ifnonnull", 2){case (ctx, ref :: stack) =>
     if (ref != null) ctx.frame.pc = ctx.frame.pc + ctx.twoBytes()
     stack
   }
 
-  val GotoW = OpCode(200, "goto_w")()
-  val JsrW = OpCode(201, "jsr_w")()
+  val GotoW = OpCode(200, "goto_w", 0)()
+  val JsrW = OpCode(201, "jsr_w", 0)()
 
   def apply(n: Int) = all((n + 256) % 256)
   val all = Seq(
