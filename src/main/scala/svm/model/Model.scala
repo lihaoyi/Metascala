@@ -70,3 +70,4 @@ case class MethodInfo(access_flags: u2,
                       descriptor: String,
                       attributes: Seq[Attribute])
 
+

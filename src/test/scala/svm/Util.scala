@@ -5,17 +5,17 @@ import java.io.DataInputStream
 object Util {
   def loadClass(name: String) = {
     val stream = new DataInputStream(
-      getClass.getResourceAsStream(s"/${name.replace('.', '/')}.class")
+      getClass.getResourceAsStream(s"/$name.class")
     )
     val bytes = new Array[Byte](stream.available())
 
     stream.readFully(bytes)
-    model.Util.printClass(bytes)
+    //model.Util.printClass(bytes)
     bytes
   }
   class SingleClassVirtualMachine(className: String, val classLoader: String => Array[Byte])
   extends VirtualMachine(classLoader){
-    def run(main: String): Any = run(className, main)
+    def run(main: String): Any = run(className.replace('.', '/'), main)
   }
 
 

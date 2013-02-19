@@ -5,7 +5,6 @@ import model.ConstantInfo.Utf8Info
 import model.opcodes.OpCodeGen.Context
 import model.opcodes.OpCodes
 import model.{MethodInfo, ClassFile}
-import java.io.DataInputStream
 import java.nio.ByteBuffer
 import collection.mutable
 
@@ -15,14 +14,14 @@ class VirtualMachine(classLoader: String => Array[Byte]){
   val threads = List(new VmThread(classes = getClassFor))
   var heap = Set.empty[Object]
 
-
   def getClassFor(name: String): Class = {
+    require(!name.contains("."))
+
     classes.get(name) match{
       case Some(cls) => cls
       case None =>
         classes(name) = loadClass(classLoader(name))
         run(name, "<clinit>")
-        println("-End Init-")
         classes(name)
     }
   }
@@ -35,9 +34,8 @@ class VirtualMachine(classLoader: String => Array[Byte]){
   def run(bootClass: String, mainMethod: String) = {
     val bc = getClassFor(bootClass)
 
-    threads(0).run(
+    threads(0).invoke(
       bc,
-
       getClassFor(bootClass)
         .classFile
         .methods
@@ -48,21 +46,27 @@ class VirtualMachine(classLoader: String => Array[Byte]){
 }
 
 class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), classes: String => svm.Class){
-  def run(bootClass: Class, mainMethod: MethodInfo) = {
-    val startFrame = new Frame(
-      runningClass = bootClass,
-      method = mainMethod,
+  def invoke(cls: Class, method: MethodInfo) = {
+    val invokeId = util.Random.nextInt(100)
+    val code = method.attributes.collect{case x: Code => x: Code}.head
+
+    val dummyFrame = new Frame(
+      runningClass = cls,
+      method = MethodInfo(0.toShort, "Dummy", "", Nil),
       locals = mutable.Seq(),
       stack = Nil
     )
-    println(startFrame.method.attributes.collect{case x: Code => x: Code}.head.code)
-    threadStack.push(startFrame)
-    //println("Main Loop Starting")
-    var result: Any = null
-    while(threadStack.length != 0){
+    val startFrame = new Frame(
+      runningClass = cls,
+      method = method,
+      locals = mutable.Seq.fill(code.max_locals)(null),
+      stack = Nil
+    )
+    threadStack.push(dummyFrame, startFrame)
 
+
+    while(threadStack.head != dummyFrame){
       val topFrame = threadStack.head
-
       val bytes = topFrame.method.attributes.collect{case x: Code => x: Code}.head.code
       val opcode = OpCodes(bytes(topFrame.pc))
 
@@ -79,24 +83,13 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), classes:
         },
         { x =>
           threadStack.pop()
-          (x, threadStack.headOption) match {
-            case (Some(value), Some(top)) => top.stack = value :: top.stack
-            case (None, Some(top)) =>
-            case (either, single) => result = either
-          }
+          x.foreach(value => threadStack.head.stack = value :: threadStack.head.stack)
         }
       )
-      println(ctx.stack)
-      println()
-      println(opcode)
-
-
-      topFrame.pc = topFrame.pc + 1
+      topFrame.pc += 1
       opcode.op(ctx)
-
-      //println("____")
     }
-    result
+    threadStack.pop().stack.headOption
   }
 }
 

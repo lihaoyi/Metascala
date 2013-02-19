@@ -1,6 +1,6 @@
-package helloworld;
+package helloworld.controlflow;
 
-public class ControlFlow {
+public class IfElse {
     static int a = 10;
     final static int b = 312;
 

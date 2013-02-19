@@ -239,7 +239,6 @@ object OpCodes {
   val Return = OpCode(177, "return"){ ctx => ctx.returnVal(None) }
 
   val GetStatic = StackOpCode(178, "getstatic"){case (ctx, stack) =>
-    import ctx.{stack => _, _}; import ConstantInfo._
     val index = ctx.twoBytes()
 
     val FieldRef(
@@ -251,13 +250,11 @@ object OpCodes {
     myClass.statics(fieldName) :: stack
   }
   val PutStatic = StackOpCode(179, "putstatic"){case (ctx, value :: stack) =>
-    import ctx.{stack => _, _}; import ConstantInfo._
 
     val FieldRef(
       ClassRef(name),
       NameAndTypeInfo(fieldName, descriptor)
     ) = ctx.rcp(ctx.twoBytes())
-
     val myClass = ctx.classes(name)
     myClass.statics(fieldName) = value
 

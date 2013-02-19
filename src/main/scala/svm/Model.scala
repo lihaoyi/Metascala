@@ -11,10 +11,9 @@ class Class(val classFile: ClassFile, _statics: collection.mutable.Map[String, A
       _statics(name) = value
     }
   }
-
-
-
+  def name = classFile.this_class.name
 }
+
 class Object(val cls: Class, val members: collection.mutable.Map[String, Any] = collection.mutable.Map.empty)
 
 object Access{
