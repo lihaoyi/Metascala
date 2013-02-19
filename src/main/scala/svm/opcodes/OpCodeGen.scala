@@ -44,7 +44,8 @@ object OpCodeGen {
   case class PureStackOpCode(id: Byte, name: String)(pureStackOp: List[Any] => List[Any]) extends StackOpCode{
     def stackOp = (_, s) => pureStackOp(s)
   }
-  case class PushOpCode(id: Byte, name: String, value: Any) extends StackOpCode{
+
+  case class PushOpCode[T](id: Byte, name: String, value: T) extends StackOpCode{
     def stackOp = (_, stack) => value :: stack
   }
 

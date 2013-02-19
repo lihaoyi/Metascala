@@ -34,8 +34,8 @@ object OpCodes {
   val DConst0 = PushOpCode(14, "dconst_0", 0d)
   val DConst1 = PushOpCode(15, "dconst_1", 1d)
 
-  val BiPush = PushValOpCode(16, "bipush", ctx => ctx.nextByte())
-  val SiPush = PushValOpCode(17,"sipush", ctx => (ctx.nextByte() << 8) + ctx.nextByte())
+  val BiPush = PushValOpCode(16, "bipush", ctx => ctx.nextByte().toInt)
+  val SiPush = PushValOpCode(17,"sipush", ctx => ((ctx.nextByte() << 8) + ctx.nextByte()).toInt)
 
   val Ldc = PushConstOpCode(18, "ldc", ctx => ctx.nextByte())
   val LdcW = PushConstOpCode(19, "ldc_w", ctx => (ctx.nextByte() << 8) + ctx.nextByte())
@@ -131,30 +131,34 @@ object OpCodes {
   val Dup2X2 = PureStackOpCode(94, "dup2_x2"){ case a :: b :: x :: y :: s => a :: b :: x :: y :: a :: b :: s }
   val Swap = PureStackOpCode(95, "swap"){ case x :: y :: s=> y :: x :: s }
 
-  val IAdd = PureStackOpCode(96, "iadd"){ case (x: I) :: (y: I) :: s => (x + y) :: s}
-  val LAdd = PureStackOpCode(97, "ladd"){ case (x: J) :: (y: J) :: s => (x + y) :: s}
-  val FAdd = PureStackOpCode(98, "fadd"){ case (x: F) :: (y: F) :: s => (x + y) :: s}
-  val DAdd = PureStackOpCode(99, "dadd"){ case (x: D) :: (y: D) :: s => (x + y) :: s}
+  val IAdd = PureStackOpCode(96, "iadd"){ stack =>
 
-  val ISub = PureStackOpCode(100, "isub"){ case (x: I) :: (y: I) :: s => (x - y) :: s}
-  val LSub = PureStackOpCode(101, "lsub"){ case (x: J) :: (y: J) :: s => (x - y) :: s}
-  val FSub = PureStackOpCode(102, "fsub"){ case (x: F) :: (y: F) :: s => (x - y) :: s}
-  val DSub = PureStackOpCode(103, "dsub"){ case (x: D) :: (y: D) :: s => (x - y) :: s}
+    val (x: I) :: (y: I) :: s = stack
+    (x + y) :: s
+  }
+  val LAdd = PureStackOpCode(97, "ladd"){ case (x: J) :: (y: J) :: s => (y + x) :: s}
+  val FAdd = PureStackOpCode(98, "fadd"){ case (x: F) :: (y: F) :: s => (y + x) :: s}
+  val DAdd = PureStackOpCode(99, "dadd"){ case (x: D) :: (y: D) :: s => (y + x) :: s}
 
-  val IMul = PureStackOpCode(104, "imul"){ case (x: I) :: (y: I) :: s => (x * y) :: s}
-  val LMul = PureStackOpCode(105, "lmul"){ case (x: J) :: (y: J) :: s => (x * y) :: s}
-  val FMul = PureStackOpCode(106, "fmul"){ case (x: F) :: (y: F) :: s => (x * y) :: s}
-  val DMul = PureStackOpCode(107, "dmul"){ case (x: D) :: (y: D) :: s => (x * y) :: s}
+  val ISub = PureStackOpCode(100, "isub"){ case (x: I) :: (y: I) :: s => (y - x) :: s}
+  val LSub = PureStackOpCode(101, "lsub"){ case (x: J) :: (y: J) :: s => (y - x) :: s}
+  val FSub = PureStackOpCode(102, "fsub"){ case (x: F) :: (y: F) :: s => (y - x) :: s}
+  val DSub = PureStackOpCode(103, "dsub"){ case (x: D) :: (y: D) :: s => (y - x) :: s}
 
-  val IDiv = PureStackOpCode(108, "idiv"){ case (x: I) :: (y: I) :: s => (x / y) :: s}
-  val LDiv = PureStackOpCode(109, "ldiv"){ case (x: J) :: (y: J) :: s => (x / y) :: s}
-  val FDiv = PureStackOpCode(110, "fdiv"){ case (x: F) :: (y: F) :: s => (x / y) :: s}
-  val DDiv = PureStackOpCode(111, "ddiv"){ case (x: D) :: (y: D) :: s => (x / y) :: s}
+  val IMul = PureStackOpCode(104, "imul"){ case (x: I) :: (y: I) :: s => (y * x) :: s}
+  val LMul = PureStackOpCode(105, "lmul"){ case (x: J) :: (y: J) :: s => (y * x) :: s}
+  val FMul = PureStackOpCode(106, "fmul"){ case (x: F) :: (y: F) :: s => (y * x) :: s}
+  val DMul = PureStackOpCode(107, "dmul"){ case (x: D) :: (y: D) :: s => (y * x) :: s}
 
-  val IRem = PureStackOpCode(112, "irem"){ case (x: I) :: (y: I) :: s => (x % y) :: s}
-  val LRem = PureStackOpCode(113, "lrem"){ case (x: J) :: (y: J) :: s => (x % y) :: s}
-  val FRem = PureStackOpCode(114, "frem"){ case (x: F) :: (y: F) :: s => (x % y) :: s}
-  val DRem = PureStackOpCode(115, "drem"){ case (x: D) :: (y: D) :: s => (x % y) :: s}
+  val IDiv = PureStackOpCode(108, "idiv"){ case (x: I) :: (y: I) :: s => (y / x) :: s}
+  val LDiv = PureStackOpCode(109, "ldiv"){ case (x: J) :: (y: J) :: s => (y / x) :: s}
+  val FDiv = PureStackOpCode(110, "fdiv"){ case (x: F) :: (y: F) :: s => (y / x) :: s}
+  val DDiv = PureStackOpCode(111, "ddiv"){ case (x: D) :: (y: D) :: s => (y / x) :: s}
+
+  val IRem = PureStackOpCode(112, "irem"){ case (x: I) :: (y: I) :: s => (y % x) :: s}
+  val LRem = PureStackOpCode(113, "lrem"){ case (x: J) :: (y: J) :: s => (y % x) :: s}
+  val FRem = PureStackOpCode(114, "frem"){ case (x: F) :: (y: F) :: s => (y % x) :: s}
+  val DRem = PureStackOpCode(115, "drem"){ case (x: D) :: (y: D) :: s => (y % x) :: s}
 
   val INeg = PureStackOpCode(116, "ineg"){ case (x: I) :: s => -x :: s }
   val LNeg = PureStackOpCode(117, "lneg"){ case (x: J) :: s => -x :: s }
@@ -238,16 +242,13 @@ object OpCodes {
   val GetStatic = StackOpCode(178, "getstatic"){case (ctx, stack) =>
     import ctx.{stack => _, _}; import ConstantInfo._
     val index = ctx.twoBytes()
-    println("GetStatic!")
-    println(ctx.rcp(index))
+
     val FieldRef(
       ClassRef(name),
-      NameAndType(fieldName, descriptor)
+      NameAndTypeInfo(fieldName, descriptor)
     ) = ctx.rcp(index)
-    println(name + " " + fieldName + " " + descriptor)
-    println(ctx.classes)
+
     val myClass = ctx.classes(name)
-    println(myClass)
     myClass.statics(fieldName) :: stack
   }
   val PutStatic = StackOpCode(179, "putstatic"){case (ctx, value :: stack) =>
@@ -255,7 +256,7 @@ object OpCodes {
 
     val FieldRef(
       ClassRef(name),
-      NameAndType(fieldName, descriptor)
+      NameAndTypeInfo(fieldName, descriptor)
     ) = ctx.rcp(ctx.twoBytes())
 
     val myClass = ctx.classes(name)
@@ -269,7 +270,7 @@ object OpCodes {
 
     val FieldRef(
       _,
-      NameAndType(fieldName, descriptor)
+      NameAndTypeInfo(fieldName, descriptor)
     ) = ctx.rcp(ctx.twoBytes())
 
     objectRef.members(fieldName) :: stack
@@ -279,7 +280,7 @@ object OpCodes {
 
     val FieldRef(
       _,
-      NameAndType(fieldName, descriptor)
+      NameAndTypeInfo(fieldName, descriptor)
     ) = ctx.rcp(ctx.twoBytes())
 
 
@@ -293,7 +294,7 @@ object OpCodes {
     import ctx._
 
     val MethodRef(
-      ClassRef(className), NameAndType(name, methodType)
+      ClassRef(className), NameAndTypeInfo(name, methodType)
     ) = ctx.rcp(ctx.twoBytes())
     thread.threadStack.push(new Frame(
       runningClass = classes(className),

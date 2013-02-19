@@ -4,20 +4,17 @@ import java.nio.ByteBuffer
 import akka.util.ByteString
 
 
-class Lazy[T](n: Int, s: String, func: => T) extends Function0[T]{
-  lazy val lFunc = {
-    println("evaluating " + n + " -> " + s)
-    val x = func
-    println(x)
-    x
-  }
-  def apply() = lFunc
-}
-class UnLazy[T](n: Int, s: String, func: T) extends Function0[T]{
-  println(n + " " + s + " " + func)
-  def apply() = func
-}
+
 object ConstantInfo{
+  def eagerVal[T](func: => T) = {
+    val lFunc = func
+    () => lFunc
+  }
+  def lazyVal[T](func: => T) = {
+    lazy val lFunc = func
+    () => lFunc
+  }
+
   implicit class superByteBuffer(b: ByteBuffer){
     def fork(n: Int) = {
       //println("Forking " + n)
@@ -28,19 +25,31 @@ object ConstantInfo{
   }
 
   def partitionConstantPool(n: Int)(implicit input: ByteBuffer): Seq[() => Any] = {
-    lazy val cp: Seq[() => Any] = (() => ZeroConstant) +: (for (i <- 1 to n) yield u1 match {
-      case 7 =>  println(s"$i ClassRef"); val x = input.fork(2);  Seq(new Lazy(i, "ClassRef", ClassRef.read(cp, x)))
-      case 9 =>  println(s"$i FieldRef"); val x = input.fork(4);  Seq(new Lazy(i, "FieldRef", FieldRef.read(cp, x)))
-      case 10 => println(s"$i MethodRef"); val x = input.fork(4);  Seq(new Lazy(i, "MethodRef", MethodRef.read(cp, x)))
-      case 11 => println(s"$i InterRef"); val x = input.fork(4);  Seq(new Lazy(i, "InterfaceMethodRef", InterfaceMethodRef.read(cp, x)))
-      case 8 =>  println(s"$i StringIfo"); val x = input.fork(2);  Seq(new Lazy(i, "StringInfo", StringInfo.read(cp, x)))
-      case 3 =>  val x = input.fork(4);  Seq(new UnLazy(i, "IntegerInfo", IntegerInfo.read(x)))
-      case 4 =>  val x = input.fork(4);  Seq(new UnLazy(i, "FloatInfo", FloatInfo.read(x)))
-      case 5 =>  val x = input.fork(8);  Seq(new UnLazy(i, "LongInfo", LongInfo.read(x)), () => ZeroConstant)
-      case 6 =>  val x = input.fork(8);  Seq(new UnLazy(i, "DoubleInfo", DoubleInfo.read(x)), () => ZeroConstant)
-      case 12 => println(s"$i NameType"); val x = input.fork(4);  Seq(new Lazy(i, "NameAndTypeInfo", NameAndType.read(cp, x)))
-      case 1 =>  val x = input.fork(u2); Seq(new UnLazy(i, "Utf8Info", Utf8.read(x)))
-    }).flatten
+    val lazyZero = () => ZeroConstant
+    lazy val cp: Seq[() => Any] = {
+      var total = Seq(Seq[() => Any](lazyZero))
+      var count = 1
+
+      while(count <= n){
+
+        val next = u1 match {
+          case 7  => val x = input.fork(2);  Seq(lazyVal(ClassRef.read(cp, x)))
+          case 9  => val x = input.fork(4);  Seq(lazyVal(FieldRef.read(cp, x)))
+          case 10 => val x = input.fork(4);  Seq(lazyVal(MethodRef.read(cp, x)))
+          case 11 => val x = input.fork(4);  Seq(lazyVal(InterfaceMethodRef.read(cp, x)))
+          case 8  => val x = input.fork(2);  Seq(lazyVal(StringInfo.read(cp, x)))
+          case 3  => val x = input.fork(4);  Seq(eagerVal(IntegerInfo.read(x)))
+          case 4  => val x = input.fork(4);  Seq(eagerVal(FloatInfo.read(x)))
+          case 5  => val x = input.fork(8);  Seq(eagerVal(LongInfo.read(x)), lazyZero)
+          case 6  => val x = input.fork(8);  Seq(eagerVal(DoubleInfo.read(x)), lazyZero)
+          case 12 => val x = input.fork(4);  Seq(lazyVal(NameAndTypeInfo.read(cp, x)))
+          case 1  => val x = input.fork(u2); Seq(eagerVal(Utf8Info.read(x)))
+        }
+        total = total :+ next
+        count += next.length
+      }
+      total
+    }.flatten
 
     cp
   }
@@ -60,29 +69,29 @@ object ConstantInfo{
 
   object FieldRef{
     def read(implicit cp: Seq[() => Any], input: ByteBuffer) = {
-      FieldRef(cp(u2)().asInstanceOf[ClassRef], cp(u2)().asInstanceOf[NameAndType])
+      FieldRef(cp(u2)().asInstanceOf[ClassRef], cp(u2)().asInstanceOf[NameAndTypeInfo])
     }
   }
-  case class FieldRef(classRef: ClassRef, nameAndType: NameAndType) {
+  case class FieldRef(classRef: ClassRef, nameAndType: NameAndTypeInfo) {
     def value = ()
   }
 
   object MethodRef{
     def read(implicit cp: Seq[() => Any], input: ByteBuffer) = {
 
-      MethodRef(cp(u2)().asInstanceOf[ClassRef], cp(u2)().asInstanceOf[NameAndType])
+      MethodRef(cp(u2)().asInstanceOf[ClassRef], cp(u2)().asInstanceOf[NameAndTypeInfo])
     }
   }
-  case class MethodRef(classRef: ClassRef, nameAndType: NameAndType) {
+  case class MethodRef(classRef: ClassRef, nameAndType: NameAndTypeInfo) {
     def value = ()
   }
 
   object InterfaceMethodRef{
     def read(implicit cp: Seq[() => Any], input: ByteBuffer) = {
-      InterfaceMethodRef(cp(u2)().asInstanceOf[ClassRef], cp(u2)().asInstanceOf[NameAndType])
+      InterfaceMethodRef(cp(u2)().asInstanceOf[ClassRef], cp(u2)().asInstanceOf[NameAndTypeInfo])
     }
   }
-  case class InterfaceMethodRef(classRef: ClassRef, nameAndType: NameAndType) {
+  case class InterfaceMethodRef(classRef: ClassRef, nameAndType: NameAndTypeInfo) {
     def value = ()
   }
 
@@ -116,16 +125,16 @@ object ConstantInfo{
     }
   }
 
-  object NameAndType{
+  object NameAndTypeInfo{
     def read(implicit cp: Seq[() => Any], input: ByteBuffer) = {
-      NameAndType(cp(u2)().asInstanceOf[String], cp(u2)().asInstanceOf[String])
+      NameAndTypeInfo(cp(u2)().asInstanceOf[String], cp(u2)().asInstanceOf[String])
     }
   }
-  case class NameAndType(name: String, descriptor: String) {
+  case class NameAndTypeInfo(name: String, descriptor: String) {
     def value = (name, descriptor)
   }
 
-  object Utf8{
+  object Utf8Info{
     def read(implicit input: ByteBuffer) = {
       ByteString(input).decodeString("UTF-8")
     }

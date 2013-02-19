@@ -1,7 +1,7 @@
 package svm
 
 import parsing.Attribute.Code
-import parsing.ConstantInfo.Utf8
+import parsing.ConstantInfo.Utf8Info
 import parsing.opcodes.OpCodeGen.Context
 import parsing.opcodes.OpCodes
 import parsing.{MethodInfo, ClassFile}
@@ -11,12 +11,22 @@ import collection.mutable
 
 class VirtualMachine(classLoader: String => Array[Byte]){
   val classes = mutable.Map.empty[String, Class]
-                           .withDefault(name => loadClass(classLoader(name)))
-  val threads = List(new VmThread(classes = classes))
+
+  val threads = List(new VmThread(classes = getClassFor))
   var heap = Set.empty[Object]
 
-  def loadClass(bytes: Array[Byte]) = {
 
+  def getClassFor(name: String): Class = {
+    classes.get(name) match{
+      case Some(cls) => cls
+      case None =>
+        classes(name) = loadClass(classLoader(name))
+        run(name, "<clinit>")
+        classes(name)
+    }
+  }
+
+  def loadClass(bytes: Array[Byte]) = {
     val classData = ClassFile.read(ByteBuffer.wrap(bytes))
     new Class(classData)
   }
@@ -24,6 +34,8 @@ class VirtualMachine(classLoader: String => Array[Byte]){
   def run(bootClass: String, mainMethod: String) = {
     val bc = classes(bootClass)
     val cp = bc.classFile.constant_pool
+    //println("Looking for: " + mainMethod)
+
     threads(0).run(
       bc,
       classes(bootClass)
@@ -45,12 +57,12 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), classes:
     )
 
     threadStack.push(startFrame)
-    println("Main Loop Starting")
+    //println("Main Loop Starting")
     var result: Any = null
     while(threadStack.length != 0){
       val topFrame = threadStack.head
       val bytes = topFrame.method.attributes.collect{case x: Code => x: Code}.head.code
-      println(bytes)
+      //println(bytes)
       val ctx = Context(
         this,
         topFrame,
@@ -73,11 +85,11 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), classes:
       )
 
       val opcode = OpCodes(bytes(topFrame.pc))
-      println(opcode)
-      println(ctx.stack)
+      //println(opcode)
+      //println(ctx.stack)
       topFrame.pc = topFrame.pc + 1
       opcode.op(ctx)
-      println("____")
+      //println("____")
     }
     result
   }

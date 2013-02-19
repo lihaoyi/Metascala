@@ -3,11 +3,12 @@ package svm.parsing
 import org.scalatest.FreeSpec
 import svm.parsing.Attribute.{Exceptions, LineNumberTable, Code, SourceFile}
 import java.nio.ByteBuffer
-import svm.parsing.ConstantInfo.{ZeroConstant, ClassRef, Utf8}
+import svm.parsing.ConstantInfo.{ZeroConstant, ClassRef, Utf8Info}
 import java.io.DataInputStream
 import svm.parsing.Attribute.LineNumberTable.LineNumberData
 import svm.parsing.Util.Print
 import svm.Access
+import svm.parsing.opcodes.OpCodes
 
 class ClassloaderTests extends FreeSpec{
 
@@ -20,6 +21,7 @@ class ClassloaderTests extends FreeSpec{
       Util.printClass(files("helloworld.HelloWorld"))
       implicit val constantPool = classData.constant_pool
       val AccessFlags = (Access.Super | Access.Public)
+      import OpCodes._
       val ClassFile(
         0xcafebabe,  // magic
         0,  // minor_version
@@ -39,11 +41,14 @@ class ClassloaderTests extends FreeSpec{
           MethodInfo(_,
             "main",
             "([Ljava/lang/String;)V",
-            Seq(Code(_, _, mainBytes, _, _))
+            Seq(Code(_, _,
+              Seq(GetStatic.id, _, _, Ldc.id, _, InvokeVirtual.id, _, _, Return.id),
+            _, _))
           )
         ),  // methods
         Seq(SourceFile("HelloWorld.java"))   // attributes
       ) = classData
+
     }
     "java.lang.Object" in {
       val classBytes = getClass.getResourceAsStream("/classpath/java/lang/Object.class")

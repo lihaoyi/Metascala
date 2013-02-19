@@ -11,6 +11,7 @@ object ClassFile{
     val major_version = u2
 
     implicit val constantPool = ConstantInfo.partitionConstantPool(u2-1).map(_())
+    constantPool.zipWithIndex.foreach(x => println(x._2 + "\t" + x._1))
     ClassFile(
       magic,
       minor_version,
