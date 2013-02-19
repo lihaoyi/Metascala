@@ -1,10 +1,10 @@
-package svm.parsing
+package svm.model
 
 import java.nio.ByteBuffer
 import ConstantInfo._
-import svm.parsing.Attribute.InnerClasses.ClassData
-import svm.parsing.Attribute.LineNumberTable.LineNumberData
-import svm.parsing.Attribute.LocalVariableTable.LocalVariableData
+import svm.model.Attribute.InnerClasses.ClassData
+import svm.model.Attribute.LineNumberTable.LineNumberData
+import svm.model.Attribute.LocalVariableTable.LocalVariableData
 
 object Attribute{
   def read(implicit cp: Seq[Any], input: ByteBuffer): Attribute = {

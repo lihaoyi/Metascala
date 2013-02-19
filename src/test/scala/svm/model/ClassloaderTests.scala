@@ -1,14 +1,14 @@
-package svm.parsing
+package svm.model
 
 import org.scalatest.FreeSpec
-import svm.parsing.Attribute.{Exceptions, LineNumberTable, Code, SourceFile}
+import svm.model.Attribute.{Exceptions, LineNumberTable, Code, SourceFile}
 import java.nio.ByteBuffer
-import svm.parsing.ConstantInfo.{ZeroConstant, ClassRef, Utf8Info}
+import svm.model.ConstantInfo.{ZeroConstant, ClassRef, Utf8Info}
 import java.io.DataInputStream
-import svm.parsing.Attribute.LineNumberTable.LineNumberData
-import svm.parsing.Util.Print
+import svm.model.Attribute.LineNumberTable.LineNumberData
+import svm.model.Util.Print
 import svm.Access
-import svm.parsing.opcodes.OpCodes
+import svm.model.opcodes.OpCodes
 
 class ClassloaderTests extends FreeSpec{
 
@@ -17,8 +17,8 @@ class ClassloaderTests extends FreeSpec{
     "hello world" in {
 
       val files = Util.compile("helloworld")
-      val classData = ClassFile.read(ByteBuffer.wrap(files("helloworld.HelloWorld")))
-      Util.printClass(files("helloworld.HelloWorld"))
+      val classData = ClassFile.read(ByteBuffer.wrap(files("helloworld.math.HelloWorld")))
+      Util.printClass(files("helloworld.math.HelloWorld"))
       implicit val constantPool = classData.constant_pool
       val AccessFlags = (Access.Super | Access.Public)
       import OpCodes._

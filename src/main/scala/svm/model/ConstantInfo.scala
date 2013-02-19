@@ -1,4 +1,4 @@
-package svm.parsing
+package svm.model
 
 import java.nio.ByteBuffer
 import akka.util.ByteString

@@ -1,4 +1,4 @@
-package helloworld;
+package helloworld.math;
 
 public class HelloMath {
     static int ia = 13;

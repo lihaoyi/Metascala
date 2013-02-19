@@ -1,13 +1,12 @@
 package svm
 
-import parsing.ClassFile
+import model.ClassFile
 
 class Class(val classFile: ClassFile, _statics: collection.mutable.Map[String, Any] = collection.mutable.Map.empty){
   object statics{
     def apply(name: String) = _statics(name)
     def update(name: String, value: Any) = {
       val field = classFile.fields.find(_.name == name).get
-      println("PUSHING " + value + " NAME " + name + " CLASS " + value.getClass)
 
       _statics(name) = value
     }

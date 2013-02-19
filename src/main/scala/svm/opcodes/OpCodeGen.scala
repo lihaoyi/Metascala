@@ -1,7 +1,7 @@
-package svm.parsing.opcodes
+package svm.model.opcodes
 
 import svm.{Frame, VmThread, VirtualMachine}
-import svm.parsing.ConstantInfo
+import svm.model.ConstantInfo
 
 
 object OpCodeGen {
@@ -87,33 +87,43 @@ object OpCodeGen {
 
   trait Branch extends OpCode{
     def op = { ctx =>
+      val currentPc = ctx.frame.pc
       val (offset, newStack) = branchOp(ctx, ctx.thread, ctx.stack)
-      ctx.frame.pc = ctx.frame.pc + offset
-      ctx.thread.threadStack.head.stack = newStack
+      println("OldPC " + ctx.frame.pc)
+      offset match{
+        case Some(o) => ctx.frame.pc = currentPc + o - 1
+        case None =>
+      }
+
+      ctx.frame.stack = newStack
+      println("NewPC " + ctx.frame.pc)
     }
 
-    def branchOp: (Context, VmThread, List[Any]) => (Int, List[Any])
+    def branchOp: (Context, VmThread, List[Any]) => (Option[Int], List[Any])
   }
   case class UnaryBranch(id: Byte, name: String)(bop: Int => Boolean) extends Branch{
     def branchOp = { case (ctx, thread, (top: Int) :: baseStack) =>
-      (if (bop(top)){ ctx.twoBytes() }else 0 , baseStack)
+      val offset = ctx.twoBytes()
+      (if (bop(top)) Some(offset) else None , baseStack)
     }
   }
   case class BinaryBranch(id: Byte, name: String)(bop: (Int, Int) => Boolean) extends Branch{
     def branchOp = { case (ctx, thread, (top: Int) :: (next: Int) :: baseStack) =>
-      (if (bop(top, next)){ ctx.twoBytes() }else 0, baseStack)
+      val offset = ctx.twoBytes()
+      println(bop(next, top) + " " + offset)
+      (if (bop(next, top)) Some(offset) else None, baseStack)
     }
   }
 
   case class JsrBranch(id: Byte, name: String) extends Branch{
     def branchOp = { case (ctx, thread, (top: Int) :: (next: Int) :: baseStack) =>
-      (ctx.twoBytes(), baseStack)
+      (Some(ctx.twoBytes()), baseStack)
     }
   }
 
   case class RetBranch(id: Byte, name: String) extends Branch{
     def branchOp = { case (ctx, thread, (top: Int) :: (second: Int) :: baseStack) =>
-      (thread.threadStack.head.locals(ctx.nextByte()).asInstanceOf[Int], baseStack)
+      (Some(thread.threadStack.head.locals(ctx.nextByte()).asInstanceOf[Int]), baseStack)
     }
   }
 

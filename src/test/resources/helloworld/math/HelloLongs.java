@@ -1,4 +1,4 @@
-package helloworld;
+package helloworld.math;
 
 public class HelloLongs {
     static long la = 13;

@@ -1,10 +1,10 @@
-package svm.parsing
+package svm.model
 package opcodes
 
 
-import svm.parsing.ConstantInfo
+import svm.model.ConstantInfo
 import ConstantInfo._
-import svm.parsing.ConstantInfo
+import svm.model.ConstantInfo
 import svm.Frame
 
 

@@ -1,4 +1,4 @@
-package helloworld;
+package helloworld.math;
 
 public class HelloWorld {
     public static void main(String[] args){

@@ -1,10 +1,10 @@
 package svm
 
-import parsing.Attribute.Code
-import parsing.ConstantInfo.Utf8Info
-import parsing.opcodes.OpCodeGen.Context
-import parsing.opcodes.OpCodes
-import parsing.{MethodInfo, ClassFile}
+import model.Attribute.Code
+import model.ConstantInfo.Utf8Info
+import model.opcodes.OpCodeGen.Context
+import model.opcodes.OpCodes
+import model.{MethodInfo, ClassFile}
 import java.io.DataInputStream
 import java.nio.ByteBuffer
 import collection.mutable
@@ -22,6 +22,7 @@ class VirtualMachine(classLoader: String => Array[Byte]){
       case None =>
         classes(name) = loadClass(classLoader(name))
         run(name, "<clinit>")
+        println("-End Init-")
         classes(name)
     }
   }
@@ -36,11 +37,12 @@ class VirtualMachine(classLoader: String => Array[Byte]){
 
     threads(0).run(
       bc,
+
       getClassFor(bootClass)
         .classFile
         .methods
         .find(x => x.name == mainMethod)
-        .get
+        .getOrElse(throw new IllegalArgumentException("Can't find method: " + mainMethod))
     )
   }
 }
@@ -53,14 +55,17 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), classes:
       locals = mutable.Seq(),
       stack = Nil
     )
-
+    println(startFrame.method.attributes.collect{case x: Code => x: Code}.head.code)
     threadStack.push(startFrame)
     //println("Main Loop Starting")
     var result: Any = null
     while(threadStack.length != 0){
+
       val topFrame = threadStack.head
+
       val bytes = topFrame.method.attributes.collect{case x: Code => x: Code}.head.code
-      //println(bytes)
+      val opcode = OpCodes(bytes(topFrame.pc))
+
       val ctx = Context(
         this,
         topFrame,
@@ -81,12 +86,14 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), classes:
           }
         }
       )
+      println(ctx.stack)
+      println()
+      println(opcode)
 
-      val opcode = OpCodes(bytes(topFrame.pc))
-      //println(opcode)
-      //println(ctx.stack)
+
       topFrame.pc = topFrame.pc + 1
       opcode.op(ctx)
+
       //println("____")
     }
     result

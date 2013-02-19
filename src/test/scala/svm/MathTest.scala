@@ -4,28 +4,25 @@ import org.scalatest.FreeSpec
 import java.io.DataInputStream
 import svm.Util.SingleClassVirtualMachine
 
-class VirtualMachineTest extends FreeSpec{
+class MathTest extends FreeSpec{
   import Util.loadClass
 
   "hello math" in {
-    val vm = new SingleClassVirtualMachine("helloworld.HelloMath", loadClass)
-
+    val vm = new SingleClassVirtualMachine("helloworld.math.HelloMath", loadClass)
     assert(vm.run("imain") === Some(1337))
     assert(vm.run("fmain") === Some(1.337f))
     assert(vm.run("amain") === Some("i am 3l33t"))
   }
 
   "hello longs" in {
-
-    val vm = new SingleClassVirtualMachine("helloworld.HelloLongs", loadClass)
+    val vm = new SingleClassVirtualMachine("helloworld.math.HelloLongs", loadClass)
     assert(vm.run("lmain") === Some(31337))
     assert(vm.run("dmain") === Some(31.337))
   }
 
   "basic math" - {
     "int" in {
-      
-      val vm = new SingleClassVirtualMachine("helloworld.HelloMath", loadClass)
+      val vm = new SingleClassVirtualMachine("helloworld.math.HelloMath", loadClass)
       assert(vm.run("ineg") === Some(-13))
       assert(vm.run("iadd") === Some(17))
       assert(vm.run("isub") === Some(9))
@@ -34,7 +31,7 @@ class VirtualMachineTest extends FreeSpec{
       assert(vm.run("imod") === Some(1))
     }
     "long" in {
-      val vm = new SingleClassVirtualMachine("helloworld.HelloLongs", loadClass)
+      val vm = new SingleClassVirtualMachine("helloworld.math.HelloLongs", loadClass)
       assert(vm.run("lneg") === Some(-13))
       assert(vm.run("ladd") === Some(17))
       assert(vm.run("lsub") === Some(9))
@@ -44,7 +41,7 @@ class VirtualMachineTest extends FreeSpec{
     }
     "float" in {
       
-      val vm = new SingleClassVirtualMachine("helloworld.HelloMath", loadClass)
+      val vm = new SingleClassVirtualMachine("helloworld.math.HelloMath", loadClass)
       assert(vm.run("fneg") === Some(-13.0f))
       assert(vm.run("fadd") === Some(17.0f))
       assert(vm.run("fsub") === Some(9.0f))
@@ -53,7 +50,7 @@ class VirtualMachineTest extends FreeSpec{
       assert(vm.run("fmod") == Some(1.0f))
     }
     "double" in {
-      val vm = new SingleClassVirtualMachine("helloworld.HelloLongs", loadClass)
+      val vm = new SingleClassVirtualMachine("helloworld.math.HelloLongs", loadClass)
       assert(vm.run("dneg") === Some(-13.0f))
       assert(vm.run("dadd") === Some(17.0f))
       assert(vm.run("dsub") === Some(9.0f))
@@ -63,7 +60,7 @@ class VirtualMachineTest extends FreeSpec{
     }
 
     "more int stuff" in {
-      val vm = new SingleClassVirtualMachine("helloworld.HelloMath", loadClass)
+      val vm = new SingleClassVirtualMachine("helloworld.math.HelloMath", loadClass)
       assert(vm.run("ishl") === Some(0x9abcde00))
       assert(vm.run("ishr") === Some(0x789abc))
       assert(vm.run("iushr") === Some(0x789abc))
@@ -73,7 +70,7 @@ class VirtualMachineTest extends FreeSpec{
     }
 
     "more long stuff" in {
-      val vm = new SingleClassVirtualMachine("helloworld.HelloLongs", loadClass)
+      val vm = new SingleClassVirtualMachine("helloworld.math.HelloLongs", loadClass)
       assert(vm.run("lshl") === Some(0x56789abcdef00000L))
       assert(vm.run("lshr") === Some(0x123456789abcL))
       assert(vm.run("lushr") === Some(0x123456789abcL))
