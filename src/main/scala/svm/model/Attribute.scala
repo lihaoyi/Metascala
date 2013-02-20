@@ -5,6 +5,8 @@ import ConstantInfo._
 import svm.model.Attribute.InnerClasses.ClassData
 import svm.model.Attribute.LineNumberTable.LineNumberData
 import svm.model.Attribute.LocalVariableTable.LocalVariableData
+import svm.model.opcodes.OpCodes
+import svm.ByteCode
 
 object Attribute{
   def read(implicit cp: Seq[Any], input: ByteBuffer): Attribute = {
@@ -37,11 +39,23 @@ object Attribute{
                            extends Attribute
 
   object Code{
+    def parseAll(bytes: Array[Byte]) = {
+      var bytecodes = List.empty[ByteCode]
+      val buf = ByteBuffer.wrap(bytes)
+      while(buf.hasRemaining){
+        val first = buf.get()
+        val opcode = OpCodes(first)
+        val rest = new Array[Byte](opcode.width)
+        buf.get(rest)
+        bytecodes = ByteCode(opcode, rest) ::bytecodes
+      }
+      bytecodes.reverse
+    }
     def read(implicit cp: Seq[Any], input: ByteBuffer) = {
       Code(
         u2,
         u2,
-        u(u4),
+        parseAll(u(u4)),
         u2 ** ExceptionData.read,
         u2 ** Attribute.read
       )
@@ -55,7 +69,7 @@ object Attribute{
   }
   case class Code(maxStack: u2,
                   maxLocals: u2,
-                  bytes: Seq[Byte],
+                  bytecodes: Seq[ByteCode],
                   exceptionTable: Seq[Code.ExceptionData],
                   attributeInfo: Seq[Attribute])
                   extends Attribute

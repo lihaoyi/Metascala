@@ -3,6 +3,8 @@ package svm.model
 import java.nio.ByteBuffer
 import svm.model.ConstantInfo.{ClassRef, ZeroConstant}
 import svm.model.Attribute.Code
+import org.objectweb.asm.ClassReader
+import org.objectweb.asm.tree.ClassNode
 
 
 object ClassFile{
@@ -26,6 +28,13 @@ object ClassFile{
       u2 ** MethodInfo.read,
       u2 ** Attribute.read
     )
+  }
+  def parse(input: Array[Byte]){
+    val cr = new ClassReader(input);
+    val classNode=new ClassNode();
+
+    cr.accept(classNode, 0);
+
   }
 }
 case class ClassFile(magic: u4,

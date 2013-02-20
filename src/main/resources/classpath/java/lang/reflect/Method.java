@@ -139,7 +139,7 @@ public class Method<T> extends AccessibleObject implements Member {
       }
     } else {
 //       System.out.println
-//         (getDeclaringClass() + "." + getName() + " flags: " + vmMethod.flags + " vm flags: " + vmMethod.vmFlags + " return bytes: " + vmMethod.returnCode);
+//         (getDeclaringClass() + "." + getName() + " flags: " + vmMethod.flags + " vm flags: " + vmMethod.vmFlags + " return bytecodes: " + vmMethod.returnCode);
       throw new IllegalArgumentException();
     }
   }

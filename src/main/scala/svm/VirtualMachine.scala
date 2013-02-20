@@ -48,12 +48,12 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
 
   def step() = {
     val topFrame = threadStack.head
-    val bytes = topFrame.method.code.bytes
-    val opcode = OpCodes(bytes(topFrame.pc))
+
+    val bytecode = topFrame.method.code.bytecodes(topFrame.pc)
 
     topFrame.pc += 1
-    println("-------------------------------------- "+opcode)
-    opcode.op(Context(this))
+    println("-------------------------------------- " + bytecode.opcode)
+    bytecode.opcode.op(Context(this))
     println(topFrame.stack)
   }
 

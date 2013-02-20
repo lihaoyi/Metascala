@@ -14,7 +14,7 @@ object OpCodeGen {
     def stack = frame.stack
     def twoBytes() = nextByte() << 8 | nextByte()
     def nextByte() = {
-      val bytes = frame.method.attributes.collect{case x: Code => x: Code}.head.bytes
+      val bytes = frame.method.attributes.collect{case x: Code => x: Code}.head.bytecodes
       val result = bytes(frame.pc)
       frame.pc += 1
       result

@@ -1,6 +1,7 @@
 package svm
 
 import model.ClassFile
+import model.opcodes.OpCodeGen.OpCode
 
 class Class(val classFile: ClassFile, _statics: collection.mutable.Map[String, Any] = collection.mutable.Map.empty){
   object statics{
@@ -16,6 +17,7 @@ class Class(val classFile: ClassFile, _statics: collection.mutable.Map[String, A
 
 class Object(val cls: Class, val members: collection.mutable.Map[String, Any] = collection.mutable.Map.empty)
 
+case class ByteCode(opcode: OpCode, bytes: Seq[Byte])
 object Access{
   val Public    = 0x0001 // 1
   val Private   = 0x0002 // 2
