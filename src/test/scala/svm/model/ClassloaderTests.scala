@@ -28,7 +28,7 @@ class ClassloaderTests extends FreeSpec{
             VarInsn(25,0),
             MethodInsn(183, "java/lang/Object", "<init>", "()V"),
             Insn(177),
-            Label()), _, _, _, _, _
+            Label()), _, _
           ),
           Method(9, "main", "([Ljava/lang/String;)V", Nil, List(
             Label(),
@@ -39,7 +39,7 @@ class ClassloaderTests extends FreeSpec{
             Label(),
             LineNumber(6, _),
             Insn(177),
-            Label()), _, _, _, _,_
+            Label()), _, _
           )
         ), //methods
         _ // misc

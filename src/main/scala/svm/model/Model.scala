@@ -120,38 +120,41 @@ object Method {
     mn.desc,
     mn.exceptions.safeList,
     mn.instructions.toArray.toList.map(Node.read),
-    mn.tryCatchBlocks.safeList.map(TryCatchBlock.read),
-    mn.localVariables.safeList.map(LocalVariable.read),
-    mn.maxStack,
-    mn.maxLocals,
     Misc(
       mn.signature.safeOpt,
+      mn.tryCatchBlocks.safeList.map(TryCatchBlock.read),
+      mn.localVariables.safeList.map(LocalVariable.read),
+      mn.maxStack,
+      mn.maxLocals,
+      mn.attrs.safeList.map(Attribute.read)
+    ),
+    Annotations(
       mn.visibleAnnotations.safeList.map(Annotation.read),
       mn.invisibleAnnotations.safeList.map(Annotation.read),
-      mn.attrs.safeList.map(Attribute.read),
       mn.annotationDefault.safeOpt,
       mn.visibleParameterAnnotations.safeList.map(_.safeList.map(Annotation.read)),
       mn.invisibleParameterAnnotations.safeList.map(_.safeList.map(Annotation.read))
     )
   )
+  case class Annotations(visibleAnnotations: List[Annotation],
+                         invisibleAnnotations: List[Annotation],
+                         annotationDefault: Any,
+                         visibleParameterAnnotations: List[List[Annotation]],
+                         invisibleParameterAnnotations: List[List[Annotation]])
   case class Misc(signature: Option[String],
-                  visibleAnnotations: List[Annotation],
-                  invisibleAnnotations: List[Annotation],
-                  attrs: List[Attribute],
-                  annotationDefault: Any,
-                  visibleParameterAnnotations: List[List[Annotation]],
-                  invisibleParameterAnnotations: List[List[Annotation]])
+                  tryCatchBlocks: List[TryCatchBlock],
+                  localVariables: List[LocalVariable],
+                  maxStack: Int,
+                  maxLocals: Int,
+                  attrs: List[Attribute])
 }
 case class Method(access: Int,
                   name: String,
                   desc: String,
                   exceptions: List[String],
                   instructions: List[Node],
-                  tryCatchBlocks: List[TryCatchBlock],
-                  localVariables: List[LocalVariable],
-                  maxStack: Int,
-                  maxLocals: Int,
-                  misc: Method.Misc)
+                  misc: Method.Misc,
+                  annotations: Method.Annotations)
 
 object TryCatchBlock {
   def read(tcbn: TryCatchBlockNode) = TryCatchBlock(
