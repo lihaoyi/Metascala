@@ -1,32 +1,25 @@
 package svm
-
-import java.nio.ByteBuffer
-
+import collection.convert.wrapAsScala._
+/**
+ * Created with IntelliJ IDEA.
+ * User: Haoyi
+ * Date: 2/20/13
+ * Time: 3:08 AM
+ * To change this template use File | Settings | File Templates.
+ */
 package object model {
-  def u1(implicit input: ByteBuffer) = input.get
-  type u1 = Byte
-  def u2(implicit input: ByteBuffer) = input.getShort
-  type u2 = Short
-  def u4(implicit input: ByteBuffer) = input.getInt
-  type u4 = Int
-  def u(n: Int)(implicit input: ByteBuffer) = {
-    val x = new Array[Byte](n)
-    input.get(x)
-    x
-  }
-
-  implicit def createArray(n: Short) = new createArray(n: Int)
-  implicit class createArray[A](n: Int){
-    def **[A](f: => A) = (0 until n).map{_ => f}
-    def ***[A](f: => Seq[A]) = {
-      var out = Seq[Seq[A]]()
-      var count = 0
-      while(count < n){
-        out = f +: out
-        count += out.head.length
-      }
-      out.reverse.flatten
+  implicit class c[T](list: java.util.List[T]){
+    def safeList: List[T] = {
+      Option(list).toList.flatten
     }
+  }
+  implicit class a[T](list: Array[T]){
+    def safeList: List[T] = {
+      Option(list).toList.flatten
+    }
+  }
+  implicit class o[T](a: T){
+    def safeOpt: Option[T] = Option(a)
   }
 
 

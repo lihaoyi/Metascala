@@ -1,4 +1,5 @@
 package svm.model.opcodes
+/*
 
 import svm.{Frame, VmThread, VirtualMachine}
 import svm.model.ConstantInfo
@@ -149,3 +150,4 @@ object OpCodeGen {
 
 
 }
+*/

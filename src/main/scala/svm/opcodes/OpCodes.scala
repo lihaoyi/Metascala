@@ -1,6 +1,7 @@
 package svm.model
 package opcodes
 
+/*
 
 import svm.model.ConstantInfo
 import ConstantInfo._
@@ -614,3 +615,4 @@ object OpCodes {
 
 
 
+*/

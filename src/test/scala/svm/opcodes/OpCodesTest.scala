@@ -1,4 +1,5 @@
 package svm.opcodes
+/*
 
 import org.scalatest.FreeSpec
 import svm.model.opcodes.OpCodes
@@ -10,3 +11,4 @@ class OpCodesTest extends FreeSpec{
     }
   }
 }
+*/

@@ -1,11 +1,6 @@
 package svm
 
-import model.Attribute.Code
-import model.opcodes.OpCodeGen.Context
-import model.opcodes.OpCodes
-import model.{MethodInfo, ClassFile}
-import java.nio.ByteBuffer
-import collection.mutable
+/*
 
 class VirtualMachine(classLoader: String => Array[Byte]){
   val classes = mutable.Map.empty[String, Class]
@@ -49,7 +44,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
   def step() = {
     val topFrame = threadStack.head
 
-    val bytecode = topFrame.method.code.bytecodes(topFrame.pc)
+    val bytecode = topFrame.method.instructions.bytecodes(topFrame.pc)
 
     topFrame.pc += 1
     println("-------------------------------------- " + bytecode.opcode)
@@ -57,12 +52,12 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
     println(topFrame.stack)
   }
 
-  def invoke(cls: Class, method: MethodInfo) = {
+  def invoke(cls: Class, method: Method) = {
     println("Invoking " + method.name)
     println(method.code)
     val dummyFrame = new Frame(
       runningClass = cls,
-      method = MethodInfo(0.toShort, "Dummy", "", Nil),
+      method = Method(0.toShort, "Dummy", "", Nil),
       locals = mutable.Seq.empty,
       stack = Nil
     )
@@ -86,9 +81,10 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
 class Frame(
   var pc: Int = 0,
   val runningClass: Class,
-  val method: MethodInfo,
+  val method: Method,
   val locals: mutable.Seq[Any] = mutable.Seq.empty,
   var stack: List[Any] = Nil){
 
 }
 
+*/

@@ -1,4 +1,5 @@
 package svm
+/*
 
 import model.ClassFile
 import model.opcodes.OpCodeGen.OpCode
@@ -12,7 +13,7 @@ class Class(val classFile: ClassFile, _statics: collection.mutable.Map[String, A
       _statics(name) = value
     }
   }
-  def name = classFile.this_class.name
+  def name = classFile.name
 }
 
 class Object(val cls: Class, val members: collection.mutable.Map[String, Any] = collection.mutable.Map.empty)
@@ -31,4 +32,4 @@ object Access{
   val Interface = 0x0200 // 512
   val Abstract  = 0x0400 // 1024
   val Strict    = 0x0800 // 2048
-}
+}*/
