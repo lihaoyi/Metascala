@@ -6,6 +6,8 @@ import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree._
 
 import org.objectweb.asm
+import svm.model.opcodes.{Context, OpCodes, OpCode}
+import collection.mutable
 
 object InnerClass {
   def read(icn: InnerClassNode) = InnerClass(
@@ -119,7 +121,7 @@ object Method {
     mn.name,
     mn.desc,
     mn.exceptions.safeList,
-    mn.instructions.toArray.toList.map(Node.read),
+    Code.read(mn.instructions),
     Misc(
       mn.signature.safeOpt,
       mn.tryCatchBlocks.safeList.map(TryCatchBlock.read),
@@ -152,7 +154,7 @@ case class Method(access: Int,
                   name: String,
                   desc: String,
                   exceptions: List[String],
-                  instructions: List[Node],
+                  code: Code,
                   misc: Method.Misc,
                   annotations: Method.Annotations)
 
@@ -176,9 +178,6 @@ object Attribute {
 
 case class Attribute(atype: String)
 
-
-
-
 object Annotation {
   def read(an: AnnotationNode) = Annotation(
     an.desc,
@@ -190,89 +189,151 @@ case class Annotation(desc: String,
                       values: List[Any])
 
 
+object Code{
+  def read(nodes: InsnList): Code = {
+    val instructions = mutable.ListBuffer[Node]()
+    val attached =
+      mutable.Map.empty[Int, mutable.ListBuffer[Attached]]
+                 .withDefaultValue(mutable.ListBuffer())
 
-trait Node
-
-object Node {
-  def read(ain: AbstractInsnNode) = ain match{
-    case x: FieldInsnNode => FieldInsn(x.getOpcode, x.owner, x.name, x.desc)
-    case x: FrameNode => Frame(x.`type`, x.local.safeList, x.stack.safeList)
-    case x: IincInsnNode => IIncInsn(x.getOpcode, x.`var`, x.incr)
-    case x: InsnNode => Insn(x.getOpcode)
-    case x: IntInsnNode => IntInsn(x.getOpcode, x.operand)
-    case x: InvokeDynamicInsnNode => InvokeDynamicInsn(x.getOpcode, x.name, x.desc, x.bsm, x.bsmArgs)
-    case x: JumpInsnNode => JumpInsn(x.getOpcode, x.label)
-    case x: LabelNode => Label()
-    case x: LdcInsnNode => LdcInsn(x.getOpcode, x.cst)
-    case x: LineNumberNode => LineNumber(x.line, x.start)
-    case x: LookupSwitchInsnNode => LookupSwitchInsn(x.getOpcode, x.dflt, x.keys.safeList.map(x => x: Int), x.labels.safeList)
-    case x: MethodInsnNode => MethodInsn(x.getOpcode, x.owner, x.name, x.desc)
-    case x: MultiANewArrayInsnNode => MultiANewArrayInsn(x.getOpcode, x.desc, x.dims)
-    case x: TableSwitchInsnNode => TableSwitchInsn(x.getOpcode, x.min, x.max, x.dflt, x.labels.safeList)
-    case x: TypeInsnNode => TypeInsn(x.getOpcode, x.desc)
-    case x: VarInsnNode => VarInsn(x.getOpcode, x.`var`)
+    for(node <- nodes.toArray){
+      node match{
+        case Node(n) => instructions.append(n)
+        case Attached(a) => attached(instructions.length).append(a)
+      }
+    }
+    Code(instructions.toList, attached.toMap.mapValues(_.toSeq))
   }
+}
+case class Code(instructions: Seq[Node],
+                attached: Map[Int, Seq[Attached]])
 
-  case class FieldInsn(opcode: Int,
-                       owner: String,
-                       name: String,
-                       desc: String) extends Node
-
+trait Attached
+object Attached{
   case class Frame(frameType: Int,
                    local: List[Any],
-                   stack: List[Any]) extends Node
+                   stack: List[Any]) extends Attached
+  case class Label() extends Attached
+  case class LineNumber(line: Int,
+                        start: LabelNode) extends Attached
+  def unapply(ain: AbstractInsnNode) = read.lift(ain)
+  def read: PartialFunction[AbstractInsnNode, Attached] = {
+    case x: FrameNode               => Frame(x.`type`, x.local.safeList, x.stack.safeList)
+    case x: LabelNode               => Label()
+    case x: LineNumberNode          => LineNumber(x.line, x.start)
+  }
+}
 
-  case class IIncInsn(opcode: Int,
+trait Node{
+  type This <: Node
+  def opcode: OpCode[This]
+  def op(ctx: Context) = opcode.op(ctx, this.asInstanceOf[This])
+}
+
+object Node {
+  implicit class getOpCode(i: Int){
+    def resolve[T <: Node] = OpCodes[T](i)
+  }
+  def unapply(ain: AbstractInsnNode) = read.lift(ain)
+  def read: PartialFunction[AbstractInsnNode, Node] = {
+    case x: FieldInsnNode           => FieldInsn(x.getOpcode.resolve, x.owner, x.name, x.desc)
+    case x: IincInsnNode            => IIncInsn(x.getOpcode.resolve, x.`var`, x.incr)
+    case x: InsnNode                => Insn(x.getOpcode.resolve)
+    case x: IntInsnNode             => IntInsn(x.getOpcode.resolve, x.operand)
+    case x: InvokeDynamicInsnNode   => InvokeDynamicInsn(x.getOpcode.resolve, x.name, x.desc, x.bsm, x.bsmArgs)
+    case x: JumpInsnNode            => JumpInsn(x.getOpcode.resolve, x.label)
+    case x: LdcInsnNode             => LdcInsn(x.getOpcode.resolve, x.cst)
+    case x: LookupSwitchInsnNode    => LookupSwitchInsn(x.getOpcode.resolve, x.dflt, x.keys.safeList.map(x => x: Int), x.labels.safeList)
+    case x: MethodInsnNode          => MethodInsn(x.getOpcode.resolve, x.owner, x.name, x.desc)
+    case x: MultiANewArrayInsnNode  => MultiANewArrayInsn(x.getOpcode.resolve, x.desc, x.dims)
+    case x: TableSwitchInsnNode     => TableSwitchInsn(x.getOpcode.resolve, x.min, x.max, x.dflt, x.labels.safeList)
+    case x: TypeInsnNode            => TypeInsn(x.getOpcode.resolve, x.desc)
+    case x: VarInsnNode             => VarInsn(x.getOpcode.resolve, x.`var`)
+  }
+
+  case class FieldInsn(opcode: OpCode[FieldInsn],
+                       owner: String,
+                       name: String,
+                       desc: String) extends Node{
+    type This = FieldInsn
+
+  }
+
+
+
+  case class IIncInsn(opcode: OpCode[IIncInsn],
                       variable: Int,
-                      incr: Int) extends Node
+                      incr: Int) extends Node{
+    type This = IIncInsn
+  }
 
-  case class Insn(opcode: Int) extends Node
+  case class Insn(opcode: OpCode[Insn]) extends Node{
+    type This = Insn
+  }
 
-  case class IntInsn(opcode: Int,
-                     operand: Int) extends Node
+  case class IntInsn(opcode: OpCode[IntInsn],
+                     operand: Int) extends Node{
+    type This = IntInsn
+  }
 
-  case class InvokeDynamicInsn(opcode: Int,
+  case class InvokeDynamicInsn(opcode: OpCode[InvokeDynamicInsn],
                                name: String,
                                desc: String,
                                bsm: Any,
-                               bsmArgs: Array[AnyRef]) extends Node
+                               bsmArgs: Array[AnyRef]) extends Node{
+    type This = InvokeDynamicInsn
+  }
 
 
-  case class JumpInsn(opcode: Int,
-                      label: LabelNode) extends Node
+  case class JumpInsn(opcode: OpCode[JumpInsn],
+                      label: LabelNode) extends Node{
+    type This = JumpInsn
+  }
 
-  case class Label() extends Node
 
-  case class LdcInsn(opcode: Int,
-                     cst: Any) extends Node
 
-  case class LineNumber(line: Int,
-                        start: LabelNode) extends Node
+  case class LdcInsn(opcode: OpCode[LdcInsn],
+                     cst: Any) extends Node{
+    type This = LdcInsn
+  }
 
-  case class LookupSwitchInsn(opcode: Int,
+
+  case class LookupSwitchInsn(opcode: OpCode[LookupSwitchInsn],
                               default: LabelNode,
                               keys: List[Int],
-                              labels: List[LabelNode]) extends Node
+                              labels: List[LabelNode]) extends Node{
+    type This = LookupSwitchInsn
+  }
 
-  case class MethodInsn(opcode: Int,
+  case class MethodInsn(opcode: OpCode[MethodInsn],
                         owner: String,
                         name: String,
-                        desc: String) extends Node
+                        desc: String) extends Node{
+    type This = MethodInsn
+  }
 
-  case class MultiANewArrayInsn(opcode: Int,
+  case class MultiANewArrayInsn(opcode: OpCode[MultiANewArrayInsn],
                                 desc: String,
-                                dims: Int) extends Node
+                                dims: Int) extends Node{
+    type This = MultiANewArrayInsn
+  }
 
-  case class TableSwitchInsn(opcode: Int,
+  case class TableSwitchInsn(opcode: OpCode[TableSwitchInsn],
                              min: Int,
                              max: Int,
                              default: LabelNode,
-                             labels: List[LabelNode]) extends Node
+                             labels: List[LabelNode]) extends Node{
+    type This = TableSwitchInsn
+  }
 
-  case class TypeInsn(opcode: Int,
-                      desc: String) extends Node
+  case class TypeInsn(opcode: OpCode[TypeInsn],
+                      desc: String) extends Node{
+    type This = TypeInsn
+  }
 
-  case class VarInsn(opcode: Int,
-                     variable: Int) extends Node
+  case class VarInsn(opcode: OpCode[VarInsn],
+                     variable: Int) extends Node{
+    type This = VarInsn
+  }
 
 }

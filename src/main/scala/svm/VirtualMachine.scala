@@ -1,6 +1,9 @@
 package svm
 
-/*
+import collection.mutable
+import model._
+import java.nio.ByteBuffer
+import model.opcodes.Context
 
 class VirtualMachine(classLoader: String => Array[Byte]){
   val classes = mutable.Map.empty[String, Class]
@@ -21,7 +24,7 @@ class VirtualMachine(classLoader: String => Array[Byte]){
   }
 
   def loadClass(bytes: Array[Byte]) = {
-    val classData = ClassFile.read(ByteBuffer.wrap(bytes))
+    val classData = ClassFile.parse(bytes)
     new Class(classData)
   }
 
@@ -44,28 +47,28 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
   def step() = {
     val topFrame = threadStack.head
 
-    val bytecode = topFrame.method.instructions.bytecodes(topFrame.pc)
+    val node = topFrame.method.code.instructions(topFrame.pc)
 
     topFrame.pc += 1
-    println("-------------------------------------- " + bytecode.opcode)
-    bytecode.opcode.op(Context(this))
+    println("-------------------------------------- " + node)
+    node.op(Context(this))
     println(topFrame.stack)
   }
 
   def invoke(cls: Class, method: Method) = {
     println("Invoking " + method.name)
-    println(method.code)
+
     val dummyFrame = new Frame(
       runningClass = cls,
-      method = Method(0.toShort, "Dummy", "", Nil),
+      method = method.copy(name = "Dummy"),
       locals = mutable.Seq.empty,
       stack = Nil
     )
-    println("MaxLocals " + method.code.maxLocals)
+    println("MaxLocals " + method.misc.maxLocals)
     val startFrame = new Frame(
       runningClass = cls,
       method = method,
-      locals = mutable.Seq.fill(method.code.maxLocals)(null),
+      locals = mutable.Seq.fill(method.misc.maxLocals)(null),
       stack = Nil
     )
 
@@ -87,4 +90,4 @@ class Frame(
 
 }
 
-*/
+
