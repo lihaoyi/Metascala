@@ -99,16 +99,26 @@ object Code{
   def read(nodes: InsnList): Code = {
     val instructions = mutable.ListBuffer[Instruction]()
     val attached =
-      mutable.Map.empty[Int, mutable.ListBuffer[Attached]]
-                 .withDefaultValue(mutable.ListBuffer())
+      mutable.Map.empty[Int, List[Attached]]
+                 .withDefaultValue(Nil)
 
     for(node <- nodes.toArray){
       node match{
-        case Instruction(n) => instructions.append(n)
-        case Attached(a) => attached(instructions.length).append(a)
+        case Instruction(n) =>
+          println("Instruction " + n)
+          instructions.append(n)
+        case Attached(a) =>
+          println("Attached " + a)
+          println(attached)
+          attached(instructions.length) = a :: attached(instructions.length)
+          println(attached)
       }
     }
-    Code(instructions.toList, attached.toMap.mapValues(_.toSeq))
+    val result = Code(instructions.toList, attached.toMap)
+    println("Result")
+    println(attached)
+    println(result)
+    result
   }
 }
 case class Code(instructions: Seq[Instruction],
