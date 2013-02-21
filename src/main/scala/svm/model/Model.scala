@@ -97,17 +97,17 @@ case class Annotation(desc: String,
 
 object Code{
   def read(nodes: InsnList): Code = {
-    val instructions = mutable.ListBuffer[Instruction]()
+    val instructions = mutable.ListBuffer[OpCode]()
     val attached =
       mutable.Map.empty[Int, List[Attached]]
                  .withDefaultValue(Nil)
 
     for(node <- nodes.toArray){
       node match{
-        case Instruction(n) =>
+        case OpCode.TryParse(n) =>
           println("Instruction " + n)
           instructions.append(n)
-        case Attached(a) =>
+        case Attached.TryParse(a) =>
           println("Attached " + a)
           println(attached)
           attached(instructions.length) = a :: attached(instructions.length)
@@ -120,8 +120,9 @@ object Code{
     println(result)
     result
   }
+
 }
-case class Code(instructions: Seq[Instruction],
+case class Code(instructions: Seq[OpCode],
                 attached: Map[Int, Seq[Attached]])
 
 

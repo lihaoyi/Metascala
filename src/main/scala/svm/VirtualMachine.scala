@@ -2,8 +2,7 @@ package svm
 
 import collection.mutable
 import model._
-import java.nio.ByteBuffer
-import model.opcodes.Context
+
 
 class VirtualMachine(classLoader: String => Array[Byte]){
   val classes = mutable.Map.empty[String, Class]

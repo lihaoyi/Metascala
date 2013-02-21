@@ -1,7 +1,6 @@
 package svm
 
-import model.ClassFile
-import model.opcodes.OpCode
+import model.{OpCode, ClassFile}
 
 class Class(val classFile: ClassFile, _statics: collection.mutable.Map[String, Any] = collection.mutable.Map.empty){
   object statics{
