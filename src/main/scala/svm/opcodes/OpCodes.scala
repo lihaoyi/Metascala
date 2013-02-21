@@ -6,13 +6,9 @@ package opcodes
 
 import svm.Frame
 import collection.mutable
-import svm.model.Node._
 import scala.Some
 import svm.model.a
-import svm.model.Node.LdcInsn
-import svm.model.Node.VarInsn
-import svm.model.Node.IntInsn
-import svm.model.Node.Insn
+import svm.model.Instruction._
 
 
 object OpCodes {
@@ -404,7 +400,7 @@ object OpCodes {
   val GotoW = OpCode[Nothing](200, "goto_w"){case (ctx, insn) => ??? }
   val JsrW = OpCode[Nothing](201, "jsr_w"){case (ctx, insn) => ??? }
 
-  def apply[T <: Node](n: Int): OpCode[T] = all((n + 256) % 256).asInstanceOf[OpCode[T]]
+  def apply[T <: Instruction](n: Int): OpCode[T] = all((n + 256) % 256).asInstanceOf[OpCode[T]]
   val all = Seq(
     Nop,
     AConstNull,

@@ -2,8 +2,8 @@ package svm.model.opcodes
 
 
 import svm.{Frame, VmThread, VirtualMachine}
-import svm.model.Node.Insn
-import svm.model.Node
+import svm.model.Instruction.Insn
+import svm.model.Instruction
 import org.objectweb.asm.tree.LabelNode
 
 case class Context(thread: VmThread){
@@ -19,18 +19,18 @@ case class Context(thread: VmThread){
   }
 }
 
-trait OpCode[-T <: Node]{
+trait OpCode[-T <: Instruction]{
   def id: Byte
   def name: String
   def op: (Context, T) => Unit
 }
 
 object OpCode {
-  def unapply[T <: Node](o: OpCode[T]) = (o.id, o.name, o.op)
-  def apply[T <: Node](id: Byte, name: String)(op: (Context, T) => Unit) =
+  def unapply[T <: Instruction](o: OpCode[T]) = (o.id, o.name, o.op)
+  def apply[T <: Instruction](id: Byte, name: String)(op: (Context, T) => Unit) =
     BaseOpCode(id, name, op)
 
-  case class BaseOpCode[T <: Node](id: Byte, name: String, op: (Context, T) => Unit) extends OpCode[T]
+  case class BaseOpCode[T <: Instruction](id: Byte, name: String, op: (Context, T) => Unit) extends OpCode[T]
 
 
 
