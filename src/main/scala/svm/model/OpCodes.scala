@@ -26,25 +26,28 @@ abstract class OpCode{
 
 object OpCode {
   object TryParse{
-    def unapply(x: AbstractInsnNode)(implicit code: () => Code) = read.lift(x)
+    def unapply(x: AbstractInsnNode)(implicit labelMap: Map[Int, Int]) = read.lift(x)
   }
   def unapply(o: OpCode) = (o.id, o.insnName, o.op)
-  implicit def getId(x: AbstractInsnNode) = x.getOpcode
-  implicit def makeLazyLabel(x: LabelNode)(implicit code: () => Code) = new LazyLabel(x)
-  def read(implicit code: () => Code): PartialFunction[Any, OpCode] = {
-    case x: FieldInsnNode           => all(x).asInstanceOf[(String, String, String) => OpCode].apply(x.owner, x.name, x.desc)
-    case x: IincInsnNode            => all(x).asInstanceOf[(Int, Int) => OpCode].apply(x.`var`, x.incr)
-    case x: InsnNode                => all(x).asInstanceOf[OpCode]
-    case x: IntInsnNode             => all(x).asInstanceOf[Int => OpCode].apply(x.operand)
-    case x: InvokeDynamicInsnNode   => all(x).asInstanceOf[(String, String, Object, Object) => OpCode].apply(x.name, x.desc, x.bsm, x.bsmArgs)
-    case x: JumpInsnNode            => all(x).asInstanceOf[LazyLabel => OpCode].apply(new LazyLabel(x.label))
-    case x: LdcInsnNode             => all(x).asInstanceOf[Object => OpCode].apply(x.cst)
-    case x: LookupSwitchInsnNode    => all(x).asInstanceOf[(LazyLabel, Seq[Int], Seq[LazyLabel]) => OpCode].apply(x.dflt, x.keys.safeList.map(x => x: Int), x.labels.safeList.map(x => x: LazyLabel))
-    case x: MethodInsnNode          => all(x).asInstanceOf[(String, String, String) => OpCode].apply(x.owner, x.name, x.desc)
-    case x: MultiANewArrayInsnNode  => all(x).asInstanceOf[(String, Int) => OpCode].apply(x.desc, x.dims)
-    case x: TableSwitchInsnNode     => all(x).asInstanceOf[(Int, Int, LazyLabel, Seq[LazyLabel]) => OpCode].apply(x.min, x.max, x.dflt, x.labels.safeList.map(x => x: LazyLabel))
-    case x: TypeInsnNode            => all(x).asInstanceOf[String=> OpCode].apply(x.desc)
-    case x: VarInsnNode             => all(x).asInstanceOf[Int => OpCode].apply(x.`var`)
+
+  implicit class dereferenceLabel(x: LabelNode)(implicit labelMap: Map[Int, Int]){
+    def deref = labelMap(x.getLabel.hashCode())
+  }
+
+  def read(implicit labelMap: Map[Int, Int]): PartialFunction[Any, OpCode] = {
+    case x: FieldInsnNode           => all(x.getOpcode).asInstanceOf[(String, String, String) => OpCode].apply(x.owner, x.name, x.desc)
+    case x: IincInsnNode            => all(x.getOpcode).asInstanceOf[(Int, Int) => OpCode].apply(x.`var`, x.incr)
+    case x: InsnNode                => all(x.getOpcode).asInstanceOf[OpCode]
+    case x: IntInsnNode             => all(x.getOpcode).asInstanceOf[Int => OpCode].apply(x.operand)
+    case x: InvokeDynamicInsnNode   => all(x.getOpcode).asInstanceOf[(String, String, Object, Object) => OpCode].apply(x.name, x.desc, x.bsm, x.bsmArgs)
+    case x: JumpInsnNode            => all(x.getOpcode).asInstanceOf[Int => OpCode].apply(x.label.deref)
+    case x: LdcInsnNode             => all(x.getOpcode).asInstanceOf[Object => OpCode].apply(x.cst)
+    case x: LookupSwitchInsnNode    => all(x.getOpcode).asInstanceOf[(Int, Seq[Int], Seq[Int]) => OpCode].apply(x.dflt.deref, x.keys.safeList.map(x => x: Int), x.labels.safeList.map(_.deref))
+    case x: MethodInsnNode          => all(x.getOpcode).asInstanceOf[(String, String, String) => OpCode].apply(x.owner, x.name, x.desc)
+    case x: MultiANewArrayInsnNode  => all(x.getOpcode).asInstanceOf[(String, Int) => OpCode].apply(x.desc, x.dims)
+    case x: TableSwitchInsnNode     => all(x.getOpcode).asInstanceOf[(Int, Int, Int, Seq[Int]) => OpCode].apply(x.min, x.max, x.dflt.deref, x.labels.safeList.map(_.deref))
+    case x: TypeInsnNode            => all(x.getOpcode).asInstanceOf[String=> OpCode].apply(x.desc)
+    case x: VarInsnNode             => all(x.getOpcode).asInstanceOf[Int => OpCode].apply(x.`var`)
   }
 
   import TypeDesc._

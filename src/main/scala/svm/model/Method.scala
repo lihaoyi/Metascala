@@ -48,15 +48,24 @@ case class Method(access: Int,
                   annotations: Method.Annotations)
 
 object Code{
-  def read(nodes: InsnList) = {
-    lazy val code: Code = {
-      implicit val codeGetter = () => code
+  def read(nodesList: InsnList) = {
+    val code: Code = {
+      val nodes = nodesList.toArray
+
+      val labelMapMaker = collection.mutable.Map.empty[Int, Int]
+      var i = 0
+      for(node <- nodes){
+        node match{
+          case x: LabelNode => labelMapMaker(x.getLabel.hashCode()) = i
+          case y if OpCode.read(Map.empty[Int, Int]).isDefinedAt(y) => i += 1
+          case _ => ()
+        }
+      }
+      implicit val labelMap = labelMapMaker.toMap
       var instructions: List[OpCode] = Nil
       var allAttached: List[List[Attached]] = Nil
       var attached: List[Attached] = Nil
-
-      for(node <- nodes.toArray){
-
+      for(node <- nodes){
         node match{
           case OpCode.TryParse(n) =>
             instructions ::= n
@@ -64,6 +73,7 @@ object Code{
             attached = Nil
           case Attached.TryParse(a) =>
             attached ::= a
+          case x: LabelNode => ()
         }
       }
       Code(instructions.reverse, allAttached.reverse)
@@ -72,10 +82,6 @@ object Code{
   }
 }
 
-case class LazyLabel(label: LabelNode)(implicit code: () => Code){
-  lazy val labelFound = ???
-  def apply() = labelFound
-}
 case class Code(instructions: List[OpCode],
                 attachments: List[List[Attached]])
 
@@ -84,17 +90,16 @@ object Attached{
   case class Frame(frameType: Int,
                    local: List[Any],
                    stack: List[Any]) extends Attached
-  case class Label() extends Attached
+
   case class LineNumber(line: Int,
-                        start: LabelNode) extends Attached
+                        start: Int) extends Attached
 
   object TryParse{
-    def unapply(x: AbstractInsnNode)(implicit code: () => Code) = read.lift(x)
+    def unapply(x: AbstractInsnNode)(implicit labelMap: Map[Int, Int]) = read.lift(x)
   }
 
-  def read(implicit code: () => Code): PartialFunction[Any, Attached] = {
+  def read(implicit labelMap: Map[Int, Int]): PartialFunction[Any, Attached] = {
     case x: FrameNode       => Frame(x.`type`, x.local.safeList, x.stack.safeList)
-    case x: LabelNode       => Label()
-    case x: LineNumberNode  => LineNumber(x.line, x.start)
+    case x: LineNumberNode  => LineNumber(x.line, labelMap(x.start.getLabel.hashCode()))
   }
 }

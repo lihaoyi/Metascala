@@ -28,11 +28,12 @@ class ClassloaderTests extends FreeSpec{
           InvokeSpecial("java/lang/Object", "<init>", "()V"),
           Return
         ), List(
-          List(LineNumber(3, _), Label()),
+          List(LineNumber(3, 0)),
           Nil,
           Nil
         )
       ), _, _) = initMethod
+
 
       val Method(9, "main", "([Ljava/lang/String;)V", Nil, Code(
         List(
@@ -41,12 +42,13 @@ class ClassloaderTests extends FreeSpec{
           InvokeVirtual("java/io/PrintStream", "println", "(Ljava/lang/String;)V"),
           Return
         ),List(
-          List(LineNumber(5, _), Label()),
+          List(LineNumber(5, 0)),
           Nil,
           Nil,
-          List(LineNumber(6,_), Label())
+          List(LineNumber(6, 3))
         )
       ), _, _) = mainMethod
+
 
 
 
