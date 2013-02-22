@@ -25,23 +25,24 @@ abstract class OpCode{
 }
 
 object OpCode {
-  def unapply(o: OpCode) = (o.id, o.insnName, o.op)
   object TryParse{
-    def unapply(x: AbstractInsnNode) = read.lift(x)
+    def unapply(x: AbstractInsnNode)(implicit code: () => Code) = read.lift(x)
   }
+  def unapply(o: OpCode) = (o.id, o.insnName, o.op)
   implicit def getId(x: AbstractInsnNode) = x.getOpcode
-  def read: PartialFunction[AbstractInsnNode, OpCode] = {
+  implicit def makeLazyLabel(x: LabelNode)(implicit code: () => Code) = new LazyLabel(x)
+  def read(implicit code: () => Code): PartialFunction[Any, OpCode] = {
     case x: FieldInsnNode           => all(x).asInstanceOf[(String, String, String) => OpCode].apply(x.owner, x.name, x.desc)
     case x: IincInsnNode            => all(x).asInstanceOf[(Int, Int) => OpCode].apply(x.`var`, x.incr)
     case x: InsnNode                => all(x).asInstanceOf[OpCode]
     case x: IntInsnNode             => all(x).asInstanceOf[Int => OpCode].apply(x.operand)
     case x: InvokeDynamicInsnNode   => all(x).asInstanceOf[(String, String, Object, Object) => OpCode].apply(x.name, x.desc, x.bsm, x.bsmArgs)
-    case x: JumpInsnNode            => all(x).asInstanceOf[LabelNode => OpCode].apply(x.label)
+    case x: JumpInsnNode            => all(x).asInstanceOf[LazyLabel => OpCode].apply(new LazyLabel(x.label))
     case x: LdcInsnNode             => all(x).asInstanceOf[Object => OpCode].apply(x.cst)
-    case x: LookupSwitchInsnNode    => all(x).asInstanceOf[(Object, Object, Object) => OpCode].apply(x.dflt, x.keys.safeList.map(x => x: Int), x.labels.safeList)
+    case x: LookupSwitchInsnNode    => all(x).asInstanceOf[(LazyLabel, Seq[Int], Seq[LazyLabel]) => OpCode].apply(x.dflt, x.keys.safeList.map(x => x: Int), x.labels.safeList.map(x => x: LazyLabel))
     case x: MethodInsnNode          => all(x).asInstanceOf[(String, String, String) => OpCode].apply(x.owner, x.name, x.desc)
     case x: MultiANewArrayInsnNode  => all(x).asInstanceOf[(String, Int) => OpCode].apply(x.desc, x.dims)
-    case x: TableSwitchInsnNode     => all(x).asInstanceOf[(Int, Int, LabelNode, Object) => OpCode].apply(x.min, x.max, x.dflt, x.labels.safeList)
+    case x: TableSwitchInsnNode     => all(x).asInstanceOf[(Int, Int, LazyLabel, Seq[LazyLabel]) => OpCode].apply(x.min, x.max, x.dflt, x.labels.safeList.map(x => x: LazyLabel))
     case x: TypeInsnNode            => all(x).asInstanceOf[String=> OpCode].apply(x.desc)
     case x: VarInsnNode             => all(x).asInstanceOf[Int => OpCode].apply(x.`var`)
   }

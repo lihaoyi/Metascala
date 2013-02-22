@@ -44,7 +44,8 @@ class ClassloaderTests extends FreeSpec{
           List(LineNumber(5, _), Label()),
           Nil,
           Nil,
-          List(LineNumber(6,_), Label()))
+          List(LineNumber(6,_), Label())
+        )
       ), _, _) = mainMethod
 
 

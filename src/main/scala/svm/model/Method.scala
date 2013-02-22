@@ -49,28 +49,36 @@ case class Method(access: Int,
 
 object Code{
   def read(nodes: InsnList) = {
-    var instructions: List[OpCode] = Nil
-    var allAttached: List[List[Attached]] = Nil
-    var attached: List[Attached] = Nil
+    lazy val code: Code = {
+      implicit val codeGetter = () => code
+      var instructions: List[OpCode] = Nil
+      var allAttached: List[List[Attached]] = Nil
+      var attached: List[Attached] = Nil
 
+      for(node <- nodes.toArray){
 
-    for(node <- nodes.toArray){
-      node match{
-        case OpCode.TryParse(n) =>
-          instructions ::= n
-          allAttached ::= attached
-          attached = Nil
-        case Attached.TryParse(a) =>
-          attached ::= a
+        node match{
+          case OpCode.TryParse(n) =>
+            instructions ::= n
+            allAttached ::= attached
+            attached = Nil
+          case Attached.TryParse(a) =>
+            attached ::= a
+        }
       }
+      Code(instructions.reverse, allAttached.reverse)
     }
-    val result = instructions.toList
-
-    Code(instructions.reverse, allAttached.reverse)
+    code
   }
+}
+
+case class LazyLabel(label: LabelNode)(implicit code: () => Code){
+  lazy val labelFound = ???
+  def apply() = labelFound
 }
 case class Code(instructions: List[OpCode],
                 attachments: List[List[Attached]])
+
 trait Attached
 object Attached{
   case class Frame(frameType: Int,
@@ -81,12 +89,12 @@ object Attached{
                         start: LabelNode) extends Attached
 
   object TryParse{
-    def unapply(x: AbstractInsnNode) = read.lift(x)
+    def unapply(x: AbstractInsnNode)(implicit code: () => Code) = read.lift(x)
   }
 
-  def read: PartialFunction[AbstractInsnNode, Attached] = {
-    case x: FrameNode               => Frame(x.`type`, x.local.safeList, x.stack.safeList)
-    case x: LabelNode               => Label()
-    case x: LineNumberNode          => LineNumber(x.line, x.start)
+  def read(implicit code: () => Code): PartialFunction[Any, Attached] = {
+    case x: FrameNode       => Frame(x.`type`, x.local.safeList, x.stack.safeList)
+    case x: LabelNode       => Label()
+    case x: LineNumberNode  => LineNumber(x.line, x.start)
   }
 }
