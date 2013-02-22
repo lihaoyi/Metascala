@@ -51,9 +51,6 @@ class ClassloaderTests extends FreeSpec{
         )
       ), _, _) = mainMethod
 
-
-
-
     }
   }
 
@@ -79,7 +76,7 @@ class ClassloaderTests extends FreeSpec{
               InvokeStatic("java/lang/Object", "getVMClass", "(Ljava/lang/Object;)Lavian/VMClass;"),
               InvokeStatic("avian/SystemClassLoader", "getClass", "(Lavian/VMClass;)Ljava/lang/Class;"),
               AReturn
-            ),List(
+            ), List(
               List(LineNumber(31,0)),
               Nil, Nil, Nil
             )
@@ -123,34 +120,7 @@ class ClassloaderTests extends FreeSpec{
         Nil, Nil, Nil, Nil, Nil, Nil
       )
     ),_, _) = cloneMethod
-/*
-    val Method(4, "clone", "()Ljava/lang/Object;", List("java/lang/CloneNotSupportedException"),Code(
-      List(
-        ALoad(0),
-        InstanceOf("java/lang/Cloneable"),
-        IfNe(7),
-        ALoad(0),
-        InvokeVirtual("java/lang/Object", "getClass", "()Ljava/lang/Class;"),
-        InvokeVirtual("java/lang/Class", "isArray", "()Z"),
-        IfEq(10),
-        ALoad(0),
-        InvokeStatic("java/lang/Object", "clone", "(Ljava/lang/Object;)Ljava/lang/Object;"),
-        AReturn,
-        New("java/lang/CloneNotSupportedException"),
-        Dup,
-        ALoad(0),
-        InvokeVirtual("java/lang/Object", "getClass", "()Ljava/lang/Class;"),
-        InvokeVirtual("java/lang/Class", "getName", "()Ljava/lang/String;"),
-        InvokeSpecial("java/lang/CloneNotSupportedException", "<init>", "(Ljava/lang/String;)V"),
-        AThrow
-      ),List(
-        List(LineNumber(15,0)),
-        List(), List(), List(), List(), List(), List(),
-        List(Frame(3,List(),List()), LineNumber(16,7)),
-        List(), List(),
-        List(Frame(3,List(),List()), LineNumber(18,10)),
-        List(), List(), List(), List(), List(), List())
-    ),_, _) = cloneMethod*/
+
     val Method(1, "equals", "(Ljava/lang/Object;)Z", Nil,Code(
       List(
         ALoad(0),

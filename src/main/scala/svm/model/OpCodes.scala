@@ -25,6 +25,9 @@ abstract class OpCode{
 }
 
 object OpCode {
+  class UnusedOpCode(val id: Byte, val insnName: String) extends OpCode{
+    def op = ctx => ???
+  }
   case object TryParse{
     def unapply(x: AbstractInsnNode)(implicit labelMap: Map[Int, Int]) = read.lift(x)
   }
@@ -98,8 +101,12 @@ object OpCode {
   }
 
   case class Ldc(const: Any) extends PushConstOpCode(18, "ldc", const)
-  case class LdcW(const: Any) extends PushConstOpCode(19, "ldc_w", const)
-  case class Ldc2W(const: Any) extends PushConstOpCode(20, "ldc2_w", const)
+
+  // Not used, because ASM converts these Ldc(const: Any)
+  //===============================================================
+  case class LdcW(const: Any) extends UnusedOpCode(19, "ldc_w")
+  case class Ldc2W(const: Any) extends UnusedOpCode(20, "ldc2_w")
+  //===============================================================
 
   abstract class PushLocalIndexed(val id: Byte, val insnName: String) extends OpCode{
     def op = (ctx => ctx.frame.stack ::= ctx.frame.locals(index))
@@ -112,30 +119,35 @@ object OpCode {
   case class DLoad(index: Int) extends PushLocalIndexed(24, "dLoad")
   case class ALoad(index: Int) extends PushLocalIndexed(25, "aLoad")
 
-  case class ILoad0(index: Int) extends PushLocalIndexed(26, "iLoad_0")
-  case class ILoad1(index: Int) extends PushLocalIndexed(27, "iLoad_1")
-  case class ILoad2(index: Int) extends PushLocalIndexed(28, "iLoad_2")
-  case class ILoad3(index: Int) extends PushLocalIndexed(29, "iLoad_3")
 
-  case class LLoad0(index: Int) extends PushLocalIndexed(30, "lLoad_0")
-  case class LLoad1(index: Int) extends PushLocalIndexed(31, "lLoad_1")
-  case class LLoad2(index: Int) extends PushLocalIndexed(32, "lLoad_2")
-  case class LLoad3(index: Int) extends PushLocalIndexed(33, "lLoad_3")
 
-  case class FLoad0(index: Int) extends PushLocalIndexed(34, "fLoad_0")
-  case class FLoad1(index: Int) extends PushLocalIndexed(35, "fLoad_1")
-  case class FLoad2(index: Int) extends PushLocalIndexed(36, "fLoad_2")
-  case class FLoad3(index: Int) extends PushLocalIndexed(37, "fLoad_3")
+  // Not used, because ASM converts these to raw XLoad(index: Int)s
+  //===============================================================
+  case class ILoad0(index: Int) extends UnusedOpCode(26, "iLoad_0")
+  case class ILoad1(index: Int) extends UnusedOpCode(27, "iLoad_1")
+  case class ILoad2(index: Int) extends UnusedOpCode(28, "iLoad_2")
+  case class ILoad3(index: Int) extends UnusedOpCode(29, "iLoad_3")
 
-  case class DLoad0(index: Int) extends PushLocalIndexed(38, "dLoad_0")
-  case class DLoad1(index: Int) extends PushLocalIndexed(39, "dLoad_1")
-  case class DLoad2(index: Int) extends PushLocalIndexed(40, "dLoad_2")
-  case class DLoad3(index: Int) extends PushLocalIndexed(41, "dLoad_3")
+  case class LLoad0(index: Int) extends UnusedOpCode(30, "lLoad_0")
+  case class LLoad1(index: Int) extends UnusedOpCode(31, "lLoad_1")
+  case class LLoad2(index: Int) extends UnusedOpCode(32, "lLoad_2")
+  case class LLoad3(index: Int) extends UnusedOpCode(33, "lLoad_3")
 
-  case class ALoad0(index: Int) extends PushLocalIndexed(42, "aLoad_0")
-  case class ALoad1(index: Int) extends PushLocalIndexed(43, "aLoad_1")
-  case class ALoad2(index: Int) extends PushLocalIndexed(44, "aLoad_2")
-  case class ALoad3(index: Int) extends PushLocalIndexed(45, "aLoad_3")
+  case class FLoad0(index: Int) extends UnusedOpCode(34, "fLoad_0")
+  case class FLoad1(index: Int) extends UnusedOpCode(35, "fLoad_1")
+  case class FLoad2(index: Int) extends UnusedOpCode(36, "fLoad_2")
+  case class FLoad3(index: Int) extends UnusedOpCode(37, "fLoad_3")
+
+  case class DLoad0(index: Int) extends UnusedOpCode(38, "dLoad_0")
+  case class DLoad1(index: Int) extends UnusedOpCode(39, "dLoad_1")
+  case class DLoad2(index: Int) extends UnusedOpCode(40, "dLoad_2")
+  case class DLoad3(index: Int) extends UnusedOpCode(41, "dLoad_3")
+
+  case class ALoad0(index: Int) extends UnusedOpCode(42, "aLoad_0")
+  case class ALoad1(index: Int) extends UnusedOpCode(43, "aLoad_1")
+  case class ALoad2(index: Int) extends UnusedOpCode(44, "aLoad_2")
+  case class ALoad3(index: Int) extends UnusedOpCode(45, "aLoad_3")
+  //===============================================================
 
   class PushFromArray(val id: Byte, val insnName: String) extends OpCode{
     def op = ctx => {
@@ -435,7 +447,12 @@ object OpCode {
   case class InstanceOf(desc: String) extends BaseOpCode(193, "instanceof"){ def op = ??? }
   case object MonitorEnter extends BaseOpCode(194, "monitorenter"){ def op = ???  }
   case object MonitorExit extends BaseOpCode(195, "monitorexit"){ def op = ??? }
-  case object Wide extends BaseOpCode(196, "wide"){ def op = ??? }
+
+  // Not used, because ASM folds these into the following bytecode for us
+  //===============================================================
+  case object Wide extends UnusedOpCode(196, "wide")
+  //===============================================================
+
   case class MultiANewArray(desc: String, dims: Int) extends BaseOpCode(197, "multianewarray"){
 
     def op = ctx => {
@@ -462,8 +479,11 @@ object OpCode {
     }
   }
 
-  case object GotoW extends BaseOpCode(200, "goto_w"){ def op = ??? }
-  case object JsrW extends BaseOpCode(201, "jsr_w"){ def op = ??? }
+  // Not used, because ASM converts these to normal Goto()s and Jsr()s
+  //===============================================================
+  case object GotoW extends UnusedOpCode(200, "goto_w")
+  case object JsrW extends UnusedOpCode(201, "jsr_w")
+  //===============================================================
 
   def apply(n: Int): Any = all((n + 256) % 256)
   val all = Seq(
