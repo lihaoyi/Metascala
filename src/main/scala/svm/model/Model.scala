@@ -95,34 +95,5 @@ case class Annotation(desc: String,
                       values: List[Any])
 
 
-object Code{
-  def read(nodes: InsnList): Code = {
-    val instructions = mutable.ListBuffer[OpCode]()
-    val attached =
-      mutable.Map.empty[Int, List[Attached]]
-                 .withDefaultValue(Nil)
-
-    for(node <- nodes.toArray){
-      node match{
-        case OpCode.TryParse(n) =>
-          println("Instruction " + n)
-          instructions.append(n)
-        case Attached.TryParse(a) =>
-          println("Attached " + a)
-          println(attached)
-          attached(instructions.length) = a :: attached(instructions.length)
-          println(attached)
-      }
-    }
-    val result = Code(instructions.toList, attached.toMap)
-    println("Result")
-    println(attached)
-    println(result)
-    result
-  }
-
-}
-case class Code(instructions: Seq[OpCode],
-                attached: Map[Int, Seq[Attached]])
 
 

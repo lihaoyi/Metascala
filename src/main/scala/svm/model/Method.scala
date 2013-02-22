@@ -1,6 +1,7 @@
 package svm.model
 
-import org.objectweb.asm.tree.MethodNode
+import org.objectweb.asm.tree._
+
 
 object Method {
   def read(mn: MethodNode) = Method(
@@ -25,6 +26,7 @@ object Method {
       mn.invisibleParameterAnnotations.safeList.map(_.safeList.map(Annotation.read))
     )
   )
+
   case class Annotations(visibleAnnotations: List[Annotation],
                          invisibleAnnotations: List[Annotation],
                          annotationDefault: Any,
@@ -44,3 +46,47 @@ case class Method(access: Int,
                   code: Code,
                   misc: Method.Misc,
                   annotations: Method.Annotations)
+
+object Code{
+  def read(nodes: InsnList) = {
+    var instructions: List[OpCode] = Nil
+    var allAttached: List[List[Attached]] = Nil
+    var attached: List[Attached] = Nil
+
+
+    for(node <- nodes.toArray){
+      node match{
+        case OpCode.TryParse(n) =>
+          instructions ::= n
+          allAttached ::= attached
+          attached = Nil
+        case Attached.TryParse(a) =>
+          attached ::= a
+      }
+    }
+    val result = instructions.toList
+
+    Code(instructions.reverse, allAttached.reverse)
+  }
+}
+case class Code(instructions: List[OpCode],
+                attachments: List[List[Attached]])
+trait Attached
+object Attached{
+  case class Frame(frameType: Int,
+                   local: List[Any],
+                   stack: List[Any]) extends Attached
+  case class Label() extends Attached
+  case class LineNumber(line: Int,
+                        start: LabelNode) extends Attached
+
+  object TryParse{
+    def unapply(x: AbstractInsnNode) = read.lift(x)
+  }
+
+  def read: PartialFunction[AbstractInsnNode, Attached] = {
+    case x: FrameNode               => Frame(x.`type`, x.local.safeList, x.stack.safeList)
+    case x: LabelNode               => Label()
+    case x: LineNumberNode          => LineNumber(x.line, x.start)
+  }
+}

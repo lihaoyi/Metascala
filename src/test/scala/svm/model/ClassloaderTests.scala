@@ -1,6 +1,7 @@
 package svm.model
 
 import org.scalatest.FreeSpec
+import svm.model.Util.Print
 
 class ClassloaderTests extends FreeSpec{
 
@@ -19,27 +20,32 @@ class ClassloaderTests extends FreeSpec{
         _ // misc
       ) = classData
 
+      import OpCode._
+      import Attached._
+      val Method(1, "<init>", "()V", Nil, Code(
+        List(
+          ALoad(0),
+          InvokeSpecial("java/lang/Object", "<init>", "()V"),
+          Return
+        ), List(
+          List(LineNumber(3, _), Label()),
+          Nil,
+          Nil
+        )
+      ), _, _) = initMethod
 
-      val Method(1, "<init>", "()V", Nil , /*List(
-        Label(),
-        LineNumber(3, _),
-        VarInsn(25,0),
-        MethodInsn(183, "java/lang/Object", "<init>", "()V"),
-        Insn(177),
-        Label())*/_, _, _
-        ) = initMethod
-
-      val Method(9, "main", "([Ljava/lang/String;)V", Nil, /*List(
-        Label(),
-        LineNumber(5, _),
-        FieldInsn(178, "java/lang/System", "out", "Ljava/io/PrintStream;"),
-        LdcInsn(18, "Hello World"),
-        MethodInsn(182, "java/io/PrintStream", "println", "(Ljava/lang/String;)V"),
-        Label(),
-        LineNumber(6, _),
-        Insn(177),
-        Label())*/_ , _, _
-      ) = mainMethod
+      val Method(9, "main", "([Ljava/lang/String;)V", Nil, Code(
+        List(
+          GetStatic("java/lang/System", "out", "Ljava/io/PrintStream;"),
+          Ldc("Hello World"),
+          InvokeVirtual("java/io/PrintStream", "println", "(Ljava/lang/String;)V"),
+          Return
+        ),List(
+          List(LineNumber(5, _), Label()),
+          Nil,
+          Nil,
+          List(LineNumber(6,_), Label()))
+      ), _, _) = mainMethod
 
 
 
