@@ -2,6 +2,8 @@ package svm.model
 
 import org.scalatest.FreeSpec
 import svm.model.Util.Print
+import svm.model.Method
+import collection.generic.SeqFactory
 
 class ClassloaderTests extends FreeSpec{
 
@@ -52,83 +54,155 @@ class ClassloaderTests extends FreeSpec{
 
 
 
-      }
     }
+  }
 
-    /*"java.lang.Object" in {
-      val classData = ClassFile.parse(svm.Util.loadClass("classpath.java.lang.Object"))
-      val ClassFile(
-        33, "java/lang/Object", null, Nil, Nil,List(
-          Method(1, "<init>", "()V", Nil, List(
-            Label(),
-            LineNumber(13, _),
-            Insn(177)
-          ), _,_),
-          Method(4,"clone","()Ljava/lang/Object;",List("java/lang/CloneNotSupportedException"),_, _,_),
-          Method(266, "clone", "(Ljava/lang/Object;)Ljava/lang/Object;", Nil, Nil, _, _),
-          Method(1, "equals", "(Ljava/lang/Object;)Z", Nil, List(
-            Label(),
-            LineNumber(25,_),
-            VarInsn(25,0),
-            VarInsn(25,1),
-            JumpInsn(166, _),
-            Insn(4),
-            JumpInsn(167, _),
-            Label(), Insn(3),
-            Label(),
-            Insn(172)), _,_),
-          Method(4, "finalize", "()V", List("java/lang/Throwable"),List(
-            Label(),
-            LineNumber(28, _),
-            Insn(177)),_, _),
-          Method(17, "getClass", "()Ljava/lang/Class;", Nil,List(
-            Label(),
-            LineNumber(31, _),
-            VarInsn(25,0),
-            MethodInsn(184, "java/lang/Object", "getVMClass", "(Ljava/lang/Object;)Lavian/VMClass;"),
-            MethodInsn(184, "avian/SystemClassLoader", "getClass", "(Lavian/VMClass;)Ljava/lang/Class;"),
-            Insn(176)),_, _),
-          Method(266, "getVMClass", "(Ljava/lang/Object;)Lavian/VMClass;", List(),List(),_, _),
-          Method(257, "hashCode", "()I", List(),List(),_, _),
-          Method(273, "notify", "()V", List(),List(),_, _),
-          Method(273, "notifyAll", "()V", List(),List(),_, _),
-          Method(257, "toString", "()Ljava/lang/String;",List(),List(),_, _),
-          Method(17, "wait", "()V", List("java/lang/InterruptedException"),List(
-            Label(),
-            LineNumber(45, _),
-            VarInsn(25,0),
-            Insn(9),
-            MethodInsn(182,"java/lang/Object","wait","(J)V"),
-            Label(),
-            LineNumber(46, _),
-            Insn(177)),_, _),
-          Method(273,"wait", "(J)V", List("java/lang/InterruptedException"),List(),_, _),
-          Method(17,"wait","(JI)V",List("java/lang/InterruptedException"),List(
-            Label(),
-            LineNumber(53, _),
-            VarInsn(21,3),
-            JumpInsn(153, _),
-            Label(),
-            LineNumber(54, _),
-            VarInsn(22,1),
-            Insn(10),
-            Insn(97),
-            VarInsn(55,1),
-            Label(),
-            LineNumber(56, _),
-            VarInsn(25,0),
-            VarInsn(22,1),
-            MethodInsn(182, "java/lang/Object", "wait", "(J)V"),
-            Label(),
-            LineNumber(57, _),
-            Insn(177)),_,_)),
-          _
-        ) = classData
+  "java.lang.Object" in {
 
+    val classData = ClassFile.parse(svm.Util.loadClass("classpath.java.lang.Object"))
+    import OpCode._
+    import Attached._
+    val ClassFile(33, "java/lang/Object", null, Nil, Nil,
+        List(
+          Method(1, "<init>", "()V",Nil,Code(List(Return),List(List(LineNumber(13,0)))),_, _),
+          cloneMethod,
+          Method(266, "clone", "(Ljava/lang/Object;)Ljava/lang/Object;", Nil, Code(Nil, Nil),_, _),
+          equalsMethod,
+          Method(4, "finalize", "()V", List("java/lang/Throwable"),Code(
+            List(Return),
+            List(List(LineNumber(28,0)))),
+            _, _
+          ),
+          Method(17, "getClass", "()Ljava/lang/Class;",List(),Code(
+            List(
+              ALoad(0),
+              InvokeStatic("java/lang/Object", "getVMClass", "(Ljava/lang/Object;)Lavian/VMClass;"),
+              InvokeStatic("avian/SystemClassLoader", "getClass", "(Lavian/VMClass;)Ljava/lang/Class;"),
+              AReturn
+            ),List(
+              List(LineNumber(31,0)),
+              Nil, Nil, Nil
+            )
+          ),_, _),
+          Method(266, "getVMClass", "(Ljava/lang/Object;)Lavian/VMClass;", List(), Code.Empty, _, _),
+          Method(257, "hashCode", "()I", Nil, Code.Empty, _, _),
+          Method(273, "notify", "()V", Nil, Code.Empty, _, _),
+          Method(273, "notifyAll", "()V", Nil, Code.Empty, _, _),
+          Method(257, "toString", "()Ljava/lang/String;", Nil, Code.Empty, _, _),
+          waitMethod1,
+          Method(273, "wait", "(J)V", List("java/lang/InterruptedException"), Code.Empty, _, _),
+          waitMethod2
+        ), _
 
+    ) = classData
+    val Method(4, "clone", "()Ljava/lang/Object;", List("java/lang/CloneNotSupportedException"), Code(
+      List(
+        ALoad(0),
+        InstanceOf("java/lang/Cloneable"),
+        IfNe(7),
+        ALoad(0),
+        InvokeVirtual("java/lang/Object", "getClass", "()Ljava/lang/Class;"),
+        InvokeVirtual("java/lang/Class", "isArray", "()Z"),
+        IfEq(10),
+        ALoad(0),
+        InvokeStatic("java/lang/Object", "clone", "(Ljava/lang/Object;)Ljava/lang/Object;"),
+        AReturn,
+        New("java/lang/CloneNotSupportedException"),
+        Dup,
+        ALoad(0),
+        InvokeVirtual("java/lang/Object", "getClass", "()Ljava/lang/Class;"),
+        InvokeVirtual("java/lang/Class", "getName", "()Ljava/lang/String;"),
+        InvokeSpecial("java/lang/CloneNotSupportedException", "<init>", "(Ljava/lang/String;)V"),
+        AThrow
+      ),List(
+        List(LineNumber(15,0)),
+        Nil, Nil, Nil, Nil, Nil, Nil,
+        List(Frame(3,List(),List()), LineNumber(16,7)),
+        Nil, Nil,
+        List(Frame(3,List(),List()), LineNumber(18,10)),
+        Nil, Nil, Nil, Nil, Nil, Nil
+      )
+    ),_, _) = cloneMethod
+/*
+    val Method(4, "clone", "()Ljava/lang/Object;", List("java/lang/CloneNotSupportedException"),Code(
+      List(
+        ALoad(0),
+        InstanceOf("java/lang/Cloneable"),
+        IfNe(7),
+        ALoad(0),
+        InvokeVirtual("java/lang/Object", "getClass", "()Ljava/lang/Class;"),
+        InvokeVirtual("java/lang/Class", "isArray", "()Z"),
+        IfEq(10),
+        ALoad(0),
+        InvokeStatic("java/lang/Object", "clone", "(Ljava/lang/Object;)Ljava/lang/Object;"),
+        AReturn,
+        New("java/lang/CloneNotSupportedException"),
+        Dup,
+        ALoad(0),
+        InvokeVirtual("java/lang/Object", "getClass", "()Ljava/lang/Class;"),
+        InvokeVirtual("java/lang/Class", "getName", "()Ljava/lang/String;"),
+        InvokeSpecial("java/lang/CloneNotSupportedException", "<init>", "(Ljava/lang/String;)V"),
+        AThrow
+      ),List(
+        List(LineNumber(15,0)),
+        List(), List(), List(), List(), List(), List(),
+        List(Frame(3,List(),List()), LineNumber(16,7)),
+        List(), List(),
+        List(Frame(3,List(),List()), LineNumber(18,10)),
+        List(), List(), List(), List(), List(), List())
+    ),_, _) = cloneMethod*/
+    val Method(1, "equals", "(Ljava/lang/Object;)Z", Nil,Code(
+      List(
+        ALoad(0),
+        ALoad(1),
+        IfACmpNe(5),
+        IConst1,
+        Goto(6),
+        IConst0,
+        IReturn
+      ),List(
+        List(LineNumber(25,0)),
+        Nil, Nil, Nil, Nil,
+        List(Frame(3, Nil, Nil)),
+        List(Frame(4, Nil, List(1)))
+      )
+    ),_, _) = equalsMethod
 
+    val Method(17, "wait", "()V", List("java/lang/InterruptedException"), Code(
+      List(
+        ALoad(0),
+        LConst0,
+        InvokeVirtual("java/lang/Object", "wait", "(J)V"),
+        Return
+      ),List(
+        List(LineNumber(45,0)),
+        Nil, Nil,
+        List(LineNumber(46,3))
+      )
+    ),_, _) = waitMethod1
 
-  }*/
+    val Method(17, "wait", "(JI)V", List("java/lang/InterruptedException"), Code(
+      List(
+        ILoad(3),
+        IfEq(6),
+        LLoad(1),
+        LConst1,
+        LAdd,
+        LStore(1),
+        ALoad(0),
+        LLoad(1),
+        InvokeVirtual("java/lang/Object", "wait", "(J)V"),
+        Return
+      ),List(
+        List(LineNumber(53,0)),
+        List(),
+        List(LineNumber(54,2)),
+        List(), List(), List(),
+        List(Frame(3, Nil, Nil), LineNumber(56,6)),
+        List(), List(),
+        List(LineNumber(57,9)))),
+      _, _) = waitMethod2
+  }
   "TypeDescriptor tests" - {
     "hello word" in {
       val TypeDesc(Seq(), "V") = TypeDesc.read("()V")

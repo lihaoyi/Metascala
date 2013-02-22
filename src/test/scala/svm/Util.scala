@@ -1,12 +1,14 @@
 package svm
 
-import java.io.DataInputStream
+import java.io.{IOException, DataInputStream}
 
 object Util {
   def loadClass(name: String) = {
-    val stream = new DataInputStream(
-      getClass.getResourceAsStream(s"/${name.replace(".", "/")}.class")
-    )
+    val slashName = s"/${name.replace(".", "/")}.class"
+    println("loading class " + slashName)
+    val loaded = getClass.getResourceAsStream(slashName)
+    if (loaded == null) throw new IOException("Can't find file " + slashName)
+    val stream = new DataInputStream(loaded)
     val bytes = new Array[Byte](stream.available())
 
     stream.readFully(bytes)

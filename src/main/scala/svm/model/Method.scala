@@ -48,6 +48,7 @@ case class Method(access: Int,
                   annotations: Method.Annotations)
 
 object Code{
+  val Empty = Code(Nil, Nil)
   def read(nodesList: InsnList) = {
     val code: Code = {
       val nodes = nodesList.toArray
