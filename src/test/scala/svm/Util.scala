@@ -20,6 +20,11 @@ object Gen{
       test(gen1(i), gen2(i))
     }
   }
+  def check[T1, T2, T3](test: (T1, T2, T3) => Unit, n: Int )(implicit gen1: Int => T1, gen2: Int => T2, gen3: Int => T3) = {
+    for (i <- 0 until n){
+      test(gen1(i), gen2(i), gen3(i))
+    }
+  }
   implicit val intAll = (i: Int) => Random.nextInt()
 
   implicit val longAll = (i: Int) =>Random.nextInt().toLong << 32 + Random.nextInt()

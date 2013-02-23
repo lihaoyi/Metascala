@@ -84,8 +84,17 @@ class MathTest extends FreeSpec with Util{
     }
   }
 
+  "combined" - {
+    val tester = new Tester("svm.helloworld.math.Combined")
+    "hmsToDays" in
+      check(tester.run("hmsToDays", _: Double, _: Double, _: Double), 4)(
+        (i) => Random.nextInt(24).toDouble,
+        (i) => Random.nextInt(60).toDouble,
+        (i) => Random.nextInt(60).toDouble
+      )
 
 
+  }
 
 
 }
