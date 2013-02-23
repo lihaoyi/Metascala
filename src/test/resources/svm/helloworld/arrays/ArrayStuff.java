@@ -1,12 +1,5 @@
 package svm.helloworld.arrays;
 
-/**
- * Created with IntelliJ IDEA.
- * User: Haoyi
- * Date: 2/22/13
- * Time: 9:42 PM
- * To change this template use File | Settings | File Templates.
- */
 public class ArrayStuff {
     public static int[] makeIntArray(){
         int[] arr = new int[5];
@@ -40,5 +33,19 @@ public class ArrayStuff {
         return total;
     }
 
+    public static int[] bubbleSort(){
+        int[] arr = {0, 5, 1, 7, 8, 6, 9, 4, 3, 2};
+        for(int i = 1; i < arr.length; i++){
+            for(int j = 1; j < arr.length; j++){
+                if (arr[j-1] > arr[j]){
+                    int temp = arr[j];
+                    arr[j] = arr[j-1];
+                    arr[j-1] = temp;
+                }
+
+            }
+        }
+        return arr;
+    }
 
 }

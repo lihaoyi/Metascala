@@ -17,7 +17,7 @@ object Util {
   }
   class SingleClassVirtualMachine(className: String, val classLoader: String => Array[Byte])
   extends VirtualMachine(classLoader){
-    def run(main: String): Any = run(className.replace('.', '/'), main)
+    def run(main: String, args: Array[Any] = Array.empty): Any = run(className.replace('.', '/'), main, args)
   }
 
 

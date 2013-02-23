@@ -16,6 +16,9 @@ class ArrayTest extends FreeSpec{
     "arrayLength" in assert(vm.run("arrayLength") === 9)
     "arraySet" in { val Array(0, 1, 2, 3, 4, 5, 6, 7, 8, 9) = vm.run("arraySet") }
     "arrayGet" in assert(vm.run("arrayGet") === 4545)
+    "bubbleSort" in {
+      val Array(0, 1, 2, 3, 4, 5, 6, 7, 8, 9) = vm.run("bubbleSort")
+    }
   }
 
 }

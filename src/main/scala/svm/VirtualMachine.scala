@@ -29,7 +29,7 @@ class VirtualMachine(classLoader: String => Array[Byte]){
     new Class(classData)
   }
 
-  def run(bootClass: String, mainMethod: String) = {
+  def run(bootClass: String, mainMethod: String, args: Array[Any]) = {
     val bc = getClassFor(bootClass)
 
     threads(0).invoke(
