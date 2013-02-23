@@ -12,13 +12,13 @@ object Util {
     val bytes = new Array[Byte](stream.available())
 
     stream.readFully(bytes)
-    model.Util.printClass(bytes)
+    //model.Util.printClass(bytes)
     bytes
   }
-  /*class SingleClassVirtualMachine(className: String, val classLoader: String => Array[Byte])
+  class SingleClassVirtualMachine(className: String, val classLoader: String => Array[Byte])
   extends VirtualMachine(classLoader){
     def run(main: String): Any = run(className.replace('.', '/'), main)
-  }*/
+  }
 
 
 }

@@ -1,5 +1,5 @@
 package svm.helloworld
-/*
+
 
 import org.scalatest.FreeSpec
 import svm.Util._
@@ -25,4 +25,4 @@ class ControlFlow extends FreeSpec{
 
 
 }
-*/
+

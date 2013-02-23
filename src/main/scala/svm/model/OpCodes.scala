@@ -10,7 +10,7 @@ case class Context(thread: VmThread){
   def frame = thread.threadStack.head
   def stack = frame.stack
 
-  def jumpTo(l: Int) = ???
+  def jumpTo(l: Int) = frame.pc = l
   def throwException(exception: Any) = ???
   def returnVal(x: Option[Any]) = {
     thread.threadStack.pop()
@@ -318,6 +318,7 @@ object OpCode {
     def label: Int
     def op = ctx => {
       val (top: Int) :: stack = ctx.stack
+      ctx.frame.stack = stack
       if(pred(top)) ctx.jumpTo(label)
     }
   }
@@ -333,7 +334,11 @@ object OpCode {
     def label: Int
     def op = ctx => {
       val (top: Int) :: (next: Int) :: stack = ctx.stack
-      if(pred(top, next)) ctx.jumpTo(label)
+      ctx.frame.stack = stack
+      if(pred(next, top)) {
+        println("Jump!")
+        ctx.jumpTo(label)
+      }
     }
   }
 
@@ -346,7 +351,9 @@ object OpCode {
   case class IfACmpEq(label: Int) extends BinaryBranch(165, "if_acmpeq")(_ == _)
   case class IfACmpNe(label: Int) extends BinaryBranch(166, "if_acmpne")(_ != _)
 
-  case class Goto(label: Int) extends UnaryBranch(157, "goto")(x => true)
+  case class Goto(label: Int) extends BaseOpCode(167, "goto"){
+    def op = ctx => ctx.jumpTo(label)
+  }
 
   case object Jsr extends BaseOpCode(168, "jsr"){ def op = ??? }
   case object Ret extends BaseOpCode(169, "ret"){ def op = ??? }

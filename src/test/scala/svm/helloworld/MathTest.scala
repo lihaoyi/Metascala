@@ -1,5 +1,5 @@
 package svm.helloworld
-/*
+
 
 import org.scalatest.FreeSpec
 import java.io.DataInputStream
@@ -84,4 +84,4 @@ class MathTest extends FreeSpec{
   }
 
 }
-*/
+

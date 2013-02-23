@@ -48,14 +48,17 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
 
     val node = topFrame.method.code.instructions(topFrame.pc)
 
+
+    println(topFrame.pc + "\t---------------------- " + node )
     topFrame.pc += 1
-    println("-------------------------------------- " + node)
     node.op(Context(this))
     println(topFrame.stack)
   }
 
   def invoke(cls: Class, method: Method) = {
     println("Invoking " + method.name)
+    method.code.instructions.zipWithIndex.foreach{case (x, i) => println(i + "\t" + x) }
+    println()
 
     val dummyFrame = new Frame(
       runningClass = cls,
