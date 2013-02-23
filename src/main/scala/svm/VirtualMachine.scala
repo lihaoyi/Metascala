@@ -52,10 +52,10 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
     val node = topFrame.method.code.instructions(topFrame.pc)
 
 
-    println(topFrame.pc + "\t---------------------- " + node )
+  //  println(topFrame.pc + "\t---------------------- " + node )
     topFrame.pc += 1
     node.op(Context(this))
-    println(topFrame.stack)
+    //println(topFrame.stack)
   }
 
   def invoke(cls: Class, method: Method, args: Seq[Any]) = {

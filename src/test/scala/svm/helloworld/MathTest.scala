@@ -22,28 +22,28 @@ class MathTest extends FreeSpec with Util{
     }
     "basic math" - {
       "int" - {
-        "ineg" in check(tester.run("ineg", _: Int))
-        "iadd" in check(tester.run("iadd", _: Int, _: Int))
-        "isub" in check(tester.run("isub", _: Int, _: Int))
-        "imul" in check(tester.run("imul", _: Int, _: Int))
-        "idiv" in check(tester.run("idiv", _: Int, _: Int))
-        "imod" in check(tester.run("imod", _: Int, _: Int))
+        "ineg" in check(tester.run("ineg", _: Int), 10)
+        "iadd" in check(tester.run("iadd", _: Int, _: Int), 10)
+        "isub" in check(tester.run("isub", _: Int, _: Int), 10)
+        "imul" in check(tester.run("imul", _: Int, _: Int), 10)
+        "idiv" in check(tester.run("idiv", _: Int, _: Int), 10)
+        "imod" in check(tester.run("imod", _: Int, _: Int), 10)
       }
       "float" - {
-        "fneg" in check(tester.run("fneg", _: Float))
-        "fadd" in check(tester.run("fadd", _: Float, _: Float))
-        "fsub" in check(tester.run("fsub", _: Float, _: Float))
-        "fmul" in check(tester.run("fmul", _: Float, _: Float))
-        "fdiv" in check(tester.run("fdiv", _: Float, _: Float))
-        "fmod" in check(tester.run("fmod", _: Float, _: Float))
+        "fneg" in check(tester.run("fneg", _: Float), 10)
+        "fadd" in check(tester.run("fadd", _: Float, _: Float), 10)
+        "fsub" in check(tester.run("fsub", _: Float, _: Float), 10)
+        "fmul" in check(tester.run("fmul", _: Float, _: Float), 10)
+        "fdiv" in check(tester.run("fdiv", _: Float, _: Float), 10)
+        "fmod" in check(tester.run("fmod", _: Float, _: Float), 10)
       }
       "more int stuff" - {
-        "ishl" in check(tester.run("ishl", _: Int, _: Int))(Gen.intAll, Gen.int(5))
-        "ishr" in check(tester.run("ishr", _: Int, _: Int))(Gen.intAll, Gen.int(5))
-        "iushr" in check(tester.run("iushr", _: Int, _: Int))(Gen.intAll, Gen.int(5))
-        "iand" in check(tester.run("iand", _: Int, _: Int))
-        "ior" in check(tester.run("ior", _: Int, _: Int))
-        "ixor" in check(tester.run("ixor", _: Int, _: Int))
+        "ishl" in check(tester.run("ishl", _: Int, _: Int), 10)(Gen.intAll, Gen.int(5))
+        "ishr" in check(tester.run("ishr", _: Int, _: Int), 10)(Gen.intAll, Gen.int(5))
+        "iushr" in check(tester.run("iushr", _: Int, _: Int), 10)(Gen.intAll, Gen.int(5))
+        "iand" in check(tester.run("iand", _: Int, _: Int), 10)
+        "ior" in check(tester.run("ior", _: Int, _: Int), 10)
+        "ixor" in check(tester.run("ixor", _: Int, _: Int), 10)
       }
 
     }
@@ -57,29 +57,29 @@ class MathTest extends FreeSpec with Util{
     }
     "basic math" - {
       "long" - {
-        "lneg" in check(tester.run("lneg", _: Long))
-        "ladd" in check(tester.run("ladd", _: Long, _: Long))
-        "lsub" in check(tester.run("lsub", _: Long, _: Long))
-        "lmul" in check(tester.run("lmul", _: Long, _: Long))
-        "ldiv" in check(tester.run("ldiv", _: Long, _: Long))
-        "lmod" in check(tester.run("lmod", _: Long, _: Long))
+        "lneg" in check(tester.run("lneg", _: Long), 10)
+        "ladd" in check(tester.run("ladd", _: Long, _: Long), 10)
+        "lsub" in check(tester.run("lsub", _: Long, _: Long), 10)
+        "lmul" in check(tester.run("lmul", _: Long, _: Long), 10)
+        "ldiv" in check(tester.run("ldiv", _: Long, _: Long), 10)
+        "lmod" in check(tester.run("lmod", _: Long, _: Long), 10)
       }
       "double" - {
-        "dneg" in check(tester.run("dneg", _: Double))
-        "dadd" in check(tester.run("dadd", _: Double, _: Double))
-        "dsub" in check(tester.run("dsub", _: Double, _: Double))
-        "dmul" in check(tester.run("dmul", _: Double, _: Double))
-        "ddiv" in check(tester.run("ddiv", _: Double, _: Double))
-        "dmod" in check(tester.run("dmod", _: Double, _: Double))
+        "dneg" in check(tester.run("dneg", _: Double), 10)
+        "dadd" in check(tester.run("dadd", _: Double, _: Double), 10)
+        "dsub" in check(tester.run("dsub", _: Double, _: Double), 10)
+        "dmul" in check(tester.run("dmul", _: Double, _: Double), 10)
+        "ddiv" in check(tester.run("ddiv", _: Double, _: Double), 10)
+        "dmod" in check(tester.run("dmod", _: Double, _: Double), 10)
       }
 
       "more long stuff" - {
-        "lshl" in check(tester.run("lshl", _: Long, _: Long))(Gen.longAll, Gen.long(6))
-        "lshr" in check(tester.run("lshr", _: Long, _: Long))(Gen.longAll, Gen.long(6))
-        "lushr" in check(tester.run("lushr", _: Long, _: Long))(Gen.longAll, Gen.long(6))
-        "land" in check(tester.run("land", _: Long, _: Long))
-        "lor" in check(tester.run("lor", _: Long, _: Long))
-        "lxor" in check(tester.run("lxor", _: Long, _: Long))
+        "lshl" in check(tester.run("lshl", _: Long, _: Long), 10)(Gen.longAll, Gen.long(6))
+        "lshr" in check(tester.run("lshr", _: Long, _: Long), 10)(Gen.longAll, Gen.long(6))
+        "lushr" in check(tester.run("lushr", _: Long, _: Long), 10)(Gen.longAll, Gen.long(6))
+        "land" in check(tester.run("land", _: Long, _: Long), 10)
+        "lor" in check(tester.run("lor", _: Long, _: Long), 10)
+        "lxor" in check(tester.run("lxor", _: Long, _: Long), 10)
       }
     }
   }

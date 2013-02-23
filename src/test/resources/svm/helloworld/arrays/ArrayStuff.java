@@ -1,8 +1,8 @@
 package svm.helloworld.arrays;
 
 public class ArrayStuff {
-    public static int[] makeIntArray(){
-        int[] arr = new int[5];
+    public static int[] makeIntArray(int n){
+        int[] arr = new int[n];
         return arr;
     }
     public static float[] makeFloatArray(){
@@ -14,9 +14,10 @@ public class ArrayStuff {
         return arr;
     }
     public static int arrayLength(){
+        String[] arr0 = {};
         int[] arr1 = {1, 2, 3, 4, 5};
         double[] arr2 = {0.1, 0.2, 0.3, 0.4};
-        return arr1.length + arr2.length;
+        return arr0.length + arr1.length + arr2.length;
     }
     public static int[] arraySet(){
         int[] arr = new int[10];

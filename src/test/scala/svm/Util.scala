@@ -9,25 +9,22 @@ import scala.util.Random
 
 
 object Gen{
-
-  def check[T1: Function0](test: T1 => Unit) = {
-    for (i <- 0 until 10){
-      test(implicitly[Function0[T1]].apply())
+  val conforms = null
+  def check[T1](test: T1 => Unit, n: Int)(implicit gen1: Int => T1) = {
+    for (i <- 0 until n){
+      test(gen1(i))
     }
   }
-  def check[T1: Function0, T2: Function0](test: (T1, T2) => Unit) = {
-    for (i <- 0 until 10){
-      val a = implicitly[Function0[T1]].apply()
-      val b = implicitly[Function0[T2]].apply()
-      println(a + " " + b)
-      test(a, b)
+  def check[T1, T2](test: (T1, T2) => Unit, n: Int )(implicit gen1: Int => T1, gen2: Int => T2) = {
+    for (i <- 0 until n){
+      test(gen1(i), gen2(i))
     }
   }
-  implicit val intAll = () => Random.nextInt()
+  implicit val intAll = (i: Int) => Random.nextInt()
 
-  implicit val longAll = () =>Random.nextInt().toLong << 32 + Random.nextInt()
+  implicit val longAll = (i: Int) =>Random.nextInt().toLong << 32 + Random.nextInt()
 
-  def int(bits: Int) = () => {
+  def int(bits: Int) = (i: Int) => {
     println("Gen Int")
     println(bits)
     println(1 << bits)
@@ -36,7 +33,7 @@ object Gen{
     res
 
   }
-  def long(bits: Int) = () => {
+  def long(bits: Int) = (i: Int) => {
     if (bits >= 32){
       (Random.nextInt(1 << (bits - 32)).toLong << 32) | Random.nextInt(32)
     } else {
@@ -44,9 +41,9 @@ object Gen{
     }
 
   }
-  implicit val GenFloat = () => Random.nextFloat()
-  implicit val GenDouble = () => Random.nextDouble()
-  implicit val GenBoolean = () => Random.nextBoolean()
+  implicit val GenFloat = (i: Int) => Random.nextFloat()
+  implicit val GenDouble = (i: Int) => Random.nextDouble()
+  implicit val GenBoolean = (i: Int) => Random.nextBoolean()
 
 }
 
