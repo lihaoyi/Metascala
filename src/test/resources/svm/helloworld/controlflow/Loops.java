@@ -1,27 +1,24 @@
 package svm.helloworld.controlflow;
 
 public class Loops {
-    static int a = 10;
-    final static int b = 312;
-
-    public static int nullFor(){
+    public static int nullFor(int a){
         int c = 0;
         for(int i = 0; i > a; i++) c++;
         return c;
     }
-    public static int basicFor(){
+    public static int basicFor(int a){
         int c = 1;
         for(int i = 0; i < a; i++) c = c * 2;
         return c;
     }
-    public static int nullWhile(){
+    public static int nullWhile(int a){
         int c = 1;
-        while(c > 10) c++;
+        while(c > a) c++;
         return c;
     }
-    public static int basicWhile(){
+    public static int basicWhile(int a){
         int c = 1;
-        while(c < 1000) c = c * 2;
+        while(c < a) c = c * 2;
         return c;
     }
 }

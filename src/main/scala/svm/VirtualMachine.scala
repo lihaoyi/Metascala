@@ -18,7 +18,7 @@ class VirtualMachine(classLoader: String => Array[Byte]){
       case None =>
         classes(name) = loadClass(classLoader(name))
         classes(name).method("<clinit>").foreach( m =>
-          threads(0).invoke(classes(name), m)
+          threads(0).invoke(classes(name), m, Nil)
         )
         classes(name)
     }
@@ -29,7 +29,7 @@ class VirtualMachine(classLoader: String => Array[Byte]){
     new Class(classData)
   }
 
-  def run(bootClass: String, mainMethod: String, args: Array[Any]) = {
+  def invoke(bootClass: String, mainMethod: String, args: Seq[Any]) = {
     val bc = getClassFor(bootClass)
 
     threads(0).invoke(
@@ -38,7 +38,8 @@ class VirtualMachine(classLoader: String => Array[Byte]){
         .classFile
         .methods
         .find(x => x.name == mainMethod)
-        .getOrElse(throw new IllegalArgumentException("Can't find method: " + mainMethod))
+        .getOrElse(throw new IllegalArgumentException("Can't find method: " + mainMethod)),
+      args
     )
   }
 }
@@ -57,7 +58,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
     println(topFrame.stack)
   }
 
-  def invoke(cls: Class, method: Method) = {
+  def invoke(cls: Class, method: Method, args: Seq[Any]) = {
     println("Invoking " + method.name)
     method.code.instructions.zipWithIndex.foreach{case (x, i) => println(i + "\t" + x) }
     println()
@@ -72,10 +73,17 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
     val startFrame = new Frame(
       runningClass = cls,
       method = method,
-      locals = mutable.Seq.fill(method.misc.maxLocals)(null),
+      locals = mutable.Seq.fill(method.misc.maxLocals + 1)(null), // +1 in case the last guy is a double
       stack = Nil
     )
-
+    val stretchedArgs = args.flatMap {
+      case l: Long => Seq(l, null)
+      case d: Double => Seq(d, null)
+      case x => Seq(x)
+    }
+    for (i <- 0 until stretchedArgs.length){
+      startFrame.locals(i) = stretchedArgs(i)
+    }
     threadStack.push(dummyFrame, startFrame)
 
     while(threadStack.head != dummyFrame) step()

@@ -1,26 +1,27 @@
-package svm.helloworld
+package svm
+package helloworld
 
 
 import org.scalatest.FreeSpec
-import svm.Util._
-import svm.Util
-import scala.Some
 
-class ControlFlow extends FreeSpec{
-  import Util.loadClass
+import svm.Util
+import Gen.check
+class ControlFlow extends FreeSpec with Util{
+
 
   "if else" - {
-    val vm = new SingleClassVirtualMachine("svm.helloworld.controlflow.IfElse", loadClass)
-    "basicIf" in assert(vm.run("basicIf") === 10)
-    "ifElseIf" in assert(vm.run("ifElseIf") === 312)
-    "ifElseIfBig" in assert(vm.run("ifElseIfBig") === 5)
+    val tester = new Tester("svm.helloworld.controlflow.IfElse")
+    "basicIf" in tester.run("basicIf")
+    "ifElseIf" in tester.run("ifElseIf")
+    "ifElseIfBig" in tester.run("ifElseIfBig")
   }
   "loops" - {
-    val vm = new SingleClassVirtualMachine("svm.helloworld.controlflow.Loops", loadClass)
-    "nullFor" in assert(vm.run("nullFor") === 0)
-    "basicFor" in assert(vm.run("basicFor") === 1024)
-    "nullWhile" in assert(vm.run("nullWhile") === 1)
-    "basicWhile" in assert(vm.run("basicWhile") === 1024)
+    val tester = new Tester("svm.helloworld.controlflow.Loops")
+
+    "nullFor" in tester.run("nullFor", 100)
+    "basicFor" in check(tester.run("basicFor", _: Int))(Gen.int(256))
+    "nullWhile" in tester.run("nullWhile", 100)
+    "basicWhile" in check(tester.run("basicWhile", _: Int))(Gen.int(256))
   }
 
 

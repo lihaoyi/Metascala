@@ -1,87 +1,92 @@
-package svm.helloworld
+package svm
+package helloworld
 
 
 import org.scalatest.FreeSpec
-import java.io.DataInputStream
-import svm.Util._
+import Gen._
 import svm.Util
-import scala.Some
+import util.Random
 
-class MathTest extends FreeSpec{
-  import Util.loadClass
 
-  "hello math" - {
-    val vm = new SingleClassVirtualMachine("svm.helloworld.math.HelloMath", loadClass)
-    "imain" in assert(vm.run("imain") === 1337)
-    "fmain" in assert(vm.run("fmain") === 1.337f)
-    "amain" in assert(vm.run("amain") === "i am 3l33t")
-  }
 
-  "hello longs" - {
-    val vm = new SingleClassVirtualMachine("svm.helloworld.math.HelloLongs", loadClass)
-    "lmain" in assert(vm.run("lmain") === 31337)
-    "dmain" in assert(vm.run("dmain") === 31.337)
-  }
+class MathTest extends FreeSpec with Util{
 
-  "basic math" - {
-    "int" - {
-      val vm = new SingleClassVirtualMachine("svm.helloworld.math.HelloMath", loadClass)
-      "ineg" in assert(vm.run("ineg") === -13)
-      "iadd" in assert(vm.run("iadd") === 17)
-      "isub" in assert(vm.run("isub") === 9)
-      "imul" in assert(vm.run("imul") === 52)
-      "idiv" in assert(vm.run("idiv") === 3)
-      "imod" in assert(vm.run("imod") === 1)
+
+  "single precision" - {
+    val tester = new Tester("svm.helloworld.math.HelloMath")
+    "hello math" - {
+
+      "imain" in tester.run("imain")
+      "fmain" in tester.run("fmain")
+      "amain" in tester.run("amain")
     }
-    "long" - {
-      val vm = new SingleClassVirtualMachine("svm.helloworld.math.HelloLongs", loadClass)
-      "lneg" in assert(vm.run("lneg") === -13)
-      "ladd" in assert(vm.run("ladd") === 17)
-      "lsub" in assert(vm.run("lsub") === 9)
-      "lmul" in assert(vm.run("lmul") === 52)
-      "ldiv" in assert(vm.run("ldiv") === 3)
-      "lmod" in assert(vm.run("lmod") === 1)
-    }
-    "float" - {
-      
-      val vm = new SingleClassVirtualMachine("svm.helloworld.math.HelloMath", loadClass)
-      "fneg" in assert(vm.run("fneg") === -13.0f)
-      "fadd" in assert(vm.run("fadd") === 17.0f)
-      "fsub" in assert(vm.run("fsub") === 9.0f)
-      "fmul" in assert(vm.run("fmul") === 52.0f)
-      "fdiv" in assert(vm.run("fdiv") === 3.25f)
-      "fmod" in assert(vm.run("fmod") == 1.0f)
-    }
-    "double" - {
-      val vm = new SingleClassVirtualMachine("svm.helloworld.math.HelloLongs", loadClass)
-      "dneg" in assert(vm.run("dneg") === -13.0f)
-      "dadd" in assert(vm.run("dadd") === 17.0f)
-      "dsub" in assert(vm.run("dsub") === 9.0f)
-      "dmul" in assert(vm.run("dmul") === 52.0f)
-      "ddiv" in assert(vm.run("ddiv") === 3.25f)
-      "dmod" in assert(vm.run("dmod") == 1.0f)
-    }
+    "basic math" - {
+      "int" - {
+        "ineg" in check(tester.run("ineg", _: Int))
+        "iadd" in check(tester.run("iadd", _: Int, _: Int))
+        "isub" in check(tester.run("isub", _: Int, _: Int))
+        "imul" in check(tester.run("imul", _: Int, _: Int))
+        "idiv" in check(tester.run("idiv", _: Int, _: Int))
+        "imod" in check(tester.run("imod", _: Int, _: Int))
+      }
+      "float" - {
+        "fneg" in check(tester.run("fneg", _: Float))
+        "fadd" in check(tester.run("fadd", _: Float, _: Float))
+        "fsub" in check(tester.run("fsub", _: Float, _: Float))
+        "fmul" in check(tester.run("fmul", _: Float, _: Float))
+        "fdiv" in check(tester.run("fdiv", _: Float, _: Float))
+        "fmod" in check(tester.run("fmod", _: Float, _: Float))
+      }
+      "more int stuff" - {
+        "ishl" in check(tester.run("ishl", _: Int, _: Int))(Gen.intAll, Gen.int(5))
+        "ishr" in check(tester.run("ishr", _: Int, _: Int))(Gen.intAll, Gen.int(5))
+        "iushr" in check(tester.run("iushr", _: Int, _: Int))(Gen.intAll, Gen.int(5))
+        "iand" in check(tester.run("iand", _: Int, _: Int))
+        "ior" in check(tester.run("ior", _: Int, _: Int))
+        "ixor" in check(tester.run("ixor", _: Int, _: Int))
+      }
 
-    "more int stuff" - {
-      val vm = new SingleClassVirtualMachine("svm.helloworld.math.HelloMath", loadClass)
-      "ishl" in assert(vm.run("ishl") === 0x9abcde00)
-      "ishr" in assert(vm.run("ishr") === 0x789abc)
-      "iushr" in assert(vm.run("iushr") === 0x789abc)
-      "iand" in assert(vm.run("iand") === 0x7090b0d0)
-      "ior" in assert(vm.run("ior") === 0xf8fafcfe)
-      "ixor" in assert(vm.run("ixor") === 0x886a4c2e)
-    }
-
-    "more long stuff" - {
-      val vm = new SingleClassVirtualMachine("svm.helloworld.math.HelloLongs", loadClass)
-      "lshl" in assert(vm.run("lshl") === 0x56789abcdef00000L)
-      "lshr" in assert(vm.run("lshr") === 0x123456789abcL)
-      "lushr" in assert(vm.run("lushr") === 0x123456789abcL)
-      "land" in assert(vm.run("land") === 0x1030507090b0d0f0L)
-      "lor" in assert(vm.run("lor") === 0xf2f4f6f8fafcfef0L)
-      "lxor" in assert(vm.run("lxor") === 0xe2c4a6886a4c2e00L)
     }
   }
+  "double precision" - {
+    val tester = new Tester("svm.helloworld.math.HelloLongs")
+    "hello longs" - {
+
+      "lmain" in tester.run("lmain")
+      "dmain" in tester.run("dmain")
+    }
+    "basic math" - {
+      "long" - {
+        "lneg" in check(tester.run("lneg", _: Long))
+        "ladd" in check(tester.run("ladd", _: Long, _: Long))
+        "lsub" in check(tester.run("lsub", _: Long, _: Long))
+        "lmul" in check(tester.run("lmul", _: Long, _: Long))
+        "ldiv" in check(tester.run("ldiv", _: Long, _: Long))
+        "lmod" in check(tester.run("lmod", _: Long, _: Long))
+      }
+      "double" - {
+        "dneg" in check(tester.run("dneg", _: Double))
+        "dadd" in check(tester.run("dadd", _: Double, _: Double))
+        "dsub" in check(tester.run("dsub", _: Double, _: Double))
+        "dmul" in check(tester.run("dmul", _: Double, _: Double))
+        "ddiv" in check(tester.run("ddiv", _: Double, _: Double))
+        "dmod" in check(tester.run("dmod", _: Double, _: Double))
+      }
+
+      "more long stuff" - {
+        "lshl" in check(tester.run("lshl", _: Long, _: Long))(Gen.longAll, Gen.long(6))
+        "lshr" in check(tester.run("lshr", _: Long, _: Long))(Gen.longAll, Gen.long(6))
+        "lushr" in check(tester.run("lushr", _: Long, _: Long))(Gen.longAll, Gen.long(6))
+        "land" in check(tester.run("land", _: Long, _: Long))
+        "lor" in check(tester.run("lor", _: Long, _: Long))
+        "lxor" in check(tester.run("lxor", _: Long, _: Long))
+      }
+    }
+  }
+
+
+
+
 
 }
 

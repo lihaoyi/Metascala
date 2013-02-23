@@ -263,22 +263,22 @@ object OpCode {
   case object FNeg extends PureStackOpCode(118, "fneg")({ case (x: F) :: s => -x :: s })
   case object DNeg extends PureStackOpCode(119, "dneg")({ case (x: D) :: s => -x :: s })
 
-  case object IShl extends PureStackOpCode(120, "ishl")({ case (x: I) :: (y: I) :: s => (x << y) :: s })
-  case object LShl extends PureStackOpCode(121, "lshl")({ case (x: J) :: (y: J) :: s => (x << y) :: s })
-  case object IShr extends PureStackOpCode(122, "ishr")({ case (x: I) :: (y: I) :: s => (x >> y) :: s })
-  case object LShr extends PureStackOpCode(123, "lshr")({ case (x: J) :: (y: J) :: s => (x >> y) :: s })
+  case object IShl extends PureStackOpCode(120, "ishl")({ case (x: I) :: (y: I) :: s => (y << x) :: s })
+  case object LShl extends PureStackOpCode(121, "lshl")({ case (x: I) :: (y: J) :: s => (y << x) :: s })
+  case object IShr extends PureStackOpCode(122, "ishr")({ case (x: I) :: (y: I) :: s => (y >> x) :: s })
+  case object LShr extends PureStackOpCode(123, "lshr")({ case (x: I) :: (y: J) :: s => (y >> x) :: s })
 
-  case object IUShr extends PureStackOpCode(124, "iushr")({ case (x: I) :: (y: I) :: s => (x >>> y) :: s })
-  case object LUShr extends PureStackOpCode(125, "lushr")({ case (x: J) :: (y: J) :: s => (x >>> y) :: s })
+  case object IUShr extends PureStackOpCode(124, "iushr")({ case (x: I) :: (y: I) :: s => (y >>> x) :: s })
+  case object LUShr extends PureStackOpCode(125, "lushr")({ case (x: I) :: (y: J) :: s => (y >>> x) :: s })
 
   case object IAnd extends PureStackOpCode(126, "iand")({ case s :+ (x: I) :+ (y: I) => s :+ (x & y) })
-  case object LAnd extends PureStackOpCode(127, "land")({ case s :+ (x: J) :+ (y: I) => s :+ (x & y) })
+  case object LAnd extends PureStackOpCode(127, "land")({ case s :+ (x: J) :+ (y: J) => s :+ (x & y) })
 
   case object IOr extends PureStackOpCode(128, "ior")({ case s :+ (x: I) :+ (y: I) => s :+ (x | y) })
-  case object LOr extends PureStackOpCode(129, "lor")({ case s :+ (x: J) :+ (y: I) => s :+ (x | y) })
+  case object LOr extends PureStackOpCode(129, "lor")({ case s :+ (x: J) :+ (y: J) => s :+ (x | y) })
 
   case object IXOr extends PureStackOpCode(130, "ixor")({ case s :+ (x: I) :+ (y: I) => s :+ (x ^ y) })
-  case object LXOr extends PureStackOpCode(131, "lxor")({ case s :+ (x: J) :+ (y: I) => s :+ (x ^ y) })
+  case object LXOr extends PureStackOpCode(131, "lxor")({ case s :+ (x: J) :+ (y: J) => s :+ (x ^ y) })
 
   case class IInc(varId: Int, amount: Int) extends OpCode{
     def id = 132
