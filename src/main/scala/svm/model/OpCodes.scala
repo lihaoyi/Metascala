@@ -398,19 +398,37 @@ object OpCode {
 
     def op = ctx => {
       import ctx._
-
+      val typeDesc = TypeDesc.read(desc)
+      val argCount = typeDesc.args.length
       val cls = classes(owner)
       val method = cls.classFile
                       .methods
                       .find(_.name == name)
                       .get
 
-      thread.threadStack.push(new Frame(
+      val newFrame = new Frame(
         runningClass = cls,
         method = method,
-        locals = mutable.Seq.fill(method.misc.maxLocals)(null)
+        locals = mutable.Seq.fill(method.misc.maxLocals + 1)(null)
+      )
+      val (args, rest) = frame.stack.splitAt(argCount)
+      frame.stack = rest
 
-      ))
+      val stretchedArgs = args.flatMap {
+        case l: Long => Seq(l, l)
+        case d: Double => Seq(d, d)
+        case x => Seq(x)
+      }
+      println("INVOKESTATIC")
+      method.code.instructions.zipWithIndex.foreach{case (x, i) => println(i + "\t" + x) }
+      println(stretchedArgs)
+      for (i <- 0 until stretchedArgs.length){
+        newFrame.locals(i) = stretchedArgs(i)
+      }
+
+
+      thread.threadStack.push(newFrame)
+
       //new ArrayStuff[Object](count) :: stack
     }
   }

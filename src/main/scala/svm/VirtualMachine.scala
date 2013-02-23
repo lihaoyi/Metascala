@@ -52,10 +52,10 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
     val node = topFrame.method.code.instructions(topFrame.pc)
 
 
-  //  println(topFrame.pc + "\t---------------------- " + node )
+    println(topFrame.pc + "\t---------------------- " + node )
     topFrame.pc += 1
     node.op(Context(this))
-    //println(topFrame.stack)
+    println(topFrame.stack)
   }
 
   def invoke(cls: Class, method: Method, args: Seq[Any]) = {
@@ -77,13 +77,16 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
       stack = Nil
     )
     val stretchedArgs = args.flatMap {
-      case l: Long => Seq(l, null)
-      case d: Double => Seq(d, null)
+      case l: Long => Seq(l, l)
+      case d: Double => Seq(d, d)
       case x => Seq(x)
     }
+    println("Invoking!")
+
     for (i <- 0 until stretchedArgs.length){
       startFrame.locals(i) = stretchedArgs(i)
     }
+    println(startFrame.locals)
     threadStack.push(dummyFrame, startFrame)
 
     while(threadStack.head != dummyFrame) step()

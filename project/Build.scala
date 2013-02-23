@@ -24,7 +24,6 @@ object Build extends sbt.Build{
         "com.typesafe.akka"       %%  "akka-actor"    % "2.1.0",
         "com.typesafe.akka"       %%  "akka-testkit"    % "2.1.0" % "test",
         "org.ow2.asm" % "asm-debug-all" % "4.1",
-        "org.scalacheck" % "scalacheck_2.10.0" % "1.9" % "test",
         "org.scalatest" 		   % "scalatest_2.10.0" % "2.0.M5" % "test"
       )
     )

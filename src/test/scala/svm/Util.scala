@@ -74,11 +74,14 @@ trait Util extends ShouldMatchers { this: FreeSpec  =>
   }
   class ReflectiveRunner(className: String){
     def run(main: String, args: Any*) = {
-      java.lang.Class.forName(className)
-               .getMethods()
-               .find(_.getName == main)
-               .get
-               .invoke(null, args.map(x => x.asInstanceOf[AnyRef]):_*)
+      val method = java.lang.Class.forName(className)
+        .getMethods()
+        .find(_.getName == main)
+        .get
+
+      println("Invoking Method " + method.getName + " with " + method.getParameterTypes.length + " " + args.length)
+
+      method.invoke(null, args.map(x => x.asInstanceOf[AnyRef]):_*)
     }
   }
   class Tester(className: String){
