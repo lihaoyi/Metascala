@@ -1,4 +1,4 @@
-package helloworld.math;
+package svm.helloworld.math;
 
 public class HelloLongs {
     static long la = 13;

@@ -11,6 +11,12 @@ class Class(val classFile: ClassFile, _statics: collection.mutable.Map[String, A
       _statics(name) = value
     }
   }
+
+  def method(name: String) = {
+    classFile.methods
+             .find(_.name == name)
+  }
+
   def name = classFile.name
 }
 

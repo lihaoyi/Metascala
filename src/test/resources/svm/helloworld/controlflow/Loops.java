@@ -1,4 +1,4 @@
-package helloworld.controlflow;
+package svm.helloworld.controlflow;
 
 public class Loops {
     static int a = 10;

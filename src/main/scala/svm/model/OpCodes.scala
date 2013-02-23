@@ -149,21 +149,21 @@ object OpCode {
   case class ALoad3(index: Int) extends UnusedOpCode(45, "aLoad_3")
   //===============================================================
 
-  class PushFromArray(val id: Byte, val insnName: String) extends OpCode{
+  class PushFromArray[T](val id: Byte, val insnName: String) extends OpCode{
     def op = ctx => {
-      val (index: Int) :: (array: Array[Any]) :: stack = ctx.frame.stack
+      val (index: Int) :: (array: Array[T]) :: stack = ctx.frame.stack
       ctx.frame.stack = array(index) :: stack
     }
   }
 
-  case object IALoad extends PushFromArray(46, "iaLoad")
-  case object LALoad extends PushFromArray(47, "laLoad")
-  case object FALoad extends PushFromArray(48, "faLoad")
-  case object DALoad extends PushFromArray(49, "daLoad")
-  case object AALoad extends PushFromArray(50, "aaLoad")
-  case object BALoad extends PushFromArray(51, "baLoad")
-  case object CALoad extends PushFromArray(52, "caLoad")
-  case object SALoad extends PushFromArray(53, "saLoad")
+  case object IALoad extends PushFromArray[Int](46, "iaLoad")
+  case object LALoad extends PushFromArray[Long](47, "laLoad")
+  case object FALoad extends PushFromArray[Float](48, "faLoad")
+  case object DALoad extends PushFromArray[Double](49, "daLoad")
+  case object AALoad extends PushFromArray[Object](50, "aaLoad")
+  case object BALoad extends PushFromArray[Byte](51, "baLoad")
+  case object CALoad extends PushFromArray[Char](52, "caLoad")
+  case object SALoad extends PushFromArray[Short](53, "saLoad")
 
   abstract class StoreLocal(val id: Byte, val insnName: String) extends OpCode{
     def varId: Int
@@ -204,21 +204,21 @@ object OpCode {
   case class AStore2(varId: Int) extends StoreLocal(77, "astore_2")
   case class AStore3(varId: Int) extends StoreLocal(78, "astore_3")
 
-  class StoreArray(val id: Byte, val insnName: String) extends OpCode{
+  class StoreArray[T](val id: Byte, val insnName: String) extends OpCode{
     def op = ctx => {
-      val value :: (index: Int) :: (array: Array[Any]) :: stack = ctx.frame.stack
+      val (value: T) :: (index: Int) :: (array: Array[T]) :: stack = ctx.frame.stack
       array(index) = value
       ctx.frame.stack = stack
     }
   }
-  case object IAStore extends StoreArray(79, "iastore")
-  case object LAStore extends StoreArray(80, "lastore")
-  case object FAStore extends StoreArray(81, "fastore")
-  case object DAStore extends StoreArray(82, "dastore")
-  case object AAStore extends StoreArray(83, "aastore")
-  case object BAStore extends StoreArray(84, "bastore")
-  case object CAStore extends StoreArray(85, "castore")
-  case object SAStore extends StoreArray(86, "sastore")
+  case object IAStore extends StoreArray[Int](79, "iastore")
+  case object LAStore extends StoreArray[Long](80, "lastore")
+  case object FAStore extends StoreArray[Float](81, "fastore")
+  case object DAStore extends StoreArray[Double](82, "dastore")
+  case object AAStore extends StoreArray[Object](83, "aastore")
+  case object BAStore extends StoreArray[Byte](84, "bastore")
+  case object CAStore extends StoreArray[Char](85, "castore")
+  case object SAStore extends StoreArray[Short](86, "sastore")
 
   class PureStackOpCode(val id: Byte, val insnName: String)(transform: List[Any] => List[Any]) extends OpCode{
      def op = ctx => ctx.frame.stack = transform(ctx.stack)
@@ -411,7 +411,7 @@ object OpCode {
         locals = mutable.Seq.fill(method.misc.maxLocals)(null)
 
       ))
-      //new Array[Object](count) :: stack
+      //new ArrayStuff[Object](count) :: stack
     }
   }
   case class InvokeInterface(owner: String, name: String, desc: String) extends BaseOpCode(185, "invokeinterface"){ def op = ??? }
@@ -432,7 +432,7 @@ object OpCode {
         case 10 => new Array[Int](count)
         case 11 => new Array[Long](count)
       }
-      newArray :: stack
+      ctx.frame.stack = newArray :: stack
     }
   }
   case class ANewArray(desc: String) extends BaseOpCode(189, "anewarray"){

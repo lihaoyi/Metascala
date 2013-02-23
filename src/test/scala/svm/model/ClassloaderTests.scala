@@ -10,11 +10,11 @@ class ClassloaderTests extends FreeSpec{
 
   "loading class files" - {
     "hello world" in {
-      val classData = ClassFile.parse(svm.Util.loadClass("helloworld.HelloWorld"))
+      val classData = ClassFile.parse(svm.Util.loadClass("svm.helloworld.HelloWorld"))
 
       val ClassFile(
         0x21, //access,
-        "helloworld/HelloWorld", //name,
+      "svm/helloworld/HelloWorld", //name,
         "java/lang/Object", //superName,
         Nil, //interfaces
         Nil, //fields

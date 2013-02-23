@@ -1,4 +1,4 @@
-package helloworld.math;
+package svm.helloworld.math;
 
 public class HelloMath {
     static int ia = 13;
@@ -22,7 +22,7 @@ public class HelloMath {
     public static float fadd(){ return fa + fb; }
     public static float fsub(){ return fa - fb; }
     public static float fmul(){ return fa * fb; }
-    public static float fdiv(){ return fa / fb; }
+    public static float fdiv(){ return fa  / fb; }
     public static float fmod(){ return fa % fb; }
 
     public static int ishl(){ return 0x789abcde << 8;}

@@ -1,5 +1,4 @@
-package svm.opcodes
-
+package svm.model
 
 import org.scalatest.FreeSpec
 import svm.model.OpCode

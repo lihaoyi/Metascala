@@ -17,7 +17,9 @@ class VirtualMachine(classLoader: String => Array[Byte]){
       case Some(cls) => cls
       case None =>
         classes(name) = loadClass(classLoader(name))
-        run(name, "<clinit>")
+        classes(name).method("<clinit>").foreach( m =>
+          threads(0).invoke(classes(name), m)
+        )
         classes(name)
     }
   }
@@ -79,7 +81,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
     while(threadStack.head != dummyFrame) step()
 
     println("Ending " + method.name)
-    threadStack.pop().stack.headOption
+    threadStack.pop().stack.headOption.getOrElse(())
   }
 }
 

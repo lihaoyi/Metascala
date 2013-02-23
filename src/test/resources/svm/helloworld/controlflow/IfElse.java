@@ -1,4 +1,4 @@
-package helloworld.controlflow;
+package svm.helloworld.controlflow;
 
 public class IfElse {
     static int a = 10;
