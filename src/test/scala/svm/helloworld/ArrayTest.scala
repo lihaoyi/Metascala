@@ -9,8 +9,9 @@ import java.util.Arrays
 import Gen._
 class ArrayTest extends FreeSpec with Util{
 
-  val tester = new Tester("svm.helloworld.arrays.ArrayStuff")
+
   "array stuff" - {
+    val tester = new Tester("svm.helloworld.arrays.ArrayStuff")
     "makeIntArray" in check(tester.run("makeIntArray", _: Int), 10)(Seq(0, 1, 2, 3, 4, 5, 6, 7, 8, 9))
     "makeFloatArray" in tester.run("makeFloatArray")
     "makeStringArray" in tester.run("makeStringArray")
@@ -27,6 +28,11 @@ class ArrayTest extends FreeSpec with Util{
       Seq.fill(20)(util.Random.nextInt())
     ))
   }
-
+  "multi dim arrays" - {
+    val tester = new Tester("svm.helloworld.arrays.MultiDimArrays")
+    "make2D" in check(tester.run("make2D", _: Int, _: Int), 3)(Seq(0, 1, 2), Seq(0, 1, 2))
+    "make3D" in check(tester.run("make3D", _: Int, _: Int, _ : Int), 3)(Seq(0, 1, 2), Seq(0, 1, 2), Seq(0, 1, 2))
+    "getAndSet" in tester.run("getAndSet")
+  }
 }
 

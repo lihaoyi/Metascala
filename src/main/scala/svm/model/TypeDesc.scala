@@ -13,6 +13,17 @@ object TypeDesc{
   type Z = Boolean
   type L = Object
 
+  def fromChar(c: Char) = c match{
+    case 'B' => classOf[B]
+    case 'C' => classOf[C]
+    case 'I' => classOf[I]
+    case 'J' => classOf[J]
+    case 'F' => classOf[F]
+    case 'D' => classOf[D]
+    case 'S' => classOf[S]
+    case 'Z' => classOf[Z]
+    case 'L' => classOf[L]
+  }
   def read(s: String): TypeDesc = {
     val Array(argString, ret) = s.drop(1).split("\\)")
     var args = Seq[String]()

@@ -463,9 +463,11 @@ object OpCode {
   case class MultiANewArray(desc: String, dims: Int) extends BaseOpCode(197, "multianewarray"){
 
     def op = ctx => {
+
+      println("-------------------------------++++" + desc)
       val (dimValues, newStack) = ctx.stack.splitAt(dims)
       val dimArray = dimValues.map(x => x.asInstanceOf[Int])
-      val array = java.lang.reflect.Array.newInstance(classOf[Object], dimArray:_*)
+      val array = java.lang.reflect.Array.newInstance(TypeDesc.fromChar(desc.last), dimArray:_*)
       ctx.frame.stack = array :: newStack
     }
   }
