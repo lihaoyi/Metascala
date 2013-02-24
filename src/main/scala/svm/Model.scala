@@ -1,20 +1,16 @@
 package svm
 
-import model.{OpCode, ClassFile}
+import model.{Method, OpCode, ClassFile}
 
-class Class(val classFile: ClassFile, _statics: collection.mutable.Map[String, Any] = collection.mutable.Map.empty){
-  object statics{
-    def apply(name: String) = _statics(name)
-    def update(name: String, value: Any) = {
-      val field = classFile.fields.find(_.name == name).get
+class Class(val classFile: ClassFile,
+            classes: String => Class,
+            val statics: collection.mutable.Map[String, Any] = collection.mutable.Map.empty){
 
-      _statics(name) = value
-    }
-  }
 
-  def method(name: String) = {
+  def method(name: String, desc: String): Option[Method] = {
     classFile.methods
-             .find(_.name == name)
+             .find(m => m.name == name && m.desc == desc)
+             .orElse(Option(classFile.superName).flatMap(x => classes(x).method(name, desc)))
   }
 
   def name = classFile.name

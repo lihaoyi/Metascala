@@ -16,8 +16,8 @@ case class Context(thread: VmThread){
     thread.prepInvoke(cls, method, args)
   }
   def returnVal(x: Option[Any]) = {
-    thread.threadStack.pop()
-    x.foreach(value => thread.threadStack.head.stack = value :: thread.threadStack.head.stack)
+    thread.returnVal(x)
+
   }
 }
 
@@ -339,7 +339,6 @@ object OpCode {
       val (top: Int) :: (next: Int) :: stack = ctx.stack
       ctx.frame.stack = stack
       if(pred(next, top)) {
-        println("Jump!")
         ctx.jumpTo(label)
       }
     }
@@ -395,60 +394,41 @@ object OpCode {
     }
   }
 
-  case class InvokeVirtual(owner: String, name: String, desc: String) extends BaseOpCode(182, "invokevirtual"){def op = ???}
+  case class InvokeVirtual(owner: String, name: String, desc: String) extends BaseOpCode(182, "invokevirtual"){
+    def op = ctx => {
+      val argCount = TypeDesc.read(desc).args.length
+      val cls = ctx.classes(owner)
+      println("InvokeVirtual " + owner + " " + cls.classFile.methods.map(_.name))
+      val method = cls.method(name, desc).get
+
+      val (args, rest) = ctx.frame.stack.splitAt(argCount+1)
+      ctx.frame.stack = rest
+      ctx.prepInvoke(cls, method, args.reverse)
+    }
+  }
   case class InvokeSpecial(owner: String, name: String, desc: String) extends BaseOpCode(183, "invokespecial"){
     def op = ctx => {
 
+      val argCount = TypeDesc.read(desc).args.length
+      val cls = ctx.classes(owner)
+      val method = cls.method(name, desc).get
+
+      val (args, rest) = ctx.frame.stack.splitAt(argCount+1)
+      ctx.frame.stack = rest
+      ctx.prepInvoke(cls, method, args.reverse)
     }
   }
   case class InvokeStatic(owner: String, name: String, desc: String) extends BaseOpCode(184, "invokestatic"){
 
     def op = ctx => {
-      val typeDesc = TypeDesc.read(desc)
-      val argCount = typeDesc.args.length
+
+      val argCount = TypeDesc.read(desc).args.length
       val cls = ctx.classes(owner)
-      val method = cls.classFile
-        .methods
-        .find(_.name == name)
-        .get
+      val method = cls.method(name, desc).get
 
       val (args, rest) = ctx.frame.stack.splitAt(argCount)
       ctx.frame.stack = rest
       ctx.prepInvoke(cls, method, args)
-
-      /*import ctx._
-      val typeDesc = TypeDesc.read(desc)
-      val argCount = typeDesc.args.length
-      val cls = classes(owner)
-      val method = cls.classFile
-                      .methods
-                      .find(_.name == name)
-                      .get
-
-      val newFrame = new Frame(
-        runningClass = cls,
-        method = method,
-        locals = mutable.Seq.fill(method.misc.maxLocals + 1)(null)
-      )
-      val (args, rest) = frame.stack.splitAt(argCount)
-      frame.stack = rest
-
-      val stretchedArgs = args.flatMap {
-        case l: Long => Seq(l, l)
-        case d: Double => Seq(d, d)
-        case x => Seq(x)
-      }
-      println("INVOKESTATIC")
-      method.code.instructions.zipWithIndex.foreach{case (x, i) => println(i + "\t" + x) }
-      println(stretchedArgs)
-      for (i <- 0 until stretchedArgs.length){
-        newFrame.locals(i) = stretchedArgs(i)
-      }
-
-
-      thread.threadStack.push(newFrame)
-*/
-      //new ArrayStuff[Object](count) :: stack
     }
   }
   case class InvokeInterface(owner: String, name: String, desc: String) extends BaseOpCode(185, "invokeinterface"){ def op = ??? }
@@ -457,7 +437,6 @@ object OpCode {
 
   case class New(desc: String) extends BaseOpCode(187, "new"){
     def op = ctx => {
-      println(desc)
       ctx.frame.stack ::= new svm.Object(ctx.classes(desc))
     }
   }
@@ -506,7 +485,6 @@ object OpCode {
 
     def op = ctx => {
 
-      println("-------------------------------++++" + desc)
       val (dimValues, newStack) = ctx.stack.splitAt(dims)
       val dimArray = dimValues.map(x => x.asInstanceOf[Int])
       val array = java.lang.reflect.Array.newInstance(TypeDesc.fromChar(desc.last), dimArray:_*)

@@ -17,7 +17,7 @@ class VirtualMachine(classLoader: String => Array[Byte]){
       case Some(cls) => cls
       case None =>
         classes(name) = loadClass(classLoader(name))
-        classes(name).method("<clinit>").foreach( m =>
+        classes(name).method("<clinit>", "()V").foreach( m =>
           threads(0).invoke(classes(name), m, Nil)
         )
         classes(name)
@@ -26,7 +26,7 @@ class VirtualMachine(classLoader: String => Array[Byte]){
 
   def loadClass(bytes: Array[Byte]) = {
     val classData = ClassFile.parse(bytes)
-    new Class(classData)
+    new Class(classData, getClassFor)
   }
 
   def invoke(bootClass: String, mainMethod: String, args: Seq[Any]) = {
@@ -46,43 +46,48 @@ class VirtualMachine(classLoader: String => Array[Byte]){
 
 class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val classes: String => svm.Class){
 
+  def indent = "\t" * threadStack.filter(_.method.name != "Dummy").length
   def step() = {
     val topFrame = threadStack.head
 
     val node = topFrame.method.code.instructions(topFrame.pc)
 
 
-//    println(topFrame.pc + "\t---------------------- " + node )
+    //println(indent + topFrame.pc + "\t---------------------- " + node )
     topFrame.pc += 1
     node.op(Context(this))
-  //  println(topFrame.stack)
+    //println(indent + topFrame.stack)
   }
-
+  def returnVal(x: Option[Any]) = {
+ //   println(indent + "Returning!")
+    threadStack.pop()
+    x.foreach(value => threadStack.head.stack = value :: threadStack.head.stack)
+  }
   def prepInvoke(cls: Class, method: Method, args: Seq[Any]) = {
-    println("Invoking " + method.name)
-    method.code.instructions.zipWithIndex.foreach{case (x, i) => println(i + "\t" + x) }
-    println()
+    if (method.code != Code.Empty){
 
 
-    println("MaxLocals " + method.misc.maxLocals)
-    val startFrame = new Frame(
-      runningClass = cls,
-      method = method,
-      locals = mutable.Seq.fill(method.misc.maxLocals + 1)(null), // +1 in case the last guy is a double
-      stack = Nil
-    )
-    val stretchedArgs = args.flatMap {
-      case l: Long => Seq(l, l)
-      case d: Double => Seq(d, d)
-      case x => Seq(x)
+      val startFrame = new Frame(
+        runningClass = cls,
+        method = method,
+        locals = mutable.Seq.fill(method.misc.maxLocals + 10)(null), // +1 in case the last guy is a double
+        stack = Nil
+      )
+      val stretchedArgs = args.flatMap {
+        case l: Long => Seq(l, l)
+        case d: Double => Seq(d, d)
+        case x => Seq(x)
+      }
+
+      for (i <- 0 until stretchedArgs.length){
+        startFrame.locals(i) = stretchedArgs(i)
+      }
+
+      threadStack.push(startFrame)
+      //println(indent + "Invoking " + method.name)
+      //println(indent + "Locals " + startFrame.locals)
+     // method.code.instructions.zipWithIndex.foreach{case (x, i) => println(indent + i + "\t" + x) }
     }
-    println("Invoking!")
-
-    for (i <- 0 until stretchedArgs.length){
-      startFrame.locals(i) = stretchedArgs(i)
-    }
-    println(startFrame.locals)
-    threadStack.push(startFrame)
   }
   def invoke(cls: Class, method: Method, args: Seq[Any]) = {
     val dummyFrame = new Frame(
@@ -96,7 +101,6 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
 
     while(threadStack.head != dummyFrame) step()
 
-    println("Ending " + method.name)
     threadStack.pop().stack.headOption.getOrElse(())
   }
 }

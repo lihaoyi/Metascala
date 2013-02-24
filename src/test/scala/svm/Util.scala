@@ -60,7 +60,6 @@ object Util{
     if (loaded == null) throw new IOException("Can't find file " + slashName)
     val stream = new DataInputStream(loaded)
     val bytes = new Array[Byte](stream.available())
-
     stream.readFully(bytes)
     //model.Util.printClass(bytes)
     bytes
