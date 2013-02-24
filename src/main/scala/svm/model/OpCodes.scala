@@ -1,6 +1,6 @@
 package svm.model
 
-import svm.{VmThread, Frame}
+import svm.{Class, VmThread, Frame}
 import collection.mutable
 import org.objectweb.asm.tree._
 
@@ -12,6 +12,9 @@ case class Context(thread: VmThread){
 
   def jumpTo(l: Int) = frame.pc = l
   def throwException(exception: Any) = ???
+  def prepInvoke(cls: Class, method: Method, args: Seq[Any]) = {
+    thread.prepInvoke(cls, method, args)
+  }
   def returnVal(x: Option[Any]) = {
     thread.threadStack.pop()
     x.foreach(value => thread.threadStack.head.stack = value :: thread.threadStack.head.stack)
@@ -355,8 +358,8 @@ object OpCode {
     def op = ctx => ctx.jumpTo(label)
   }
 
-  case object Jsr extends BaseOpCode(168, "jsr"){ def op = ??? }
   case object Ret extends BaseOpCode(169, "ret"){ def op = ??? }
+  case object Jsr extends BaseOpCode(168, "jsr"){ def op = ??? }
   case object TableSwitch extends BaseOpCode(170, "tableswitch"){ def op = ??? }
   case object LookupSwitch extends BaseOpCode(171, "lookupswitch"){ def op = ??? }
 
@@ -393,11 +396,27 @@ object OpCode {
   }
 
   case class InvokeVirtual(owner: String, name: String, desc: String) extends BaseOpCode(182, "invokevirtual"){def op = ???}
-  case class InvokeSpecial(owner: String, name: String, desc: String) extends BaseOpCode(183, "invokespecial"){def op = ???}
+  case class InvokeSpecial(owner: String, name: String, desc: String) extends BaseOpCode(183, "invokespecial"){
+    def op = ctx => {
+
+    }
+  }
   case class InvokeStatic(owner: String, name: String, desc: String) extends BaseOpCode(184, "invokestatic"){
 
     def op = ctx => {
-      import ctx._
+      val typeDesc = TypeDesc.read(desc)
+      val argCount = typeDesc.args.length
+      val cls = ctx.classes(owner)
+      val method = cls.classFile
+        .methods
+        .find(_.name == name)
+        .get
+
+      val (args, rest) = ctx.frame.stack.splitAt(argCount)
+      ctx.frame.stack = rest
+      ctx.prepInvoke(cls, method, args)
+
+      /*import ctx._
       val typeDesc = TypeDesc.read(desc)
       val argCount = typeDesc.args.length
       val cls = classes(owner)
@@ -428,7 +447,7 @@ object OpCode {
 
 
       thread.threadStack.push(newFrame)
-
+*/
       //new ArrayStuff[Object](count) :: stack
     }
   }
@@ -436,7 +455,12 @@ object OpCode {
 
   case class InvokeDynamic(name: String, desc: String, bsm: Object, args: Object) extends BaseOpCode(186, "invokedynamic"){ def op = ??? }
 
-  case class New(desc: String) extends BaseOpCode(187, "new"){ def op = ??? }
+  case class New(desc: String) extends BaseOpCode(187, "new"){
+    def op = ctx => {
+      println(desc)
+      ctx.frame.stack ::= new svm.Object(ctx.classes(desc))
+    }
+  }
   case class NewArray(typeCode: Int) extends BaseOpCode(188, "newarray"){
     def op = ctx => {
       val (count: Int) :: stack = ctx.stack

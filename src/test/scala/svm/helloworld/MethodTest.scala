@@ -16,6 +16,9 @@ class MethodTest extends FreeSpec with Util{
     "fibonacci" in check(tester.run("fibonacci", _: Int), 3)(Seq(2, 5, 10))
 
   }
-
+  "objects" - {
+    val tester = new Tester("svm.helloworld.methods.Objects")
+    "dumbobjects" in tester.run("helloWorld", 5)
+  }
 }
 

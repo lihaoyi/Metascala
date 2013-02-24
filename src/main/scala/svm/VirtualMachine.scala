@@ -52,23 +52,18 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
     val node = topFrame.method.code.instructions(topFrame.pc)
 
 
-    println(topFrame.pc + "\t---------------------- " + node )
+//    println(topFrame.pc + "\t---------------------- " + node )
     topFrame.pc += 1
     node.op(Context(this))
-    println(topFrame.stack)
+  //  println(topFrame.stack)
   }
 
-  def invoke(cls: Class, method: Method, args: Seq[Any]) = {
+  def prepInvoke(cls: Class, method: Method, args: Seq[Any]) = {
     println("Invoking " + method.name)
     method.code.instructions.zipWithIndex.foreach{case (x, i) => println(i + "\t" + x) }
     println()
 
-    val dummyFrame = new Frame(
-      runningClass = cls,
-      method = method.copy(name = "Dummy"),
-      locals = mutable.Seq.empty,
-      stack = Nil
-    )
+
     println("MaxLocals " + method.misc.maxLocals)
     val startFrame = new Frame(
       runningClass = cls,
@@ -87,7 +82,17 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
       startFrame.locals(i) = stretchedArgs(i)
     }
     println(startFrame.locals)
-    threadStack.push(dummyFrame, startFrame)
+    threadStack.push(startFrame)
+  }
+  def invoke(cls: Class, method: Method, args: Seq[Any]) = {
+    val dummyFrame = new Frame(
+      runningClass = cls,
+      method = method.copy(name = "Dummy"),
+      locals = mutable.Seq.empty,
+      stack = Nil
+    )
+    threadStack.push(dummyFrame)
+    prepInvoke(cls, method, args)
 
     while(threadStack.head != dummyFrame) step()
 
