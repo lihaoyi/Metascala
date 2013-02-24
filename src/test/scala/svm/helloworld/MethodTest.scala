@@ -20,6 +20,7 @@ class MethodTest extends FreeSpec with Util{
     val tester = new Tester("svm.helloworld.methods.Objects")
     "dumbobjects" in tester.run("helloWorld", 5)
     "inheritance" in tester.run("inheritance", 5)
+    "points" in tester.run("points", 5)
   }
 }
 

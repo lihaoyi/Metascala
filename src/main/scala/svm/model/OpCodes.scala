@@ -397,11 +397,11 @@ object OpCode {
   case class InvokeVirtual(owner: String, name: String, desc: String) extends BaseOpCode(182, "invokevirtual"){
     def op = ctx => {
       val argCount = TypeDesc.read(desc).args.length
-      val cls = ctx.classes(owner)
-      println("InvokeVirtual " + owner + " " + cls.classFile.methods.map(_.name))
+      val (args, rest) = ctx.frame.stack.splitAt(argCount+1)
+      val cls = args.last.asInstanceOf[svm.Object].cls
       val method = cls.method(name, desc).get
 
-      val (args, rest) = ctx.frame.stack.splitAt(argCount+1)
+
       ctx.frame.stack = rest
       ctx.prepInvoke(cls, method, args.reverse)
     }

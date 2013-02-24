@@ -59,11 +59,13 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
     //println(indent + topFrame.stack)
   }
   def returnVal(x: Option[Any]) = {
- //   println(indent + "Returning!")
+    //println(indent + "Returning!")
     threadStack.pop()
     x.foreach(value => threadStack.head.stack = value :: threadStack.head.stack)
   }
   def prepInvoke(cls: Class, method: Method, args: Seq[Any]) = {
+    //println("prepInvoke " + cls.name + " " + method.name)
+    //println(method.code)
     if (method.code != Code.Empty){
 
 
@@ -86,7 +88,9 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
       threadStack.push(startFrame)
       //println(indent + "Invoking " + method.name)
       //println(indent + "Locals " + startFrame.locals)
-     // method.code.instructions.zipWithIndex.foreach{case (x, i) => println(indent + i + "\t" + x) }
+      //method.code.instructions.zipWithIndex.foreach{case (x, i) => println(indent + i + "\t" + x) }
+    }else{
+      println("Empty Method!")
     }
   }
   def invoke(cls: Class, method: Method, args: Seq[Any]) = {
