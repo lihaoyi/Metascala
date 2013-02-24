@@ -14,10 +14,10 @@ public class Objects {
     }
     public static double points(int n){
         Point p = new Point(10, 10);
-        /*p.translate(5, -5); // 15 5
-        p.setLocation(p.x * 2, p.y * 2); // 30 10
-        p.setLocation(p.getY(), p.getX()); // 10 30
-        p.translate(5, -5); // 15 25*/
+        //p.translate(5, -5); // 15 5
+        //p.setLocation(p.x * 2, p.y * 2); // 30 10
+        //p.setLocation(p.getY(), p.getX()); // 10 30
+        //p.translate(5, -5); // 15 25
         return p.distanceSq(0, 0);
     }
 

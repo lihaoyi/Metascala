@@ -3,11 +3,58 @@ package svm
 import collection.mutable
 import model._
 
+object Route{
+  def apply(a: (String, Route)*) = Node(a.toMap)
+}
+trait Route{
+  def lookup(s: String): Option[Any]
+}
+case class Node(children: Map[String, Route]) extends Route{
+  def lookup(s: String) = {
+    println("Lookup " + s)
+    val Array(first, rest) = s.split("/", 2)
+    children.get(first).flatMap(_.lookup(rest))
+  }
+}
+
+case class Leaf(f: Any) extends Route{
+  def lookup(s: String) = {
+    println("LeafLookup " + s)
+    if (s == "") Some(f)
+    else None
+  }
+}
 
 class VirtualMachine(classLoader: String => Array[Byte]){
   val classes = mutable.Map.empty[String, Class]
 
-  val threads = List(new VmThread(classes = getClassFor))
+
+
+  implicit class pimpedMap(s: String){
+    def /(a: (String, Route)*) = s -> Node(a.toMap)
+    def -(a: Any) = s -> Leaf(a)
+  }
+  val nativeX = Route(
+    "java"/(
+      "lang"/(
+        "Class"/(
+          "registerNatives()V"-(() => ())
+        ),
+        "Float"/(
+          "intBitsToFloat(I)F"-{ java.lang.Float.intBitsToFloat(_: Int)}
+        ),
+        "Object"/(
+          "registerNatives()V"-(() => ())
+        ),
+        "System"/(
+          "currentTimeMillis()J"-(() => System.currentTimeMillis()),
+          "registerNatives()V"-(() => ())
+        )
+      )
+    )
+  )
+
+  val threads = List(new VmThread(classes = getClassFor, nativeX = nativeX))
   var heap = Set.empty[Object]
 
   def getClassFor(name: String): Class = {
@@ -44,7 +91,7 @@ class VirtualMachine(classLoader: String => Array[Byte]){
   }
 }
 
-class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val classes: String => svm.Class){
+class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val classes: String => svm.Class, nativeX: Route){
 
   def indent = "\t" * threadStack.filter(_.method.name != "Dummy").length
   def step() = {
@@ -53,13 +100,16 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
     val node = topFrame.method.code.instructions(topFrame.pc)
 
 
-    //println(indent + topFrame.pc + "\t---------------------- " + node )
+    println(indent + topFrame.pc + "\t---------------------- " + node )
     topFrame.pc += 1
     node.op(Context(this))
-    //println(indent + topFrame.stack)
+    threadStack.foreach {x =>
+      println(indent + x.method.name + ": " + x.stack)
+    }
+
   }
   def returnVal(x: Option[Any]) = {
-    //println(indent + "Returning!")
+    println(indent + "Returning!")
     threadStack.pop()
     x.foreach(value => threadStack.head.stack = value :: threadStack.head.stack)
   }
@@ -86,11 +136,25 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
       }
 
       threadStack.push(startFrame)
-      //println(indent + "Invoking " + method.name)
+      println(indent + "Invoking " + method.name)
       //println(indent + "Locals " + startFrame.locals)
-      //method.code.instructions.zipWithIndex.foreach{case (x, i) => println(indent + i + "\t" + x) }
-    }else{
-      println("Empty Method!")
+      method.code.instructions.zipWithIndex.foreach{case (x, i) => println(indent + i + "\t" + x) }
+    }else if ((method.access | Access.Native) != 0){
+      println(indent + "Native!")
+      val topFrame = threadStack.head
+      val result = nativeX.lookup(cls.name + "/" + method.name + method.desc + "/") match{
+        case None => throw new Exception("Can't find Native Method: " + cls.name + " " + method.name + " " + method.desc)
+        case Some(f: Function0[Any]) => f()
+        case Some(f: Function1[Any, Any]) => f(args(0))
+      }
+
+      topFrame.stack = result match{
+        case () => topFrame.stack
+        case nonUnit => nonUnit :: topFrame.stack
+      }
+      println(indent + "End Native!")
+    }else {
+      println(indent + "Empty Method!")
     }
   }
   def invoke(cls: Class, method: Method, args: Seq[Any]) = {
@@ -100,11 +164,12 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
       locals = mutable.Seq.empty,
       stack = Nil
     )
+    println(indent + "Steppin'")
     threadStack.push(dummyFrame)
     prepInvoke(cls, method, args)
 
     while(threadStack.head != dummyFrame) step()
-
+    println(indent + "Don' Steppin'")
     threadStack.pop().stack.headOption.getOrElse(())
   }
 }
