@@ -8,6 +8,14 @@ public class IfElse {
         if (a < b) return a;
         else return -a;
     }
+    public static int ifNonIntZero(){
+        if (((byte)a) > 0) return a;
+        else return -a;
+    }
+    public static int ifNonIntBinary(){
+        if (((byte)a) > (short)b) return a;
+        else return -a;
+    }
     public static int ifElseIf(){
         if (a > b) return a;
         else if (a == b) return -a;

@@ -2,7 +2,7 @@ package svm.helloworld.arrays;
 
 public class ArrayStuff {
     public static int[] makeIntArray(int n){
-        int[] arr = new int[n];
+        int[] arr = new int[(short)n];
         return arr;
     }
     public static float[] makeFloatArray(){
@@ -22,7 +22,7 @@ public class ArrayStuff {
     public static int[] arraySet(){
         int[] arr = new int[10];
         for(int i = 0; i < 10; i++){
-            arr[i] = i;
+            arr[(byte)i] = i;
         }
         return arr;
     }
@@ -30,7 +30,7 @@ public class ArrayStuff {
         int total = 0;
         int[] arr = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
         for(int i: arr) total = total + i;
-        for(int i = 0; i < arr.length; i++) total = total + 100 * i;
+        for(int i = 0; i < arr.length; i++) total = total + 100 * arr[(short)i];
         return total;
     }
 

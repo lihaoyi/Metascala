@@ -28,6 +28,15 @@ abstract class OpCode{
 }
 
 object OpCode {
+  object Intish{
+    def unapply(x: Any) = x match{
+      case c: Char => Some(c.toInt)
+      case b: Byte => Some(b.toInt)
+      case s: Short => Some(s.toInt)
+      case i: Int => Some(i)
+      case _ => None
+    }
+  }
   class UnusedOpCode(val id: Byte, val insnName: String) extends OpCode{
     def op = ctx => ???
   }
@@ -154,7 +163,7 @@ object OpCode {
 
   class PushFromArray[T](val id: Byte, val insnName: String) extends OpCode{
     def op = ctx => {
-      val (index: Int) :: (array: Array[T]) :: stack = ctx.frame.stack
+      val Intish(index) :: (array: Array[T]) :: stack = ctx.frame.stack
       ctx.frame.stack = array(index) :: stack
     }
   }
@@ -209,7 +218,7 @@ object OpCode {
 
   class StoreArray[T](val id: Byte, val insnName: String) extends OpCode{
     def op = ctx => {
-      val (value: T) :: (index: Int) :: (array: Array[T]) :: stack = ctx.frame.stack
+      val (value: T) :: Intish(index) :: (array: Array[T]) :: stack = ctx.frame.stack
       array(index) = value
       ctx.frame.stack = stack
     }
@@ -320,7 +329,7 @@ object OpCode {
 
     def label: Int
     def op = ctx => {
-      val (top: Int) :: stack = ctx.stack
+      val Intish(top) :: stack = ctx.stack
       ctx.frame.stack = stack
       if(pred(top)) ctx.jumpTo(label)
     }
@@ -336,7 +345,7 @@ object OpCode {
   abstract class BinaryBranch(val id: Byte, val insnName: String)(pred: (Int, Int) => Boolean) extends OpCode{
     def label: Int
     def op = ctx => {
-      val (top: Int) :: (next: Int) :: stack = ctx.stack
+      val Intish(top) :: Intish(next) :: stack = ctx.stack
       ctx.frame.stack = stack
       if(pred(next, top)) {
         ctx.jumpTo(label)
@@ -359,8 +368,25 @@ object OpCode {
 
   case object Ret extends BaseOpCode(169, "ret"){ def op = ??? }
   case object Jsr extends BaseOpCode(168, "jsr"){ def op = ??? }
-  case object TableSwitch extends BaseOpCode(170, "tableswitch"){ def op = ??? }
-  case object LookupSwitch extends BaseOpCode(171, "lookupswitch"){ def op = ??? }
+  case class TableSwitch(min: Int, max: Int, default: Int, targets: Seq[Int]) extends BaseOpCode(170, "tableswitch"){
+    def op = ctx => {
+
+      val Intish(top) :: rest = ctx.stack
+      ctx.frame.stack = rest
+      ctx.jumpTo(
+        targets.applyOrElse[Int, Int](top - min, _ => default)
+      )
+    }
+  }
+  case class LookupSwitch(default: Int, keys: Seq[Int], targets: Seq[Int]) extends BaseOpCode(171, "lookupswitch"){
+    def op = ctx => {
+      val Intish(top) :: rest = ctx.stack
+      ctx.frame.stack = rest
+      ctx.jumpTo(
+        keys.zip(targets).toMap.get(top).getOrElse(default)
+      )
+    }
+  }
 
   case object IReturn extends BaseOpCode(172, "ireturn"){ def op = ctx => ctx.returnVal(Some(ctx.stack.head)) }
   case object LReturn extends BaseOpCode(173, "lreturn"){ def op = ctx => ctx.returnVal(Some(ctx.stack.head)) }
@@ -443,7 +469,7 @@ object OpCode {
   }
   case class NewArray(typeCode: Int) extends BaseOpCode(188, "newarray"){
     def op = ctx => {
-      val (count: Int) :: stack = ctx.stack
+      val Intish(count) :: stack = ctx.stack
       val newArray = typeCode match{
         case 4 => new Array[Boolean](count)
         case 5 => new Array[Char](count)
@@ -459,7 +485,7 @@ object OpCode {
   }
   case class ANewArray(desc: String) extends BaseOpCode(189, "anewarray"){
     def op = ctx => {
-      val (count: Int) :: stack = ctx.stack
+      val Intish(count) :: stack = ctx.stack
       ctx.frame.stack = new Array[Object](count) :: stack
     }
   }
