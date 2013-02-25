@@ -90,13 +90,14 @@ trait Util extends ShouldMatchers { this: FreeSpec  =>
       val svmRes = svm.run(main, args:_*)
       val refRes = ref.run(main, args:_*)
       val inString = args.toString
+      println(svmRes)
+      println(refRes)
       try{
         svmRes should be === refRes
       }catch {case ex: TestFailedException =>
         println("Test failed for input")
         println(inString)
-        println(svmRes)
-        println(refRes)
+
         throw ex
       }
     }
