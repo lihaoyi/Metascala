@@ -16,7 +16,26 @@ class Class(val classFile: ClassFile,
   def name = classFile.name
 }
 
-class Object(val cls: Class, val members: collection.mutable.Map[String, Any] = collection.mutable.Map.empty)
+class Object(val cls: Class){
+  val members = collection.mutable.Map(
+    cls.classFile.fields.map{f =>
+      f.name -> initField(f.desc)
+    }:_*
+  )
+  def initField(desc: String) = {
+    desc(0) match{
+      case 'B' => 0: Byte
+      case 'C' => 0: Char
+      case 'I' => 0
+      case 'J' => 0L
+      case 'F' => 0F
+      case 'D' => 0D
+      case 'S' => 0: Short
+      case 'Z' => false
+      case 'L' => null
+    }
+  }
+}
 
 object Access{
   val Public    = 0x0001 // 1

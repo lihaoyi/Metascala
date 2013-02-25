@@ -11,15 +11,18 @@ trait Route{
 }
 case class Node(children: Map[String, Route]) extends Route{
   def lookup(s: String) = {
-    println("Lookup " + s)
-    val Array(first, rest) = s.split("/", 2)
+    val Array(first, rest) =
+      if (s.indexOf('/') != -1 && s.indexOf('/') < s.indexOf('(')){
+        s.split("/", 2)
+      }else{
+        Array(s, "")
+      }
     children.get(first).flatMap(_.lookup(rest))
   }
 }
 
 case class Leaf(f: Any) extends Route{
   def lookup(s: String) = {
-    println("LeafLookup " + s)
     if (s == "") Some(f)
     else None
   }
@@ -28,27 +31,30 @@ case class Leaf(f: Any) extends Route{
 class VirtualMachine(classLoader: String => Array[Byte]){
   val classes = mutable.Map.empty[String, Class]
 
-
-
   implicit class pimpedMap(s: String){
     def /(a: (String, Route)*) = s -> Node(a.toMap)
     def -(a: Any) = s -> Leaf(a)
   }
+  val noOp = () => ()
+  val primitiveMap = Map(
+    "float" -> "java/lang/Float"
+  )
   val nativeX = Route(
     "java"/(
       "lang"/(
         "Class"/(
-          "registerNatives()V"-(() => ())
+          "registerNatives()V"-noOp,
+          "getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;"-((s: String) => (new Object(classes(primitiveMap(s)))))
         ),
         "Float"/(
           "intBitsToFloat(I)F"-{ java.lang.Float.intBitsToFloat(_: Int)}
         ),
         "Object"/(
-          "registerNatives()V"-(() => ())
+          "registerNatives()V"-noOp
         ),
         "System"/(
           "currentTimeMillis()J"-(() => System.currentTimeMillis()),
-          "registerNatives()V"-(() => ())
+          "registerNatives()V"-noOp
         )
       )
     )
@@ -100,16 +106,16 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
     val node = topFrame.method.code.instructions(topFrame.pc)
 
 
-    println(indent + topFrame.pc + "\t---------------------- " + node )
+    //println(indent + topFrame.pc + "\t---------------------- " + node )
     topFrame.pc += 1
     node.op(Context(this))
-    threadStack.foreach {x =>
+    /*threadStack.foreach {x =>
       println(indent + x.method.name + ": " + x.stack)
-    }
+    }*/
 
   }
   def returnVal(x: Option[Any]) = {
-    println(indent + "Returning!")
+    //println(indent + "Returning!")
     threadStack.pop()
     x.foreach(value => threadStack.head.stack = value :: threadStack.head.stack)
   }
@@ -136,13 +142,12 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
       }
 
       threadStack.push(startFrame)
-      println(indent + "Invoking " + method.name)
+      //println(indent + "Invoking " + method.name)
       //println(indent + "Locals " + startFrame.locals)
-      method.code.instructions.zipWithIndex.foreach{case (x, i) => println(indent + i + "\t" + x) }
+      //method.code.instructions.zipWithIndex.foreach{case (x, i) => println(indent + i + "\t" + x) }
     }else if ((method.access | Access.Native) != 0){
-      println(indent + "Native!")
       val topFrame = threadStack.head
-      val result = nativeX.lookup(cls.name + "/" + method.name + method.desc + "/") match{
+      val result = nativeX.lookup(cls.name + "/" + method.name + method.desc) match{
         case None => throw new Exception("Can't find Native Method: " + cls.name + " " + method.name + " " + method.desc)
         case Some(f: Function0[Any]) => f()
         case Some(f: Function1[Any, Any]) => f(args(0))
@@ -152,7 +157,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
         case () => topFrame.stack
         case nonUnit => nonUnit :: topFrame.stack
       }
-      println(indent + "End Native!")
+
     }else {
       println(indent + "Empty Method!")
     }

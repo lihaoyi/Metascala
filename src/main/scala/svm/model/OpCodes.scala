@@ -421,13 +421,10 @@ object OpCode {
   case class InvokeStatic(owner: String, name: String, desc: String) extends BaseOpCode(184, "invokestatic"){
 
     def op = ctx => {
-      println("Invoking Static!")
+
       val argCount = TypeDesc.read(desc).args.length
-      println("Get Class!")
-      ctx.thread.threadStack.foreach(x => println(x.method.name + " " + x.stack))
-      println("Gotten Class!")
+
       val cls = ctx.classes(owner)
-      ctx.thread.threadStack.foreach(x => println(x.method.name + " " + x.stack))
       val method = cls.method(name, desc).get
 
       val (args, rest) = ctx.frame.stack.splitAt(argCount)
