@@ -97,7 +97,7 @@ class VirtualMachine(classLoader: String => Array[Byte]){
 
   def invoke(bootClass: String, mainMethod: String, args: Seq[Any]) = {
     val bc = getClassFor(bootClass)
-    Object.fromVirtual(
+    Object.fromVirtual[Any](
       threads(0).invoke(
         bc,
         getClassFor(bootClass)

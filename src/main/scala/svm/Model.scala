@@ -46,7 +46,14 @@ object Object{
     }
   }
 
-  def fromVirtual(x: Any): Any = x match{
+  def cloneArray[T](x: Array[T]): Array[T] = {
+    val newArray = x.clone()
+    for(i <- 0 until x.length){
+      newArray(i) = fromVirtual[T](newArray(i))
+    }
+    newArray
+  }
+  def fromVirtual[T](x: Any): T = (x match{
     case null => null
     case x: Boolean => x
     case x: Byte => x
@@ -56,30 +63,18 @@ object Object{
     case x: Long => x
     case x: Float => x
     case x: Double => x
-    case x: Array[Any] =>
-      val newArray = x.clone()
-
-      for (i <- 0 until x.length){
-        newArray(i) = fromVirtual(newArray(i))
-      }
-      newArray
-    case x: Array[Int] =>
-      val newArray = x.clone()
-
-      for (i <- 0 until x.length){
-        newArray(i) = fromVirtual(newArray(i)).asInstanceOf[Int]
-      }
-      newArray
-    case x: Array[Float] =>
-      val newArray = x.clone()
-
-      for (i <- 0 until x.length){
-        newArray(i) = fromVirtual(newArray(i)).asInstanceOf[Float]
-      }
-      newArray
+    case x: Array[Any] => cloneArray(x)
+    case x: Array[Boolean] => cloneArray(x)
+    case x: Array[Byte] => cloneArray(x)
+    case x: Array[Char] => cloneArray(x)
+    case x: Array[Short] => cloneArray(x)
+    case x: Array[Int] => cloneArray(x)
+    case x: Array[Long] => cloneArray(x)
+    case x: Array[Float] => cloneArray(x)
+    case x: Array[Double] => cloneArray(x)
     case x: svm.Object if x.cls.name == "java/lang/String" =>
       new String(x.members("value").asInstanceOf[Array[Char]])
-  }
+  }).asInstanceOf[T]
 }
 class Object(val cls: Class, classes: String => Class){
   val members = collection.mutable.Map(
