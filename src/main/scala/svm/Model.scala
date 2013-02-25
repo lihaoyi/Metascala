@@ -14,14 +14,23 @@ class Class(val classFile: ClassFile,
   }
 
   def name = classFile.name
+
+  def isInstanceOf(desc: String, classes: String => Class): Boolean = {
+    classFile.name == desc ||
+    classFile.interfaces.contains(desc) ||
+    (classFile.superName != null && classes(classFile.superName).isInstanceOf(desc, classes))
+  }
 }
 
-class Object(val cls: Class){
-  val members = collection.mutable.Map(
+object Object{
+  def initMembers(cls: Class, classes: String => Class): List[(String, Any)] = {
     cls.classFile.fields.map{f =>
       f.name -> initField(f.desc)
-    }:_*
-  )
+    } ++ (cls.classFile.superName match{
+      case null => Nil
+      case x => initMembers(classes(x), classes)
+    } )
+  }
   def initField(desc: String) = {
     desc(0) match{
       case 'B' => 0: Byte
@@ -33,7 +42,36 @@ class Object(val cls: Class){
       case 'S' => 0: Short
       case 'Z' => false
       case 'L' => null
+      case '[' => null
     }
+  }
+
+  def fromVirtual(x: Any): Any = x match{
+    case null => null
+    case x: Boolean => x
+    case x: Byte => x
+    case x: Char => x
+    case x: Short => x
+    case x: Int => x
+    case x: Long => x
+    case x: Float => x
+    case x: Double => x
+    case x: Array[Any] =>
+      val newArray = new Array[Any](x.length)
+      for (i <- 0 until x.length){
+        newArray(i) = fromVirtual(x(i))
+      }
+    case x: svm.Object if x.cls.name == "java/lang/String" =>
+      new String(x.members("value").asInstanceOf[Array[Char]])
+  }
+}
+class Object(val cls: Class, classes: String => Class){
+  val members = collection.mutable.Map(
+    Object.initMembers(cls, classes):_*
+  )
+
+  override def toString = {
+    s"Object(${cls.name}, ${members}})"
   }
 }
 

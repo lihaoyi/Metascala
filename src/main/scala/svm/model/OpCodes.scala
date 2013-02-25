@@ -2,6 +2,7 @@ package svm.model
 
 import svm.{Class, VmThread, Frame}
 import collection.mutable
+import org.objectweb.asm
 import org.objectweb.asm.tree._
 
 
@@ -30,6 +31,7 @@ abstract class OpCode{
 object OpCode {
   object Intish{
     def unapply(x: Any) = x match{
+      case b: Boolean => Some(if (b) 1 else 0)
       case c: Char => Some(c.toInt)
       case b: Byte => Some(b.toInt)
       case s: Short => Some(s.toInt)
@@ -109,7 +111,27 @@ object OpCode {
   case class SiPush(value: Int) extends PushValOpCode(17,"sipush", value)
 
   class PushConstOpCode(val id: Byte, val insnName: String, const: Any) extends OpCode{
-    def op = _.frame.stack ::= const
+    def op = ctx => {
+      val newConst = const match{
+        case s: String =>
+          val x = new svm.Object(
+            ctx.classes("java/lang/String"),
+            ctx.classes
+          )
+          x.members("value") = s.toCharArray
+          x
+        case t: asm.Type =>
+          val x = new svm.Object(
+            ctx.classes("java/lang/Class"),
+            ctx.classes
+          )
+          x.members("value") = t.getInternalName
+          x
+        case x => x
+      }
+
+      ctx.frame.stack ::= newConst
+    }
   }
 
   case class Ldc(const: Any) extends PushConstOpCode(18, "ldc", const)
@@ -167,15 +189,20 @@ object OpCode {
       ctx.frame.stack = array(index) :: stack
     }
   }
-
+  class PushFromArrayInt[T: Numeric](val id: Byte, val insnName: String) extends OpCode{
+    def op = ctx => {
+      val Intish(index) :: (array: Array[T]) :: stack = ctx.frame.stack
+      ctx.frame.stack = implicitly[Numeric[T]].toInt(array(index)) :: stack
+    }
+  }
   case object IALoad extends PushFromArray[Int](46, "iaLoad")
   case object LALoad extends PushFromArray[Long](47, "laLoad")
   case object FALoad extends PushFromArray[Float](48, "faLoad")
   case object DALoad extends PushFromArray[Double](49, "daLoad")
   case object AALoad extends PushFromArray[Object](50, "aaLoad")
-  case object BALoad extends PushFromArray[Byte](51, "baLoad")
-  case object CALoad extends PushFromArray[Char](52, "caLoad")
-  case object SALoad extends PushFromArray[Short](53, "saLoad")
+  case object BALoad extends PushFromArrayInt[Byte](51, "baLoad")
+  case object CALoad extends PushFromArrayInt[Char](52, "caLoad")
+  case object SALoad extends PushFromArrayInt[Short](53, "saLoad")
 
   abstract class StoreLocal(val id: Byte, val insnName: String) extends OpCode{
     def varId: Int
@@ -191,30 +218,33 @@ object OpCode {
   case class DStore(varId: Int) extends StoreLocal(57, "dstore")
   case class AStore(varId: Int) extends StoreLocal(58, "astore")
 
-  case class IStore0(varId: Int) extends StoreLocal(59, "istore_0")
-  case class IStore1(varId: Int) extends StoreLocal(60, "istore_1")
-  case class IStore2(varId: Int) extends StoreLocal(61, "istore_2")
-  case class IStore3(varId: Int) extends StoreLocal(62, "istore_3")
+  // Not used, because ASM converts these to raw XStore(index: Int)s
+  //===============================================================
+  case class IStore0(varId: Int) extends UnusedOpCode(59, "istore_0")
+  case class IStore1(varId: Int) extends UnusedOpCode(60, "istore_1")
+  case class IStore2(varId: Int) extends UnusedOpCode(61, "istore_2")
+  case class IStore3(varId: Int) extends UnusedOpCode(62, "istore_3")
 
-  case class LStore0(varId: Int) extends StoreLocal(63, "lstore_0")
-  case class LStore1(varId: Int) extends StoreLocal(64, "lstore_1")
-  case class LStore2(varId: Int) extends StoreLocal(65, "lstore_2")
-  case class LStore3(varId: Int) extends StoreLocal(66, "lstore_3")
+  case class LStore0(varId: Int) extends UnusedOpCode(63, "lstore_0")
+  case class LStore1(varId: Int) extends UnusedOpCode(64, "lstore_1")
+  case class LStore2(varId: Int) extends UnusedOpCode(65, "lstore_2")
+  case class LStore3(varId: Int) extends UnusedOpCode(66, "lstore_3")
 
-  case class FStore0(varId: Int) extends StoreLocal(67, "fstore_0")
-  case class FStore1(varId: Int) extends StoreLocal(68, "fstore_1")
-  case class FStore2(varId: Int) extends StoreLocal(69, "fstore_2")
-  case class FStore3(varId: Int) extends StoreLocal(70, "fstore_3")
+  case class FStore0(varId: Int) extends UnusedOpCode(67, "fstore_0")
+  case class FStore1(varId: Int) extends UnusedOpCode(68, "fstore_1")
+  case class FStore2(varId: Int) extends UnusedOpCode(69, "fstore_2")
+  case class FStore3(varId: Int) extends UnusedOpCode(70, "fstore_3")
 
-  case class DStore0(varId: Int) extends StoreLocal(71, "dstore_0")
-  case class DStore1(varId: Int) extends StoreLocal(72, "dstore_1")
-  case class DStore2(varId: Int) extends StoreLocal(73, "dstore_2")
-  case class DStore3(varId: Int) extends StoreLocal(74, "dstore_3")
+  case class DStore0(varId: Int) extends UnusedOpCode(71, "dstore_0")
+  case class DStore1(varId: Int) extends UnusedOpCode(72, "dstore_1")
+  case class DStore2(varId: Int) extends UnusedOpCode(73, "dstore_2")
+  case class DStore3(varId: Int) extends UnusedOpCode(74, "dstore_3")
 
-  case class AStore0(varId: Int) extends StoreLocal(75, "astore_0")
-  case class AStore1(varId: Int) extends StoreLocal(76, "astore_1")
-  case class AStore2(varId: Int) extends StoreLocal(77, "astore_2")
-  case class AStore3(varId: Int) extends StoreLocal(78, "astore_3")
+  case class AStore0(varId: Int) extends UnusedOpCode(75, "astore_0")
+  case class AStore1(varId: Int) extends UnusedOpCode(76, "astore_1")
+  case class AStore2(varId: Int) extends UnusedOpCode(77, "astore_2")
+  case class AStore3(varId: Int) extends UnusedOpCode(78, "astore_3")
+  //===============================================================
 
   class StoreArray[T](val id: Byte, val insnName: String) extends OpCode{
     def op = ctx => {
@@ -223,14 +253,22 @@ object OpCode {
       ctx.frame.stack = stack
     }
   }
+  class StoreArrayInt[T](val id: Byte, val insnName: String)(x: Int => T) extends OpCode{
+    def op = ctx => {
+      val (value: Int) :: Intish(index) :: (array: Array[T]) :: stack = ctx.frame.stack
+
+      array(index) = x(value)
+      ctx.frame.stack = stack
+    }
+  }
   case object IAStore extends StoreArray[Int](79, "iastore")
   case object LAStore extends StoreArray[Long](80, "lastore")
   case object FAStore extends StoreArray[Float](81, "fastore")
   case object DAStore extends StoreArray[Double](82, "dastore")
   case object AAStore extends StoreArray[Object](83, "aastore")
-  case object BAStore extends StoreArray[Byte](84, "bastore")
-  case object CAStore extends StoreArray[Char](85, "castore")
-  case object SAStore extends StoreArray[Short](86, "sastore")
+  case object BAStore extends StoreArrayInt[Byte](84, "bastore")(_.toByte)
+  case object CAStore extends StoreArrayInt[Char](85, "castore")(_.toChar)
+  case object SAStore extends StoreArrayInt[Short](86, "sastore")(_.toShort)
 
   class PureStackOpCode(val id: Byte, val insnName: String)(transform: List[Any] => List[Any]) extends OpCode{
      def op = ctx => ctx.frame.stack = transform(ctx.stack)
@@ -359,8 +397,18 @@ object OpCode {
   case class IfICmpGe(label: Int) extends BinaryBranch(162, "if_icmpge")(_ >= _)
   case class IfICmpGt(label: Int) extends BinaryBranch(163, "if_icmpgt")(_ > _)
   case class IfICmpLe(label: Int) extends BinaryBranch(164, "if_icmple")(_ <= _)
-  case class IfACmpEq(label: Int) extends BinaryBranch(165, "if_acmpeq")(_ == _)
-  case class IfACmpNe(label: Int) extends BinaryBranch(166, "if_acmpne")(_ != _)
+  abstract class BinaryBranchObj(val id: Byte, val insnName: String)(pred: (Any, Any) => Boolean) extends OpCode{
+    def label: Int
+    def op = ctx => {
+      val top :: next :: stack = ctx.stack
+      ctx.frame.stack = stack
+      if(pred(next, top)) {
+        ctx.jumpTo(label)
+      }
+    }
+  }
+  case class IfACmpEq(label: Int) extends BinaryBranchObj(165, "if_acmpeq")(_ == _)
+  case class IfACmpNe(label: Int) extends BinaryBranchObj(166, "if_acmpne")(_ != _)
 
   case class Goto(label: Int) extends BaseOpCode(167, "goto"){
     def op = ctx => ctx.jumpTo(label)
@@ -455,7 +503,7 @@ object OpCode {
 
       val (args, rest) = ctx.frame.stack.splitAt(argCount)
       ctx.frame.stack = rest
-      ctx.prepInvoke(cls, method, args)
+      ctx.prepInvoke(cls, method, args.reverse)
     }
   }
   case class InvokeInterface(owner: String, name: String, desc: String) extends BaseOpCode(185, "invokeinterface"){ def op = ??? }
@@ -464,7 +512,7 @@ object OpCode {
 
   case class New(desc: String) extends BaseOpCode(187, "new"){
     def op = ctx => {
-      ctx.frame.stack ::= new svm.Object(ctx.classes(desc))
+      ctx.frame.stack ::= new svm.Object(ctx.classes(desc), ctx.classes)
     }
   }
   case class NewArray(typeCode: Int) extends BaseOpCode(188, "newarray"){
@@ -498,8 +546,21 @@ object OpCode {
       ctx.throwException(exception)
     }
   }
-  case class CheckCast(desc: String) extends BaseOpCode(192, "checkcast"){def op = ??? }
-  case class InstanceOf(desc: String) extends BaseOpCode(193, "instanceof"){ def op = ??? }
+  case class CheckCast(desc: String) extends BaseOpCode(192, "checkcast"){
+    def op = ctx => {
+
+    }
+  }
+  case class InstanceOf(desc: String) extends BaseOpCode(193, "instanceof"){
+    def op = ctx => {
+      val top :: rest = ctx.stack
+      val res = top match{
+        case null => 0
+        case x: svm.Object => x.cls.isInstanceOf(desc, ctx.classes)
+      }
+      ctx.frame.stack = res :: ctx.frame.stack
+    }
+  }
   case object MonitorEnter extends BaseOpCode(194, "monitorenter"){ def op = ???  }
   case object MonitorExit extends BaseOpCode(195, "monitorexit"){ def op = ??? }
 

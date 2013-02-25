@@ -37,23 +37,36 @@ class VirtualMachine(classLoader: String => Array[Byte]){
   }
   val noOp = () => ()
   val primitiveMap = Map(
-    "float" -> "java/lang/Float"
+    "float" -> "java/lang/Float",
+    "int" -> "java/lang/Integer",
+    "double" -> "java/lang/Double"
   )
   val nativeX = Route(
     "java"/(
       "lang"/(
         "Class"/(
           "registerNatives()V"-noOp,
-          "getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;"-((s: String) => (new Object(classes(primitiveMap(s)))))
+          "getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;"-((s: svm.Object) => (new Object(classes(primitiveMap(Object.fromVirtual(s).asInstanceOf[String])), getClassFor))),
+          "getClassLoader0()Ljava/lang/ClassLoader;"-(() => null),
+          "desiredAssertionStatus0(Ljava/lang/Class;)Z"-((x: Any) => 0)
+        ),
+        "Double"/(
+          "doubleToRawLongBits(D)J"-{ java.lang.Double.doubleToRawLongBits(_: Double)}
         ),
         "Float"/(
-          "intBitsToFloat(I)F"-{ java.lang.Float.intBitsToFloat(_: Int)}
+          "intBitsToFloat(I)F"-{ java.lang.Float.intBitsToFloat(_: Int)},
+          "floatToRawIntBits(F)I"-{ java.lang.Float.floatToIntBits(_: Float)}
         ),
         "Object"/(
           "registerNatives()V"-noOp
         ),
         "System"/(
+          "arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V"-((src: Any, srcPos: Int, dest: Any, destPos: Int, length: Int) =>
+            System.arraycopy(src, srcPos, dest, destPos, length)
+          ),
           "currentTimeMillis()J"-(() => System.currentTimeMillis()),
+          "nanoTime()J"-(() => System.nanoTime()),
+          "identityHashCode(Ljava/lang/Object;)I"-((x: svm.Object) => System.identityHashCode(x)),
           "registerNatives()V"-noOp
         )
       )
@@ -109,9 +122,9 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
     //println(indent + topFrame.pc + "\t---------------------- " + node )
     topFrame.pc += 1
     node.op(Context(this))
-    /*threadStack.foreach {x =>
-      println(indent + x.method.name + ": " + x.stack)
-    }*/
+
+    //println(indent + topFrame.method.name + ": " + topFrame.stack)
+
 
   }
   def returnVal(x: Option[Any]) = {
@@ -147,10 +160,16 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
       //method.code.instructions.zipWithIndex.foreach{case (x, i) => println(indent + i + "\t" + x) }
     }else if ((method.access | Access.Native) != 0){
       val topFrame = threadStack.head
+      println("Native Method Call!")
+      println(args)
       val result = nativeX.lookup(cls.name + "/" + method.name + method.desc) match{
         case None => throw new Exception("Can't find Native Method: " + cls.name + " " + method.name + " " + method.desc)
         case Some(f: Function0[Any]) => f()
         case Some(f: Function1[Any, Any]) => f(args(0))
+        case Some(f: Function2[Any, Any, Any]) => f(args(0), args(1))
+        case Some(f: Function3[Any, Any, Any, Any]) => f(args(0), args(1), args(2))
+        case Some(f: Function4[Any, Any, Any, Any, Any]) => f(args(0), args(1), args(2), args(3))
+        case Some(f: Function5[Any, Any, Any, Any, Any, Any]) => f(args(0), args(1), args(2), args(3), args(4))
       }
 
       topFrame.stack = result match{
