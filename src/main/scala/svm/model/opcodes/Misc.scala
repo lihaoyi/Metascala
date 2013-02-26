@@ -1,6 +1,6 @@
 package svm.model.opcodes
 
-import svm.model.TypeDesc
+import svm.model.{Context, TypeDesc}
 import TypeDesc._
 
 object Misc {
@@ -63,16 +63,24 @@ object Misc {
     }
   }
 
+  def ensureNonNull(ctx: Context, x: Any)(thunk: => Unit) = {
+    if (x == null){
+      ctx.throwException(new svm.Object(ctx classes "java/lang/NullPointerException", ctx.classes))
+    }else {
+      thunk
+    }
+  }
   case class InvokeVirtual(owner: String, name: String, desc: String) extends BaseOpCode(182, "invokevirtual"){
     def op = ctx => {
       val argCount = TypeDesc.read(desc).args.length
       val (args, rest) = ctx.frame.stack.splitAt(argCount+1)
-      val cls = args.last.asInstanceOf[svm.Object].cls
-      val method = cls.method(name, desc).get
+      ensureNonNull(ctx, args.last){
+        val cls = args.last.asInstanceOf[svm.Object].cls
+        val method = cls.method(name, desc).get
 
-
-      ctx.frame.stack = rest
-      ctx.prepInvoke(cls, method, args.reverse)
+        ctx.frame.stack = rest
+        ctx.prepInvoke(cls, method, args.reverse)
+      }
     }
   }
   case class InvokeSpecial(owner: String, name: String, desc: String) extends BaseOpCode(183, "invokespecial"){

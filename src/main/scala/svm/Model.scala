@@ -16,12 +16,12 @@ class Class(val classFile: ClassFile,
   def name = classFile.name
 
   def isInstanceOf(desc: String, classes: String => Class): Boolean = {
-    println("IsInstanceOf " + classFile.name + " " + desc)
+
     val res =
       classFile.name == desc ||
       classFile.interfaces.contains(desc) ||
       (classFile.superName.isDefined && classes(classFile.superName.get).isInstanceOf(desc, classes))
-    println(res)
+
     res
   }
 }

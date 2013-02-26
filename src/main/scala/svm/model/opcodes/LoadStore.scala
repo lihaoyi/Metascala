@@ -115,14 +115,31 @@ object LoadStore {
   //===============================================================
 
   class PushFromArray[T](val id: Byte, val insnName: String) extends OpCode{
-    def op = _.swapStack{
-      case Intish(index) :: (array: Array[T]) :: stack =>
-        array(index) :: stack
+    def op = ctx => {
+      val Intish(index) :: (array: Array[T]) :: stack = ctx.stack
+      if (array.isDefinedAt(index))
+        ctx.frame.stack = array(index) :: stack
+      else{
+        ctx.throwException{
+          val ex = new svm.Object(ctx classes "java/lang/ArrayIndexOutOfBoundsException", ctx.classes)
+          ex.members("detailMessage") = svm.Object.toVirtual(index+"")(ctx.classes)
+          ex
+        }
+      }
     }
   }
   class PushFromArrayInt[T: Numeric](val id: Byte, val insnName: String) extends OpCode{
-    def op = _.swapStack{ case Intish(index) :: (array: Array[T]) :: stack =>
-      implicitly[Numeric[T]].toInt(array(index)) :: stack
+    def op = ctx => {
+      val Intish(index) :: (array: Array[T]) :: stack = ctx.stack
+      if (array.isDefinedAt(index))
+        ctx.frame.stack = implicitly[Numeric[T]].toInt(array(index)) :: stack
+      else{
+        ctx.throwException{
+          val ex = new svm.Object(ctx classes "java/lang/ArrayIndexOutOfBoundsException", ctx.classes)
+          ex.members("detailMessage") = svm.Object.toVirtual(index+"")(ctx.classes)
+          ex
+        }
+      }
     }
   }
   case object IALoad extends PushFromArray[Int](46, "iaLoad")
