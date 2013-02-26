@@ -1,9 +1,9 @@
 package svm
 
 import model.{Method, OpCode, ClassFile}
-
+import collection.mutable
 class Class(val classFile: ClassFile,
-            val statics: collection.mutable.Map[String, Any] = collection.mutable.Map.empty)
+            val statics: mutable.Map[String, Any] = mutable.Map.empty)
            (implicit classes: String => Class){
 
 
@@ -118,10 +118,12 @@ object Object{
     }
   }.asInstanceOf[T]
 }
-class Object(val cls: Class)(implicit classes: String => Class){
-  val members = collection.mutable.Map(
-    Object.initMembers(cls):_*
-  )
+
+class Object(val cls: Class, val members: mutable.Map[String, Any] = mutable.Map.empty)(implicit classes: String => Class){
+  for((k, v) <- Object.initMembers(cls)){
+    members(k) = v
+  }
+
 
   override def toString = {
     s"svm.Object(${cls.name})"
