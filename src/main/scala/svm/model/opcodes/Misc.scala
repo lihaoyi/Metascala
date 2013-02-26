@@ -10,23 +10,22 @@ object Misc {
 
   case object Ret extends BaseOpCode(169, "ret"){ def op = ??? }
   case object Jsr extends BaseOpCode(168, "jsr"){ def op = ??? }
-  case class TableSwitch(min: Int, max: Int, default: Int, targets: Seq[Int]) extends BaseOpCode(170, "tableswitch"){
-    def op = ctx => {
-
-      val Intish(top) :: rest = ctx.stack
-      ctx.frame.stack = rest
-      ctx.jumpTo(
-        targets.applyOrElse[Int, Int](top - min, _ => default)
-      )
+  case class TableSwitch(min: Int, max: Int, defaultTarget: Int, targets: Seq[Int]) extends BaseOpCode(170, "tableswitch"){
+    def op = ctx => ctx.swapStack{ case Intish(top) :: rest =>
+      val newPc: Int =
+        if (targets.isDefinedAt(top - min))
+          targets(top - min)
+        else
+          defaultTarget
+      ctx.jumpTo(newPc)
+      rest
     }
   }
-  case class LookupSwitch(default: Int, keys: Seq[Int], targets: Seq[Int]) extends BaseOpCode(171, "lookupswitch"){
-    def op = ctx => {
-      val Intish(top) :: rest = ctx.stack
-      ctx.frame.stack = rest
-      ctx.jumpTo(
-        keys.zip(targets).toMap.get(top).getOrElse(default)
-      )
+  case class LookupSwitch(defaultTarget: Int, keys: Seq[Int], targets: Seq[Int]) extends BaseOpCode(171, "lookupswitch"){
+    def op = ctx => ctx.swapStack{ case Intish(top) :: rest =>
+      val newPc: Int = keys.zip(targets).toMap.get(top).getOrElse(defaultTarget: Int)
+      ctx.jumpTo(newPc)
+      rest
     }
   }
 
