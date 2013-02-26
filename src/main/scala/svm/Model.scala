@@ -3,8 +3,8 @@ package svm
 import model.{Method, OpCode, ClassFile}
 
 class Class(val classFile: ClassFile,
-            classes: String => Class,
-            val statics: collection.mutable.Map[String, Any] = collection.mutable.Map.empty){
+            val statics: collection.mutable.Map[String, Any] = collection.mutable.Map.empty)
+           (implicit classes: String => Class){
 
 
   def method(name: String, desc: String): Option[Method] = {
@@ -15,22 +15,22 @@ class Class(val classFile: ClassFile,
 
   def name = classFile.name
 
-  def isInstanceOf(desc: String, classes: String => Class): Boolean = {
+  def isInstanceOf(desc: String)(implicit classes: String => Class): Boolean = {
 
     val res =
       classFile.name == desc ||
       classFile.interfaces.contains(desc) ||
-      (classFile.superName.isDefined && classes(classFile.superName.get).isInstanceOf(desc, classes))
+      (classFile.superName.isDefined && classes(classFile.superName.get).isInstanceOf(desc))
 
     res
   }
 }
 
 object Object{
-  def initMembers(cls: Class, classes: String => Class): List[(String, Any)] = {
+  def initMembers(cls: Class)(implicit classes: String => Class): List[(String, Any)] = {
     cls.classFile.fields.map{f =>
       f.name -> initField(f.desc)
-    } ++ cls.classFile.superName.toSeq.flatMap(x => initMembers(classes(x), classes))
+    } ++ cls.classFile.superName.toSeq.flatMap(x => initMembers(classes(x)))
   }
   def initField(desc: String) = {
     desc(0) match{
@@ -47,14 +47,15 @@ object Object{
     }
   }
 
-  def cloneArray[T](x: Array[T]): Array[T] = {
-    val newArray = x.clone()
-    for(i <- 0 until x.length){
-      newArray(i) = fromVirtual[T](newArray(i))
-    }
-    newArray
-  }
+
   def fromVirtual[T](x: Any): T = {
+    def cloneArray[T](x: Array[T]): Array[T] = {
+      val newArray = x.clone()
+      for(i <- 0 until x.length){
+        newArray(i) = fromVirtual[T](newArray(i))
+      }
+      newArray
+    }
     x match{
       case null => null
       case x: Boolean => x
@@ -81,42 +82,45 @@ object Object{
 
 
 
-  def cloneArrayTo[T](x: Array[T])(implicit classes: String => Class): Array[T] = {
-    val newArray = x.clone()
-    for(i <- 0 until x.length){
-      newArray(i) = toVirtual[T](newArray(i))
-    }
-    newArray
-  }
-  def toVirtual[T](x: Any)(implicit classes: String => Class): T = (x match{
-    case null => null
-    case x: Boolean => x
-    case x: Byte => x
-    case x: Char => x
-    case x: Short => x
-    case x: Int => x
-    case x: Long => x
-    case x: Float => x
-    case x: Double => x
-    case x: Array[Any] => cloneArray(x)
-    case x: Array[Boolean] => cloneArray(x)
-    case x: Array[Byte] => cloneArray(x)
-    case x: Array[Char] => cloneArray(x)
-    case x: Array[Short] => cloneArray(x)
-    case x: Array[Int] => cloneArray(x)
-    case x: Array[Long] => cloneArray(x)
-    case x: Array[Float] => cloneArray(x)
-    case x: Array[Double] => cloneArray(x)
-    case x: String =>
-      val r = new svm.Object(classes("java/lang/String"), classes)
-      r.members("value") = x.toCharArray
-      r
 
-  }).asInstanceOf[T]
+  def toVirtual[T](x: Any)(implicit classes: String => Class): T = {
+    def cloneArray  [T](x: Array[T])(implicit classes: String => Class): Array[T] = {
+      val newArray = x.clone()
+      for(i <- 0 until x.length){
+        newArray(i) = toVirtual[T](newArray(i))
+      }
+      newArray
+    }
+    x match{
+      case null => null
+      case x: Boolean => x
+      case x: Byte => x
+      case x: Char => x
+      case x: Short => x
+      case x: Int => x
+      case x: Long => x
+      case x: Float => x
+      case x: Double => x
+      case x: Array[Any] => cloneArray(x)
+      case x: Array[Boolean] => cloneArray(x)
+      case x: Array[Byte] => cloneArray(x)
+      case x: Array[Char] => cloneArray(x)
+      case x: Array[Short] => cloneArray(x)
+      case x: Array[Int] => cloneArray(x)
+      case x: Array[Long] => cloneArray(x)
+      case x: Array[Float] => cloneArray(x)
+      case x: Array[Double] => cloneArray(x)
+      case x: String =>
+        val r = new svm.Object(classes("java/lang/String"))
+        r.members("value") = x.toCharArray
+        r
+
+    }
+  }.asInstanceOf[T]
 }
-class Object(val cls: Class, classes: String => Class){
+class Object(val cls: Class)(implicit classes: String => Class){
   val members = collection.mutable.Map(
-    Object.initMembers(cls, classes):_*
+    Object.initMembers(cls):_*
   )
 
   override def toString = {

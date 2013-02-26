@@ -7,8 +7,8 @@ import asm.Label
 import org.objectweb.asm.tree._
 
 
-case class Context(thread: VmThread){
-  def classes = thread.classes
+case class Context(thread: VmThread) extends (String => svm.Class){
+  def apply(s: String) = thread.classes(s)
   def frame = thread.threadStack.head
   def stack = frame.stack
   def swapStack(transform: PartialFunction[List[Any], List[Any]]) = {

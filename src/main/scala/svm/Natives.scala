@@ -37,12 +37,12 @@ object Natives {
     "double" -> "java/lang/Double"
   )
 
-  def nativeX(getClassFor: String => Class, stackTrace: () => List[StackTraceElement]) = Route(
+  def nativeX(stackTrace: () => List[StackTraceElement])(implicit getClassFor: String => Class) = Route(
     "java"/(
       "lang"/(
         "Class"/(
           "registerNatives()V"-noOp,
-          "getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;"-((s: svm.Object) => (new Object(getClassFor(primitiveMap(Object.fromVirtual(s).asInstanceOf[String])), getClassFor))),
+          "getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;"-((s: svm.Object) => (new Object(getClassFor(primitiveMap(Object.fromVirtual(s).asInstanceOf[String]))))),
           "getClassLoader0()Ljava/lang/ClassLoader;"-(() => null),
           "desiredAssertionStatus0(Ljava/lang/Class;)Z"-((x: Any) => 0)
           ),
@@ -70,7 +70,7 @@ object Natives {
           "fillInStackTrace(I)Ljava/lang/Throwable;" - { (throwable: svm.Object, dummy: Int) =>
             throwable.members("stackTrace") =
               stackTrace().map { f =>
-              val el = new svm.Object(getClassFor("java/lang/StackTraceElement"), getClassFor)
+              val el = new svm.Object(getClassFor("java/lang/StackTraceElement"))
               el.members("declaringClass") = f.getClassName
               el.members("methodName") = f.getMethodName
               el.members("fileName") = f.getFileName

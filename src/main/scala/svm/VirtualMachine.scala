@@ -10,10 +10,10 @@ class VirtualMachine(classLoader: String => Array[Byte]){
 
 
 
-  val threads = List(new VmThread(classes = getClassFor))
+  val threads = List(new VmThread())
   var heap = Set.empty[Object]
 
-  def getClassFor(name: String): Class = {
+  implicit def getClassFor(name: String): Class = {
     require(!name.contains("."))
 
     classes.get(name) match{
@@ -29,7 +29,7 @@ class VirtualMachine(classLoader: String => Array[Byte]){
 
   def loadClass(bytes: Array[Byte]) = {
     val classData = ClassFile.parse(bytes)
-    new Class(classData, getClassFor)
+    new Class(classData)
   }
 
   def invoke(bootClass: String, mainMethod: String, args: Seq[Any]) = {
@@ -49,9 +49,9 @@ class VirtualMachine(classLoader: String => Array[Byte]){
   }
 }
 
-class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val classes: String => svm.Class){
+class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit val classes: String => svm.Class){
 
-  val nativeX = Natives.nativeX(classes, getStackTrace _)
+  val nativeX = Natives.nativeX(getStackTrace _)
   def getStackTrace =
     threadStack.map { f =>
       new StackTraceElement(
@@ -89,7 +89,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
     val handler =
       frame.method.misc.tryCatchBlocks
            .filter(x => x.start <= frame.pc && x.end >= frame.pc)
-           .filter(x => !x.blockType.isDefined || ex.cls.isInstanceOf(x.blockType.get, classes))
+           .filter(x => !x.blockType.isDefined || ex.cls.isInstanceOf(x.blockType.get))
            .headOption
 
 

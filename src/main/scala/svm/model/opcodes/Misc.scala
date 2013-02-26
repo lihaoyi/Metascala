@@ -41,11 +41,11 @@ object Misc {
   case object Return extends BaseOpCode(177, "return"){ def op = ctx => ctx.returnVal(None) }
 
   case class GetStatic(owner: String, name: String, desc: String) extends BaseOpCode(178, "getstatic"){
-    def op = ctx => ctx.frame.stack = ctx.classes(owner).statics(name) :: ctx.stack
+    def op = implicit ctx => ctx.frame.stack = owner.statics(name) :: ctx.stack
   }
   case class PutStatic(owner: String, name: String, desc: String) extends BaseOpCode(179, "putstatic"){
-    def op = ctx => ctx.swapStack{ case value :: stack =>
-      ctx.classes(owner).statics(name) = value
+    def op = implicit ctx => ctx.swapStack{ case value :: stack =>
+      owner.statics(name) = value
       stack
     }
   }
@@ -63,18 +63,18 @@ object Misc {
     }
   }
 
-  def ensureNonNull(ctx: Context, x: Any)(thunk: => Unit) = {
+  def ensureNonNull(x: Any)(thunk: => Unit)(implicit ctx: Context) = {
     if (x == null){
-      ctx.throwException(new svm.Object(ctx classes "java/lang/NullPointerException", ctx.classes))
+      ctx.throwException(new svm.Object("java/lang/NullPointerException"))
     }else {
       thunk
     }
   }
   case class InvokeVirtual(owner: String, name: String, desc: String) extends BaseOpCode(182, "invokevirtual"){
-    def op = ctx => {
+    def op = implicit ctx => {
       val argCount = TypeDesc.read(desc).args.length
       val (args, rest) = ctx.frame.stack.splitAt(argCount+1)
-      ensureNonNull(ctx, args.last){
+      ensureNonNull(args.last){
         val cls = args.last.asInstanceOf[svm.Object].cls
         val method = cls.method(name, desc).get
 
@@ -84,10 +84,10 @@ object Misc {
     }
   }
   case class InvokeSpecial(owner: String, name: String, desc: String) extends BaseOpCode(183, "invokespecial"){
-    def op = ctx => {
+    def op = implicit ctx => {
 
       val argCount = TypeDesc.read(desc).args.length
-      val cls = ctx.classes(owner)
+      val cls = ctx(owner)
       val method = cls.method(name, desc).get
 
       val (args, rest) = ctx.frame.stack.splitAt(argCount+1)
@@ -101,7 +101,7 @@ object Misc {
 
       val argCount = TypeDesc.read(desc).args.length
 
-      val cls = ctx.classes(owner)
+      val cls = ctx(owner)
       val method = cls.method(name, desc).get
 
       val (args, rest) = ctx.frame.stack.splitAt(argCount)
@@ -114,8 +114,8 @@ object Misc {
   case class InvokeDynamic(name: String, desc: String, bsm: Object, args: Object) extends BaseOpCode(186, "invokedynamic"){ def op = ??? }
 
   case class New(desc: String) extends BaseOpCode(187, "new"){
-    def op = ctx => {
-      ctx.frame.stack ::= new svm.Object(ctx.classes(desc), ctx.classes)
+    def op = implicit ctx => {
+      ctx.frame.stack ::= new svm.Object(desc)
     }
   }
   case class NewArray(typeCode: Int) extends BaseOpCode(188, "newarray"){
@@ -159,10 +159,10 @@ object Misc {
     }
   }
   case class InstanceOf(desc: String) extends BaseOpCode(193, "instanceof"){
-    def op = ctx => ctx.swapStack{ case top :: rest =>
+    def op = implicit ctx => ctx.swapStack{ case top :: rest =>
       val res = top match{
         case null => 0
-        case x: svm.Object => x.cls.isInstanceOf(desc, ctx.classes)
+        case x: svm.Object => x.cls.isInstanceOf(desc)
       }
       res :: ctx.frame.stack
     }

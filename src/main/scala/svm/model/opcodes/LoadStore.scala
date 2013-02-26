@@ -42,20 +42,15 @@ object LoadStore {
   case class SiPush(value: Int) extends PushValOpCode(17,"sipush", value)
 
   class PushConstOpCode(val id: Byte, val insnName: String, const: Any) extends OpCode{
-    def op = ctx => {
+    def op = implicit ctx => {
+
       val newConst = const match{
         case s: String =>
-          val x = new svm.Object(
-            ctx.classes("java/lang/String"),
-            ctx.classes
-          )
+          val x = new svm.Object("java/lang/String")
           x.members("value") = s.toCharArray
           x
         case t: asm.Type =>
-          val x = new svm.Object(
-            ctx.classes("java/lang/Class"),
-            ctx.classes
-          )
+          val x = new svm.Object("java/lang/Class")
           x.members("value") = t.getInternalName
           x
         case x => x
@@ -115,28 +110,28 @@ object LoadStore {
   //===============================================================
 
   class PushFromArray[T](val id: Byte, val insnName: String) extends OpCode{
-    def op = ctx => {
+    def op = implicit ctx => {
       val Intish(index) :: (array: Array[T]) :: stack = ctx.stack
       if (array.isDefinedAt(index))
         ctx.frame.stack = array(index) :: stack
       else{
         ctx.throwException{
-          val ex = new svm.Object(ctx classes "java/lang/ArrayIndexOutOfBoundsException", ctx.classes)
-          ex.members("detailMessage") = svm.Object.toVirtual(index+"")(ctx.classes)
+          val ex = new svm.Object("java/lang/ArrayIndexOutOfBoundsException")
+          ex.members("detailMessage") = svm.Object.toVirtual(index+"")
           ex
         }
       }
     }
   }
   class PushFromArrayInt[T: Numeric](val id: Byte, val insnName: String) extends OpCode{
-    def op = ctx => {
+    def op = implicit ctx => {
       val Intish(index) :: (array: Array[T]) :: stack = ctx.stack
       if (array.isDefinedAt(index))
         ctx.frame.stack = implicitly[Numeric[T]].toInt(array(index)) :: stack
       else{
         ctx.throwException{
-          val ex = new svm.Object(ctx classes "java/lang/ArrayIndexOutOfBoundsException", ctx.classes)
-          ex.members("detailMessage") = svm.Object.toVirtual(index+"")(ctx.classes)
+          val ex = new svm.Object("java/lang/ArrayIndexOutOfBoundsException")
+          ex.members("detailMessage") = svm.Object.toVirtual(index+"")
           ex
         }
       }
