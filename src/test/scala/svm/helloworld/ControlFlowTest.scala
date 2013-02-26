@@ -6,7 +6,7 @@ import org.scalatest.FreeSpec
 
 import svm.Util
 import Gen.check
-class ControlFlow extends FreeSpec with Util{
+class ControlFlowTest extends FreeSpec with Util{
 
 
   "if else" - {

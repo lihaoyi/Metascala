@@ -37,7 +37,7 @@ object Natives {
     "double" -> "java/lang/Double"
   )
 
-  def nativeX(getClassFor: String => Class) = Route(
+  def nativeX(getClassFor: String => Class, stackTrace: () => List[StackTraceElement]) = Route(
     "java"/(
       "lang"/(
         "Class"/(
@@ -64,8 +64,23 @@ object Natives {
           "nanoTime()J"-(() => System.nanoTime()),
           "identityHashCode(Ljava/lang/Object;)I"-((x: svm.Object) => System.identityHashCode(x)),
           "registerNatives()V"-noOp
-          )
+        ),
+
+        "Throwable"/(
+          "fillInStackTrace(I)Ljava/lang/Throwable;" - { (throwable: svm.Object, dummy: Int) =>
+            throwable.members("stackTrace") =
+              stackTrace().map { f =>
+              val el = new svm.Object(getClassFor("java/lang/StackTraceElement"), getClassFor)
+              el.members("declaringClass") = f.getClassName
+              el.members("methodName") = f.getMethodName
+              el.members("fileName") = f.getFileName
+              el.members("lineNumber") = f.getLineNumber
+              el
+            }
+            throwable
+          }
         )
       )
+    )
   )
 }

@@ -55,7 +55,7 @@ object Gen{
 object Util{
   def loadClass(name: String) = {
     val slashName = s"/${name.replace(".", "/")}.class"
-    println("loading class " + slashName)
+
     val loaded = getClass.getResourceAsStream(slashName)
     if (loaded == null) throw new IOException("Can't find file " + slashName)
     val stream = new DataInputStream(loaded)

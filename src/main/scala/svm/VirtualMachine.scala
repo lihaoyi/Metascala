@@ -2,7 +2,7 @@ package svm
 
 import collection.mutable
 import model._
-
+import model.Attached.LineNumber
 
 
 class VirtualMachine(classLoader: String => Array[Byte]){
@@ -10,7 +10,7 @@ class VirtualMachine(classLoader: String => Array[Byte]){
 
 
 
-  val threads = List(new VmThread(classes = getClassFor, nativeX = Natives.nativeX(getClassFor)))
+  val threads = List(new VmThread(classes = getClassFor))
   var heap = Set.empty[Object]
 
   def getClassFor(name: String): Class = {
@@ -49,8 +49,20 @@ class VirtualMachine(classLoader: String => Array[Byte]){
   }
 }
 
-class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val classes: String => svm.Class, nativeX: Natives.Route){
+class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val classes: String => svm.Class){
 
+  val nativeX = Natives.nativeX(classes, getStackTrace _)
+  def getStackTrace =
+    threadStack.map { f =>
+      new StackTraceElement(
+        f.runningClass.name,
+        f.method.name,
+        f.runningClass.classFile.misc.sourceFile.getOrElse("[no source]"),
+        f.method.code.attachments.flatten.reverse.collectFirst{
+          case LineNumber(line, startPc) if startPc < f.pc => line
+        }.getOrElse(-1)
+      )
+    }.toList
   def indent = "\t" * threadStack.filter(_.method.name != "Dummy").length
   def step() = {
     val topFrame = threadStack.head
@@ -58,11 +70,11 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
     val node = topFrame.method.code.instructions(topFrame.pc)
 
 
-    //println(indent + topFrame.pc + "\t---------------------- " + node )
+    println(indent + topFrame.pc + "\t---------------------- " + node )
     topFrame.pc += 1
     node.op(Context(this))
 
-    //println(indent + topFrame.method.name + ": " + topFrame.stack)
+    println(indent + topFrame.method.name + ": " + topFrame.stack)
 
 
   }
@@ -96,11 +108,11 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
       threadStack.push(startFrame)
       //println(indent + "Invoking " + method.name)
       //println(indent + "Locals " + startFrame.locals)
-      //method.code.instructions.zipWithIndex.foreach{case (x, i) => println(indent + i + "\t" + x) }
+      method.code.instructions.zipWithIndex.foreach{case (x, i) => println(indent + i + "\t" + x) }
     }else if ((method.access | Access.Native) != 0){
       val topFrame = threadStack.head
-      println("Native Method Call!")
-      println(args)
+      println(indent + "Native Method Call!")
+      println(indent + args)
       val result = nativeX.lookup(cls.name + "/" + method.name + method.desc) match{
         case None => throw new Exception("Can't find Native Method: " + cls.name + " " + method.name + " " + method.desc)
         case Some(f: Function0[Any]) => f()

@@ -116,7 +116,7 @@ class Object(val cls: Class, classes: String => Class){
   )
 
   override def toString = {
-    s"Object(${cls.name}, ${members}})"
+    s"svm.Object(${cls.name})"
   }
 }
 
