@@ -22,7 +22,9 @@ class ClassloaderTests extends FreeSpec{
         _ // misc
       ) = classData
 
-      import OpCode._
+      import opcodes.LoadStore._
+      import opcodes.StackManip._
+      import opcodes.Misc._
       import Attached._
       val Method(1, "<init>", "()V", Nil, Code(
         List(
