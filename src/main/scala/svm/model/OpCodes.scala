@@ -10,7 +10,9 @@ case class Context(thread: VmThread){
   def classes = thread.classes
   def frame = thread.threadStack.head
   def stack = frame.stack
-
+  def swapStack(transform: PartialFunction[List[Any], List[Any]]) = {
+    frame.stack = transform(frame.stack)
+  }
   def jumpTo(l: Int) = frame.pc = l
   def throwException(exception: Any) = ???
   def prepInvoke(cls: Class, method: Method, args: Seq[Any]) = {
@@ -18,7 +20,6 @@ case class Context(thread: VmThread){
   }
   def returnVal(x: Option[Any]) = {
     thread.returnVal(x)
-
   }
 }
 
@@ -184,15 +185,14 @@ object OpCode {
   //===============================================================
 
   class PushFromArray[T](val id: Byte, val insnName: String) extends OpCode{
-    def op = ctx => {
-      val Intish(index) :: (array: Array[T]) :: stack = ctx.frame.stack
-      ctx.frame.stack = array(index) :: stack
+    def op = _.swapStack{
+      case Intish(index) :: (array: Array[T]) :: stack =>
+        array(index) :: stack
     }
   }
   class PushFromArrayInt[T: Numeric](val id: Byte, val insnName: String) extends OpCode{
-    def op = ctx => {
-      val Intish(index) :: (array: Array[T]) :: stack = ctx.frame.stack
-      ctx.frame.stack = implicitly[Numeric[T]].toInt(array(index)) :: stack
+    def op = _.swapStack{ case Intish(index) :: (array: Array[T]) :: stack =>
+      implicitly[Numeric[T]].toInt(array(index)) :: stack
     }
   }
   case object IALoad extends PushFromArray[Int](46, "iaLoad")
@@ -206,10 +206,9 @@ object OpCode {
 
   abstract class StoreLocal(val id: Byte, val insnName: String) extends OpCode{
     def varId: Int
-    def op = ctx => {
-      val top :: stack = ctx.stack
+    def op = ctx => ctx.swapStack{ case top :: stack =>
       ctx.frame.locals(varId) = top
-      ctx.frame.stack = stack
+      stack
     }
   }
   case class IStore(varId: Int) extends StoreLocal(54, "istore")
@@ -247,18 +246,17 @@ object OpCode {
   //===============================================================
 
   class StoreArray[T](val id: Byte, val insnName: String) extends OpCode{
-    def op = ctx => {
-      val (value: T) :: Intish(index) :: (array: Array[T]) :: stack = ctx.frame.stack
+    def op = _.swapStack{
+      case (value: T) :: Intish(index) :: (array: Array[T]) :: stack =>
       array(index) = value
-      ctx.frame.stack = stack
+      stack
     }
   }
   class StoreArrayInt[T](val id: Byte, val insnName: String)(x: Int => T) extends OpCode{
-    def op = ctx => {
-      val (value: Int) :: Intish(index) :: (array: Array[T]) :: stack = ctx.frame.stack
-
+    def op = _.swapStack {
+      case (value: Int) :: Intish(index) :: (array: Array[T]) :: stack =>
       array(index) = x(value)
-      ctx.frame.stack = stack
+      stack
     }
   }
   case object IAStore extends StoreArray[Int](79, "iastore")
@@ -447,24 +445,22 @@ object OpCode {
     def op = ctx => ctx.frame.stack = ctx.classes(owner).statics(name) :: ctx.stack
   }
   case class PutStatic(owner: String, name: String, desc: String) extends BaseOpCode(179, "putstatic"){
-    def op = ctx => {
-      val value :: stack = ctx.stack
+    def op = ctx => ctx.swapStack{ case value :: stack =>
       ctx.classes(owner).statics(name) = value
-      ctx.frame.stack = stack
+      stack
     }
   }
 
   case class GetField(owner: String, name: String, desc: String) extends BaseOpCode(180, "getfield"){
-    def op = ctx => {
-      val (objectRef: svm.Object) :: stack = ctx.stack
-      ctx.frame.stack = objectRef.members(name) :: stack
+    def op = _.swapStack{
+      case (objectRef: svm.Object) :: stack => objectRef.members(name) :: stack
     }
   }
   case class PutField(owner: String, name: String, desc: String) extends BaseOpCode(181, "putfield"){
-    def op = ctx => {
-      val value :: (objectRef: svm.Object) :: stack = ctx.stack
+    def op = _.swapStack {
+      case value :: (objectRef: svm.Object) :: stack =>
       objectRef.members(name) = value
-      ctx.frame.stack = stack
+      stack
     }
   }
 
@@ -516,8 +512,7 @@ object OpCode {
     }
   }
   case class NewArray(typeCode: Int) extends BaseOpCode(188, "newarray"){
-    def op = ctx => {
-      val Intish(count) :: stack = ctx.stack
+    def op = _.swapStack { case Intish(count) :: stack =>
       val newArray = typeCode match{
         case 4 => new Array[Boolean](count)
         case 5 => new Array[Char](count)
@@ -528,13 +523,12 @@ object OpCode {
         case 10 => new Array[Int](count)
         case 11 => new Array[Long](count)
       }
-      ctx.frame.stack = newArray :: stack
+      newArray :: stack
     }
   }
   case class ANewArray(desc: String) extends BaseOpCode(189, "anewarray"){
-    def op = ctx => {
-      val Intish(count) :: stack = ctx.stack
-      ctx.frame.stack = new Array[Object](count) :: stack
+    def op = _.swapStack{
+      case Intish(count) :: stack => new Array[Object](count) :: stack
     }
   }
 
@@ -552,13 +546,12 @@ object OpCode {
     }
   }
   case class InstanceOf(desc: String) extends BaseOpCode(193, "instanceof"){
-    def op = ctx => {
-      val top :: rest = ctx.stack
+    def op = ctx => ctx.swapStack{ case top :: rest =>
       val res = top match{
         case null => 0
         case x: svm.Object => x.cls.isInstanceOf(desc, ctx.classes)
       }
-      ctx.frame.stack = res :: ctx.frame.stack
+      res :: ctx.frame.stack
     }
   }
   case object MonitorEnter extends BaseOpCode(194, "monitorenter"){ def op = ???  }
@@ -570,7 +563,6 @@ object OpCode {
   //===============================================================
 
   case class MultiANewArray(desc: String, dims: Int) extends BaseOpCode(197, "multianewarray"){
-
     def op = ctx => {
 
       val (dimValues, newStack) = ctx.stack.splitAt(dims)
@@ -581,18 +573,16 @@ object OpCode {
   }
 
   case class IfNull(label: Int) extends BaseOpCode(198, "ifnull"){
-    def op = ctx => {
-      val ref :: stack = ctx.stack
+    def op = ctx => ctx.swapStack{ case ref :: stack =>
       if (ref == null) ctx.jumpTo(label)
-      ctx.frame.stack = stack
+      stack
     }
   }
 
   case class IfNonNull(label: Int) extends BaseOpCode(199, "ifnonnull"){
-    def op = ctx => {
-      val ref :: stack = ctx.stack
+    def op = ctx => ctx.swapStack{ case ref :: stack =>
       if (ref != null) ctx.jumpTo(label)
-      ctx.frame.stack = stack
+      stack
     }
   }
 
