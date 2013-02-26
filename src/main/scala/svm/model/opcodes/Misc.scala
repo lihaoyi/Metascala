@@ -139,8 +139,10 @@ object Misc {
 
   case object AThrow extends BaseOpCode(191, "athrow"){
     def op = ctx => {
-      val exception :: stack = ctx.stack
+      val (exception: svm.Object) :: stack = ctx.stack
+      ctx.frame.stack = stack
       ctx.throwException(exception)
+
     }
   }
   case class CheckCast(desc: String) extends BaseOpCode(192, "checkcast"){

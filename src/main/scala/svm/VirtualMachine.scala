@@ -70,11 +70,11 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
     val node = topFrame.method.code.instructions(topFrame.pc)
 
 
-//    println(indent + topFrame.pc + "\t---------------------- " + node )
+    //println(indent + topFrame.pc + "\t---------------------- " + node )
     topFrame.pc += 1
     node.op(Context(this))
 
-  //  println(indent + topFrame.method.name + ": " + topFrame.stack)
+    //println(indent + topFrame.method.name + ": " + topFrame.stack)
 
 
   }
@@ -82,6 +82,25 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack(), val clas
     //println(indent + "Returning!")
     threadStack.pop()
     x.foreach(value => threadStack.head.stack = value :: threadStack.head.stack)
+  }
+  def throwException(ex: svm.Object): Unit = {
+
+    val frame = threadStack.head
+    frame.method.misc.tryCatchBlocks.foreach(x => println("||" + x))
+    val handler =
+      frame.method.misc.tryCatchBlocks
+           .filter(x => x.start <= frame.pc && x.end >= frame.pc)
+           .filter{x => !x.blockType.isDefined || {println("!" + x.blockType.get); ex.cls.isInstanceOf(x.blockType.get, classes)}}
+           .headOption
+
+    handler match{
+      case None =>
+        threadStack.pop()
+        throwException(ex)
+      case Some(TryCatchBlock(start, end, handler, blockType)) =>
+        frame.pc = handler
+        frame.stack ::= ex
+    }
   }
   def prepInvoke(cls: Class, method: Method, args: Seq[Any]) = {
     //println("prepInvoke " + cls.name + " " + method.name)

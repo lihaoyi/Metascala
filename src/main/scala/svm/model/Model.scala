@@ -69,14 +69,14 @@ object TryCatchBlock {
     tcbn.start.getLabel,
     tcbn.end.getLabel,
     tcbn.handler.getLabel,
-    tcbn.`type`
+    tcbn.`type`.safeOpt
   )
 }
 
 case class TryCatchBlock(start: Int,
                          end: Int,
                          handler: Int,
-                         blockType: String)
+                         blockType: Option[String])
 
 object Attribute {
   def read(a: asm.Attribute) = Attribute(a.`type`)
