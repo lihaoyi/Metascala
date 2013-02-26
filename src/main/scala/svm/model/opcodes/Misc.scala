@@ -8,8 +8,12 @@ object Misc {
     def op = ctx => ctx.jumpTo(label)
   }
 
-  case object Ret extends BaseOpCode(169, "ret"){ def op = ??? }
-  case object Jsr extends BaseOpCode(168, "jsr"){ def op = ??? }
+  // These guys are meant to be deprecated in java 6 and 7
+  //===============================================================
+  case object Ret extends UnusedOpCode(169, "ret")
+  case object Jsr extends UnusedOpCode(168, "jsr")
+  //===============================================================
+
   case class TableSwitch(min: Int, max: Int, defaultTarget: Int, targets: Seq[Int]) extends BaseOpCode(170, "tableswitch"){
     def op = ctx => ctx.swapStack{ case Intish(top) :: rest =>
       val newPc: Int =

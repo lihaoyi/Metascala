@@ -10,7 +10,7 @@ class Class(val classFile: ClassFile,
   def method(name: String, desc: String): Option[Method] = {
     classFile.methods
              .find(m => m.name == name && m.desc == desc)
-             .orElse(Option(classFile.superName).flatMap(x => classes(x).method(name, desc)))
+             .orElse(classFile.superName.flatMap(x => classes(x).method(name, desc)))
   }
 
   def name = classFile.name
@@ -18,7 +18,7 @@ class Class(val classFile: ClassFile,
   def isInstanceOf(desc: String, classes: String => Class): Boolean = {
     classFile.name == desc ||
     classFile.interfaces.contains(desc) ||
-    (classFile.superName != null && classes(classFile.superName).isInstanceOf(desc, classes))
+    (classFile.superName.isDefined && classes(classFile.superName.get).isInstanceOf(desc, classes))
   }
 }
 
@@ -26,10 +26,7 @@ object Object{
   def initMembers(cls: Class, classes: String => Class): List[(String, Any)] = {
     cls.classFile.fields.map{f =>
       f.name -> initField(f.desc)
-    } ++ (cls.classFile.superName match{
-      case null => Nil
-      case x => initMembers(classes(x), classes)
-    } )
+    } ++ cls.classFile.superName.toSeq.flatMap(x => initMembers(classes(x), classes))
   }
   def initField(desc: String) = {
     desc(0) match{
@@ -80,7 +77,14 @@ object Object{
 
 
 
-  def toVirtual[T](x: Any): T = (x match{
+  def cloneArrayTo[T](x: Array[T])(implicit classes: String => Class): Array[T] = {
+    val newArray = x.clone()
+    for(i <- 0 until x.length){
+      newArray(i) = toVirtual[T](newArray(i))
+    }
+    newArray
+  }
+  def toVirtual[T](x: Any)(implicit classes: String => Class): T = (x match{
     case null => null
     case x: Boolean => x
     case x: Byte => x
@@ -99,8 +103,11 @@ object Object{
     case x: Array[Long] => cloneArray(x)
     case x: Array[Float] => cloneArray(x)
     case x: Array[Double] => cloneArray(x)
-    case x: svm.Object if x.cls.name == "java/lang/String" =>
-      new String(x.members("value").asInstanceOf[Array[Char]])
+    case x: String =>
+      val r = new svm.Object(classes("java/lang/String"), classes)
+      r.members("value") = x.toCharArray
+      r
+
   }).asInstanceOf[T]
 }
 class Object(val cls: Class, classes: String => Class){

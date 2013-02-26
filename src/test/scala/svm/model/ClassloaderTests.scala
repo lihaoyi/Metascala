@@ -14,8 +14,8 @@ class ClassloaderTests extends FreeSpec{
 
       val ClassFile(
         0x21, //access,
-      "svm/helloworld/HelloWorld", //name,
-        "java/lang/Object", //superName,
+        "svm/helloworld/HelloWorld", //name,
+        Some("java/lang/Object"), //superName,
         Nil, //interfaces
         Nil, //fields
         List(initMethod, mainMethod), //methods

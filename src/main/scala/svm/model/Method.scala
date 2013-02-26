@@ -67,17 +67,18 @@ object Code{
       var instructions: List[OpCode] = Nil
       var allAttached: List[List[Attached]] = Nil
       var attached: List[Attached] = Nil
+
       for(node <- nodes){
-        node match{
-          case OpCode.TryParse(n) =>
-            instructions ::= n
-            allAttached ::= attached
-            attached = Nil
-          case Attached.TryParse(a) =>
-            attached ::= a
-          case x: LabelNode => ()
-        }
+        OpCode.read.andThen{o =>
+          instructions ::= o
+          allAttached ::= attached
+          attached = Nil
+        } orElse Attached.read.andThen{ a =>
+          attached ::= a
+        } lift(node)
       }
+
+
       Code(instructions.reverse, allAttached.reverse)
     }
     code
@@ -96,9 +97,7 @@ object Attached{
   case class LineNumber(line: Int,
                         start: Int) extends Attached
 
-  object TryParse{
-    def unapply(x: AbstractInsnNode)(implicit labelMap: Map[Int, Int]) = read.lift(x)
-  }
+
 
   def read(implicit labelMap: Map[Int, Int]): PartialFunction[Any, Attached] = {
     case x: FrameNode       => Frame(x.`type`, x.local.safeList, x.stack.safeList)

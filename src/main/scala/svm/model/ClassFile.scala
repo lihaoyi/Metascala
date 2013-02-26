@@ -8,7 +8,7 @@ object ClassFile {
   def read(cn: ClassNode) = ClassFile(
     cn.access,
     cn.name,
-    cn.superName,
+    cn.superName.safeOpt,
     cn.interfaces.safeList,
     cn.fields.safeList.map(Field.read),
     cn.methods.safeList.map(Method.read),
@@ -46,7 +46,7 @@ object ClassFile {
 }
 case class ClassFile(access_flags: Int,
                      name: String,
-                     superName: String,
+                     superName: Option[String],
                      interfaces: List[String],
                      fields: List[Field],
                      methods: List[Method],

@@ -32,6 +32,7 @@ class ControlFlow extends FreeSpec with Util{
     "charSwitch" in check(tester.run("charSwitch", _: Char), 10)('a' to 'k')
     "byteSwitch" in check(tester.run("byteSwitch", _: Byte), 9)((0 to 8).map(x=>Math.pow(2, x).toByte))
     "stringSwitch" in check(tester.run("stringSwitch", _: Int), 3)(Seq(0, 1, 2))
+    "stringSwitchTwo" in check(tester.run("stringSwitchTwo", _: String), 4)(Seq("omg", "wtf", "bbq" ,"lol"))
   }
 
 

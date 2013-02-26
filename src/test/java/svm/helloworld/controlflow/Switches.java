@@ -105,4 +105,12 @@ public class Switches {
             default: return 2;
         }
     }
+    public static String stringSwitchTwo(String s){
+        switch(s){
+            case "omg": return "iam";
+            case "wtf": return "cow";
+            case "bbq": return "hearme";
+            default: return "moo";
+        }
+    }
 }

@@ -34,6 +34,7 @@ class VirtualMachine(classLoader: String => Array[Byte]){
 
   def invoke(bootClass: String, mainMethod: String, args: Seq[Any]) = {
     val bc = getClassFor(bootClass)
+    implicit val ic = getClassFor _
     Object.fromVirtual[Any](
       threads(0).invoke(
         bc,
@@ -42,7 +43,7 @@ class VirtualMachine(classLoader: String => Array[Byte]){
           .methods
           .find(x => x.name == mainMethod)
           .getOrElse(throw new IllegalArgumentException("Can't find method: " + mainMethod)),
-        args
+        args.map(Object.toVirtual[Any])
       )
     )
   }

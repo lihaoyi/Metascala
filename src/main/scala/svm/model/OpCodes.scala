@@ -31,12 +31,6 @@ abstract class OpCode{
 
 object OpCode {
 
-
-  case object TryParse{
-    def unapply(x: AbstractInsnNode)(implicit labelMap: Map[Int, Int]) = read.lift(x)
-  }
-  def unapply(o: OpCode) = (o.id, o.insnName, o.op)
-
   implicit class dereferenceLabel(x: LabelNode)(implicit labelMap: Map[Int, Int]){
     def deref = labelMap(x.getLabel.hashCode())
   }

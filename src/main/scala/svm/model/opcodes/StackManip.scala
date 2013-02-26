@@ -98,12 +98,10 @@ object  StackManip {
 
 
   abstract class UnaryBranch(val id: Byte, val insnName: String)(pred: Int => Boolean) extends OpCode{
-
     def label: Int
-    def op = ctx => {
-      val Intish(top) :: stack = ctx.stack
-      ctx.frame.stack = stack
+    def op = ctx => ctx.swapStack{ case Intish(top) :: stack =>
       if(pred(top)) ctx.jumpTo(label)
+      stack
     }
   }
 
@@ -116,12 +114,9 @@ object  StackManip {
 
   abstract class BinaryBranch(val id: Byte, val insnName: String)(pred: (Int, Int) => Boolean) extends OpCode{
     def label: Int
-    def op = ctx => {
-      val Intish(top) :: Intish(next) :: stack = ctx.stack
-      ctx.frame.stack = stack
-      if(pred(next, top)) {
-        ctx.jumpTo(label)
-      }
+    def op = ctx => ctx.swapStack{ case Intish(top) :: Intish(next) :: stack =>
+      if(pred(next, top)) ctx.jumpTo(label)
+      stack
     }
   }
 
@@ -133,12 +128,9 @@ object  StackManip {
   case class IfICmpLe(label: Int) extends BinaryBranch(164, "if_icmple")(_ <= _)
   abstract class BinaryBranchObj(val id: Byte, val insnName: String)(pred: (Any, Any) => Boolean) extends OpCode{
     def label: Int
-    def op = ctx => {
-      val top :: next :: stack = ctx.stack
-      ctx.frame.stack = stack
-      if(pred(next, top)) {
-        ctx.jumpTo(label)
-      }
+    def op = ctx => ctx.swapStack{ case top :: next :: stack =>
+      if(pred(next, top)) ctx.jumpTo(label)
+      stack
     }
   }
   case class IfACmpEq(label: Int) extends BinaryBranchObj(165, "if_acmpeq")(_ == _)

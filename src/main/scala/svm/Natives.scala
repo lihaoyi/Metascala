@@ -36,6 +36,7 @@ object Natives {
     "int" -> "java/lang/Integer",
     "double" -> "java/lang/Double"
   )
+
   def nativeX(getClassFor: String => Class) = Route(
     "java"/(
       "lang"/(
