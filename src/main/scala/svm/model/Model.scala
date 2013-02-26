@@ -1,9 +1,9 @@
 package svm.model
 
-import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree._
 
 import org.objectweb.asm
+import asm.Label
 import collection.mutable
 
 object InnerClass {
@@ -65,17 +65,17 @@ case class Field(access: Int,
 
 
 object TryCatchBlock {
-  def read(tcbn: TryCatchBlockNode) = TryCatchBlock(
-    tcbn.start,
-    tcbn.end,
-    tcbn.handler,
+  def read(tcbn: TryCatchBlockNode)(implicit labelMap: Map[Label, Int]) = TryCatchBlock(
+    tcbn.start.getLabel,
+    tcbn.end.getLabel,
+    tcbn.handler.getLabel,
     tcbn.`type`
   )
 }
 
-case class TryCatchBlock(start: LabelNode,
-                         end: LabelNode,
-                         handler: LabelNode,
+case class TryCatchBlock(start: Int,
+                         end: Int,
+                         handler: Int,
                          blockType: String)
 
 object Attribute {

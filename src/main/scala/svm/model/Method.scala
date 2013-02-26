@@ -1,31 +1,35 @@
 package svm.model
 
 import org.objectweb.asm.tree._
+import org.objectweb.asm.Label
 
 
 object Method {
-  def read(mn: MethodNode) = Method(
-    mn.access,
-    mn.name,
-    mn.desc,
-    mn.exceptions.safeList,
-    Code.read(mn.instructions),
-    Misc(
-      mn.signature.safeOpt,
-      mn.tryCatchBlocks.safeList.map(TryCatchBlock.read),
-      mn.localVariables.safeList.map(LocalVariable.read),
-      mn.maxStack,
-      mn.maxLocals,
-      mn.attrs.safeList.map(Attribute.read)
-    ),
-    Annotations(
-      mn.visibleAnnotations.safeList.map(Annotation.read),
-      mn.invisibleAnnotations.safeList.map(Annotation.read),
-      mn.annotationDefault.safeOpt,
-      mn.visibleParameterAnnotations.safeList.map(_.safeList.map(Annotation.read)),
-      mn.invisibleParameterAnnotations.safeList.map(_.safeList.map(Annotation.read))
+  def read(mn: MethodNode) = {
+    implicit val labelMap = Code.makeLabelMap(mn.instructions)
+    Method(
+      mn.access,
+      mn.name,
+      mn.desc,
+      mn.exceptions.safeList,
+      Code.read(mn.instructions),
+      Misc(
+        mn.signature.safeOpt,
+        mn.tryCatchBlocks.safeList.map(TryCatchBlock.read),
+        mn.localVariables.safeList.map(LocalVariable.read),
+        mn.maxStack,
+        mn.maxLocals,
+        mn.attrs.safeList.map(Attribute.read)
+      ),
+      Annotations(
+        mn.visibleAnnotations.safeList.map(Annotation.read),
+        mn.invisibleAnnotations.safeList.map(Annotation.read),
+        mn.annotationDefault.safeOpt,
+        mn.visibleParameterAnnotations.safeList.map(_.safeList.map(Annotation.read)),
+        mn.invisibleParameterAnnotations.safeList.map(_.safeList.map(Annotation.read))
+      )
     )
-  )
+  }
 
   case class Annotations(visibleAnnotations: List[Annotation],
                          invisibleAnnotations: List[Annotation],
@@ -50,38 +54,38 @@ case class Method(access: Int,
 object Code{
   val Empty = Code(Nil, Nil)
 
-  def read(nodesList: InsnList) = {
-    val code: Code = {
-      val nodes = nodesList.toArray
+  def makeLabelMap(nodesList: InsnList): Map[Label, Int] = {
+    val nodes = nodesList.toArray
 
-      val labelMapMaker = collection.mutable.Map.empty[Int, Int]
-      var i = 0
-      for(node <- nodes){
-        node match{
-          case x: LabelNode => labelMapMaker(x.getLabel.hashCode()) = i
-          case y if OpCode.read(Map.empty[Int, Int]).isDefinedAt(y) => i += 1
-          case _ => ()
-        }
+    val labelMapMaker = collection.mutable.Map.empty[Label, Int]
+    var i = 0
+    for(node <- nodes){
+      node match{
+        case x: LabelNode => labelMapMaker(x.getLabel) = i
+        case y if OpCode.read(Map.empty[Label, Int]).isDefinedAt(y) => i += 1
+        case _ => ()
       }
-      implicit val labelMap = labelMapMaker.toMap
-      var instructions: List[OpCode] = Nil
-      var allAttached: List[List[Attached]] = Nil
-      var attached: List[Attached] = Nil
-
-      for(node <- nodes){
-        OpCode.read.andThen{o =>
-          instructions ::= o
-          allAttached ::= attached
-          attached = Nil
-        } orElse Attached.read.andThen{ a =>
-          attached ::= a
-        } lift(node)
-      }
-
-
-      Code(instructions.reverse, allAttached.reverse)
     }
-    code
+    labelMapMaker.toMap
+  }
+  def read(nodesList: InsnList)(implicit labelMap: Map[Label, Int]) = {
+
+    val nodes = nodesList.toArray
+    var instructions: List[OpCode] = Nil
+    var allAttached: List[List[Attached]] = Nil
+    var attached: List[Attached] = Nil
+
+    for(node <- nodes){
+      OpCode.read.andThen{o =>
+        instructions ::= o
+        allAttached ::= attached
+        attached = Nil
+      } orElse Attached.read.andThen{ a =>
+        attached ::= a
+      } lift(node)
+    }
+
+    Code(instructions.reverse, allAttached.reverse)
   }
 }
 
@@ -99,8 +103,8 @@ object Attached{
 
 
 
-  def read(implicit labelMap: Map[Int, Int]): PartialFunction[Any, Attached] = {
+  def read(implicit labelMap: Map[Label, Int]): PartialFunction[Any, Attached] = {
     case x: FrameNode       => Frame(x.`type`, x.local.safeList, x.stack.safeList)
-    case x: LineNumberNode  => LineNumber(x.line, labelMap(x.start.getLabel.hashCode()))
+    case x: LineNumberNode  => LineNumber(x.line, x.start.getLabel)
   }
 }
