@@ -10,26 +10,40 @@ import scala.util.Random
 
 object Gen{
   val conforms = null
-  def check[T1](test: T1 => Unit, n: Int)(implicit gen1: Int => T1) = {
-    for (i <- 0 until n){
-      test(gen1(i))
-    }
-  }
-  def check[T1, T2](test: (T1, T2) => Unit, n: Int )(implicit gen1: Int => T1, gen2: Int => T2) = {
-    for (i <- 0 until n){
-      test(gen1(i), gen2(i))
-    }
-  }
-  def check[T1, T2, T3](test: (T1, T2, T3) => Unit, n: Int )(implicit gen1: Int => T1, gen2: Int => T2, gen3: Int => T3) = {
-    for (i <- 0 until n){
-      test(gen1(i), gen2(i), gen3(i))
-    }
-  }
-  implicit val intAll = (i: Int) => Random.nextInt()
 
-  implicit val longAll = (i: Int) =>Random.nextInt().toLong << 32 + Random.nextInt()
+  def check[T1](test: T1 => Unit)(implicit gen1: Iterable[T1]) = {
+    gen1.foreach(test)
 
-  def int(bits: Int) = (i: Int) => {
+  }
+  def check[T1, T2](test: (T1, T2) => Unit)(implicit gen1: Iterable[T1], gen2: Iterable[T2]) = {
+    for ((i, j) <- gen1 zip gen2){
+      test(i, j)
+    }
+  }
+  def check[T1, T2, T3](test: (T1, T2, T3) => Unit)(implicit gen1: Iterable[T1], gen2: Iterable[T2], gen3: Iterable[T3]) = {
+    for (((i, j), k) <- gen1 zip gen2 zip gen3){
+      test(i, j, k)
+    }
+  }
+
+  implicit class multiplyGen(i: Int){
+    def **[A](a: => A) = Iterable.fill(i)(a)
+  }
+  def intAll = Random.nextInt()
+  def floatAll: Float = {
+    val x = java.lang.Float.intBitsToFloat(intAll)
+    if (java.lang.Float.isNaN(x)) floatAll
+    else x
+  }
+  def longAll = Random.nextLong()
+  def doubleAll: Double = {
+    val x = java.lang.Double.longBitsToDouble(longAll)
+    if (java.lang.Double.isNaN(x)) doubleAll
+    else x
+  }
+
+
+  def int(bits: Int) = {
     println("Gen Int")
     println(bits)
     println(1 << bits)
@@ -38,11 +52,11 @@ object Gen{
     res
 
   }
-  def long(bits: Int) = (i: Int) => {
+  def long(bits: Int) =  {
     if (bits >= 32){
       (Random.nextInt(1 << (bits - 32)).toLong << 32) | Random.nextInt(32)
     } else {
-      Random.nextInt(1 << bits)
+      Random.nextInt(1 << bits).toLong
     }
 
   }

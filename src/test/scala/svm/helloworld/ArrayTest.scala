@@ -12,7 +12,7 @@ class ArrayTest extends FreeSpec with Util{
 
   "array stuff" - {
     val tester = new Tester("svm.helloworld.arrays.ArrayStuff")
-    "makeIntArray" in check(tester.run("makeIntArray", _: Int), 10)(Seq(0, 1, 2, 3, 4, 5, 6, 7, 8, 9))
+    "makeIntArray" in check(tester.run("makeIntArray", _: Int))(Seq(0, 1, 2, 3, 4, 5, 6, 7, 8, 9))
     "makeFloatArray" in tester.run("makeFloatArray")
     "makeStringArray" in tester.run("makeStringArray")
     "arrayLength" in tester.run("arrayLength")
@@ -20,7 +20,7 @@ class ArrayTest extends FreeSpec with Util{
     "arrayGet" in tester.run("arrayGet")
     "bubbleSort" in check({ src: Seq[Int] =>
       tester.runC("bubbleSort", Seq(src.toArray))
-    }, 5)(Seq(
+    })(Seq(
       Seq(0, 1, 2, 3, 4, 5, 6, 7),
       Seq(7, 6, 5, 4, 3, 2, 1, 0),
       Seq(0, 1, 2, 3, 4, 5, 6, 7),
@@ -30,8 +30,8 @@ class ArrayTest extends FreeSpec with Util{
   }
   "multi dim arrays" - {
     val tester = new Tester("svm.helloworld.arrays.MultiDimArrays")
-    "make2D" in check(tester.run("make2D", _: Int, _: Int), 3)(Seq(0, 1, 2), Seq(0, 1, 2))
-    "make3D" in check(tester.run("make3D", _: Int, _: Int, _ : Int), 3)(Seq(0, 1, 2), Seq(0, 1, 2), Seq(0, 1, 2))
+    "make2D" in check(tester.run("make2D", _: Int, _: Int))(Seq(0, 1, 2), Seq(0, 1, 2))
+    "make3D" in check(tester.run("make3D", _: Int, _: Int, _ : Int))(Seq(0, 1, 2), Seq(0, 1, 2), Seq(0, 1, 2))
     "getAndSet" in tester.run("getAndSet")
   }
 }

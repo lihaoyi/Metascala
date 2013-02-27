@@ -1,4 +1,4 @@
-package svm.more.classes;
+package svm.helloworld.classes;
 
 public class ClassStuff {
     public static int customClass(){

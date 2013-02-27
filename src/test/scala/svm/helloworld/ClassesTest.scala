@@ -1,4 +1,4 @@
-package svm.more
+package svm.helloworld
 
 import org.scalatest.FreeSpec
 import svm.Util
@@ -13,7 +13,7 @@ import svm.Util
 class ClassesTest extends FreeSpec with Util{
 
   "classes" - {
-    val tester = new Tester("svm.more.classes.ClassStuff")
+    val tester = new Tester("svm.helloworld.classes.ClassStuff")
     "customClass" in tester.run("customClass")
     "inheritence" in tester.run("inheritence")
     "constructor" in tester.run("constructor")
@@ -22,7 +22,7 @@ class ClassesTest extends FreeSpec with Util{
     "innerClass" in tester.run("innerClass")
   }
   "interfaces" - {
-    val tester = new Tester("svm.more.classes.Interfaces")
+    val tester = new Tester("svm.helloworld.classes.Interfaces")
     "implement" in tester.run("implement", 10)
     "abstractClass" in tester.run("abstractClass")
   }
