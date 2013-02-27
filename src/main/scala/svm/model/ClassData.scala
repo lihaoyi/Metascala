@@ -3,9 +3,9 @@ package svm.model
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.ClassReader
 
-object ClassFile {
+object ClassData {
 
-  def read(cn: ClassNode) = ClassFile(
+  def read(cn: ClassNode) = ClassData(
     cn.access,
     cn.name,
     cn.superName.safeOpt,
@@ -44,10 +44,10 @@ object ClassFile {
                   attrs: List[Attribute],
                   innerClasses: List[InnerClass])
 }
-case class ClassFile(access_flags: Int,
+case class ClassData(access_flags: Int,
                      name: String,
                      superName: Option[String],
                      interfaces: List[String],
                      fields: List[Field],
                      methods: List[Method],
-                     misc: ClassFile.Misc)
+                     misc: ClassData.Misc)

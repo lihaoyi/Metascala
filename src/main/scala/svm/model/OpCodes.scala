@@ -31,9 +31,6 @@ abstract class OpCode{
 }
 
 object OpCode {
-
-
-
   def read(implicit labelMap: Map[Label, Int]): PartialFunction[Any, OpCode] = {
     case x: FieldInsnNode           => all(x.getOpcode).asInstanceOf[(String, String, String) => OpCode].apply(x.owner, x.name, x.desc)
     case x: IincInsnNode            => all(x.getOpcode).asInstanceOf[(Int, Int) => OpCode].apply(x.`var`, x.incr)
@@ -49,9 +46,6 @@ object OpCode {
     case x: TypeInsnNode            => all(x.getOpcode).asInstanceOf[String=> OpCode].apply(x.desc)
     case x: VarInsnNode             => all(x.getOpcode).asInstanceOf[Int => OpCode].apply(x.`var`)
   }
-
-
-
 
 
 

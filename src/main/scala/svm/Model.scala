@@ -1,8 +1,8 @@
 package svm
 
-import model.{Method, OpCode, ClassFile}
+import model.{Method, OpCode, ClassData}
 import collection.mutable
-class Class(val classFile: ClassFile,
+class Class(val classFile: ClassData,
             val statics: mutable.Map[String, Any] = mutable.Map.empty)
            (implicit classes: String => Class){
 

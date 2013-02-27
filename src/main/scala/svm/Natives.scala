@@ -1,11 +1,13 @@
 package svm
 
+import annotation.tailrec
+
 object Natives {
   object Route{
     def apply(a: (String, Route)*) = Node(a.toMap)
   }
   trait Route{
-    def lookup(s: String): Option[Any]
+    def lookup(s: String): Option[Leaf]
   }
   case class Node(children: Map[String, Route]) extends Route{
     def lookup(s: String) = {
@@ -19,16 +21,29 @@ object Natives {
     }
   }
 
-  case class Leaf(f: Any) extends Route{
+  implicit def func0(f: () => Any) = (x: Any) => f()
+  implicit def func2(f: (Nothing, Nothing) => Any) = f.curried
+  implicit def func3(f: (Nothing, Nothing, Nothing) => Any) = f.curried
+  implicit def func4(f: (Nothing, Nothing, Nothing, Nothing) => Any) = f.curried
+  implicit def func5(f: (Nothing, Nothing, Nothing, Nothing, Nothing) => Any) = f.curried
+  case class Leaf(f: Nothing => Any) extends Route{
     def lookup(s: String) = {
-      if (s == "") Some(f)
+      if (s == "") Some(this)
       else None
+    }
+    def apply(s: Seq[Any]) = {
+      @tailrec def rec(f: Any, s: Seq[Any]): Any = (f, s) match {
+        case (f1: Function1[Any, Any], head :: tail) => rec(f1(head), tail)
+        case (f1: Function1[Any, Any], _) => f1(null)
+        case (x, _) => x
+      }
+      rec(f, s)
     }
   }
 
   implicit class pimpedMap(s: String){
     def /(a: (String, Route)*) = s -> Node(a.toMap)
-    def -(a: Any) = s -> Leaf(a)
+    def -(a: Nothing => Any) = s -> Leaf(a)
   }
   val noOp = () => ()
   val primitiveMap = Map(
