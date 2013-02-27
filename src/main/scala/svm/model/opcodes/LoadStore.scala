@@ -4,6 +4,8 @@ import org.objectweb.asm
 import svm.model.{OpCode}
 import svm.model.TypeDesc._
 import collection.mutable
+import svm.Virtualizer
+
 object LoadStore {
   case object Nop extends OpCode{
     def insnName = "nop"
@@ -115,7 +117,7 @@ object LoadStore {
       else{
         ctx.throwException{
           new svm.Object("java/lang/ArrayIndexOutOfBoundsException",
-            "detailMessage" ->  svm.Object.toVirtual(index+"")
+            "detailMessage" ->  Virtualizer.toVirtual(index+"")
           )
         }
       }
@@ -129,7 +131,7 @@ object LoadStore {
       else{
         ctx.throwException{
           new svm.Object("java/lang/ArrayIndexOutOfBoundsException",
-            "detailMessage" -> svm.Object.toVirtual(index+"")
+            "detailMessage" -> Virtualizer.toVirtual(index+"")
           )
         }
       }

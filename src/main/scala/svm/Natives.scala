@@ -16,7 +16,7 @@ object Natives {
       "lang"/(
         "Class"/(
           "registerNatives()V"-noOp,
-          "getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;"-((s: svm.Object) => (new Object(getClassFor(primitiveMap(Object.fromVirtual(s).asInstanceOf[String]))))),
+          "getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;"-((s: svm.Object) => (new Object(getClassFor(primitiveMap(Virtualizer.fromVirtual(s).asInstanceOf[String]))))),
           "getClassLoader0()Ljava/lang/ClassLoader;"-(() => null),
           "desiredAssertionStatus0(Ljava/lang/Class;)Z"-((x: Any) => 0)
           ),
