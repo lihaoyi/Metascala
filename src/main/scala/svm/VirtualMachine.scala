@@ -98,21 +98,17 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     //println(method.code)
     method match{
       case m if m.code != Code.Empty =>
-        val startFrame = new Frame(
-          runningClass = cls,
-          method = method,
-          locals = mutable.Seq.fill(method.misc.maxLocals + 10)(null), // +1 in case the last guy is a double
-          stack = Nil
-        )
         val stretchedArgs = args.flatMap {
           case l: Long => Seq(l, l)
           case d: Double => Seq(d, d)
           case x => Seq(x)
         }
-
-        for (i <- 0 until stretchedArgs.length){
-          startFrame.locals(i) = stretchedArgs(i)
-        }
+        val startFrame = new Frame(
+          runningClass = cls,
+          method = method,
+          locals = mutable.Seq.tabulate(method.misc.maxLocals)(stretchedArgs.orElse{case x => null}),
+          stack = Nil
+        )
 
         threadStack.push(startFrame)
         println(indent + "Invoking " + method.name)
@@ -135,11 +131,6 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
       case _ =>
         println(indent + "Empty Method!")
     }
-
-
-
-
-
 
   }
   def invoke(cls: Class, method: Method, args: Seq[Any]) = {
