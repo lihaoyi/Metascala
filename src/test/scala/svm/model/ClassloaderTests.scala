@@ -74,7 +74,5 @@ class ClassloaderTests extends FreeSpec{
         "Ljava/lang/Object;"
       ) = TypeDesc.read("(IDLjava/lang/Thread;)Ljava/lang/Object;")
     }
-
-
   }
 }

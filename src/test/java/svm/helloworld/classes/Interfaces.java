@@ -10,8 +10,16 @@ public class Interfaces {
         return toyota.vroom();
     }
 
-    public static String shadowedInherited(){
+    public static String shadowedInheritedGet(){
         Car honda = new Honda();
+        return honda.vroom();
+    }
+
+    public static String shadowedInheritedSet(){
+        Car honda = new Honda();
+        honda.rev();
+        honda.cc++;
+        ((Honda)honda).cc++;
         return honda.vroom();
     }
 }
@@ -29,6 +37,7 @@ class Toyota extends Car{
     public Toyota(){
         this.cc = 10;
     }
+
     public String vStart(){
         return "vr";
     }
@@ -44,6 +53,9 @@ class Car{
     public int cc;
     public String vStart(){
         return "";
+    }
+    public void rev(){
+        this.cc = this.cc + 1;
     }
     public String vroom(){
         String s = vStart();

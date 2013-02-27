@@ -18,6 +18,7 @@ class ClassesTest extends FreeSpec with Util{
     val tester = new Tester("svm.helloworld.classes.Interfaces")
     "implement" in tester.run("implement", 10)
     "abstractClass" in tester.run("abstractClass")
-    "shadowedInherited" in tester.run("shadowedInherited")
+    "shadowedInheritedGet" in tester.run("shadowedInheritedGet")
+    "shadowedInheritedSet" in tester.run("shadowedInheritedSet")
   }
 }
