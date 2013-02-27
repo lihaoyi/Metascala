@@ -109,7 +109,9 @@ object Misc {
       ctx.prepInvoke(cls, method, args.reverse)
     }
   }
-  case class InvokeInterface(owner: String, name: String, desc: String) extends BaseOpCode(185, "invokeinterface"){ def op = ??? }
+  case class InvokeInterface(owner: String, name: String, desc: String) extends BaseOpCode(185, "invokeinterface"){
+    def op = InvokeVirtual(owner, name, desc).op
+  }
 
   case class InvokeDynamic(name: String, desc: String, bsm: Object, args: Object) extends BaseOpCode(186, "invokedynamic"){ def op = ??? }
 

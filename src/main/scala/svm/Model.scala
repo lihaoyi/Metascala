@@ -119,11 +119,12 @@ object Object{
   }.asInstanceOf[T]
 }
 
-class Object(val cls: Class, val members: mutable.Map[String, Any] = mutable.Map.empty)(implicit classes: String => Class){
+class Object(val cls: Class, val members: mutable.Map[String, Any] = mutable.Map.empty)
+            (implicit classes: String => Class){
+
   for((k, v) <- Object.initMembers(cls)){
     members(k) = v
   }
-
 
   override def toString = {
     s"svm.Object(${cls.name})"
