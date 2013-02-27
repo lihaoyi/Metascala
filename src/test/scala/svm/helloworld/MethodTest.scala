@@ -12,23 +12,23 @@ class MethodTest extends FreeSpec with Util{
 
   "static" - {
     val tester = new Tester("svm.helloworld.methods.Statics")
-    "helloWorld" in check(tester.run("helloWorld", _: Int))
-    "helloWorld2" in check(tester.run("helloWorld2", _: Int, _: Int))
-    "tailFactorial" in check(tester.run("tailFactorial", _: Int))(Seq(2, 5, 10, 20, 50))
-    "fibonacci" in check(tester.run("fibonacci", _: Int))(Seq(2, 5, 10))
+    "helloWorld" in chk(tester.run("helloWorld", _: Int))
+    "helloWorld2" in chk(tester.run("helloWorld2", _: Int, _: Int))
+    "tailFactorial" in chk(tester.run("tailFactorial", _: Int))(Seq(2, 5, 10, 20, 50))
+    "fibonacci" in chk(tester.run("fibonacci", _: Int))(Seq(2, 5, 10))
 
   }
   "natives" - {
     val tester = new Tester("svm.helloworld.methods.Natives")
-    "intBitsToFloat" in check(tester.run("intBitsToFloat", _: Int))
+    "intBitsToFloat" in chk(tester.run("intBitsToFloat", _: Int))
     "currentTimeMillis" in tester.run("currentTimeMillis")
   }
   "objects" - {
     val tester = new Tester("svm.helloworld.methods.Objects")
     "dumbobjects" in tester.run("helloWorld", 5)
     "inheritance" in tester.run("inheritance", 5)
-    "points" in check(tester.run("points", _: Int))
-    "points2" in check(tester.run("points", _: Int))
+    "points" in chk(tester.run("points", _: Int))
+    "points2" in chk(tester.run("points", _: Int))
   }
 }
 

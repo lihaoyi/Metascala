@@ -11,16 +11,16 @@ import scala.util.Random
 object Gen{
   val conforms = null
 
-  def check[T1](test: T1 => Unit)(implicit gen1: Iterable[T1]) = {
+  def chk[T1](test: T1 => Unit)(implicit gen1: Iterable[T1]) = {
     gen1.foreach(test)
 
   }
-  def check[T1, T2](test: (T1, T2) => Unit)(implicit gen1: Iterable[T1], gen2: Iterable[T2]) = {
+  def chk[T1, T2](test: (T1, T2) => Unit)(implicit gen1: Iterable[T1], gen2: Iterable[T2]) = {
     for ((i, j) <- gen1 zip gen2){
       test(i, j)
     }
   }
-  def check[T1, T2, T3](test: (T1, T2, T3) => Unit)(implicit gen1: Iterable[T1], gen2: Iterable[T2], gen3: Iterable[T3]) = {
+  def chk[T1, T2, T3](test: (T1, T2, T3) => Unit)(implicit gen1: Iterable[T1], gen2: Iterable[T2], gen3: Iterable[T3]) = {
     for (((i, j), k) <- gen1 zip gen2 zip gen3){
       test(i, j, k)
     }

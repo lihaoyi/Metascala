@@ -5,7 +5,7 @@ package helloworld
 import org.scalatest.FreeSpec
 
 import svm.Util
-import Gen.check
+import Gen.chk
 class ControlFlowTest extends FreeSpec with Util{
 
 
@@ -20,19 +20,19 @@ class ControlFlowTest extends FreeSpec with Util{
   "loops" - {
     val tester = new Tester("svm.helloworld.controlflow.Loops")
     "nullFor" in tester.run("nullFor", 100)
-    "basicFor" in check(tester.run("basicFor", _: Int))(Seq.fill(0)(Gen.int(256)))
+    "basicFor" in chk(tester.run("basicFor", _: Int))(Seq.fill(0)(Gen.int(256)))
     "nullWhile" in tester.run("nullWhile", 100)
-    "basicWhile" in check(tester.run("basicWhile", _: Int))(Seq.fill(0)(Gen.int(256)))
+    "basicWhile" in chk(tester.run("basicWhile", _: Int))(Seq.fill(0)(Gen.int(256)))
   }
   "switches" - {
     val tester = new Tester("svm.helloworld.controlflow.Switches")
-    "smallSwitch" in check(tester.run("smallSwitch", _: Int))(Seq(0, 1, 2))
-    "bigDenseSwitch" in check(tester.run("bigDenseSwitch", _: Int))(0 to 30)
-    "bigSparseSwitch" in check(tester.run("bigSparseSwitch", _: Int))((0 to 23).map(x => Math.pow(2, x).toInt))
-    "charSwitch" in check(tester.run("charSwitch", _: Char))('a' to 'k')
-    "byteSwitch" in check(tester.run("byteSwitch", _: Byte))((0 to 8).map(x=>Math.pow(2, x).toByte))
-    "stringSwitch" in check(tester.run("stringSwitch", _: Int))(Seq(0, 1, 2))
-    "stringSwitchTwo" in check(tester.run("stringSwitchTwo", _: String))(Seq("omg", "wtf", "bbq" ,"lol"))
+    "smallSwitch" in chk(tester.run("smallSwitch", _: Int))(Seq(0, 1, 2))
+    "bigDenseSwitch" in chk(tester.run("bigDenseSwitch", _: Int))(0 to 30)
+    "bigSparseSwitch" in chk(tester.run("bigSparseSwitch", _: Int))((0 to 23).map(x => Math.pow(2, x).toInt))
+    "charSwitch" in chk(tester.run("charSwitch", _: Char))('a' to 'k')
+    "byteSwitch" in chk(tester.run("byteSwitch", _: Byte))((0 to 8).map(x=>Math.pow(2, x).toByte))
+    "stringSwitch" in chk(tester.run("stringSwitch", _: Int))(Seq(0, 1, 2))
+    "stringSwitchTwo" in chk(tester.run("stringSwitchTwo", _: String))(Seq("omg", "wtf", "bbq" ,"lol"))
   }
 
 
