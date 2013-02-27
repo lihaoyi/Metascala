@@ -18,7 +18,7 @@ package object opcodes {
       case _ => None
     }
   }
-  class UnusedOpCode(val id: Byte, val insnName: String) extends OpCode{
+  case class UnusedOpCode(val id: Byte, val insnName: String) extends OpCode{
     def op = ctx => ???
   }
   implicit def intToByte(n: Int) = n.toByte

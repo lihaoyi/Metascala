@@ -2,6 +2,8 @@ package svm
 
 import model.{Method, OpCode, ClassData}
 import collection.mutable
+import java.io.{ObjectInputStream, ObjectOutputStream}
+
 class Class(val classFile: ClassData,
             val statics: mutable.Map[String, Any] = mutable.Map.empty)
            (implicit classes: String => Class){
@@ -32,6 +34,7 @@ object Object{
       f.name -> initField(f.desc)
     } ++ cls.classFile.superName.toSeq.flatMap(x => initMembers(classes(x)))
   }
+
   def initField(desc: String) = {
     desc(0) match{
       case 'B' => 0: Byte
@@ -46,9 +49,6 @@ object Object{
       case '[' => null
     }
   }
-
-
-
 }
 
 class Object(val cls: Class, initMembers: (String, Any)*)

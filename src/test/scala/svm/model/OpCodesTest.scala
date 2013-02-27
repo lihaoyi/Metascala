@@ -6,9 +6,7 @@ import svm.model.OpCode
 class OpCodesTest extends FreeSpec{
   "opcodes must line up" in {
     for((oc, i) <- OpCode.all.zipWithIndex) oc match{
-      case o: OpCode =>
-
-        assert(o.id === i.toByte)
+      case o: OpCode => assert(o.id === i.toByte)
       case _ => () // ignore opcodes that need args
     }
   }

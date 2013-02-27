@@ -10,8 +10,8 @@ object Misc {
 
   // These guys are meant to be deprecated in java 6 and 7
   //===============================================================
-  case object Ret extends UnusedOpCode(169, "ret")
-  case object Jsr extends UnusedOpCode(168, "jsr")
+  val Ret = UnusedOpCode(169, "ret")
+  val Jsr = UnusedOpCode(168, "jsr")
   //===============================================================
 
   case class TableSwitch(min: Int, max: Int, defaultTarget: Int, targets: Seq[Int]) extends BaseOpCode(170, "tableswitch"){
@@ -172,7 +172,7 @@ object Misc {
 
   // Not used, because ASM folds these into the following bytecode for us
   //===============================================================
-  case object Wide extends UnusedOpCode(196, "wide")
+  val Wide = UnusedOpCode(196, "wide")
   //===============================================================
 
   case class MultiANewArray(desc: String, dims: Int) extends BaseOpCode(197, "multianewarray"){
@@ -201,8 +201,8 @@ object Misc {
 
   // Not used, because ASM converts these to normal Goto()s and Jsr()s
   //===============================================================
-  case object GotoW extends UnusedOpCode(200, "goto_w")
-  case object JsrW extends UnusedOpCode(201, "jsr_w")
+  val GotoW = UnusedOpCode(200, "goto_w")
+  val JsrW = UnusedOpCode(201, "jsr_w")
   //===============================================================
 
 }

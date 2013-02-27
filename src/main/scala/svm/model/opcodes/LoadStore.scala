@@ -64,8 +64,8 @@ object LoadStore {
 
   // Not used, because ASM converts these Ldc(const: Any)
   //===============================================================
-  case class LdcW(const: Any) extends UnusedOpCode(19, "ldc_w")
-  case class Ldc2W(const: Any) extends UnusedOpCode(20, "ldc2_w")
+  val LdcW = UnusedOpCode(19, "ldc_w")
+  val Ldc2W = UnusedOpCode(20, "ldc2_w")
   //===============================================================
 
   abstract class PushLocalIndexed(val id: Byte, val insnName: String) extends OpCode{
@@ -83,30 +83,30 @@ object LoadStore {
 
   // Not used, because ASM converts these to raw XLoad(index: Int)s
   //===============================================================
-  case class ILoad0(index: Int) extends UnusedOpCode(26, "iLoad_0")
-  case class ILoad1(index: Int) extends UnusedOpCode(27, "iLoad_1")
-  case class ILoad2(index: Int) extends UnusedOpCode(28, "iLoad_2")
-  case class ILoad3(index: Int) extends UnusedOpCode(29, "iLoad_3")
+  val ILoad0 = UnusedOpCode(26, "iLoad_0")
+  val ILoad1 = UnusedOpCode(27, "iLoad_1")
+  val ILoad2 = UnusedOpCode(28, "iLoad_2")
+  val ILoad3 = UnusedOpCode(29, "iLoad_3")
 
-  case class LLoad0(index: Int) extends UnusedOpCode(30, "lLoad_0")
-  case class LLoad1(index: Int) extends UnusedOpCode(31, "lLoad_1")
-  case class LLoad2(index: Int) extends UnusedOpCode(32, "lLoad_2")
-  case class LLoad3(index: Int) extends UnusedOpCode(33, "lLoad_3")
+  val LLoad0 = UnusedOpCode(30, "lLoad_0")
+  val LLoad1 = UnusedOpCode(31, "lLoad_1")
+  val LLoad2 = UnusedOpCode(32, "lLoad_2")
+  val LLoad3 = UnusedOpCode(33, "lLoad_3")
 
-  case class FLoad0(index: Int) extends UnusedOpCode(34, "fLoad_0")
-  case class FLoad1(index: Int) extends UnusedOpCode(35, "fLoad_1")
-  case class FLoad2(index: Int) extends UnusedOpCode(36, "fLoad_2")
-  case class FLoad3(index: Int) extends UnusedOpCode(37, "fLoad_3")
+  val FLoad0 = UnusedOpCode(34, "fLoad_0")
+  val FLoad1 = UnusedOpCode(35, "fLoad_1")
+  val FLoad2 = UnusedOpCode(36, "fLoad_2")
+  val FLoad3 = UnusedOpCode(37, "fLoad_3")
 
-  case class DLoad0(index: Int) extends UnusedOpCode(38, "dLoad_0")
-  case class DLoad1(index: Int) extends UnusedOpCode(39, "dLoad_1")
-  case class DLoad2(index: Int) extends UnusedOpCode(40, "dLoad_2")
-  case class DLoad3(index: Int) extends UnusedOpCode(41, "dLoad_3")
+  val DLoad0 = UnusedOpCode(38, "dLoad_0")
+  val DLoad1 = UnusedOpCode(39, "dLoad_1")
+  val DLoad2 = UnusedOpCode(40, "dLoad_2")
+  val DLoad3 = UnusedOpCode(41, "dLoad_3")
 
-  case class ALoad0(index: Int) extends UnusedOpCode(42, "aLoad_0")
-  case class ALoad1(index: Int) extends UnusedOpCode(43, "aLoad_1")
-  case class ALoad2(index: Int) extends UnusedOpCode(44, "aLoad_2")
-  case class ALoad3(index: Int) extends UnusedOpCode(45, "aLoad_3")
+  val ALoad0 = UnusedOpCode(42, "aLoad_0")
+  val ALoad1 = UnusedOpCode(43, "aLoad_1")
+  val ALoad2 = UnusedOpCode(44, "aLoad_2")
+  val ALoad3 = UnusedOpCode(45, "aLoad_3")
   //===============================================================
 
   class PushFromArray[T](val id: Byte, val insnName: String) extends OpCode{
@@ -161,30 +161,30 @@ object LoadStore {
 
   // Not used, because ASM converts these to raw XStore(index: Int)s
   //===============================================================
-  case class IStore0(varId: Int) extends UnusedOpCode(59, "istore_0")
-  case class IStore1(varId: Int) extends UnusedOpCode(60, "istore_1")
-  case class IStore2(varId: Int) extends UnusedOpCode(61, "istore_2")
-  case class IStore3(varId: Int) extends UnusedOpCode(62, "istore_3")
+  val IStore0 = UnusedOpCode(59, "istore_0")
+  val IStore1 = UnusedOpCode(60, "istore_1")
+  val IStore2 = UnusedOpCode(61, "istore_2")
+  val IStore3 = UnusedOpCode(62, "istore_3")
 
-  case class LStore0(varId: Int) extends UnusedOpCode(63, "lstore_0")
-  case class LStore1(varId: Int) extends UnusedOpCode(64, "lstore_1")
-  case class LStore2(varId: Int) extends UnusedOpCode(65, "lstore_2")
-  case class LStore3(varId: Int) extends UnusedOpCode(66, "lstore_3")
+  val LStore0 = UnusedOpCode(63, "lstore_0")
+  val LStore1 = UnusedOpCode(64, "lstore_1")
+  val LStore2 = UnusedOpCode(65, "lstore_2")
+  val LStore3 = UnusedOpCode(66, "lstore_3")
 
-  case class FStore0(varId: Int) extends UnusedOpCode(67, "fstore_0")
-  case class FStore1(varId: Int) extends UnusedOpCode(68, "fstore_1")
-  case class FStore2(varId: Int) extends UnusedOpCode(69, "fstore_2")
-  case class FStore3(varId: Int) extends UnusedOpCode(70, "fstore_3")
+  val FStore0 = UnusedOpCode(67, "fstore_0")
+  val FStore1 = UnusedOpCode(68, "fstore_1")
+  val FStore2 = UnusedOpCode(69, "fstore_2")
+  val FStore3 = UnusedOpCode(70, "fstore_3")
 
-  case class DStore0(varId: Int) extends UnusedOpCode(71, "dstore_0")
-  case class DStore1(varId: Int) extends UnusedOpCode(72, "dstore_1")
-  case class DStore2(varId: Int) extends UnusedOpCode(73, "dstore_2")
-  case class DStore3(varId: Int) extends UnusedOpCode(74, "dstore_3")
+  val DStore0 = UnusedOpCode(71, "dstore_0")
+  val DStore1 = UnusedOpCode(72, "dstore_1")
+  val DStore2 = UnusedOpCode(73, "dstore_2")
+  val DStore3 = UnusedOpCode(74, "dstore_3")
 
-  case class AStore0(varId: Int) extends UnusedOpCode(75, "astore_0")
-  case class AStore1(varId: Int) extends UnusedOpCode(76, "astore_1")
-  case class AStore2(varId: Int) extends UnusedOpCode(77, "astore_2")
-  case class AStore3(varId: Int) extends UnusedOpCode(78, "astore_3")
+  val AStore0 = UnusedOpCode(75, "astore_0")
+  val AStore1 = UnusedOpCode(76, "astore_1")
+  val AStore2 = UnusedOpCode(77, "astore_2")
+  val AStore3 = UnusedOpCode(78, "astore_3")
   //===============================================================
 
   class StoreArray[T](val id: Byte, val insnName: String) extends OpCode{
