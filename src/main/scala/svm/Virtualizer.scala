@@ -29,7 +29,7 @@ object Virtualizer {
       case x: Array[Float] => cloneArray(x)
       case x: Array[Double] => cloneArray(x)
       case x: svm.Object if x.cls.name == "java/lang/String" =>
-        new String(x.members("value").asInstanceOf[Array[Char]])
+        new String(x.members(0)("value").asInstanceOf[Array[Char]])
     }
   }.asInstanceOf[T]
 

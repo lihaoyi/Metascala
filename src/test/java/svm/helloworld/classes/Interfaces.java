@@ -9,6 +9,11 @@ public class Interfaces {
         Car toyota = new Toyota();
         return toyota.vroom();
     }
+
+    public static String shadowedInherited(){
+        Car honda = new Honda();
+        return honda.vroom();
+    }
 }
 class Sheep implements Baas{
     public String baa(int n){
@@ -28,6 +33,13 @@ class Toyota extends Car{
         return "vr";
     }
 }
+class Honda extends Car{
+    public int cc = 5;
+    public String vStart(){
+        return "v"  + cc + "r" + ((Car)this).cc + "r" + super.cc;
+    }
+}
+
 class Car{
     public int cc;
     public String vStart(){

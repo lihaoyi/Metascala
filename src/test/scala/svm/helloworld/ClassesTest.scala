@@ -3,13 +3,6 @@ package svm.helloworld
 import org.scalatest.FreeSpec
 import svm.Util
 
-/**
- * Created with IntelliJ IDEA.
- * User: Haoyi
- * Date: 2/26/13
- * Time: 7:35 PM
- * To change this template use File | Settings | File Templates.
- */
 class ClassesTest extends FreeSpec with Util{
 
   "classes" - {
@@ -25,5 +18,6 @@ class ClassesTest extends FreeSpec with Util{
     val tester = new Tester("svm.helloworld.classes.Interfaces")
     "implement" in tester.run("implement", 10)
     "abstractClass" in tester.run("abstractClass")
+    "shadowedInherited" in tester.run("shadowedInherited")
   }
 }

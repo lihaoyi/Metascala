@@ -51,7 +51,7 @@ object LoadStore {
         case s: String =>
           new svm.Object("java/lang/String", "value" -> s.toCharArray)
         case t: asm.Type =>
-          new svm.Object("java/lang/Class", "value" -> t.getInternalName)
+          new svm.Object("java/lang/Class")
 
         case x => x
       }

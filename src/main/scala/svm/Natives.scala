@@ -42,7 +42,7 @@ object Natives {
 
         "Throwable"/(
           "fillInStackTrace(I)Ljava/lang/Throwable;" - { (throwable: svm.Object, dummy: Int) =>
-            throwable.members("stackTrace") =
+            throwable.members(0)("stackTrace") =
               stackTrace().map { f =>
               new svm.Object("java/lang/StackTraceElement",
                 "declaringClass" -> f.getClassName,

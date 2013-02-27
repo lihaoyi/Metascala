@@ -50,13 +50,13 @@ object Misc {
 
   case class GetField(owner: String, name: String, desc: String) extends BaseOpCode(180, "getfield"){
     def op = _.swapStack{
-      case (objectRef: svm.Object) :: stack => objectRef.members(name) :: stack
+      case (objectRef: svm.Object) :: stack => objectRef(owner, name) :: stack
     }
   }
   case class PutField(owner: String, name: String, desc: String) extends BaseOpCode(181, "putfield"){
     def op = _.swapStack {
       case value :: (objectRef: svm.Object) :: stack =>
-        objectRef.members(name) = value
+        objectRef(owner, name) = value
         stack
     }
   }

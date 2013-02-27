@@ -3,36 +3,47 @@ package svm
 import model.{Method, OpCode, ClassData}
 import collection.mutable
 import java.io.{ObjectInputStream, ObjectOutputStream}
+import annotation.tailrec
 
-class Class(val classFile: ClassData,
+class Class(val classData: ClassData,
             val statics: mutable.Map[String, Any] = mutable.Map.empty)
            (implicit classes: String => Class){
 
 
   def method(name: String, desc: String): Option[Method] = {
-    classFile.methods
+    classData.methods
              .find(m => m.name == name && m.desc == desc)
-             .orElse(classFile.superName.flatMap(x => classes(x).method(name, desc)))
+             .orElse(classData.superName.flatMap(x => classes(x).method(name, desc)))
   }
 
-  def name = classFile.name
+  def name = classData.name
+
+  def ancestry = {
+    def rec(cd: ClassData): List[ClassData] = {
+      cd.superName match{
+        case None => List(cd)
+        case Some(x) => cd :: rec(classes(x).classData)
+      }
+    }
+    rec(classData)
+  }
 
   def isInstanceOf(desc: String)(implicit classes: String => Class): Boolean = {
 
     val res =
-      classFile.name == desc ||
-      classFile.interfaces.contains(desc) ||
-      (classFile.superName.isDefined && classes(classFile.superName.get).isInstanceOf(desc))
+      classData.name == desc ||
+      classData.interfaces.contains(desc) ||
+      (classData.superName.isDefined && classes(classData.superName.get).isInstanceOf(desc))
 
     res
   }
 }
 
 object Object{
-  def initMembers(cls: Class)(implicit classes: String => Class): List[(String, Any)] = {
-    cls.classFile.fields.map{f =>
+  def initMembers(cls: ClassData)(implicit classes: String => Class): List[Map[String, Any]] = {
+    cls.fields.map{f =>
       f.name -> initField(f.desc)
-    } ++ cls.classFile.superName.toSeq.flatMap(x => initMembers(classes(x)))
+    }.toMap :: cls.superName.toList.flatMap(x => initMembers(classes(x).classData))
   }
 
   def initField(desc: String) = {
@@ -54,10 +65,29 @@ object Object{
 class Object(val cls: Class, initMembers: (String, Any)*)
             (implicit classes: String => Class){
 
-  val members = mutable.Map[String, Any](
-    (Object.initMembers(cls) ++ initMembers):_*
-  )
+  val members = Object.initMembers(cls.classData).map(x => mutable.Map(x.toSeq:_*))
 
+
+  for ((s, v) <- initMembers){
+    this(cls.name, s) = v
+  }
+
+  def apply(owner: String, name: String) = {
+    val start = cls.ancestry.indexWhere(_.name == owner)
+
+    members.drop(start)
+           .find(_.contains(name))
+           .get(name)
+
+  }
+  def update(owner: String, name: String, value: Any) = {
+    val start = cls.ancestry.indexWhere(_.name == owner)
+
+    members.drop(start)
+           .find(_.contains(name))
+           .get(name) = value
+
+  }
   override def toString = {
     s"svm.Object(${cls.name})"
   }

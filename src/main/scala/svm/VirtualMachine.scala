@@ -33,7 +33,7 @@ class VirtualMachine(classLoader: String => Array[Byte]){
       threads(0).invoke(
         bootClass,
         bootClass
-          .classFile
+          .classData
           .methods
           .find(x => x.name == mainMethod)
           .getOrElse(throw new IllegalArgumentException("Can't find method: " + mainMethod)),
@@ -51,7 +51,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
       new StackTraceElement(
         f.runningClass.name,
         f.method.name,
-        f.runningClass.classFile.misc.sourceFile.getOrElse("[no source]"),
+        f.runningClass.classData.misc.sourceFile.getOrElse("[no source]"),
         f.method.code.attachments.flatten.reverse.collectFirst{
           case LineNumber(line, startPc) if startPc < f.pc => line
         }.getOrElse(-1)
@@ -111,8 +111,8 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
         )
 
         threadStack.push(startFrame)
-        println(indent + "Invoking " + method.name)
-        println(indent + "Locals " + startFrame.locals)
+        //println(indent + "Invoking " + method.name)
+        //println(indent + "Locals " + startFrame.locals)
       //method.code.instructions.zipWithIndex.foreach{case (x, i) => println(indent + i + "\t" + x) }
       case m if (m.access | Access.Native) != 0 =>
         val topFrame = threadStack.head
