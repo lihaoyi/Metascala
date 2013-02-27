@@ -3,6 +3,7 @@ package svm.model.opcodes
 import org.objectweb.asm
 import svm.model.{OpCode}
 import svm.model.TypeDesc._
+import collection.mutable
 object LoadStore {
   case object Nop extends OpCode{
     def insnName = "nop"
@@ -46,13 +47,10 @@ object LoadStore {
 
       val newConst = const match{
         case s: String =>
-          val x = new svm.Object("java/lang/String")
-          x.members("value") = s.toCharArray
-          x
+          new svm.Object("java/lang/String", "value" -> s.toCharArray)
         case t: asm.Type =>
-          val x = new svm.Object("java/lang/Class")
-          x.members("value") = t.getInternalName
-          x
+          new svm.Object("java/lang/Class", "value" -> t.getInternalName)
+
         case x => x
       }
 
@@ -116,9 +114,9 @@ object LoadStore {
         ctx.frame.stack = array(index) :: stack
       else{
         ctx.throwException{
-          val ex = new svm.Object("java/lang/ArrayIndexOutOfBoundsException")
-          ex.members("detailMessage") = svm.Object.toVirtual(index+"")
-          ex
+          new svm.Object("java/lang/ArrayIndexOutOfBoundsException",
+            "detailMessage" ->  svm.Object.toVirtual(index+"")
+          )
         }
       }
     }
@@ -130,9 +128,9 @@ object LoadStore {
         ctx.frame.stack = implicitly[Numeric[T]].toInt(array(index)) :: stack
       else{
         ctx.throwException{
-          val ex = new svm.Object("java/lang/ArrayIndexOutOfBoundsException")
-          ex.members("detailMessage") = svm.Object.toVirtual(index+"")
-          ex
+          new svm.Object("java/lang/ArrayIndexOutOfBoundsException",
+            "detailMessage" -> svm.Object.toVirtual(index+"")
+          )
         }
       }
     }

@@ -44,12 +44,12 @@ object Natives {
           "fillInStackTrace(I)Ljava/lang/Throwable;" - { (throwable: svm.Object, dummy: Int) =>
             throwable.members("stackTrace") =
               stackTrace().map { f =>
-              val el = new svm.Object(getClassFor("java/lang/StackTraceElement"))
-              el.members("declaringClass") = f.getClassName
-              el.members("methodName") = f.getMethodName
-              el.members("fileName") = f.getFileName
-              el.members("lineNumber") = f.getLineNumber
-              el
+              new svm.Object("java/lang/StackTraceElement",
+                "declaringClass" -> f.getClassName,
+                "methodName" -> f.getMethodName,
+                "fileName" -> f.getFileName,
+                "lineNumber" -> f.getLineNumber
+              )
             }
             throwable
           }

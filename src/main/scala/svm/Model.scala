@@ -110,21 +110,19 @@ object Object{
       case x: Array[Long] => cloneArray(x)
       case x: Array[Float] => cloneArray(x)
       case x: Array[Double] => cloneArray(x)
-      case x: String =>
-        val r = new svm.Object(classes("java/lang/String"))
-        r.members("value") = x.toCharArray
-        r
+      case x: String => new svm.Object("java/lang/String", "value" -> x.toCharArray)
+
 
     }
   }.asInstanceOf[T]
 }
 
-class Object(val cls: Class, val members: mutable.Map[String, Any] = mutable.Map.empty)
+class Object(val cls: Class, initMembers: (String, Any)*)
             (implicit classes: String => Class){
 
-  for((k, v) <- Object.initMembers(cls)){
-    members(k) = v
-  }
+  val members = mutable.Map[String, Any](
+    (Object.initMembers(cls) ++ initMembers):_*
+  )
 
   override def toString = {
     s"svm.Object(${cls.name})"

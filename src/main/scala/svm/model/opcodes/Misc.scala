@@ -17,10 +17,8 @@ object Misc {
   case class TableSwitch(min: Int, max: Int, defaultTarget: Int, targets: Seq[Int]) extends BaseOpCode(170, "tableswitch"){
     def op = ctx => ctx.swapStack{ case Intish(top) :: rest =>
       val newPc: Int =
-        if (targets.isDefinedAt(top - min))
-          targets(top - min)
-        else
-          defaultTarget
+        if (targets.isDefinedAt(top - min)) targets(top - min)
+        else defaultTarget
       ctx.jumpTo(newPc)
       rest
     }
