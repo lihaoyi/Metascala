@@ -118,8 +118,12 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
         val topFrame = threadStack.head
         //println(indent + "Native Method Call!")
         //println(indent + args)
+        val foundMethod =
+          cls.ancestry
+             .flatMap(c => nativeX.lookup(c.name+"/"+m.name + m.desc))
+             .headOption
 
-        val result = nativeX.lookup(cls.name + "/" + method.name + method.desc) match{
+        val result = foundMethod match {
           case None => throw new Exception("Can't find Native Method: " + cls.name + " " + method.name + " " + method.desc)
           case Some(n) => n.apply(args)
         }

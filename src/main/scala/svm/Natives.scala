@@ -28,8 +28,9 @@ object Natives {
           "floatToRawIntBits(F)I"-{ java.lang.Float.floatToIntBits(_: Float)}
           ),
         "Object"/(
-          "registerNatives()V"-noOp
-          ),
+          "registerNatives()V"-noOp,
+          "getClass()Ljava/lang/Class;" - {() => new ClassObject(stackTrace().head.getClassName) }
+        ),
         "System"/(
           "arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V"-((src: Any, srcPos: Int, dest: Any, destPos: Int, length: Int) =>
             System.arraycopy(src, srcPos, dest, destPos, length)

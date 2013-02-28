@@ -11,9 +11,7 @@ class Class(val classData: ClassData,
 
 
   def method(name: String, desc: String): Option[Method] = {
-    classData.methods
-             .find(m => m.name == name && m.desc == desc)
-             .orElse(classData.superName.flatMap(x => classes(x).method(name, desc)))
+    ancestry.flatMap(_.methods).find(m => m.name == name && m.desc == desc)
   }
 
   def name = classData.name
@@ -93,6 +91,9 @@ class Object(val cls: Class, initMembers: (String, Any)*)
   }
 }
 
+class ClassObject(name: String)
+                 (implicit classes: String => Class)
+                  extends Object("java/lang/Class")
 object Access{
   val Public    = 0x0001 // 1
   val Private   = 0x0002 // 2
