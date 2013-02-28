@@ -13,6 +13,7 @@ object TypeDesc{
   type Z = Boolean
   type L = Object
 
+
   def fromChar(c: Char) = c match{
     case 'B' => classOf[B]
     case 'C' => classOf[C]

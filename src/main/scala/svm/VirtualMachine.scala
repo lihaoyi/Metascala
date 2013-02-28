@@ -63,11 +63,11 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
     val node = topFrame.method.code.instructions(topFrame.pc)
 
-    //println(indent + topFrame.pc + "\t---------------------- " + node )
+    println(indent + topFrame.pc + "\t---------------------- " + node )
     topFrame.pc += 1
     node.op(Context(this))
 
-    //println(indent + topFrame.method.name + ": " + topFrame.stack)
+    println(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack)
   }
   def returnVal(x: Option[Any]) = {
     //println(indent + "Returning!")
@@ -94,8 +94,8 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     }
   }
   def prepInvoke(cls: Class, method: Method, args: Seq[Any]) = {
-    //println("prepInvoke " + cls.name + " " + method.name)
-    //println(method.code)
+    println(indent + "prepInvoke " + cls.name + " " + method.name)
+    method.code.instructions.zipWithIndex.foreach{case (x, i) => println(indent + i + "\t" + x) }
     method match{
       case m if m.code != Code.Empty =>
         val stretchedArgs = args.flatMap {
@@ -113,7 +113,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
         threadStack.push(startFrame)
         //println(indent + "Invoking " + method.name)
         //println(indent + "Locals " + startFrame.locals)
-      //method.code.instructions.zipWithIndex.foreach{case (x, i) => println(indent + i + "\t" + x) }
+
       case m if (m.access | Access.Native) != 0 =>
         val topFrame = threadStack.head
         //println(indent + "Native Method Call!")

@@ -199,6 +199,9 @@ object LoadStore {
       case (value: Int) :: Intish(index) :: (array: Array[T]) :: stack =>
         array(index) = x(value)
         stack
+      case (value: Boolean) :: Intish(index) :: (array: Array[Boolean]) :: stack =>
+        array(index) = value
+        stack
     }
   }
   case object IAStore extends StoreArray[Int](79, "iastore")

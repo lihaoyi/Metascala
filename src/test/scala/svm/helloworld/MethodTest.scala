@@ -22,6 +22,7 @@ class MethodTest extends FreeSpec with Util{
     val tester = new Tester("svm.helloworld.methods.Natives")
     "intBitsToFloat" in chk(tester.run("intBitsToFloat", _: Int))
     "currentTimeMillis" in tester.run("currentTimeMillis")
+    "inheritedNative" in tester.run("inheritedNative")
   }
   "objects" - {
     val tester = new Tester("svm.helloworld.methods.Objects")

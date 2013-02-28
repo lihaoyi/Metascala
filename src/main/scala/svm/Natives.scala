@@ -5,9 +5,14 @@ import annotation.tailrec
 object Natives {
 
   val noOp = () => ()
+  val noOp1 = (x: Any) => ()
   val primitiveMap = Map(
-    "float" -> "java/lang/Float",
+    "boolean" -> "java/lang/Boolean",
+    "byte" -> "java/lang/Byte",
+    "short" -> "java/lang/Short",
     "int" -> "java/lang/Integer",
+    "long" -> "java/lang/Long",
+    "float" -> "java/lang/Float",
     "double" -> "java/lang/Double"
   )
 
@@ -16,25 +21,33 @@ object Natives {
       "lang"/(
         "Class"/(
           "registerNatives()V"-noOp,
+          "getName0()Ljava/lang/String;" - ((s: svm.ClassObject) => Virtualizer.toVirtual[svm.Object](s.name.replace("/", "."))),
           "getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;"-((s: svm.Object) => (new Object(getClassFor(primitiveMap(Virtualizer.fromVirtual(s).asInstanceOf[String]))))),
           "getClassLoader0()Ljava/lang/ClassLoader;"-(() => null),
+          "isPrimitive()Z" - ((x: svm.ClassObject) => false),
+          "isArray()Z" - ((x: svm.ClassObject) => x.name.startsWith("[")),
           "desiredAssertionStatus0(Ljava/lang/Class;)Z"-((x: Any) => 0)
-          ),
+        ),
         "Double"/(
           "doubleToRawLongBits(D)J"-{ java.lang.Double.doubleToRawLongBits(_: Double)}
-          ),
+        ),
         "Float"/(
           "intBitsToFloat(I)F"-{ java.lang.Float.intBitsToFloat(_: Int)},
           "floatToRawIntBits(F)I"-{ java.lang.Float.floatToIntBits(_: Float)}
-          ),
+        ),
         "Object"/(
           "registerNatives()V"-noOp,
-          "getClass()Ljava/lang/Class;" - {() => new ClassObject(stackTrace().head.getClassName) }
+          "getClass()Ljava/lang/Class;" - { (_: Any) match{
+            case (x: svm.Object) => new ClassObject(x.cls.name)
+            case a: Array[_] => new ClassObject(a.getClass.getName)
+          }},
+          "notify()V" - noOp1,
+          "notifyAll()V" - noOp1
         ),
         "System"/(
           "arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V"-((src: Any, srcPos: Int, dest: Any, destPos: Int, length: Int) =>
             System.arraycopy(src, srcPos, dest, destPos, length)
-            ),
+          ),
           "currentTimeMillis()J"-(() => System.currentTimeMillis()),
           "nanoTime()J"-(() => System.nanoTime()),
           "identityHashCode(Ljava/lang/Object;)I"-((x: svm.Object) => System.identityHashCode(x)),

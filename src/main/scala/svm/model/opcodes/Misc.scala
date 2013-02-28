@@ -68,14 +68,17 @@ object Misc {
       thunk
     }
   }
+
   case class InvokeVirtual(owner: String, name: String, desc: String) extends BaseOpCode(182, "invokevirtual"){
     def op = implicit ctx => {
       val argCount = TypeDesc.read(desc).args.length
       val (args, rest) = ctx.frame.stack.splitAt(argCount+1)
       ensureNonNull(args.last){
-        val cls = args.last.asInstanceOf[svm.Object].cls
+        val cls = args.last match {
+          case o: svm.Object => o.cls
+          case a: Array[_] => ctx("java/lang/Object")
+        }
         val method = cls.method(name, desc).get
-
         ctx.frame.stack = rest
         ctx.prepInvoke(cls, method, args.reverse)
       }

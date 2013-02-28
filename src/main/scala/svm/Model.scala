@@ -10,6 +10,10 @@ class Class(val classData: ClassData,
            (implicit classes: String => Class){
 
 
+  classData.fields.map{f =>
+    statics(f.name) = Object.initField(f.desc)
+  }
+
   def method(name: String, desc: String): Option[Method] = {
     ancestry.flatMap(_.methods).find(m => m.name == name && m.desc == desc)
   }
@@ -38,6 +42,7 @@ class Class(val classData: ClassData,
 }
 
 object Object{
+
   def initMembers(cls: ClassData)(implicit classes: String => Class): List[Map[String, Any]] = {
     cls.fields.map{f =>
       f.name -> initField(f.desc)
@@ -91,7 +96,7 @@ class Object(val cls: Class, initMembers: (String, Any)*)
   }
 }
 
-class ClassObject(name: String)
+class ClassObject(val name: String)
                  (implicit classes: String => Class)
                   extends Object("java/lang/Class")
 object Access{

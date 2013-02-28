@@ -34,5 +34,6 @@ class ArrayTest extends FreeSpec with Util{
     "make3D" in chk(tester.run("make3D", _: Int, _: Int, _ : Int))(Seq(0, 1, 2), Seq(0, 1, 2), Seq(0, 1, 2))
     "getAndSet" in tester.run("getAndSet")
   }
+
 }
 

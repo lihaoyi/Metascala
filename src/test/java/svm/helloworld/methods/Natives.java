@@ -7,4 +7,8 @@ public class Natives {
     public static long currentTimeMillis(){
         return System.currentTimeMillis() / 100;
     }
+    public static String inheritedNative(){
+
+        return "omg".getClass().getName();
+    }
 }
