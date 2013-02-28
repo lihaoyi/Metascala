@@ -5,12 +5,11 @@ public class ClassObject {
         return new ClassObject().getClass().getName()
                 + new long[100].getClass().getName();
     }
-    public static String forName(String s){
-        try{
-            return Class.forName(s).getName();
-        }catch(ClassNotFoundException c){
-            return c.getMessage();
-        }
+    public static String forName(String s) throws Exception{
+
+        Object x = Class.forName("ClassObject");
+        return "ClassObject";
+
     }
     public static boolean[] isPrimitive(){
         return new boolean[]{

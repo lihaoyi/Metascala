@@ -23,7 +23,7 @@ object Natives {
           "registerNatives()V"-noOp,
           "getName0()Ljava/lang/String;" - ((s: svm.ClassObject) => Virtualizer.toVirtual[svm.Object](s.name.replace("/", "."))),
           "getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;"-((s: svm.Object) => (new Object(getClassFor(primitiveMap(Virtualizer.fromVirtual(s).asInstanceOf[String]))))),
-          "getClassLoader0()Ljava/lang/ClassLoader;"-(() => null),
+          "getClassLoader0()Ljava/lang/ClassLoader;"-(() => new ClassLoaderObject("lol")),
           "isPrimitive()Z" - ((x: svm.ClassObject) => false),
           "isArray()Z" - ((x: svm.ClassObject) => x.name.startsWith("[")),
           "desiredAssertionStatus0(Ljava/lang/Class;)Z"-((x: Any) => 0)

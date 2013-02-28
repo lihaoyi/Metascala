@@ -3,7 +3,7 @@ package svm
 import collection.mutable
 import model._
 import model.Attached.LineNumber
-
+import annotation.tailrec
 
 
 class VirtualMachine(classLoader: String => Array[Byte]){
@@ -16,7 +16,9 @@ class VirtualMachine(classLoader: String => Array[Byte]){
       classes.get(name) match{
         case Some(cls) => cls
         case None =>
+
           classes(name) = new Class(ClassData.parse(classLoader(name)))
+          sun.misc.VM
           classes(name).method("<clinit>", "()V").foreach( m =>
             threads(0).invoke(classes(name), m, Nil)
           )
@@ -74,24 +76,28 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     threadStack.pop()
     x.foreach(value => threadStack.head.stack = value :: threadStack.head.stack)
   }
-  def throwException(ex: svm.Object): Unit = {
-    val frame = threadStack.head
+  @tailrec final def throwException(ex: svm.Object): Unit = {
+    threadStack.headOption match{
+      case Some(frame)=>
+        val handler =
+          frame.method.misc.tryCatchBlocks
+            .filter(x => x.start <= frame.pc && x.end >= frame.pc)
+            .filter(x => !x.blockType.isDefined || ex.cls.isInstanceOf(x.blockType.get))
+            .headOption
 
-    val handler =
-      frame.method.misc.tryCatchBlocks
-           .filter(x => x.start <= frame.pc && x.end >= frame.pc)
-           .filter(x => !x.blockType.isDefined || ex.cls.isInstanceOf(x.blockType.get))
-           .headOption
 
-
-    handler match{
+        handler match{
+          case None =>
+            threadStack.pop()
+            throwException(ex)
+          case Some(TryCatchBlock(start, end, handler, blockType)) =>
+            frame.pc = handler
+            frame.stack ::= ex
+        }
       case None =>
-        threadStack.pop()
-        throwException(ex)
-      case Some(TryCatchBlock(start, end, handler, blockType)) =>
-        frame.pc = handler
-        frame.stack ::= ex
+        throw new Exception("Uncaught Exception: " + ex.apply(ex.cls.name, "stackTrace"))
     }
+
   }
   def prepInvoke(cls: Class, method: Method, args: Seq[Any]) = {
     println(indent + "prepInvoke " + cls.name + " " + method.name)

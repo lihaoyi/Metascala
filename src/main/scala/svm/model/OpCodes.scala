@@ -15,7 +15,13 @@ case class Context(thread: VmThread) extends (String => svm.Class){
     frame.stack = transform(frame.stack)
   }
   def jumpTo(l: Int) = frame.pc = l
-  def throwException(ex: svm.Object) = thread.throwException(ex)
+  def throwException(ex: svm.Object) = {
+    println("Throwing " + ex.cls.name)
+    thread.threadStack.foreach(f =>
+      println(f.runningClass.name + " " + f.method.name)
+    )
+    thread.throwException(ex)
+  }
   def prepInvoke(cls: Class, method: Method, args: Seq[Any]) = {
     thread.prepInvoke(cls, method, args)
   }

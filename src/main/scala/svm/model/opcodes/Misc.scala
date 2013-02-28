@@ -63,6 +63,7 @@ object Misc {
 
   def ensureNonNull(x: Any)(thunk: => Unit)(implicit ctx: Context) = {
     if (x == null){
+
       ctx.throwException(new svm.Object("java/lang/NullPointerException"))
     }else {
       thunk
@@ -170,8 +171,12 @@ object Misc {
       res :: ctx.frame.stack
     }
   }
-  case object MonitorEnter extends BaseOpCode(194, "monitorenter"){ def op = ???  }
-  case object MonitorExit extends BaseOpCode(195, "monitorexit"){ def op = ??? }
+  case object MonitorEnter extends BaseOpCode(194, "monitorenter"){
+    def op = ctx => () //noop
+  }
+  case object MonitorExit extends BaseOpCode(195, "monitorexit"){
+    def op = ctx => () //noop
+  }
 
   // Not used, because ASM folds these into the following bytecode for us
   //===============================================================

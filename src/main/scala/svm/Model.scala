@@ -99,6 +99,9 @@ class Object(val cls: Class, initMembers: (String, Any)*)
 class ClassObject(val name: String)
                  (implicit classes: String => Class)
                   extends Object("java/lang/Class")
+class ClassLoaderObject(val name: String)
+                 (implicit classes: String => Class)
+                  extends Object("java/lang/ClassLoader")
 object Access{
   val Public    = 0x0001 // 1
   val Private   = 0x0002 // 2
