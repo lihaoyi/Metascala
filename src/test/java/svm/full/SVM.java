@@ -6,4 +6,7 @@ public class SVM {
     public void initSVM(){
         Util$.MODULE$.singleClassVm("svm.math.HelloMath");
     }
+    public void rhino(){
+
+    }
 }

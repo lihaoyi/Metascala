@@ -6,11 +6,10 @@ public class ClassObject {
                 + new long[100].getClass().getName();
     }
     public static String forName(String s) throws Exception{
-
-        Class x = Class.forName("svm.natives.classes.ClassObject");
+        Class x = Class.forName(s);
         return x.getCanonicalName();
-
     }
+
     public static boolean[] isPrimitive(){
         return new boolean[]{
                 new ClassObject().getClass().isPrimitive(),

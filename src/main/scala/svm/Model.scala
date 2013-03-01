@@ -7,7 +7,7 @@ import annotation.tailrec
 
 class Class(val classData: ClassData,
             val statics: mutable.Map[String, Any] = mutable.Map.empty)
-           (implicit classes: String => Class){
+           (implicit classes: String => Class, loader: VClassLoader){
 
 
   classData.fields.map{f =>

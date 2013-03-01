@@ -8,16 +8,26 @@ import annotation.tailrec
 object VM{
   def apply()(implicit vm: VM) = vm
 }
+class VClassLoader(var children: Seq[VClassLoader]) extends (String => Class){
+  implicit val loader = this
+  val classes = mutable.Map.empty[String, Class]
+
+
+  def defineClass(name: String, data: Array[Byte]) = {
+    classes(name) = new Class(ClassData.parse(data))
+  }
+  def apply(s: String): Class = {
+    ???
+  }
+}
+
 class VM(classLoader: String => Array[Byte]){
 
-   implicit object classTable extends (String => Class){
-    private[this] lazy val classes: mutable.Map[String, Class] = mutable.Map(
-      "I" -> new Class(new ClassData(0, "I"))(null)
-    )
+  implicit object RootLoader extends VClassLoader(Nil){
+    classes("I") = new Class(new ClassData(0, "I"))(null, null)
 
-    def apply(name: String): Class = {
+    override def apply(name: String): Class = {
       require(!name.contains("."))
-
       classes.get(name) match{
         case Some(cls) => cls
         case None =>
