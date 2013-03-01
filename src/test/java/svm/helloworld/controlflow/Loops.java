@@ -21,4 +21,18 @@ public class Loops {
         while(c < a) c = c * 2;
         return c;
     }
+    public static double sqrtFinder(double n){
+        double guess = n / 2;
+        while(true){
+            double errorSquared = guess*guess - n;
+            errorSquared = errorSquared * errorSquared;
+            if (errorSquared / n < 0.0001) return guess;
+            else{
+                guess = ((guess * guess) - n) / (2 * guess);
+            }
+        }
+    }
+    public static void main(String[] args){
+        System.out.println(sqrtFinder(2));
+    }
 }

@@ -23,6 +23,7 @@ class ControlFlowTest extends FreeSpec with Util{
     "basicFor" in chk(tester.run("basicFor", _: Int))(Seq.fill(0)(Gen.int(256)))
     "nullWhile" in tester.run("nullWhile", 100)
     "basicWhile" in chk(tester.run("basicWhile", _: Int))(Seq.fill(0)(Gen.int(256)))
+    "sqrtFinder" in chk(tester.run("sqrtFinder", _: Double))(Seq.fill(10)(Math.random() * 1000))
   }
   "switches" - {
     val tester = new Tester("svm.helloworld.controlflow.Switches")
