@@ -8,7 +8,7 @@ object Natives {
   var internedStrings: List[svm.Object] = Nil
   def intern(x: svm.Object) = {
 
-    println("INTERNING " + Virtualizer.fromVirtual(x))
+
     val interned = internedStrings.find(y => Virtualizer.fromVirtual(y) == Virtualizer.fromVirtual(x))
     interned match{
       case Some(i) => i
@@ -59,6 +59,9 @@ object Natives {
             null
           },
           "isPrimitive()Z" - ((x: svm.ClassObject) => false),
+          "isAssignableFrom(Ljava/lang/Class;)Z" - {(x: svm.ClassObject, y: svm.ClassObject) =>
+            true
+          },
           "isArray()Z" - ((x: svm.ClassObject) => x.name.startsWith("[")),
           "desiredAssertionStatus0(L//Class;)Z"-((x: Any) => 0)
         ),
@@ -73,9 +76,7 @@ object Natives {
         "Object"/(
           "registerNatives()V"-noOp,
           "getClass()L//Class;" - { (_: Any) match{
-            case (x: svm.Object) =>
-              println("GETTING CLASS " + x.cls.name)
-              new ClassObject(x.cls.name)
+            case (x: svm.Object) => new ClassObject(x.cls.name)
             case a: Array[_] => new ClassObject(a.getClass.getName)
           }},
           "hashCode()I" - {(x: svm.Object) => x.hashCode()},
@@ -134,9 +135,6 @@ object Natives {
         "AccessController"/(
           "doPrivileged(L//PrivilegedAction;)L/lang/Object;" - {
             (pa: svm.Object) =>
-              println("doPrivilegedyo")
-              println(pa.cls.name)
-              println(pa.cls.classData.methods.map(_.name))
               thread.prepInvoke(pa.cls, pa.cls.classData.methods.find(_.name == "run").get, Nil)
           },
           "getStackAccessControlContext()L//AccessControlContext;" - {
@@ -155,10 +153,8 @@ object Natives {
           "arrayIndexScale(Ljava/lang/Class;)I" - ((x: Any) => 1),
           "addressSize()I" - ((x: Any) => 4),
           "compareAndSwapInt(Ljava/lang/Object;JII)Z" - {(s: Any, x: svm.Object, offset: Int, expected: Int, target: Int) =>
-            println("COMPAREANDSWAP LOL")
-            println(x.members.head)
             val key = x.members.head.keys.toSeq(offset.toInt)
-            println(key)
+
             if (x(x.cls.name, key) == expected) x(x.cls.name, key) = target
             true;
           },

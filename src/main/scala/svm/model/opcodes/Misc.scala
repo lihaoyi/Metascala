@@ -49,14 +49,20 @@ object Misc {
   }
 
   case class GetField(owner: String, name: String, desc: String) extends BaseOpCode(180, "getfield"){
-    def op = _.swapStack{
-      case (objectRef: svm.Object) :: stack => objectRef(owner, name) :: stack
+    def op = implicit ctx => ctx.swapStack{
+      case (objectRef: svm.Object) :: stack => ext(objectRef(owner, name)) :: stack
+      case null :: stack =>
+        ctx.throwException(new svm.Object("java/lang/NullPointerException"))
+      stack
     }
   }
   case class PutField(owner: String, name: String, desc: String) extends BaseOpCode(181, "putfield"){
-    def op = _.swapStack {
+    def op = implicit ctx => ctx.swapStack {
       case value :: (objectRef: svm.Object) :: stack =>
         objectRef(owner, name) = value
+        stack
+      case value :: null :: stack =>
+        ctx.throwException(new svm.Object("java/lang/NullPointerException"))
         stack
     }
   }
@@ -165,7 +171,10 @@ object Misc {
     def op = implicit ctx => ctx.swapStack{ case top :: rest =>
       val res = top match{
         case null => 0
-        case x: svm.Object => x.cls.isInstanceOf(desc)
+        case x: svm.Object =>  if(x.cls.isInstanceOf(desc)) 1 else 0
+        case x: Array[Object] => 1
+
+
       }
       res :: ctx.frame.stack
     }

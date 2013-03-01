@@ -50,7 +50,6 @@ object LoadStore {
       val newConst = const match{
         case s: String => Natives.intern(new svm.Object("java/lang/String", "value" -> s.toCharArray))
         case t: asm.Type =>
-          println("ll "+t.getClassName)
           new svm.ClassObject(t.getClassName.replace('.', '/'))
 
         case x => x

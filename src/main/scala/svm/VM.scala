@@ -5,20 +5,22 @@ import model._
 import model.Attached.LineNumber
 import annotation.tailrec
 
+object VM{
+  def apply()(implicit vm: VM) = vm
+}
+class VM(classLoader: String => Array[Byte]){
 
-class VirtualMachine(classLoader: String => Array[Byte]){
-
-  implicit object classTable extends (String => Class){
+   implicit object classTable extends (String => Class){
     private[this] lazy val classes: mutable.Map[String, Class] = mutable.Map(
       "I" -> new Class(new ClassData(0, "I"))(null)
     )
+
     def apply(name: String): Class = {
       require(!name.contains("."))
 
       classes.get(name) match{
         case Some(cls) => cls
         case None =>
-
           classes(name) = new Class(ClassData.parse(classLoader(name)))
           classes(name).method("<clinit>", "()V").foreach( m =>
             threads(0).invoke(classes(name), m, Nil)
@@ -46,6 +48,9 @@ class VirtualMachine(classLoader: String => Array[Byte]){
   }
 }
 
+object VmThread{
+  def apply()(implicit vmt: VmThread) = vmt
+}
 class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit val classes: String => svm.Class){
   val nativeX = Natives.nativeX(this, getStackTrace _)
   def getStackTrace =
@@ -59,6 +64,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
         }.getOrElse(-1)
       )
     }.toList
+  scala.sys.SystemProperties
   def indent = "\t" * threadStack.filter(_.method.name != "Dummy").length
   def step() = {
     val topFrame = threadStack.head
@@ -70,6 +76,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     node.op(Context(this))
 
     //println(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack)
+    //println(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack.map(x => if (x == null) null else x.getClass))
   }
   def returnVal(x: Option[Any]) = {
     //println(indent + "Returning!")
@@ -140,7 +147,11 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
              .headOption
 
         val result = foundMethod match {
-          case None => throw new Exception("Can't find Native Method: " + cls.name + " " + method.name + " " + method.desc)
+          case None =>
+            threadStack.filter(_.method.name != "Dummy").foreach(f =>
+              println(f.runningClass.name.padTo(30, ' ') + f.method.name.padTo(20, ' ') + " " + (f.pc-1) + "\t" + f.method.code.instructions(f.pc-1))
+            )
+            throw new Exception("Can't find Native Method: " + cls.name + " " + method.name + " " + method.desc)
           case Some(n) => n.apply(args)
         }
 
@@ -149,7 +160,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
           case nonUnit => nonUnit :: topFrame.stack
         }
       case _ =>
-        println(indent + "Empty Method!")
+        //println(indent + "Empty Method!")
     }
 
   }

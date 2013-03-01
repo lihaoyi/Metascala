@@ -101,8 +101,7 @@ class ClassObject(val name: String)
                  (implicit classes: String => Class)
                   extends Object("java/lang/Class"){
   def getDeclaredFields() = {
-    println("GETTING DECLARED FIELDS " + name)
-    println(classes(name).classData.fields.map(_.name))
+
     classes(name).classData.fields.map {f =>
       new svm.Object("java/lang/reflect/Field",
         "clazz" -> this,

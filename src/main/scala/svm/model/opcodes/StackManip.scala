@@ -4,6 +4,8 @@ import svm.model.TypeDesc._
 import svm.model.{OpCode, a}
 import svm.Virtualizer
 
+import scala.::
+
 object  StackManip {
   class PureStackOpCode(val id: Byte, val insnName: String)(transform: List[Any] => List[Any]) extends OpCode{
     def op = ctx => ctx.frame.stack = transform(ctx.stack)
@@ -73,14 +75,14 @@ object  StackManip {
   case object IUShr extends PureStackOpCode(124, "iushr")({ case (x: I) :: (y: I) :: s => (y >>> x) :: s })
   case object LUShr extends PureStackOpCode(125, "lushr")({ case (x: I) :: (y: J) :: s => (y >>> x) :: s })
 
-  case object IAnd extends PureStackOpCode(126, "iand")({ case s :+ (x: I) :+ (y: I) => s :+ (x & y) })
-  case object LAnd extends PureStackOpCode(127, "land")({ case s :+ (x: J) :+ (y: J) => s :+ (x & y) })
+  case object IAnd extends PureStackOpCode(126, "iand")({ case (x: I) :: (y: I) :: s => (x & y) :: s })
+  case object LAnd extends PureStackOpCode(127, "land")({ case (x: J) :: (y: J) :: s => (x & y) :: s })
 
-  case object IOr extends PureStackOpCode(128, "ior")({ case s :+ (x: I) :+ (y: I) => s :+ (x | y) })
-  case object LOr extends PureStackOpCode(129, "lor")({ case s :+ (x: J) :+ (y: J) => s :+ (x | y) })
+  case object IOr extends PureStackOpCode(128, "ior")({ case (x: I) :: (y: I) :: s => (x | y) :: s })
+  case object LOr extends PureStackOpCode(129, "lor")({ case (x: J) :: (y: J) :: s => (x | y) :: s })
 
-  case object IXOr extends PureStackOpCode(130, "ixor")({ case s :+ (x: I) :+ (y: I) => s :+ (x ^ y) })
-  case object LXOr extends PureStackOpCode(131, "lxor")({ case s :+ (x: J) :+ (y: J) => s :+ (x ^ y) })
+  case object IXOr extends PureStackOpCode(130, "ixor")({ case (x: I) :: (y: I) :: s => (x ^ y) :: s })
+  case object LXOr extends PureStackOpCode(131, "lxor")({ case (x: J) :: (y: J) :: s => (x ^ y) :: s })
 
   case class IInc(varId: Int, amount: Int) extends OpCode{
     def id = 132
@@ -104,9 +106,9 @@ object  StackManip {
   case object D2L extends PureStackOpCode(143, "d2l")({ case (x: D) :: s => x.toLong :: s })
   case object D2F extends PureStackOpCode(144, "d2f")({ case (x: D) :: s  => x.toFloat :: s })
 
-  case object I2B extends PureStackOpCode(145, "i2b")({ case (x: I) :: s => x.toByte :: s })
-  case object I2C extends PureStackOpCode(146, "i2c")({ case (x: I) :: s => x.toChar :: s })
-  case object I2S extends PureStackOpCode(147, "i2s")({ case (x: I) :: s => x.toShort :: s })
+  case object I2B extends PureStackOpCode(145, "i2b")({ case (x: I) :: s => x.toByte.toInt :: s })
+  case object I2C extends PureStackOpCode(146, "i2c")({ case (x: I) :: s => x.toChar.toInt :: s })
+  case object I2S extends PureStackOpCode(147, "i2s")({ case (x: I) :: s => x.toShort.toInt :: s })
 
   case object LCmp extends PureStackOpCode(148, "lcmp")({ case (x: J) :: (y: J) :: s => y.compare(x) :: s })
   case object FCmpl extends PureStackOpCode(149, "fcmpl")({ case (x: F) :: (y: F) :: s => y.compare(x) :: s })
@@ -147,18 +149,7 @@ object  StackManip {
   abstract class BinaryBranchObj(val id: Byte, val insnName: String)(pred: (Any, Any) => Boolean) extends OpCode{
     def label: Int
     def op = ctx => ctx.swapStack{ case top :: next :: stack =>
-      (top, next) match{
-        case (sa: svm.Object, sb: svm.Object)
-          if sa.cls.name == "java/lang/String"
-            && sb.cls.name == "java/lang/String" =>
-          println("COMPARING FOR NOT EQUAL")
-          println(sa)
-          println(sb)
-          println(Virtualizer.fromVirtual(sa))
-          println(Virtualizer.fromVirtual(sb))
-          println(sa != sb)
-        case _ =>
-      }
+
       if(pred(next, top)) ctx.jumpTo(label)
       stack
 

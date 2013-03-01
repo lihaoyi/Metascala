@@ -78,13 +78,15 @@ object Util{
     //model.Util.printClass(bytes)
     bytes
   }
+  def singleClassVm(className: String) = new SingleClassVM(className)
+  class SingleClassVM(className: String, val classLoader: String => Array[Byte] = Util.loadClass)
+    extends VM(classLoader){
+    def run(main: String, args: Any*): Any = invoke(className.replace('.', '/'), main, args)
+  }
 }
 trait Util extends ShouldMatchers { this: FreeSpec  =>
 
-  class SingleClassVM(className: String, val classLoader: String => Array[Byte])
-  extends VirtualMachine(classLoader){
-    def run(main: String, args: Any*): Any = invoke(className.replace('.', '/'), main, args)
-  }
+
   class ReflectiveRunner(className: String){
     def run(main: String, args: Any*) = {
       val method = java.lang.Class.forName(className)
@@ -98,7 +100,7 @@ trait Util extends ShouldMatchers { this: FreeSpec  =>
     }
   }
   class Tester(className: String){
-    val svm = new SingleClassVM(className, Util.loadClass)
+    val svm = new Util.SingleClassVM(className, Util.loadClass)
     val ref = new ReflectiveRunner(className)
     def run(main: String, args: Any*) = {
       val svmRes = svm.run(main, args:_*)

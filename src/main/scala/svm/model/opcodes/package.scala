@@ -8,6 +8,15 @@ package svm.model
  * To change this template use File | Settings | File Templates.
  */
 package object opcodes {
+  def ext(x: Any) = {
+    x match {
+      case b: Boolean => if (b) 1 else 0
+      case c: Char => c.toInt
+      case b: Byte => b.toInt
+      case s: Short => s.toInt
+      case x => x
+    }
+  }
   object Intish{
     def unapply(x: Any) = x match{
       case b: Boolean => Some(if (b) 1 else 0 )
