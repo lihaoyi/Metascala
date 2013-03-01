@@ -65,14 +65,14 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
     val node = topFrame.method.code.instructions(topFrame.pc)
 
-    println(indent + topFrame.pc + "\t---------------------- " + node )
+    //println(indent + topFrame.pc + "\t---------------------- " + node )
     topFrame.pc += 1
     node.op(Context(this))
 
-    println(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack)
+    //println(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack)
   }
   def returnVal(x: Option[Any]) = {
-    println(indent + "Returning!")
+    //println(indent + "Returning!")
     threadStack.pop()
     x.foreach(value => threadStack.head.stack = value :: threadStack.head.stack)
   }
@@ -101,10 +101,10 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
   }
   def prepInvoke(cls: Class, method: Method, args: Seq[Any]) = {
-    println(indent + "prepInvoke " + cls.name + " " + method.name)
+    //println(indent + "prepInvoke " + cls.name + " " + method.name)
 
 
-    method.code.instructions.zipWithIndex.foreach{case (x, i) => println(indent + i + "\t" + x) }
+    //method.code.instructions.zipWithIndex.foreach{case (x, i) => println(indent + i + "\t" + x) }
 
     (Natives.trapped.lookup(cls.name + "/" + method.name + method.desc), method) match{
       case (Some(trap), _) =>
@@ -126,7 +126,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
           locals = mutable.Seq.tabulate(method.misc.maxLocals)(stretchedArgs.orElse{case x => null}),
           stack = Nil
         )
-        println(indent + "locals " + startFrame.locals)
+        //println(indent + "locals " + startFrame.locals)
         threadStack.push(startFrame)
         //println(indent + "Invoking " + method.name)
         //println(indent + "Locals " + startFrame.locals)

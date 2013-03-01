@@ -195,10 +195,7 @@ object LoadStore {
   }
   class StoreArrayInt[T](val id: Byte, val insnName: String)(x: Int => T) extends OpCode{
     def op = ctx => {
-      println("OMG")
-      println(ctx.stack)
-      println(ctx.stack.map(_.getClass))
-      println("WTF")
+
       ctx.swapStack {
         case Intish(value) :: Intish(index) :: (array: Array[T]) :: stack =>
           array(index) = x(value)
