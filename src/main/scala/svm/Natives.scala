@@ -44,23 +44,23 @@ object Natives {
       "lang"/(
         "Class"/(
           "registerNatives()V"-noOp,
-          "getName0()Ljava/lang/String;" - ((s: svm.ClassObject) => Virtualizer.toVirtual[svm.Object](s.name.replace("/", "."))),
-          "forName0(Ljava/lang/String;)Ljava/lang/Class;" - ((s: svm.Object) => new ClassObject(Virtualizer.fromVirtual[String](s))),
-          "forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;" - ((s: svm.Object, x: Any, w: Any, y: Any) => new ClassObject(Virtualizer.fromVirtual[String](s))),
-          "getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;"-((s: svm.Object) => (new Object(getClassFor(primitiveMap(Virtualizer.fromVirtual(s).asInstanceOf[String]))))),
-          "getClassLoader0()Ljava/lang/ClassLoader;"-((x: Any) => null),
-          "getDeclaringClass()Ljava/lang/Class;" - {() =>
+          "getName0()L//String;" - ((s: svm.ClassObject) => Virtualizer.toVirtual[svm.Object](s.name.replace("/", "."))),
+          "forName0(L//String;)L//Class;" - ((s: svm.Object) => new ClassObject(Virtualizer.fromVirtual[String](s))),
+          "forName0(L//String;ZL//ClassLoader;)L//Class;" - ((s: svm.Object, x: Any, w: Any, y: Any) => new ClassObject(Virtualizer.fromVirtual[String](s))),
+          "getPrimitiveClass(L//String;)L//Class;"-((s: svm.Object) => (new Object(getClassFor(primitiveMap(Virtualizer.fromVirtual(s).asInstanceOf[String]))))),
+          "getClassLoader0()L//ClassLoader;"-((x: Any) => null),
+          "getDeclaringClass()L//Class;" - {() =>
             null
           },
-          "getDeclaredFields0(Z)[Ljava/lang/reflect/Field;" - {(cls: svm.ClassObject, b: Int) =>
+          "getDeclaredFields0(Z)[L//reflect/Field;" - {(cls: svm.ClassObject, b: Int) =>
             cls.getDeclaredFields().toArray
           },
-          "getEnclosingMethod0()[Ljava/lang/Object;" - { () =>
+          "getEnclosingMethod0()[L//Object;" - { () =>
             null
           },
           "isPrimitive()Z" - ((x: svm.ClassObject) => false),
           "isArray()Z" - ((x: svm.ClassObject) => x.name.startsWith("[")),
-          "desiredAssertionStatus0(Ljava/lang/Class;)Z"-((x: Any) => 0)
+          "desiredAssertionStatus0(L//Class;)Z"-((x: Any) => 0)
         ),
         "Double"/(
           "doubleToRawLongBits(D)J"-{ java.lang.Double.doubleToRawLongBits(_: Double)},
@@ -72,7 +72,7 @@ object Natives {
         ),
         "Object"/(
           "registerNatives()V"-noOp,
-          "getClass()Ljava/lang/Class;" - { (_: Any) match{
+          "getClass()L//Class;" - { (_: Any) match{
             case (x: svm.Object) =>
               println("GETTING CLASS " + x.cls.name)
               new ClassObject(x.cls.name)
@@ -86,19 +86,19 @@ object Natives {
             "freeMemory()J" - {() => 1000000000L  }
         ),
         "String"/(
-          "intern()Ljava/lang/String;" - intern _
+          "intern()L//String;" - intern _
         ),
         "System"/(
-          "arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V"-((src: Any, srcPos: Int, dest: Any, destPos: Int, length: Int) =>
+          "arraycopy(L//Object;IL//Object;II)V"-((src: Any, srcPos: Int, dest: Any, destPos: Int, length: Int) =>
             System.arraycopy(src, srcPos, dest, destPos, length)
           ),
           "currentTimeMillis()J"-(() => System.currentTimeMillis()),
           "nanoTime()J"-(() => System.nanoTime()),
-          "identityHashCode(Ljava/lang/Object;)I"-((x: svm.Object) => System.identityHashCode(x)),
+          "identityHashCode(L//Object;)I"-((x: svm.Object) => System.identityHashCode(x)),
           "registerNatives()V"-noOp
         ),
         "Thread"/(
-          "currentThread()Ljava/lang/Thread;" - { () =>
+          "currentThread()L//Thread;" - { () =>
             new svm.Object("java/lang/Thread",
               "name" -> "MyThread".toCharArray,
               "group" -> new svm.Object("java/lang/ThreadGroup"),
@@ -110,7 +110,7 @@ object Natives {
           "start0()V" - { noOp }
         ),
         "Throwable"/(
-          "fillInStackTrace(I)Ljava/lang/Throwable;" - { (throwable: svm.Object, dummy: Int) =>
+          "fillInStackTrace(I)L//Throwable;" - { (throwable: svm.Object, dummy: Int) =>
             throwable.members(0)("stackTrace") =
               stackTrace().map { f =>
               new svm.Object("java/lang/StackTraceElement",
@@ -132,17 +132,17 @@ object Natives {
       ),
       "security"/(
         "AccessController"/(
-          "doPrivileged(Ljava/security/PrivilegedAction;)Ljava/lang/Object;" - {
+          "doPrivileged(L//PrivilegedAction;)L/lang/Object;" - {
             (pa: svm.Object) =>
               println("doPrivilegedyo")
               println(pa.cls.name)
               println(pa.cls.classData.methods.map(_.name))
               thread.prepInvoke(pa.cls, pa.cls.classData.methods.find(_.name == "run").get, Nil)
           },
-          "getStackAccessControlContext()Ljava/security/AccessControlContext;" - {
+          "getStackAccessControlContext()L//AccessControlContext;" - {
             () => new svm.Object("java/security/AccessControlContext")
           },
-          "getInheritedAccessControlContext()Ljava/security/AccessControlContext;" - {
+          "getInheritedAccessControlContext()L//AccessControlContext;" - {
             () => new svm.Object("java/security/AccessControlContext")
           }
         )
@@ -183,17 +183,22 @@ object Natives {
     def apply(a: (String, Route)*) = Node(a.toMap)
   }
   trait Route{
-    def lookup(s: String): Option[Leaf]
+    def lookup(s: String, parts: List[String] = Nil): Option[Leaf]
   }
   case class Node(children: Map[String, Route]) extends Route{
-    def lookup(s: String) = {
-      val Array(first, rest) =
+    def lookup(s: String, parts: List[String] = Nil) = {
+
         if (s.indexOf('/') != -1 && s.indexOf('/') < s.indexOf('(')){
-          s.split("/", 2)
+          val Array(first, rest) =s.split("/", 2)
+          children.get(first).flatMap(_.lookup(rest, parts :+ first))
         }else{
-          Array(s, "")
+
+          children.find(_._1.replace("L///", "L" + parts(0) + "/" + parts(1) + "/" + parts(2) + "/")
+              .replace("L//", "L" + parts(0) + "/" + parts(1) + "/")
+              .replace("L/", "L" + parts(0) + "/") == s
+          ).flatMap(_._2.lookup("", Nil))
         }
-      children.get(first).flatMap(_.lookup(rest))
+
     }
   }
 
@@ -203,7 +208,8 @@ object Natives {
   implicit def func4(f: (Nothing, Nothing, Nothing, Nothing) => Any) = f.curried
   implicit def func5(f: (Nothing, Nothing, Nothing, Nothing, Nothing) => Any) = f.curried
   case class Leaf(f: Nothing => Any) extends Route{
-    def lookup(s: String) = {
+    def lookup(s: String, parts: List[String] = Nil) = {
+
       if (s == "") Some(this)
       else None
     }
