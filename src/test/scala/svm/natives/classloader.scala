@@ -15,5 +15,6 @@ class ClassTest extends FreeSpec with Util{
     "isPrimitive" in tester.run("isPrimitive")
     "isArray" in tester.run("isArray")
   }
+
 }
 

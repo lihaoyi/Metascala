@@ -2,19 +2,37 @@ package svm.model.opcodes
 
 import svm.model.TypeDesc._
 import svm.model.{OpCode, a}
+import svm.Virtualizer
 
 object  StackManip {
   class PureStackOpCode(val id: Byte, val insnName: String)(transform: List[Any] => List[Any]) extends OpCode{
     def op = ctx => ctx.frame.stack = transform(ctx.stack)
   }
   case object Pop extends PureStackOpCode(87, "pop")({ case _ :: s => s })
-  case object Pop2 extends PureStackOpCode(88, "pop2")({ case _ :: _ :: s => s })
+  case object Pop2 extends PureStackOpCode(88, "pop2")({
+    case Cat1(_) :: Cat1(_) :: s => s
+    case Cat2(_) :: s => s
+  })
   case object Dup extends PureStackOpCode(89, "dup")({ case top :: s => top :: top :: s })
   case object DupX1 extends PureStackOpCode(90, "dup_x1")({ case top :: x :: s => top :: x :: top :: s })
-  case object DupX2 extends PureStackOpCode(91, "dup_x2")({ case top :: y :: x :: s => top :: y :: x :: top :: s })
-  case object Dup2 extends PureStackOpCode(92, "dup2")({ case y :: x :: s => y :: x :: y :: x :: s })
-  case object Dup2X1 extends PureStackOpCode(93, "dup2_x1")({ case a :: b :: x :: s => a :: b :: x :: a :: b :: s })
-  case object Dup2X2 extends PureStackOpCode(94, "dup2_x2")({ case a :: b :: x :: y :: s => a :: b :: x :: y :: a :: b :: s })
+  case object DupX2 extends PureStackOpCode(91, "dup_x2")({
+    case Cat1(top) :: Cat1(y) :: Cat1(x) :: s => top :: y :: x :: top :: s
+    case Cat1(top) :: Cat2(x) :: s => top :: x :: top :: s
+  })
+  case object Dup2 extends PureStackOpCode(92, "dup2")({
+    case Cat1(y) :: Cat1(x) :: s => y :: x :: y :: x :: s
+    case Cat2(x) :: s => x :: x :: s
+  })
+  case object Dup2X1 extends PureStackOpCode(93, "dup2_x1")({
+    case Cat1(a) :: Cat1(b) :: Cat1(x) :: s => a :: b :: x :: a :: b :: s
+    case Cat2(a) :: Cat1(x) :: s => a :: a :: x :: a :: s
+  })
+  case object Dup2X2 extends PureStackOpCode(94, "dup2_x2")({
+    case Cat1(a) :: Cat1(b) :: Cat1(x) :: Cat1(y) :: s => a :: b :: x :: y :: a :: b :: s
+    case Cat2(a) :: Cat1(b) :: Cat1(x) :: s => a :: b :: x :: a :: s
+    case Cat1(a) :: Cat1(b) :: Cat2(x) :: s => a :: b :: x :: a :: b :: s
+    case Cat2(a) :: Cat2(b) :: s => a :: b :: a :: s
+  })
   case object Swap extends PureStackOpCode(95, "swap")({ case x :: y :: s=> y :: x :: s })
 
   case object IAdd extends PureStackOpCode(96, "iadd")({ case (x: I) :: (y: I) :: s => (x + y) :: s })
@@ -129,8 +147,21 @@ object  StackManip {
   abstract class BinaryBranchObj(val id: Byte, val insnName: String)(pred: (Any, Any) => Boolean) extends OpCode{
     def label: Int
     def op = ctx => ctx.swapStack{ case top :: next :: stack =>
+      (top, next) match{
+        case (sa: svm.Object, sb: svm.Object)
+          if sa.cls.name == "java/lang/String"
+            && sb.cls.name == "java/lang/String" =>
+          println("COMPARING FOR NOT EQUAL")
+          println(sa)
+          println(sb)
+          println(Virtualizer.fromVirtual(sa))
+          println(Virtualizer.fromVirtual(sb))
+          println(sa != sb)
+        case _ =>
+      }
       if(pred(next, top)) ctx.jumpTo(label)
       stack
+
     }
   }
   case class IfACmpEq(label: Int) extends BinaryBranchObj(165, "if_acmpeq")(_ == _)

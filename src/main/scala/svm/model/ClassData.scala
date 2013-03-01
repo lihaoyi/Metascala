@@ -33,21 +33,23 @@ object ClassData {
     cr.accept(classNode, 0);
     read(classNode)
   }
-  case class Misc(signature: Option[String],
-                  sourceFile: Option[String],
-                  sourceDebug: Option[String],
-                  outerClass: Option[String],
-                  outerMethod: Option[String],
-                  outerMethodDesc: Option[String],
-                  visibleAnnotations: List[Annotation],
-                  invisibleAnnotations: List[Annotation],
-                  attrs: List[Attribute],
-                  innerClasses: List[InnerClass])
+
+
+  case class Misc(signature: Option[String] = None,
+                  sourceFile: Option[String] = None,
+                  sourceDebug: Option[String] = None,
+                  outerClass: Option[String] = None,
+                  outerMethod: Option[String] = None,
+                  outerMethodDesc: Option[String] = None,
+                  visibleAnnotations: List[Annotation] = Nil,
+                  invisibleAnnotations: List[Annotation] = Nil,
+                  attrs: List[Attribute] = Nil,
+                  innerClasses: List[InnerClass] = Nil)
 }
 case class ClassData(access_flags: Int,
                      name: String,
-                     superName: Option[String],
-                     interfaces: List[String],
-                     fields: List[Field],
-                     methods: List[Method],
-                     misc: ClassData.Misc)
+                     superName: Option[String] = None,
+                     interfaces: List[String] = Nil,
+                     fields: List[Field] = Nil,
+                     methods: List[Method] = Nil,
+                     misc: ClassData.Misc = ClassData.Misc())

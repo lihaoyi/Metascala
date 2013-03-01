@@ -4,7 +4,7 @@ import org.objectweb.asm
 import svm.model.{OpCode}
 import svm.model.TypeDesc._
 import collection.mutable
-import svm.Virtualizer
+import svm.{Natives, Virtualizer}
 
 object LoadStore {
   case object Nop extends OpCode{
@@ -48,10 +48,10 @@ object LoadStore {
     def op = implicit ctx => {
 
       val newConst = const match{
-        case s: String =>
-          new svm.Object("java/lang/String", "value" -> s.toCharArray)
+        case s: String => Natives.intern(new svm.Object("java/lang/String", "value" -> s.toCharArray))
         case t: asm.Type =>
-          new svm.Object("java/lang/Class")
+          println("ll "+t.getClassName)
+          new svm.ClassObject(t.getClassName.replace('.', '/'))
 
         case x => x
       }

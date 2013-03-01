@@ -63,7 +63,6 @@ object Misc {
 
   def ensureNonNull(x: Any)(thunk: => Unit)(implicit ctx: Context) = {
     if (x == null){
-
       ctx.throwException(new svm.Object("java/lang/NullPointerException"))
     }else {
       thunk

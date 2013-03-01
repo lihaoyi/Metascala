@@ -9,7 +9,9 @@ import annotation.tailrec
 class VirtualMachine(classLoader: String => Array[Byte]){
 
   implicit object classTable extends (String => Class){
-    private[this] val classes = mutable.Map.empty[String, Class]
+    private[this] lazy val classes: mutable.Map[String, Class] = mutable.Map(
+      "I" -> new Class(new ClassData(0, "I"))(null)
+    )
     def apply(name: String): Class = {
       require(!name.contains("."))
 
@@ -18,7 +20,6 @@ class VirtualMachine(classLoader: String => Array[Byte]){
         case None =>
 
           classes(name) = new Class(ClassData.parse(classLoader(name)))
-          sun.misc.VM
           classes(name).method("<clinit>", "()V").foreach( m =>
             threads(0).invoke(classes(name), m, Nil)
           )
@@ -46,13 +47,12 @@ class VirtualMachine(classLoader: String => Array[Byte]){
 }
 
 class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit val classes: String => svm.Class){
-
   val nativeX = Natives.nativeX(getStackTrace _)
   def getStackTrace =
     threadStack.map { f =>
       new StackTraceElement(
         f.runningClass.name,
-        f.method.name,
+        "lol" + f.method.name + " " + f.method.code.instructions(f.pc),
         f.runningClass.classData.misc.sourceFile.getOrElse("[no source]"),
         f.method.code.attachments.flatten.reverse.collectFirst{
           case LineNumber(line, startPc) if startPc < f.pc => line
@@ -72,7 +72,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     println(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack)
   }
   def returnVal(x: Option[Any]) = {
-    //println(indent + "Returning!")
+    println(indent + "Returning!")
     threadStack.pop()
     x.foreach(value => threadStack.head.stack = value :: threadStack.head.stack)
   }
@@ -95,15 +95,26 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
             frame.stack ::= ex
         }
       case None =>
-        throw new Exception("Uncaught Exception: " + ex.apply(ex.cls.name, "stackTrace"))
+        throw new Exception("Uncaught Exception: ")
+
     }
 
   }
   def prepInvoke(cls: Class, method: Method, args: Seq[Any]) = {
     println(indent + "prepInvoke " + cls.name + " " + method.name)
+
+
     method.code.instructions.zipWithIndex.foreach{case (x, i) => println(indent + i + "\t" + x) }
-    method match{
-      case m if m.code != Code.Empty =>
+
+    (Natives.trapped.lookup(cls.name + "/" + method.name + method.desc), method) match{
+      case (Some(trap), _) =>
+        val result = trap.apply(args)
+        val topFrame = threadStack.head
+        topFrame.stack = result match{
+          case () => topFrame.stack
+          case nonUnit => nonUnit :: topFrame.stack
+        }
+      case (_, m) if m.code != Code.Empty =>
         val stretchedArgs = args.flatMap {
           case l: Long => Seq(l, l)
           case d: Double => Seq(d, d)
@@ -115,12 +126,11 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
           locals = mutable.Seq.tabulate(method.misc.maxLocals)(stretchedArgs.orElse{case x => null}),
           stack = Nil
         )
-
+        println(indent + "locals " + startFrame.locals)
         threadStack.push(startFrame)
         //println(indent + "Invoking " + method.name)
         //println(indent + "Locals " + startFrame.locals)
-
-      case m if (m.access | Access.Native) != 0 =>
+      case (_, m) if (m.access | Access.Native) != 0 =>
         val topFrame = threadStack.head
         //println(indent + "Native Method Call!")
         //println(indent + args)

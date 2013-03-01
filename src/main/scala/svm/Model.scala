@@ -98,11 +98,31 @@ class Object(val cls: Class, initMembers: (String, Any)*)
 
 class ClassObject(val name: String)
                  (implicit classes: String => Class)
-                  extends Object("java/lang/Class")
+                  extends Object("java/lang/Class"){
+  def getDeclaredFields() = {
+    println("GETTING DECLARED FIELDS " + name)
+    println(classes(name).classData.fields.map(_.name))
+    classes(name).classData.fields.map {f =>
+      new svm.Object("java/lang/reflect/Field",
+        "clazz" -> this,
+        "slot" -> 1,
+        "name" -> Natives.intern(Virtualizer.toVirtual(f.name)),
+        "modifiers" -> f.access,
+        "type" -> f.desc,
+        "signature" -> f.desc
+
+      )
+    }
+  }
+}
 class ClassLoaderObject(val name: String)
                  (implicit classes: String => Class)
                   extends Object("java/lang/ClassLoader")
+
+
+
 object Access{
+
   val Public    = 0x0001 // 1
   val Private   = 0x0002 // 2
   val Protected = 0x0004 // 4

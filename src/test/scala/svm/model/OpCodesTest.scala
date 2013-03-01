@@ -1,7 +1,6 @@
 package svm.model
 
 import org.scalatest.FreeSpec
-import svm.model.OpCode
 
 class OpCodesTest extends FreeSpec{
   "opcodes must line up" in {

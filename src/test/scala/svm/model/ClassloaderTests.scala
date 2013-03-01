@@ -1,9 +1,6 @@
 package svm.model
 
 import org.scalatest.FreeSpec
-import svm.model.Util.Print
-import svm.model.Method
-import collection.generic.SeqFactory
 
 class ClassloaderTests extends FreeSpec{
 
