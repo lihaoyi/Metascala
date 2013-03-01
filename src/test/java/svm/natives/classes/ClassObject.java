@@ -7,8 +7,8 @@ public class ClassObject {
     }
     public static String forName(String s) throws Exception{
 
-        Object x = Class.forName("ClassObject");
-        return "ClassObject";
+        Class x = Class.forName("svm.natives.classes.ClassObject");
+        return x.getCanonicalName();
 
     }
     public static boolean[] isPrimitive(){

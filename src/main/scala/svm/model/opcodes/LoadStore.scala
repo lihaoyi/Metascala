@@ -186,7 +186,6 @@ object LoadStore {
   val AStore2 = UnusedOpCode(77, "astore_2")
   val AStore3 = UnusedOpCode(78, "astore_3")
   //===============================================================
-
   class StoreArray[T](val id: Byte, val insnName: String) extends OpCode{
     def op = _.swapStack{
       case (value: T) :: Intish(index) :: (array: Array[T]) :: stack =>
@@ -195,13 +194,19 @@ object LoadStore {
     }
   }
   class StoreArrayInt[T](val id: Byte, val insnName: String)(x: Int => T) extends OpCode{
-    def op = _.swapStack {
-      case (value: Int) :: Intish(index) :: (array: Array[T]) :: stack =>
-        array(index) = x(value)
-        stack
-      case (value: Boolean) :: Intish(index) :: (array: Array[Boolean]) :: stack =>
-        array(index) = value
-        stack
+    def op = ctx => {
+      println("OMG")
+      println(ctx.stack)
+      println(ctx.stack.map(_.getClass))
+      println("WTF")
+      ctx.swapStack {
+        case Intish(value) :: Intish(index) :: (array: Array[T]) :: stack =>
+          array(index) = x(value)
+          stack
+        case (value: Boolean) :: Intish(index) :: (array: Array[Boolean]) :: stack =>
+          array(index) = value
+          stack
+      }
     }
   }
   case object IAStore extends StoreArray[Int](79, "iastore")

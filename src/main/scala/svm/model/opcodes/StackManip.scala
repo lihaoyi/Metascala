@@ -108,11 +108,11 @@ object  StackManip {
   case object I2C extends PureStackOpCode(146, "i2c")({ case (x: I) :: s => x.toChar :: s })
   case object I2S extends PureStackOpCode(147, "i2s")({ case (x: I) :: s => x.toShort :: s })
 
-  case object LCmp extends PureStackOpCode(148, "lcmp")({ case (x: J) :: (y: J) :: s => x.compare(y) :: s })
-  case object FCmpl extends PureStackOpCode(149, "fcmpl")({ case (x: F) :: (y: F) :: s => x.compare(y) :: s })
-  case object FCmpg extends PureStackOpCode(150, "fcmpg")({ case (x: F) :: (y: F) :: s => x.compare(y) :: s })
-  case object DCmpl extends PureStackOpCode(151, "dcmpl")({ case (x: D) :: (y: D) :: s => x.compare(y) :: s })
-  case object DCmpg extends PureStackOpCode(152, "dcmpg")({ case (x: D) :: (y: D) :: s => x.compare(y) :: s })
+  case object LCmp extends PureStackOpCode(148, "lcmp")({ case (x: J) :: (y: J) :: s => y.compare(x) :: s })
+  case object FCmpl extends PureStackOpCode(149, "fcmpl")({ case (x: F) :: (y: F) :: s => y.compare(x) :: s })
+  case object FCmpg extends PureStackOpCode(150, "fcmpg")({ case (x: F) :: (y: F) :: s => y.compare(x) :: s })
+  case object DCmpl extends PureStackOpCode(151, "dcmpl")({ case (x: D) :: (y: D) :: s => y.compare(x) :: s })
+  case object DCmpg extends PureStackOpCode(152, "dcmpg")({ case (x: D) :: (y: D) :: s => y.compare(x) :: s })
 
 
   abstract class UnaryBranch(val id: Byte, val insnName: String)(pred: Int => Boolean) extends OpCode{

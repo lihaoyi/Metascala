@@ -1,6 +1,7 @@
 package svm
 
 import annotation.tailrec
+import java.util.concurrent.atomic.AtomicInteger
 
 object Natives {
 
@@ -38,23 +39,32 @@ object Natives {
       )
     )
   )
-  def nativeX(stackTrace: () => List[StackTraceElement])(implicit getClassFor: String => Class) = Route(
+  def nativeX(thread: VmThread, stackTrace: () => List[StackTraceElement])(implicit getClassFor: String => Class): Route = Route(
     "java"/(
       "lang"/(
         "Class"/(
           "registerNatives()V"-noOp,
           "getName0()Ljava/lang/String;" - ((s: svm.ClassObject) => Virtualizer.toVirtual[svm.Object](s.name.replace("/", "."))),
+          "forName0(Ljava/lang/String;)Ljava/lang/Class;" - ((s: svm.Object) => new ClassObject(Virtualizer.fromVirtual[String](s))),
+          "forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;" - ((s: svm.Object, x: Any, w: Any, y: Any) => new ClassObject(Virtualizer.fromVirtual[String](s))),
           "getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;"-((s: svm.Object) => (new Object(getClassFor(primitiveMap(Virtualizer.fromVirtual(s).asInstanceOf[String]))))),
           "getClassLoader0()Ljava/lang/ClassLoader;"-((x: Any) => null),
+          "getDeclaringClass()Ljava/lang/Class;" - {() =>
+            null
+          },
           "getDeclaredFields0(Z)[Ljava/lang/reflect/Field;" - {(cls: svm.ClassObject, b: Int) =>
             cls.getDeclaredFields().toArray
+          },
+          "getEnclosingMethod0()[Ljava/lang/Object;" - { () =>
+            null
           },
           "isPrimitive()Z" - ((x: svm.ClassObject) => false),
           "isArray()Z" - ((x: svm.ClassObject) => x.name.startsWith("[")),
           "desiredAssertionStatus0(Ljava/lang/Class;)Z"-((x: Any) => 0)
         ),
         "Double"/(
-          "doubleToRawLongBits(D)J"-{ java.lang.Double.doubleToRawLongBits(_: Double)}
+          "doubleToRawLongBits(D)J"-{ java.lang.Double.doubleToRawLongBits(_: Double)},
+          "longBitsToDouble(J)D"-{ java.lang.Double.longBitsToDouble(_: Long)}
         ),
         "Float"/(
           "intBitsToFloat(I)F"-{ java.lang.Float.intBitsToFloat(_: Int)},
@@ -68,8 +78,12 @@ object Natives {
               new ClassObject(x.cls.name)
             case a: Array[_] => new ClassObject(a.getClass.getName)
           }},
+          "hashCode()I" - {(x: svm.Object) => x.hashCode()},
           "notify()V" - noOp1,
           "notifyAll()V" - noOp1
+        ),
+        "Runtime"/(
+            "freeMemory()J" - {() => 1000000000L  }
         ),
         "String"/(
           "intern()Ljava/lang/String;" - intern _
@@ -119,7 +133,11 @@ object Natives {
       "security"/(
         "AccessController"/(
           "doPrivileged(Ljava/security/PrivilegedAction;)Ljava/lang/Object;" - {
-            (pa: Any) => null
+            (pa: svm.Object) =>
+              println("doPrivilegedyo")
+              println(pa.cls.name)
+              println(pa.cls.classData.methods.map(_.name))
+              thread.prepInvoke(pa.cls, pa.cls.classData.methods.find(_.name == "run").get, Nil)
           },
           "getStackAccessControlContext()Ljava/security/AccessControlContext;" - {
             () => new svm.Object("java/security/AccessControlContext")
@@ -135,21 +153,32 @@ object Natives {
         "Unsafe"/(
           "arrayBaseOffset(Ljava/lang/Class;)I" - ((x: Any) => 0),
           "arrayIndexScale(Ljava/lang/Class;)I" - ((x: Any) => 1),
-          "addressSize()I" - ((x: Any) => 4)
+          "addressSize()I" - ((x: Any) => 4),
+          "compareAndSwapInt(Ljava/lang/Object;JII)Z" - {(s: Any, x: svm.Object, offset: Int, expected: Int, target: Int) =>
+            println("COMPAREANDSWAP LOL")
+            println(x.members.head)
+            val key = x.members.head.keys.toSeq(offset.toInt)
+            println(key)
+            if (x(x.cls.name, key) == expected) x(x.cls.name, key) = target
+            true;
+          },
+          "objectFieldOffset(Ljava/lang/reflect/Field;)J" - {(x: svm.Object) => 0 }
+        ),
+        "VM"/(
+          "initialize()V" - noOp
         )
       ),
 
       "reflect"/(
         "Reflection"/(
           "getCallerClass(I)Ljava/lang/Class;" - { (n: Int) =>
-            new ClassObject(stackTrace().drop(n+1).head.getClassName)
+            new ClassObject(stackTrace().drop(n).head.getClassName)
           }
         )
       )
     )
 
   )
-
   object Route{
     def apply(a: (String, Route)*) = Node(a.toMap)
   }

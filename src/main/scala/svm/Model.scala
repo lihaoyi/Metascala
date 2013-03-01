@@ -1,6 +1,6 @@
 package svm
 
-import model.{Method, OpCode, ClassData}
+import model.{Field, Method, OpCode, ClassData}
 import collection.mutable
 import java.io.{ObjectInputStream, ObjectOutputStream}
 import annotation.tailrec
@@ -43,10 +43,10 @@ class Class(val classData: ClassData,
 
 object Object{
 
-  def initMembers(cls: ClassData)(implicit classes: String => Class): List[Map[String, Any]] = {
-    cls.fields.map{f =>
+  def initMembers(cls: ClassData, filter: Field => Boolean)(implicit classes: String => Class): List[Map[String, Any]] = {
+    cls.fields.filter(filter).map{f =>
       f.name -> initField(f.desc)
-    }.toMap :: cls.superName.toList.flatMap(x => initMembers(classes(x).classData))
+    }.toMap :: cls.superName.toList.flatMap(x => initMembers(classes(x).classData, filter))
   }
 
   def initField(desc: String) = {
@@ -68,7 +68,8 @@ object Object{
 class Object(val cls: Class, initMembers: (String, Any)*)
             (implicit classes: String => Class){
 
-  val members = Object.initMembers(cls.classData).map(x => mutable.Map(x.toSeq:_*))
+
+  val members = Object.initMembers(cls.classData, x => (x.access & Access.Static) == 0).map(x => mutable.Map(x.toSeq:_*))
 
 
   for ((s, v) <- initMembers){

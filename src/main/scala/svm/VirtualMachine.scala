@@ -47,7 +47,7 @@ class VirtualMachine(classLoader: String => Array[Byte]){
 }
 
 class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit val classes: String => svm.Class){
-  val nativeX = Natives.nativeX(getStackTrace _)
+  val nativeX = Natives.nativeX(this, getStackTrace _)
   def getStackTrace =
     threadStack.map { f =>
       new StackTraceElement(
