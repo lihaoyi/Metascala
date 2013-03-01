@@ -197,12 +197,13 @@ object LoadStore {
     def op = ctx => {
 
       ctx.swapStack {
-        case Intish(value) :: Intish(index) :: (array: Array[T]) :: stack =>
-          array(index) = x(value)
-          stack
         case (value: Boolean) :: Intish(index) :: (array: Array[Boolean]) :: stack =>
           array(index) = value
           stack
+        case v@Intish(value) :: Intish(index) :: (array: Array[T]) :: stack =>
+          array(index) = x(value)
+          stack
+
       }
     }
   }
