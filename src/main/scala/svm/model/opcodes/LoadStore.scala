@@ -50,7 +50,7 @@ object LoadStore {
       val newConst = const match{
         case s: String => Natives.intern(new svm.Object("java/lang/String", "value" -> s.toCharArray))
         case t: asm.Type =>
-          new svm.ClassObject(t.getClassName.replace('.', '/'))
+          ctx(t.getClassName).obj
 
         case x => x
       }
@@ -192,6 +192,18 @@ object LoadStore {
         stack
     }
   }
+
+  class StoreArrayObj(val id: Byte, val insnName: String) extends OpCode{
+    def op = _.swapStack{
+      case (value: Any) :: Intish(index) :: (array: Array[Any]) :: stack =>
+        array(index) = value
+        stack
+      case null :: Intish(index) :: (array: Array[Any]) :: stack =>
+        array(index) = null
+        stack
+    }
+  }
+
   class StoreArrayInt[T](val id: Byte, val insnName: String)(x: Int => T) extends OpCode{
     def op = ctx => {
 
@@ -210,7 +222,7 @@ object LoadStore {
   case object LAStore extends StoreArray[Long](80, "lastore")
   case object FAStore extends StoreArray[Float](81, "fastore")
   case object DAStore extends StoreArray[Double](82, "dastore")
-  case object AAStore extends StoreArray[Object](83, "aastore")
+  case object AAStore extends StoreArrayObj(83, "aastore")
   case object BAStore extends StoreArrayInt[Byte](84, "bastore")(_.toByte)
   case object CAStore extends StoreArrayInt[Char](85, "castore")(_.toChar)
   case object SAStore extends StoreArrayInt[Short](86, "sastore")(_.toShort)

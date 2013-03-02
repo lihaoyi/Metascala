@@ -4,18 +4,19 @@ import collection.mutable
 import model._
 import model.Attached.LineNumber
 import annotation.tailrec
+import java.security.AccessController
 
 object VM{
-  def apply()(implicit vm: VM) = vm
+  val lines = mutable.Buffer.empty[String] 
+  def log(s: String) = lines.append(s)
 }
+import VM._
 class VClassLoader(var children: Seq[VClassLoader]) extends (String => Class){
   implicit val loader = this
   val classes = mutable.Map.empty[String, Class]
 
 
-  def defineClass(name: String, data: Array[Byte]) = {
-    classes(name) = new Class(ClassData.parse(data))
-  }
+
   def apply(s: String): Class = {
     ???
   }
@@ -24,18 +25,28 @@ class VClassLoader(var children: Seq[VClassLoader]) extends (String => Class){
 class VM(classLoader: String => Array[Byte]){
 
   implicit object RootLoader extends VClassLoader(Nil){
-    classes("I") = new Class(new ClassData(0, "I"))(null, null)
 
-    override def apply(name: String): Class = {
-      require(!name.contains("."))
+
+    override def apply(badname: String): Class = {
+      val name = badname.replace('.', '/')
       classes.get(name) match{
         case Some(cls) => cls
+        case None
+          if name.contains("[")
+          || Natives.primitiveMap.keySet.contains(name) =>
+
+          val newCls = new Class(new ClassData(0, name))
+          classes(name) = newCls
+          newCls
+
         case None =>
-          classes(name) = new Class(ClassData.parse(classLoader(name)))
-          classes(name).method("<clinit>", "()V").foreach( m =>
-            threads(0).invoke(classes(name), m, Nil)
+          val newCls = new Class(ClassData.parse(classLoader(name)))
+          classes(name) = newCls
+          newCls.method("<clinit>", "()V").foreach( m =>
+            threads(0).invoke(newCls, m, Nil)
           )
-          classes(name)
+          newCls
+
       }
     }
   }
@@ -43,19 +54,24 @@ class VM(classLoader: String => Array[Byte]){
   val threads = List(new VmThread())
 
   def invoke(bootClass: String, mainMethod: String, args: Seq[Any]) = {
-
-    Virtualizer.fromVirtual[Any](
-      threads(0).invoke(
-        bootClass,
-        bootClass
-          .classData
-          .methods
-          .find(x => x.name == mainMethod)
-          .getOrElse(throw new IllegalArgumentException("Can't find method: " + mainMethod)),
-        args.map(Virtualizer.toVirtual[Any])
+    try{
+      Virtualizer.fromVirtual[Any](
+        threads(0).invoke(
+          bootClass,
+          bootClass
+            .classData
+            .methods
+            .find(x => x.name == mainMethod)
+            .getOrElse(throw new IllegalArgumentException("Can't find method: " + mainMethod)),
+          args.map(Virtualizer.toVirtual[Any])
+        )
       )
-    )
+    }catch {case x =>
+      lines.takeRight(10000).foreach(println)
+      throw x
+    }
   }
+  invoke("java/lang/System", "initializeSystemClass", Nil)
 }
 
 object VmThread{
@@ -81,15 +97,15 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
     val node = topFrame.method.code.instructions(topFrame.pc)
 
-    //println(indent + topFrame.pc + "\t---------------------- " + node )
+    log(indent + topFrame.pc + "\t---------------------- " + node )
     topFrame.pc += 1
     node.op(Context(this))
 
-    //println(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack)
-    //println(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack.map(x => if (x == null) null else x.getClass))
+    log(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack)
+    //log(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack.map(x => if (x == null) null else x.getClass))
   }
   def returnVal(x: Option[Any]) = {
-    //println(indent + "Returning!")
+    //log(indent + "Returning!")
     threadStack.pop()
     x.foreach(value => threadStack.head.stack = value :: threadStack.head.stack)
   }
@@ -112,16 +128,15 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
             frame.stack ::= ex
         }
       case None =>
+        lines.takeRight(10000).foreach(println)
         throw new Exception("Uncaught Exception: ")
-
     }
-
   }
   def prepInvoke(cls: Class, method: Method, args: Seq[Any]) = {
-    //println(indent + "prepInvoke " + cls.name + " " + method.name)
+    log(indent + "prepInvoke " + cls.name + " " + method.name)
 
 
-    //method.code.instructions.zipWithIndex.foreach{case (x, i) => println(indent + i + "\t" + x) }
+    method.code.instructions.zipWithIndex.foreach{case (x, i) => log(indent + i + "\t" + x) }
 
     (Natives.trapped.lookup(cls.name + "/" + method.name + method.desc), method) match{
       case (Some(trap), _) =>
@@ -143,14 +158,15 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
           locals = mutable.Seq.tabulate(method.misc.maxLocals)(stretchedArgs.orElse{case x => null}),
           stack = Nil
         )
-        //println(indent + "locals " + startFrame.locals)
+
+        log(indent + "locals " + startFrame.locals)
         threadStack.push(startFrame)
-        //println(indent + "Invoking " + method.name)
-        //println(indent + "Locals " + startFrame.locals)
+        //log(indent + "Invoking " + method.name)
+        //log(indent + "Locals " + startFrame.locals)
       case (_, m) if (m.access | Access.Native) != 0 =>
         val topFrame = threadStack.head
-        //println(indent + "Native Method Call!")
-        //println(indent + args)
+        //log(indent + "Native Method Call!")
+        //log(indent + args)
         val foundMethod =
           cls.ancestry
              .flatMap(c => nativeX.lookup(c.name+"/"+m.name + m.desc))
@@ -159,7 +175,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
         val result = foundMethod match {
           case None =>
             threadStack.filter(_.method.name != "Dummy").foreach(f =>
-              println(f.runningClass.name.padTo(30, ' ') + f.method.name.padTo(20, ' ') + " " + (f.pc-1) + "\t" + f.method.code.instructions(f.pc-1))
+              log(f.runningClass.name.padTo(30, ' ') + f.method.name.padTo(20, ' ') + " " + (f.pc-1) + "\t" + f.method.code.instructions(f.pc-1))
             )
             throw new Exception("Can't find Native Method: " + cls.name + " " + method.name + " " + method.desc)
           case Some(n) => n.apply(args)
@@ -170,7 +186,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
           case nonUnit => nonUnit :: topFrame.stack
         }
       case _ =>
-        //println(indent + "Empty Method!")
+        //log(indent + "Empty Method!")
     }
 
   }

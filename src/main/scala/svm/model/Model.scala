@@ -3,7 +3,7 @@ package svm.model
 import org.objectweb.asm.tree._
 
 import org.objectweb.asm
-import asm.Label
+import asm.{Type, Label}
 import collection.mutable
 
 object InnerClass {
@@ -39,16 +39,19 @@ case class LocalVariable(name: String,
                          index: Int)
 
 object Field {
-  def read(fn: FieldNode) = Field(
-    fn.access,
-    fn.name,
-    fn.desc,
-    fn.signature.safeOpt,
-    fn.value,
-    fn.visibleAnnotations.safeList.map(Annotation.read),
-    fn.invisibleAnnotations.safeList.map(Annotation.read),
-    fn.attrs.safeList.map(Attribute.read)
-  )
+  def read(fn: FieldNode) = {
+
+    Field(
+      fn.access,
+      fn.name,
+      fn.desc,
+      fn.signature.safeOpt,
+      fn.value,
+      fn.visibleAnnotations.safeList.map(Annotation.read),
+      fn.invisibleAnnotations.safeList.map(Annotation.read),
+      fn.attrs.safeList.map(Attribute.read)
+    )
+  }
 
 }
 

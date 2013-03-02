@@ -1,15 +1,19 @@
 package svm
 
-import model.{Field, Method, OpCode, ClassData}
+import model._
 import collection.mutable
 import java.io.{ObjectInputStream, ObjectOutputStream}
 import annotation.tailrec
+import scala.Some
+import svm.ClassObject
+import org.objectweb.asm.Type
 
 class Class(val classData: ClassData,
             val statics: mutable.Map[String, Any] = mutable.Map.empty)
            (implicit classes: String => Class, loader: VClassLoader){
 
-
+  System.out.println("NEW CLASS" + classData.name + "\t" + this.hashCode())
+  lazy val obj = new ClassObject(name)
   classData.fields.map{f =>
     statics(f.name) = Object.initField(f.desc)
   }
@@ -100,24 +104,44 @@ class Object(val cls: Class, initMembers: (String, Any)*)
 class ClassObject(val name: String)
                  (implicit classes: String => Class)
                   extends Object("java/lang/Class"){
+
+
+  System.out.println("NEW CLOBJECT" + name.name + "\t" + this.hashCode())
+  def getDeclaredConstructors() = {
+    classes(name.replace(".", "/")).classData
+      .methods
+      .filter(_.name == "<init>")
+      .map{m =>
+      new svm.Object("java/lang/reflect/Constructor",
+        "clazz" -> classes(name.replace(".", "/")).obj,
+        "slot" -> 0,
+        "parameterTypes" -> Type.getType(m.desc).getArgumentTypes.map(_.getClassName).map(classes.andThen(_.obj)),
+        "exceptionTypes" -> new Array[svm.ClassObject](0),
+        "modifiers" -> m.access
+      )
+    }
+  }
   def getDeclaredFields() = {
 
     classes(name).classData.fields.map {f =>
+
       new svm.Object("java/lang/reflect/Field",
         "clazz" -> this,
         "slot" -> 1,
         "name" -> Natives.intern(Virtualizer.toVirtual(f.name)),
         "modifiers" -> f.access,
-        "type" -> f.desc,
-        "signature" -> f.desc
+        "type" -> classes(Type.getType(f.desc).getClassName).obj,
+        "signature" -> Virtualizer.toVirtual(f.desc)
 
       )
     }
   }
+  override def toString = {
+    s"svm.ClassObject($name)"
+  }
 }
-class ClassLoaderObject(val name: String)
-                 (implicit classes: String => Class)
-                  extends Object("java/lang/ClassLoader")
+class ClassLoaderObject(implicit classes: String => Class)
+                        extends Object("java/lang/ClassLoader")
 
 
 

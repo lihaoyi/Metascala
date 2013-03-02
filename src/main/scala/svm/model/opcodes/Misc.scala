@@ -123,8 +123,9 @@ object Misc {
   case class InvokeDynamic(name: String, desc: String, bsm: Object, args: Object) extends BaseOpCode(186, "invokedynamic"){ def op = ??? }
 
   case class New(desc: String) extends BaseOpCode(187, "new"){
-    def op = implicit ctx => {
-      ctx.frame.stack ::= new svm.Object(desc)
+    def op = implicit ctx => desc match {
+      case "java/lang/ClassLoader" => ctx.frame.stack ::= new svm.ClassLoaderObject()
+      case _ => ctx.frame.stack ::= new svm.Object(desc)
     }
   }
   case class NewArray(typeCode: Int) extends BaseOpCode(188, "newarray"){
@@ -180,10 +181,10 @@ object Misc {
     }
   }
   case object MonitorEnter extends BaseOpCode(194, "monitorenter"){
-    def op = ctx => () //noop
+    def op = _.swapStack{case x :: stack => stack}
   }
   case object MonitorExit extends BaseOpCode(195, "monitorexit"){
-    def op = ctx => () //noop
+    def op = _.swapStack{case x :: stack => stack}
   }
 
   // Not used, because ASM folds these into the following bytecode for us

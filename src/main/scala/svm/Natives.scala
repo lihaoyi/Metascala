@@ -30,7 +30,44 @@ object Natives {
     "double" -> "java/lang/Double"
   )
 
-  def trapped = Route(
+  val properties = Map(
+    "java.home" -> "C ->/java_home",
+    "sun.boot.class.path" -> "C ->/classes",
+    "file.encoding" ->"US_ASCII",
+    "java.vendor" ->"Doppio",
+    "java.version" -> "1.6",
+    "java.vendor.url" -> "https ->//github.com/int3/doppio",
+    "java.class.version" -> "50.0",
+    "java.specification.version" -> "1.6",
+    "line.separator" ->"\n",
+    "file.separator" ->"/",
+    "path.separator" ->":",
+    "user.dir" -> ".",
+    "user.home" ->".",
+    "user.name" ->"DoppioUser",
+    "os.name" ->"doppio",
+    "os.arch" -> "js",
+    "os.version" -> "0"
+
+  )
+  def trapped(implicit getClassFor: String => Class) = Route(
+    "java"/(
+      "lang"/(
+        "System"/(
+          "getProperty(L//String;)L//String;" - {
+            (s: svm.Object) =>
+              Virtualizer.toVirtual[svm.Object](properties(Virtualizer.fromVirtual[String](s)))
+
+          },
+          "getProperty(L//String;L//String;)L//String;" - {
+            (s: svm.Object, dflt: svm.Object) =>
+              properties.get(Virtualizer.fromVirtual[String](s))
+                        .map(Virtualizer.toVirtual[svm.Object])
+                        .getOrElse(dflt)
+          }
+        )
+      )
+    ),
     "sun"/(
       "reflect"/(
         "Reflection"/(
@@ -39,18 +76,35 @@ object Natives {
       )
     )
   )
+
+
   def nativeX(thread: VmThread, stackTrace: () => List[StackTraceElement])(implicit getClassFor: String => Class): Route = Route(
     "java"/(
+      "io"/(
+        "FileInputStream"/(
+          "initIDs()V" - noOp
+        ),
+        "FileOutputStream"/(
+          "initIDs()V" - noOp
+          ),
+        "FileDescriptor"/(
+          "initIDs()V" - noOp,
+          "set(I)J" - {(x: Int) => x.toLong}
+        )
+      ),
       "lang"/(
         "Class"/(
           "registerNatives()V"-noOp,
           "getName0()L//String;" - ((s: svm.ClassObject) => Virtualizer.toVirtual[svm.Object](s.name.replace("/", "."))),
-          "forName0(L//String;)L//Class;" - ((s: svm.Object) => new ClassObject(Virtualizer.fromVirtual[String](s))),
-          "forName0(L//String;ZL//ClassLoader;)L//Class;" - ((s: svm.Object, x: Any, w: Any, y: Any) => new ClassObject(Virtualizer.fromVirtual[String](s))),
+          "forName0(L//String;)L//Class;" - ((s: svm.Object) => Virtualizer.fromVirtual[String](s).obj),
+          "forName0(L//String;ZL//ClassLoader;)L//Class;" - ((s: svm.Object, x: Any, w: Any, y: Any) => Virtualizer.fromVirtual[String](s).obj),
           "getPrimitiveClass(L//String;)L//Class;"-((s: svm.Object) => (new Object(getClassFor(primitiveMap(Virtualizer.fromVirtual(s).asInstanceOf[String]))))),
           "getClassLoader0()L//ClassLoader;"-((x: Any) => null),
           "getDeclaringClass()L//Class;" - {() =>
             null
+          },
+          "getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;" - {
+            (cls: svm.ClassObject, b: Int) => cls.getDeclaredConstructors().toArray
           },
           "getDeclaredFields0(Z)[L//reflect/Field;" - {(cls: svm.ClassObject, b: Int) =>
             cls.getDeclaredFields().toArray
@@ -59,6 +113,7 @@ object Natives {
             null
           },
           "isPrimitive()Z" - ((x: svm.ClassObject) => false),
+          "isInterface()Z" - ((x: svm.ClassObject) => (getClassFor(x.name.replace(".", "/")).classData.access_flags & Access.Interface) != 0),
           "isAssignableFrom(Ljava/lang/Class;)Z" - {(x: svm.ClassObject, y: svm.ClassObject) =>
             true
           },
@@ -74,10 +129,14 @@ object Natives {
           "floatToRawIntBits(F)I"-{ java.lang.Float.floatToIntBits(_: Float)}
         ),
         "Object"/(
+          "clone()L//Object;" -  {(_: Any ) match{
+            case (x: svm.Object) => x
+            case (a: Array[_]) => a.clone
+          }},
           "registerNatives()V"-noOp,
           "getClass()L//Class;" - { (_: Any) match{
-            case (x: svm.Object) => new ClassObject(x.cls.name)
-            case a: Array[_] => new ClassObject(a.getClass.getName)
+            case (x: svm.Object) => x.cls.obj
+            case a: Array[_] => a.getClass.getName.obj
           }},
           "hashCode()I" - {(x: svm.Object) => x.hashCode()},
           "notify()V" - noOp1,
@@ -95,8 +154,14 @@ object Natives {
           ),
           "currentTimeMillis()J"-(() => System.currentTimeMillis()),
           "nanoTime()J"-(() => System.nanoTime()),
+          "initProperties(Ljava/util/Properties;)Ljava/util/Properties;" - {
+            (x: svm.Object) => null
+          },
           "identityHashCode(L//Object;)I"-((x: svm.Object) => System.identityHashCode(x)),
-          "registerNatives()V"-noOp
+          "registerNatives()V"-noOp,
+          "setIn0(Ljava/io/InputStream;)V" - noOp1,
+          "setOut0(Ljava/io/PrintStream;)V" - noOp1,
+          "setErr0(Ljava/io/PrintStream;)V" - noOp1
         ),
         "Thread"/(
           "currentThread()L//Thread;" - { () =>
@@ -129,13 +194,13 @@ object Natives {
             "isAlive()Z" - {() => false}
           )
         )
-
       ),
       "security"/(
         "AccessController"/(
           "doPrivileged(L//PrivilegedAction;)L/lang/Object;" - {
             (pa: svm.Object) =>
-              thread.prepInvoke(pa.cls, pa.cls.classData.methods.find(_.name == "run").get, Nil)
+
+              thread.prepInvoke(pa.cls, pa.cls.classData.methods.find(_.name == "run").get, Seq(pa))
           },
           "getStackAccessControlContext()L//AccessControlContext;" - {
             () => new svm.Object("java/security/AccessControlContext")
@@ -168,13 +233,16 @@ object Natives {
       "reflect"/(
         "Reflection"/(
           "getCallerClass(I)Ljava/lang/Class;" - { (n: Int) =>
-            new ClassObject(stackTrace().drop(n).head.getClassName)
+            stackTrace().drop(n).head.getClassName.obj
+          },
+          "getClassAccessFlags(Ljava/lang/Class;)I" - { (x: svm.ClassObject) =>
+            getClassFor(x.name).classData.access_flags
           }
         )
       )
     )
-
   )
+
   object Route{
     def apply(a: (String, Route)*) = Node(a.toMap)
   }

@@ -5,6 +5,7 @@ import svm.model.{OpCode, a}
 import svm.Virtualizer
 
 import scala.::
+import java.util
 
 object  StackManip {
   class PureStackOpCode(val id: Byte, val insnName: String)(transform: List[Any] => List[Any]) extends OpCode{
@@ -146,16 +147,34 @@ object  StackManip {
   case class IfICmpGe(label: Int) extends BinaryBranch(162, "if_icmpge")(_ >= _)
   case class IfICmpGt(label: Int) extends BinaryBranch(163, "if_icmpgt")(_ > _)
   case class IfICmpLe(label: Int) extends BinaryBranch(164, "if_icmple")(_ <= _)
-  abstract class BinaryBranchObj(val id: Byte, val insnName: String)(pred: (Any, Any) => Boolean) extends OpCode{
+  abstract class BinaryBranchObj(val id: Byte, val insnName: String)(pred: Boolean => Boolean) extends OpCode{
     def label: Int
     def op = ctx => ctx.swapStack{ case top :: next :: stack =>
-
-      if(pred(next, top)) ctx.jumpTo(label)
+      println("COMPARING " + top + " " + next)
+      val res = (next, top) match{
+        case (null, null) => true
+        case (a: Array[Byte], b: Array[Byte]) => util.Arrays.equals(a, b)
+        case (a: Array[Char], b: Array[Char]) => util.Arrays.equals(a, b)
+        case (a: Array[Short], b: Array[Short]) => util.Arrays.equals(a, b)
+        case (a: Array[Int], b: Array[Int]) => util.Arrays.equals(a, b)
+        case (a: Array[Long], b: Array[Long]) => util.Arrays.equals(a, b)
+        case (a: Array[Float], b: Array[Float]) => util.Arrays.equals(a, b)
+        case (a: Array[Double], b: Array[Double]) => util.Arrays.equals(a, b)
+        case (a: svm.Object, b: svm.Object) =>
+          println("YAYY " + (a == b))
+          println(a.hashCode() + " " + b.hashCode())
+          println(a + " " + b)
+          a == b
+        case _ =>
+          println("FAILLL")
+          false
+      }
+      if(pred(res)) ctx.jumpTo(label)
       stack
 
     }
   }
-  case class IfACmpEq(label: Int) extends BinaryBranchObj(165, "if_acmpeq")(_ == _)
-  case class IfACmpNe(label: Int) extends BinaryBranchObj(166, "if_acmpne")(_ != _)
+  case class IfACmpEq(label: Int) extends BinaryBranchObj(165, "if_acmpeq")(x => x)
+  case class IfACmpNe(label: Int) extends BinaryBranchObj(166, "if_acmpne")(x => !x)
 
 }
