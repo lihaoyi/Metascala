@@ -12,14 +12,27 @@ class Class(val classData: ClassData,
             val statics: mutable.Map[String, Any] = mutable.Map.empty)
            (implicit classes: String => Class, loader: VClassLoader){
 
-  System.out.println("NEW CLASS" + classData.name + "\t" + this.hashCode())
+  classData.superName.map(classes)
   lazy val obj = new ClassObject(name)
+
   classData.fields.map{f =>
     statics(f.name) = Object.initField(f.desc)
   }
 
   def method(name: String, desc: String): Option[Method] = {
     ancestry.flatMap(_.methods).find(m => m.name == name && m.desc == desc)
+  }
+
+  def apply(owner: String, name: String) = {
+    this.ancestry.dropWhile(_.name != owner)
+                 .find(_.fields.exists(_.name == name))
+                 .get.name.statics(name)
+  }
+
+  def update(owner: String, name: String, value: Any) = {
+    this.ancestry.dropWhile(_.name != owner)
+      .find(_.fields.exists(_.name == name))
+      .get.name.statics(name) = value
   }
 
   def name = classData.name
@@ -106,7 +119,6 @@ class ClassObject(val name: String)
                   extends Object("java/lang/Class"){
 
 
-  System.out.println("NEW CLOBJECT" + name.name + "\t" + this.hashCode())
   def getDeclaredConstructors() = {
     classes(name.replace(".", "/")).classData
       .methods

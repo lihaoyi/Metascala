@@ -150,7 +150,6 @@ object  StackManip {
   abstract class BinaryBranchObj(val id: Byte, val insnName: String)(pred: Boolean => Boolean) extends OpCode{
     def label: Int
     def op = ctx => ctx.swapStack{ case top :: next :: stack =>
-      println("COMPARING " + top + " " + next)
       val res = (next, top) match{
         case (null, null) => true
         case (a: Array[Byte], b: Array[Byte]) => util.Arrays.equals(a, b)
@@ -160,13 +159,8 @@ object  StackManip {
         case (a: Array[Long], b: Array[Long]) => util.Arrays.equals(a, b)
         case (a: Array[Float], b: Array[Float]) => util.Arrays.equals(a, b)
         case (a: Array[Double], b: Array[Double]) => util.Arrays.equals(a, b)
-        case (a: svm.Object, b: svm.Object) =>
-          println("YAYY " + (a == b))
-          println(a.hashCode() + " " + b.hashCode())
-          println(a + " " + b)
-          a == b
+        case (a: svm.Object, b: svm.Object) => a == b
         case _ =>
-          println("FAILLL")
           false
       }
       if(pred(res)) ctx.jumpTo(label)

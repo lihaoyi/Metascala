@@ -39,11 +39,11 @@ object Misc {
   case object Return extends BaseOpCode(177, "return"){ def op = ctx => ctx.returnVal(None) }
 
   case class GetStatic(owner: String, name: String, desc: String) extends BaseOpCode(178, "getstatic"){
-    def op = implicit ctx => ctx.frame.stack = owner.statics(name) :: ctx.stack
+    def op = implicit ctx => ctx.frame.stack = owner(owner, name) :: ctx.stack
   }
   case class PutStatic(owner: String, name: String, desc: String) extends BaseOpCode(179, "putstatic"){
     def op = implicit ctx => ctx.swapStack{ case value :: stack =>
-      owner.statics(name) = value
+      owner(owner, name) = value
       stack
     }
   }

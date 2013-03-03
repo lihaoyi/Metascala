@@ -15,8 +15,6 @@ class VClassLoader(var children: Seq[VClassLoader]) extends (String => Class){
   implicit val loader = this
   val classes = mutable.Map.empty[String, Class]
 
-
-
   def apply(s: String): Class = {
     ???
   }
@@ -71,7 +69,7 @@ class VM(classLoader: String => Array[Byte]){
       throw x
     }
   }
-  invoke("java/lang/System", "initializeSystemClass", Nil)
+  //invoke("java/lang/System", "initializeSystemClass", Nil)
 }
 
 object VmThread{

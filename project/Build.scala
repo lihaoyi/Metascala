@@ -1,13 +1,16 @@
 import sbt._
 import Keys._
 
+import sbtassembly.Plugin._
+import AssemblyKeys._
+
 object Build extends sbt.Build{
 
   lazy val proj = Project(
     "SVM",
     file("."),
     settings =
-      Defaults.defaultSettings ++ Seq(
+      Defaults.defaultSettings ++ assemblySettings ++ Seq(
       organization  := "com.example",
       version       := "0.1",
       scalaVersion  := "2.10.0",
@@ -15,6 +18,8 @@ object Build extends sbt.Build{
       addCompilerPlugin("org.scala-lang.plugins" % "continuations" % "2.10.0"),
 
       scalacOptions += "-P:continuations:enable",
+
+      test in assembly := {},
 
       resolvers ++= Seq(
         "typesafe repo"      at "http://repo.typesafe.com/typesafe/releases/",

@@ -112,6 +112,14 @@ object Natives {
           "getEnclosingMethod0()[L//Object;" - { () =>
             null
           },
+          "getModifiers()I" - { (x: svm.ClassObject) => getClassFor(x.name).classData.access_flags },
+          "getSuperclass()L//Class;" - {(x: svm.ClassObject) =>
+            getClassFor(x.name).classData
+                               .superName
+                               .map(getClassFor)
+                               .map(_.obj)
+                               .getOrElse(null)
+          },
           "isPrimitive()Z" - ((x: svm.ClassObject) => false),
           "isInterface()Z" - ((x: svm.ClassObject) => (getClassFor(x.name.replace(".", "/")).classData.access_flags & Access.Interface) != 0),
           "isAssignableFrom(Ljava/lang/Class;)Z" - {(x: svm.ClassObject, y: svm.ClassObject) =>
@@ -231,6 +239,15 @@ object Natives {
       ),
 
       "reflect"/(
+        "NativeConstructorAccessorImpl"/(
+          "newInstance0(Ljava/lang/reflect/Constructor;[Ljava/lang/Object;)Ljava/lang/Object;" - {
+            (constr: svm.Object, args: Array[svm.Object]) =>
+              println("NewInstanceZero!")
+              println(constr.members)
+              println(args)
+              ???
+          }
+        ),
         "Reflection"/(
           "getCallerClass(I)Ljava/lang/Class;" - { (n: Int) =>
             stackTrace().drop(n).head.getClassName.obj
@@ -242,6 +259,7 @@ object Natives {
       )
     )
   )
+
 
   object Route{
     def apply(a: (String, Route)*) = Node(a.toMap)
