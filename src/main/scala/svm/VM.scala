@@ -51,7 +51,7 @@ class VM(classLoader: String => Array[Byte]){
     }
   }
 
-  val threads = List(new VmThread())
+  lazy val threads = List(new VmThread())
 
   def invoke(bootClass: String, mainMethod: String, args: Seq[Any]) = {
     try{

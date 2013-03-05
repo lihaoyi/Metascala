@@ -17,9 +17,12 @@ object Natives {
         x
     }
   }
-  val noOp = () => ()
-  val noOp1 = (x: Any) => ()
-  val noOp2 = (x: Any, y: Any) => ()
+  def value(x: Any) = () => x
+  def value1(x: Any) = (a: Any) => x
+  def value2(x: Any) = (a: Any, b: Any) => x
+  val noOp = value(())
+  val noOp1 = value1(())
+  val noOp2 = value2(())
   val primitiveMap = Map(
     "boolean" -> "java/lang/Boolean",
     "byte" -> "java/lang/Byte",
@@ -69,9 +72,7 @@ object Natives {
     "java"/(
       "lang"/(
         "ClassLoader"/(
-          "getSystemClassLoader()Ljava/lang/ClassLoader;" - {
-            null
-          }
+          "getSystemClassLoader()Ljava/lang/ClassLoader;" - value(null)
         ),
         "System"/(
           "getProperty(L//String;)L//String;" - {
@@ -91,23 +92,18 @@ object Natives {
     "sun"/(
       "reflect"/(
         "Reflection"/(
-          "registerMethodsToFilter(Ljava/lang/Class;[Ljava/lang/String;)V" - (noOp2)
+          "registerMethodsToFilter(Ljava/lang/Class;[Ljava/lang/String;)V" - noOp2
         )
       ),
       "misc"/(
         "Hashing"/(
-          "randomHashSeed(Ljava/lang/Object;)I" - ((x: Any) => 1)
+          "randomHashSeed(Ljava/lang/Object;)I" - value1(1)
         ),
         "Unsafe"/(
-          "getUnsafe()Lsun/misc/Unsafe;" - { () =>
-            new svm.Object("sun/misc/Unsafe")
-          }
-
-
-
+          "getUnsafe()Lsun/misc/Unsafe;" - value(new svm.Object("sun/misc/Unsafe"))
         ),
         "VM"/(
-          "isBooted()Z" - (() => true)
+          "isBooted()Z" - value(true)
         )
       )
 
@@ -160,15 +156,13 @@ object Natives {
           )
         ),
         "Class"/(
-          "registerNatives()V"-noOp,
+          "registerNatives()V" - noOp,
           "getName0()L//String;" - ((s: svm.ClassObject) => Virtualizer.toVirtual[svm.Object](s.name.replace("/", "."))),
           "forName0(L//String;)L//Class;" - ((s: svm.Object) => Virtualizer.fromVirtual[String](s).obj),
           "forName0(L//String;ZL//ClassLoader;)L//Class;" - ((s: svm.Object, x: Any, w: Any, y: Any) => Virtualizer.fromVirtual[String](s).obj),
           "getPrimitiveClass(L//String;)L//Class;"-((s: svm.Object) => getClassFor(primitiveMap(Virtualizer.fromVirtual(s).asInstanceOf[String])).obj),
-          "getClassLoader0()L//ClassLoader;"-((x: Any) => null),
-          "getDeclaringClass()L//Class;" - {() =>
-            null
-          },
+          "getClassLoader0()L//ClassLoader;" - value1(null),
+          "getDeclaringClass()L//Class;" - value(null),
           "getComponentType()Ljava/lang/Class;" - { (x: svm.ClassObject) =>
             x.name.splitAt(1) match {
               case ("[", rest) =>
@@ -182,9 +176,7 @@ object Natives {
           "getDeclaredFields0(Z)[L//reflect/Field;" - {(cls: svm.ClassObject, b: Int) =>
             cls.getDeclaredFields().toArray
           },
-          "getEnclosingMethod0()[L//Object;" - { () =>
-            null
-          },
+          "getEnclosingMethod0()[L//Object;" - value(null),
           "getModifiers()I" - { (x: svm.ClassObject) => getClassFor(x.name).classData.access_flags },
           "getSuperclass()L//Class;" - {(x: svm.ClassObject) =>
             getClassFor(x.name).classData
@@ -193,13 +185,13 @@ object Natives {
                                .map(_.obj)
                                .getOrElse(null)
           },
-          "isPrimitive()Z" - ((x: svm.ClassObject) => false),
+          "isPrimitive()Z" - value1(false),
           "isInterface()Z" - ((x: svm.ClassObject) => (getClassFor(x.name.replace(".", "/")).classData.access_flags & Access.Interface) != 0),
           "isAssignableFrom(Ljava/lang/Class;)Z" - {(x: svm.ClassObject, y: svm.ClassObject) =>
             true
           },
-          "isArray()Z" - ((x: svm.ClassObject) => x.name.startsWith("[")),
-          "desiredAssertionStatus0(L//Class;)Z"-((x: Any) => 0)
+          "isArray()Z" - ((_: svm.ClassObject).name.startsWith("[")),
+          "desiredAssertionStatus0(L//Class;)Z" - value1(0)
         ),
         "Double"/(
           "doubleToRawLongBits(D)J"-{ java.lang.Double.doubleToRawLongBits(_: Double)},
@@ -214,18 +206,18 @@ object Natives {
             case (x: svm.Object) => x
             case (a: Array[_]) => a.clone
           }},
-          "registerNatives()V"-noOp,
+          "registerNatives()V" - noOp,
           "getClass()L//Class;" - { (_: Any) match{
             case (x: svm.Object) => x.cls.obj
             case a: Array[_] => a.getClass.getName.obj
           }},
-          "hashCode()I" - {(x: svm.Object) => x.hashCode()},
+          "hashCode()I" - {(_: svm.Object).hashCode()},
           "notify()V" - noOp1,
           "notifyAll()V" - noOp1
         ),
         "Runtime"/(
-          "freeMemory()J" - {() => 1000000000L  },
-          "availableProcessors()I" - {() => 1}
+          "freeMemory()J" - value(1000000000L),
+          "availableProcessors()I" - value(1)
         ),
         "String"/(
           "intern()L//String;" - intern _
@@ -234,24 +226,19 @@ object Natives {
           "arraycopy(L//Object;IL//Object;II)V"-((src: Any, srcPos: Int, dest: Any, destPos: Int, length: Int) =>
             System.arraycopy(src, srcPos, dest, destPos, length)
           ),
-          "currentTimeMillis()J"-(() => System.currentTimeMillis()),
-          "nanoTime()J"-(() => System.nanoTime()),
-          "initProperties(Ljava/util/Properties;)Ljava/util/Properties;" - {
-            (x: svm.Object) => null
-          },
+          "currentTimeMillis()J" - value(System.currentTimeMillis()),
+          "nanoTime()J" - value(System.nanoTime()),
+          "initProperties(Ljava/util/Properties;)Ljava/util/Properties;" - value1(null),
           "identityHashCode(L//Object;)I"-((x: svm.Object) => System.identityHashCode(x)),
-          "registerNatives()V"-noOp,
+          "registerNatives()V" - noOp,
           "setIn0(Ljava/io/InputStream;)V" - noOp1,
           "setOut0(Ljava/io/PrintStream;)V" - noOp1,
           "setErr0(Ljava/io/PrintStream;)V" - noOp1
         ),
         "Thread"/(
-          "currentThread()L//Thread;" - { () =>
-            thread.obj
-
-          },
-          "setPriority0(I)V" - { noOp2 },
-          "start0()V" - { noOp }
+          "currentThread()L//Thread;" - value(thread.obj),
+          "setPriority0(I)V" - noOp2,
+          "start0()V" - noOp
         ),
         "Throwable"/(
           "fillInStackTrace(I)L//Throwable;" - { (throwable: svm.Object, dummy: Int) =>
@@ -269,7 +256,7 @@ object Natives {
         ),
         "ref"/(
           "Reference$ReferenceHandler"/(
-            "isAlive()Z" - {() => false}
+            "isAlive()Z" - value(false)
           )
         )
       ),
@@ -280,20 +267,16 @@ object Natives {
 
               thread.prepInvoke(pa.cls, pa.cls.classData.methods.find(_.name == "run").get, Seq(pa))
           },
-          "getStackAccessControlContext()L//AccessControlContext;" - {
-            () => new svm.Object("java/security/AccessControlContext")
-          },
-          "getInheritedAccessControlContext()L//AccessControlContext;" - {
-            () => new svm.Object("java/security/AccessControlContext")
-          }
+          "getStackAccessControlContext()L//AccessControlContext;" - value(new svm.Object("java/security/AccessControlContext")),
+          "getInheritedAccessControlContext()L//AccessControlContext;" - value(new svm.Object("java/security/AccessControlContext"))
         )
       )
     ),
     "sun"/(
       "misc"/(
         "Unsafe"/(
-          "arrayBaseOffset(Ljava/lang/Class;)I" - ((x: Any) => 0),
-          "arrayIndexScale(Ljava/lang/Class;)I" - ((x: Any) => 1),
+          "arrayBaseOffset(Ljava/lang/Class;)I" - value1(0),
+          "arrayIndexScale(Ljava/lang/Class;)I" - value1(1),
           "addressSize()I" - ((x: Any) => 4),
           "compareAndSwapInt(Ljava/lang/Object;JII)Z" - {(unsafe: Any, a: svm.Object, i: Long, b: Int, c: Int) =>
             if (getObject(a, i) == b) {
