@@ -12,11 +12,11 @@ object VM{
   var count = 0
 }
 import VM._
-class VClassLoader(var children: Seq[VClassLoader]) extends (String => Class){
+class VClassLoader(var children: Seq[VClassLoader]) extends (String => Cls){
   implicit val loader = this
-  val classes = mutable.Map.empty[String, Class]
+  val classes = mutable.Map.empty[String, Cls]
 
-  def apply(s: String): Class = {
+  def apply(s: String): Cls = {
     ???
   }
 }
@@ -26,7 +26,7 @@ class VM(classLoader: String => Array[Byte]){
   implicit object RootLoader extends VClassLoader(Nil){
 
 
-    override def apply(badname: String): Class = {
+    override def apply(badname: String): Cls = {
       val name = badname.replace('.', '/')
       classes.get(name) match{
         case Some(cls) => cls
@@ -34,12 +34,12 @@ class VM(classLoader: String => Array[Byte]){
           if name.contains("[")
           || Natives.primitiveMap.keySet.contains(name) =>
 
-          val newCls = new Class(new ClassData(0, name))
+          val newCls = new Cls(new ClassData(0, name))
           classes(name) = newCls
           newCls
 
         case None =>
-          val newCls = new Class(ClassData.parse(classLoader(name)))
+          val newCls = new Cls(ClassData.parse(classLoader(name)))
           classes(name) = newCls
           if (name != "sun/misc/Unsafe")
             newCls.method("<clinit>", "()V").foreach( m =>
@@ -77,10 +77,10 @@ class VM(classLoader: String => Array[Byte]){
 object VmThread{
   def apply()(implicit vmt: VmThread) = vmt
 }
-class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit val classes: String => svm.Class){
-  lazy val obj = new svm.Object("java/lang/Thread",
+class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit val classes: String => svm.Cls){
+  lazy val obj = new svm.Obj("java/lang/Thread",
     "name" -> "MyThread".toCharArray,
-    "group" -> new svm.Object("java/lang/ThreadGroup"),
+    "group" -> new svm.Obj("java/lang/ThreadGroup"),
     "priority" -> 5
   )
   val nativeX = Natives.nativeX(this, getStackTrace _)
@@ -124,7 +124,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     threadStack.pop()
     x.foreach(value => threadStack.head.stack = value :: threadStack.head.stack)
   }
-  @tailrec final def throwException(ex: svm.Object): Unit = {
+  @tailrec final def throwException(ex: svm.Obj): Unit = {
     threadStack.headOption match{
       case Some(frame)=>
         val handler =
@@ -148,14 +148,14 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
         println(ex.apply("java.lang.Throwable", "stackTrace"))
 
         ex.apply("java.lang.Throwable", "stackTrace")
-          .asInstanceOf[Array[svm.Object]]
+          .asInstanceOf[Array[svm.Obj]]
           .map(x => "" + Virtualizer.fromVirtual(x("java.lang.StackTraceElement", "declaringClass")) + " " + Virtualizer.fromVirtual(x("java.lang.StackTraceElement", "methodName")))
           .foreach(println)
 
         throw new Exception("Uncaught Exception: ")
     }
   }
-  def prepInvoke(cls: Class, method: Method, args: Seq[Any]) = {
+  def prepInvoke(cls: Cls, method: Method, args: Seq[Any]) = {
     log(indent + "prepInvoke " + cls.name + " " + method.name)
 
 
@@ -213,7 +213,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     }
 
   }
-  def invoke(cls: Class, method: Method, args: Seq[Any]) = {
+  def invoke(cls: Cls, method: Method, args: Seq[Any]) = {
     val dummyFrame = new Frame(
       runningClass = cls,
       method = method.copy(name = "Dummy"),
@@ -232,7 +232,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
 class Frame(
   var pc: Int = 0,
-  val runningClass: Class,
+  val runningClass: Cls,
   val method: Method,
   val locals: mutable.Seq[Any] = mutable.Seq.empty,
   var stack: List[Any] = Nil){

@@ -50,26 +50,26 @@ object Misc {
 
   case class GetField(owner: String, name: String, desc: String) extends BaseOpCode(180, "getfield"){
     def op = implicit ctx => ctx.swapStack{
-      case (objectRef: svm.Object) :: stack => ext(objectRef(owner, name)) :: stack
+      case (objectRef: svm.Obj) :: stack => ext(objectRef(owner, name)) :: stack
       case null :: stack =>
-        ctx.throwException(new svm.Object("java/lang/NullPointerException"))
+        ctx.throwException(new svm.Obj("java/lang/NullPointerException"))
       stack
     }
   }
   case class PutField(owner: String, name: String, desc: String) extends BaseOpCode(181, "putfield"){
     def op = implicit ctx => ctx.swapStack {
-      case value :: (objectRef: svm.Object) :: stack =>
+      case value :: (objectRef: svm.Obj) :: stack =>
         objectRef(owner, name) = value
         stack
       case value :: null :: stack =>
-        ctx.throwException(new svm.Object("java/lang/NullPointerException"))
+        ctx.throwException(new svm.Obj("java/lang/NullPointerException"))
         stack
     }
   }
 
   def ensureNonNull(x: Any)(thunk: => Unit)(implicit ctx: Context) = {
     if (x == null){
-      ctx.throwException(new svm.Object("java/lang/NullPointerException"))
+      ctx.throwException(new svm.Obj("java/lang/NullPointerException"))
     }else {
       thunk
     }
@@ -81,7 +81,7 @@ object Misc {
       val (args, rest) = ctx.frame.stack.splitAt(argCount+1)
       ensureNonNull(args.last){
         val cls = args.last match {
-          case o: svm.Object => o.cls
+          case o: svm.Obj => o.cls
           case a: Array[_] => ctx("java/lang/Object")
         }
         /*svm.VM.log("InvokeVirtual")
@@ -131,8 +131,7 @@ object Misc {
 
   case class New(desc: String) extends BaseOpCode(187, "new"){
     def op = implicit ctx => desc match {
-      case "java/lang/ClassLoader" => ctx.frame.stack ::= new svm.ClassLoaderObject()
-      case _ => ctx.frame.stack ::= new svm.Object(desc)
+      case _ => ctx.frame.stack ::= new svm.Obj(desc)
     }
   }
   case class NewArray(typeCode: Int) extends BaseOpCode(188, "newarray"){
@@ -164,7 +163,7 @@ object Misc {
 
   case object AThrow extends BaseOpCode(191, "athrow"){
     def op = ctx => {
-      val (exception: svm.Object) :: stack = ctx.stack
+      val (exception: svm.Obj) :: stack = ctx.stack
       ctx.frame.stack = stack
       ctx.throwException(exception)
 
@@ -179,7 +178,7 @@ object Misc {
     def op = implicit ctx => ctx.swapStack{ case top :: rest =>
       val res = top match{
         case null => 0
-        case x: svm.Object =>  if(x.cls.isInstanceOf(desc)) 1 else 0
+        case x: svm.Obj =>  if(x.cls.isInstanceOf(desc)) 1 else 0
         case x: Array[Object] => 1
 
 

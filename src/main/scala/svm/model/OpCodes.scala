@@ -1,13 +1,13 @@
 package svm.model
 
-import svm.{Class, VmThread, Frame}
+import svm.{Cls, VmThread, Frame}
 import collection.mutable
 import org.objectweb.asm
 import asm.Label
 import org.objectweb.asm.tree._
 
 
-case class Context(thread: VmThread) extends (String => svm.Class){
+case class Context(thread: VmThread) extends (String => svm.Cls){
   def apply(s: String) = thread.classes(s)
   def frame = thread.threadStack.head
   def stack = frame.stack
@@ -15,7 +15,7 @@ case class Context(thread: VmThread) extends (String => svm.Class){
     frame.stack = transform(frame.stack)
   }
   def jumpTo(l: Int) = frame.pc = l
-  def throwException(ex: svm.Object) = {
+  def throwException(ex: svm.Obj) = {
     println("Throwing " + ex.cls.name)
     thread.threadStack.filter(_.method.name != "Dummy").foreach(f =>
       println(f.runningClass.name.padTo(30, ' ') + f.method.name.padTo(20, ' ') + " " + (f.pc-1) + "\t" + f.method.code.instructions(f.pc-1) + "\t" + f.stack)
@@ -27,7 +27,7 @@ case class Context(thread: VmThread) extends (String => svm.Class){
     thread.throwException(ex)
   }
 
-  def prepInvoke(cls: Class, method: Method, args: Seq[Any]) = {
+  def prepInvoke(cls: Cls, method: Method, args: Seq[Any]) = {
     thread.prepInvoke(cls, method, args)
   }
   def returnVal(x: Option[Any]) = {

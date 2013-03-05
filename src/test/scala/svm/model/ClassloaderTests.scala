@@ -26,7 +26,7 @@ class ClassloaderTests extends FreeSpec{
       val Method(1, "<init>", "()V", Nil, Code(
         List(
           ALoad(0),
-          InvokeSpecial("java/lang/Object", "<init>", "()V"),
+          InvokeSpecial("java/lang/Obj", "<init>", "()V"),
           Return
         ), List(
           List(LineNumber(3, 0)),
@@ -63,13 +63,13 @@ class ClassloaderTests extends FreeSpec{
       val TypeDesc(Seq("I", "F"), "V") = TypeDesc.read("(IF)V")
     }
     "more with objects" in {
-      val TypeDesc(Seq("Ljava/lang/Object;"), "I") = TypeDesc.read("(Ljava/lang/Object;)I")
+      val TypeDesc(Seq("Ljava/lang/Obj;"), "I") = TypeDesc.read("(Ljava/lang/Obj;)I")
       val TypeDesc(Seq("I", "Ljava/lang/String;"), "[I") = TypeDesc.read("(ILjava/lang/String;)[I")
-      val TypeDesc(Seq("[I"), "Ljava/lang/Object;") = TypeDesc.read("([I)Ljava/lang/Object;")
+      val TypeDesc(Seq("[I"), "Ljava/lang/Obj;") = TypeDesc.read("([I)Ljava/lang/Obj;")
       val TypeDesc(
         Seq("I", "D", "Ljava/lang/Thread;"),
-        "Ljava/lang/Object;"
-      ) = TypeDesc.read("(IDLjava/lang/Thread;)Ljava/lang/Object;")
+        "Ljava/lang/Obj;"
+      ) = TypeDesc.read("(IDLjava/lang/Thread;)Ljava/lang/Obj;")
     }
   }
 }

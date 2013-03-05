@@ -5,18 +5,18 @@ import collection.mutable
 import java.io.{ObjectInputStream, ObjectOutputStream}
 import annotation.tailrec
 import scala.Some
-import svm.ClassObject
+import svm.ClsObj
 import org.objectweb.asm.Type
 
-class Class(val classData: ClassData,
+class Cls(val classData: ClassData,
             val statics: mutable.Map[String, Any] = mutable.Map.empty)
-           (implicit classes: String => Class, loader: VClassLoader){
+           (implicit classes: String => Cls, loader: VClassLoader){
 
   classData.superName.map(classes)
-  lazy val obj = new ClassObject(name)
+  lazy val obj = new ClsObj(name)
 
   classData.fields.map{f =>
-    statics(f.name) = Object.initField(f.desc)
+    statics(f.name) = Obj.initField(f.desc)
   }
 
   def method(name: String, desc: String): Option[Method] = {
@@ -47,7 +47,7 @@ class Class(val classData: ClassData,
     rec(classData)
   }
 
-  def isInstanceOf(desc: String)(implicit classes: String => Class): Boolean = {
+  def isInstanceOf(desc: String)(implicit classes: String => Cls): Boolean = {
 
     val res =
       classData.name == desc ||
@@ -58,9 +58,9 @@ class Class(val classData: ClassData,
   }
 }
 
-object Object{
+object Obj{
 
-  def initMembers(cls: ClassData, filter: Field => Boolean)(implicit classes: String => Class): List[Map[String, Any]] = {
+  def initMembers(cls: ClassData, filter: Field => Boolean)(implicit classes: String => Cls): List[Map[String, Any]] = {
     cls.fields.filter(filter).map{f =>
       f.name -> initField(f.desc)
     }.toMap :: cls.superName.toList.flatMap(x => initMembers(classes(x).classData, filter))
@@ -82,11 +82,11 @@ object Object{
   }
 }
 
-class Object(val cls: Class, initMembers: (String, Any)*)
-            (implicit classes: String => Class){
+class Obj(val cls: Cls, initMembers: (String, Any)*)
+            (implicit classes: String => Cls){
 
 
-  val members = Object.initMembers(cls.classData, x => (x.access & Access.Static) == 0).map(x => mutable.Map(x.toSeq:_*))
+  val members = Obj.initMembers(cls.classData, x => (x.access & Access.Static) == 0).map(x => mutable.Map(x.toSeq:_*))
 
 
   for ((s, v) <- initMembers){
@@ -110,13 +110,13 @@ class Object(val cls: Class, initMembers: (String, Any)*)
 
   }
   override def toString = {
-    s"svm.Object(${cls.name})"
+    s"svm.Obj(${cls.name})"
   }
 }
 
-class ClassObject(val name: String)
-                 (implicit classes: String => Class)
-                  extends Object("java/lang/Class"){
+class ClsObj(val name: String)
+                 (implicit classes: String => Cls)
+                  extends Obj("java/lang/Class"){
 
 
   def getDeclaredConstructors() = {
@@ -124,11 +124,11 @@ class ClassObject(val name: String)
       .methods
       .filter(_.name == "<init>")
       .map{m =>
-      new svm.Object("java/lang/reflect/Constructor",
+      new svm.Obj("java/lang/reflect/Constructor",
         "clazz" -> classes(name.replace(".", "/")).obj,
         "slot" -> 0,
         "parameterTypes" -> Type.getType(m.desc).getArgumentTypes.map(_.getClassName).map(classes.andThen(_.obj)),
-        "exceptionTypes" -> new Array[svm.ClassObject](0),
+        "exceptionTypes" -> new Array[svm.ClsObj](0),
         "modifiers" -> m.access
       )
     }
@@ -137,7 +137,7 @@ class ClassObject(val name: String)
 
     classes(name).classData.fields.map {f =>
 
-      new svm.Object("java/lang/reflect/Field",
+      new svm.Obj("java/lang/reflect/Field",
         "clazz" -> this,
         "slot" -> f.name.hashCode,
         "name" -> Natives.intern(Virtualizer.toVirtual(f.name)),
@@ -149,11 +149,9 @@ class ClassObject(val name: String)
     }
   }
   override def toString = {
-    s"svm.ClassObject($name)"
+    s"svm.ClsObj($name)"
   }
 }
-class ClassLoaderObject(implicit classes: String => Class)
-                        extends Object("java/lang/ClassLoader")
 
 
 

@@ -159,7 +159,7 @@ object  StackManip {
         case (a: Array[Long], b: Array[Long]) => util.Arrays.equals(a, b)
         case (a: Array[Float], b: Array[Float]) => util.Arrays.equals(a, b)
         case (a: Array[Double], b: Array[Double]) => util.Arrays.equals(a, b)
-        case (a: svm.Object, b: svm.Object) => a == b
+        case (a: svm.Obj, b: svm.Obj) => a == b
         case _ =>
           false
       }

@@ -36,7 +36,7 @@ package object opcodes {
       case i: Int => Some(i)
       case f: Float => Some(f)
       case a: Array[_] => Some(a)
-      case o: svm.Object => Some(o)
+      case o: svm.Obj => Some(o)
       case _ => None
     }
   }
