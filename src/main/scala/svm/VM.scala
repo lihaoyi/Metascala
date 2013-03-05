@@ -161,7 +161,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
     method.code.instructions.zipWithIndex.foreach{case (x, i) => log(indent + i + "\t" + x) }
 
-    (Natives.trapped.lookup(cls.name + "/" + method.name + method.desc), method) match{
+    (Natives.trapped.lookup(cls.name + "/" + method.name + method.desc.unparse), method) match{
       case (Some(trap), _) =>
         val result = trap.apply(args)
         val topFrame = threadStack.head

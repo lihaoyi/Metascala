@@ -9,7 +9,7 @@ class SVMTest extends FreeSpec with Util{
     println("Hello World")
     tester.run("initSVM")
   }*/
-  "rhino" in {
+  k"rhino" in {
     val tester = new Tester("svm.full.SVM")
 
     tester.run("rhino")
