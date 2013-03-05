@@ -20,7 +20,10 @@ case class Context(thread: VmThread) extends (String => svm.Class){
     thread.threadStack.filter(_.method.name != "Dummy").foreach(f =>
       println(f.runningClass.name.padTo(30, ' ') + f.method.name.padTo(20, ' ') + " " + (f.pc-1) + "\t" + f.method.code.instructions(f.pc-1) + "\t" + f.stack)
     )
-
+    svm.VM.log("Throwing " + ex.cls.name)
+    thread.threadStack.filter(_.method.name != "Dummy").foreach(f =>
+      svm.VM.log(f.runningClass.name.padTo(30, ' ') + f.method.name.padTo(20, ' ') + " " + (f.pc-1) + "\t" + f.method.code.instructions(f.pc-1) + "\t" + f.stack)
+    )
     thread.throwException(ex)
   }
 

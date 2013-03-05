@@ -84,6 +84,13 @@ object Misc {
           case o: svm.Object => o.cls
           case a: Array[_] => ctx("java/lang/Object")
         }
+        /*svm.VM.log("InvokeVirtual")
+        svm.VM.log(cls.name + " " + name + " " + desc)
+        svm.VM.log("")
+        cls.ancestry.flatMap(_.methods)
+                    .map(""+_)
+                    .foreach(svm.VM.log)
+        svm.VM.log("")*/
         val method = cls.method(name, desc).get
         ctx.frame.stack = rest
         ctx.prepInvoke(cls, method, args.reverse)

@@ -123,19 +123,31 @@ object LoadStore {
     }
   }
   class PushFromArrayInt[T: Numeric](val id: Byte, val insnName: String) extends OpCode{
-    def op = implicit ctx => {
-      val Intish(index) :: (array: Array[T]) :: stack = ctx.stack
-      if (array.isDefinedAt(index))
-        ctx.frame.stack = implicitly[Numeric[T]].toInt(array(index)) :: stack
-      else{
-        ctx.throwException{
-          new svm.Object("java/lang/ArrayIndexOutOfBoundsException",
-            "detailMessage" -> Virtualizer.toVirtual(index+"")
-          )
+    def op = implicit ctx => ctx.stack match {
+      case Intish(index) :: (array: Array[Boolean]) :: stack =>
+        if (array.isDefinedAt(index))
+          ctx.frame.stack = (if(array(index)) 1 else 0) :: stack
+        else{
+          ctx.throwException{
+            new svm.Object("java/lang/ArrayIndexOutOfBoundsException",
+              "detailMessage" -> Virtualizer.toVirtual(index+"")
+            )
+          }
         }
-      }
+      case Intish(index) :: (array: Array[T]) :: stack =>
+        if (array.isDefinedAt(index))
+          ctx.frame.stack = implicitly[Numeric[T]].toInt(array(index)) :: stack
+        else{
+          ctx.throwException{
+            new svm.Object("java/lang/ArrayIndexOutOfBoundsException",
+              "detailMessage" -> Virtualizer.toVirtual(index+"")
+            )
+          }
+        }
+
     }
   }
+
   case object IALoad extends PushFromArray[Int](46, "iaLoad")
   case object LALoad extends PushFromArray[Long](47, "laLoad")
   case object FALoad extends PushFromArray[Float](48, "faLoad")
@@ -211,9 +223,13 @@ object LoadStore {
         case (value: Boolean) :: Intish(index) :: (array: Array[Boolean]) :: stack =>
           array(index) = value
           stack
+        case v@Intish(value) :: Intish(index) :: (array: Array[Boolean]) :: stack =>
+          array(index) = x(value) != 0
+          stack
         case v@Intish(value) :: Intish(index) :: (array: Array[T]) :: stack =>
           array(index) = x(value)
           stack
+
 
       }
     }

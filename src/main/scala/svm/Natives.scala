@@ -23,6 +23,7 @@ object Natives {
   val primitiveMap = Map(
     "boolean" -> "java/lang/Boolean",
     "byte" -> "java/lang/Byte",
+    "char" -> "java/lang/Character",
     "short" -> "java/lang/Short",
     "int" -> "java/lang/Integer",
     "long" -> "java/lang/Long",
@@ -38,7 +39,10 @@ object Natives {
     "java.version" -> "1.6",
     "java.vendor.url" -> "https ->//github.com/int3/doppio",
     "java.class.version" -> "50.0",
+    "java.security.debug" -> "access,failure",
+    "java.security.auth.debug" -> "access,failure",
     "java.specification.version" -> "1.6",
+    "jdk.map.althashing.threshold" -> "-1",
     "line.separator" ->"\n",
     "file.separator" ->"/",
     "path.separator" ->":",
@@ -56,7 +60,7 @@ object Natives {
         "System"/(
           "getProperty(L//String;)L//String;" - {
             (s: svm.Object) =>
-              Virtualizer.toVirtual[svm.Object](properties(Virtualizer.fromVirtual[String](s)))
+              Virtualizer.toVirtual[Any](properties(Virtualizer.fromVirtual[String](s)))
 
           },
           "getProperty(L//String;L//String;)L//String;" - {
@@ -73,7 +77,16 @@ object Natives {
         "Reflection"/(
           "registerMethodsToFilter(Ljava/lang/Class;[Ljava/lang/String;)V" - (noOp2)
         )
+      ),
+      "misc"/(
+        "Hashing"/(
+          "randomHashSeed(Ljava/lang/Object;)I" - ((x: Any) => 1)
+        ),
+        "VM"/(
+          "isBooted()Z" - (() => true)
+        )
       )
+
     )
   )
 
@@ -98,7 +111,7 @@ object Natives {
           "getName0()L//String;" - ((s: svm.ClassObject) => Virtualizer.toVirtual[svm.Object](s.name.replace("/", "."))),
           "forName0(L//String;)L//Class;" - ((s: svm.Object) => Virtualizer.fromVirtual[String](s).obj),
           "forName0(L//String;ZL//ClassLoader;)L//Class;" - ((s: svm.Object, x: Any, w: Any, y: Any) => Virtualizer.fromVirtual[String](s).obj),
-          "getPrimitiveClass(L//String;)L//Class;"-((s: svm.Object) => (new Object(getClassFor(primitiveMap(Virtualizer.fromVirtual(s).asInstanceOf[String]))))),
+          "getPrimitiveClass(L//String;)L//Class;"-((s: svm.Object) => getClassFor(primitiveMap(Virtualizer.fromVirtual(s).asInstanceOf[String])).obj),
           "getClassLoader0()L//ClassLoader;"-((x: Any) => null),
           "getDeclaringClass()L//Class;" - {() =>
             null
@@ -188,12 +201,12 @@ object Natives {
             throwable.members(0)("stackTrace") =
               stackTrace().map { f =>
               new svm.Object("java/lang/StackTraceElement",
-                "declaringClass" -> f.getClassName,
-                "methodName" -> f.getMethodName,
-                "fileName" -> f.getFileName,
-                "lineNumber" -> f.getLineNumber
+                "declaringClass" -> Virtualizer.toVirtual(f.getClassName),
+                "methodName" -> Virtualizer.toVirtual(f.getMethodName),
+                "fileName" -> Virtualizer.toVirtual(f.getFileName),
+                "lineNumber" -> Virtualizer.toVirtual(f.getLineNumber)
               )
-            }
+            }.toArray
             throwable
           }
         ),
@@ -243,9 +256,14 @@ object Natives {
           "newInstance0(Ljava/lang/reflect/Constructor;[Ljava/lang/Object;)Ljava/lang/Object;" - {
             (constr: svm.Object, args: Array[svm.Object]) =>
               println("NewInstanceZero!")
-              println(constr.members)
-              println(args)
-              ???
+              VM.log("NewInstanceZero!")
+              val cls: svm.Class = constr.members(0)("clazz").asInstanceOf[svm.ClassObject].name
+              val newObj = new svm.Object(cls)
+              VM.log("|" + newObj)
+              VM.log("|" + thread.threadStack.head.stack)
+              thread.invoke(cls, cls.method("<init>", "()V").get, Seq(newObj))
+              VM.log("|" + thread.threadStack.head.stack)
+              newObj
           }
         ),
         "Reflection"/(

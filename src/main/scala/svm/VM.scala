@@ -9,6 +9,7 @@ import java.security.AccessController
 object VM{
   val lines = mutable.Buffer.empty[String] 
   def log(s: String) = lines.append(s)
+  var count = 0
 }
 import VM._
 class VClassLoader(var children: Seq[VClassLoader]) extends (String => Class){
@@ -88,22 +89,32 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
         }.getOrElse(-1)
       )
     }.toList
-  scala.sys.SystemProperties
+
   def indent = "\t" * threadStack.filter(_.method.name != "Dummy").length
   def step() = {
+
+    VM.count += 1
+    if (VM.count % 10000 == 0){
+      println("SnapShot")
+      println("\n")
+      threadStack.foreach(f =>
+        println(f.runningClass.name + "\t" + f.method.name + "\t" + f.pc)
+      )
+      println("\n")
+    }
     val topFrame = threadStack.head
 
     val node = topFrame.method.code.instructions(topFrame.pc)
-
+    log(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack)
     log(indent + topFrame.pc + "\t---------------------- " + node )
     topFrame.pc += 1
     node.op(Context(this))
 
-    log(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack)
+
     //log(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack.map(x => if (x == null) null else x.getClass))
   }
   def returnVal(x: Option[Any]) = {
-    //log(indent + "Returning!")
+    log(indent + "Returning from " + threadStack.head.runningClass.name + " " + threadStack.head.method.name)
     threadStack.pop()
     x.foreach(value => threadStack.head.stack = value :: threadStack.head.stack)
   }
@@ -126,7 +137,15 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
             frame.stack ::= ex
         }
       case None =>
-        lines.takeRight(10000).foreach(println)
+
+        println("Stack Trace")
+        println(ex.apply("java.lang.Throwable", "stackTrace"))
+
+        ex.apply("java.lang.Throwable", "stackTrace")
+          .asInstanceOf[Array[svm.Object]]
+          .map(x => "" + Virtualizer.fromVirtual(x("java.lang.StackTraceElement", "declaringClass")) + " " + Virtualizer.fromVirtual(x("java.lang.StackTraceElement", "methodName")))
+          .foreach(println)
+
         throw new Exception("Uncaught Exception: ")
     }
   }
