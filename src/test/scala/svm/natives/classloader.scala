@@ -15,10 +15,10 @@ class ClassTest extends FreeSpec with Util{
     "isPrimitive" in tester.run("isPrimitive")
     "isArray" in tester.run("isArray")
   }
-  /*"classloaders" - {
+  "classloaders" - {
     val tester = new Tester("svm.natives.classes.ClassLoaders")
     "name" in tester.run("name")
     "create" in tester.run("create")
-  }*/
+  }
 }
 

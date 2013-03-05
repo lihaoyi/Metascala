@@ -41,9 +41,10 @@ class VM(classLoader: String => Array[Byte]){
         case None =>
           val newCls = new Class(ClassData.parse(classLoader(name)))
           classes(name) = newCls
-          newCls.method("<clinit>", "()V").foreach( m =>
-            threads(0).invoke(newCls, m, Nil)
-          )
+          if (name != "sun/misc/Unsafe")
+            newCls.method("<clinit>", "()V").foreach( m =>
+              threads(0).invoke(newCls, m, Nil)
+            )
           newCls
 
       }
@@ -77,6 +78,11 @@ object VmThread{
   def apply()(implicit vmt: VmThread) = vmt
 }
 class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit val classes: String => svm.Class){
+  lazy val obj = new svm.Object("java/lang/Thread",
+    "name" -> "MyThread".toCharArray,
+    "group" -> new svm.Object("java/lang/ThreadGroup"),
+    "priority" -> 5
+  )
   val nativeX = Natives.nativeX(this, getStackTrace _)
   def getStackTrace =
     threadStack.map { f =>

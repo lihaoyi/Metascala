@@ -139,7 +139,7 @@ class ClassObject(val name: String)
 
       new svm.Object("java/lang/reflect/Field",
         "clazz" -> this,
-        "slot" -> 1,
+        "slot" -> f.name.hashCode,
         "name" -> Natives.intern(Virtualizer.toVirtual(f.name)),
         "modifiers" -> f.access,
         "type" -> classes(Type.getType(f.desc).getClassName).obj,

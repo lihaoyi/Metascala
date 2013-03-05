@@ -30,6 +30,17 @@ object Natives {
     "float" -> "java/lang/Float",
     "double" -> "java/lang/Double"
   )
+  val shortMap = (_: String) match {
+    case "Z" => "boolean"
+    case "B" => "byte"
+    case "C" => "char"
+    case "S" => "short"
+    case "I" => "int"
+    case "J" => "long"
+    case "F" => "float"
+    case "D" => "double"
+    case x => x.drop(1).dropRight(1)
+  }
 
   val properties = Map(
     "java.home" -> "C ->/java_home",
@@ -57,6 +68,11 @@ object Natives {
   def trapped(implicit getClassFor: String => Class) = Route(
     "java"/(
       "lang"/(
+        "ClassLoader"/(
+          "getSystemClassLoader()Ljava/lang/ClassLoader;" - {
+            null
+          }
+        ),
         "System"/(
           "getProperty(L//String;)L//String;" - {
             (s: svm.Object) =>
@@ -82,6 +98,14 @@ object Natives {
         "Hashing"/(
           "randomHashSeed(Ljava/lang/Object;)I" - ((x: Any) => 1)
         ),
+        "Unsafe"/(
+          "getUnsafe()Lsun/misc/Unsafe;" - { () =>
+            new svm.Object("sun/misc/Unsafe")
+          }
+
+
+
+        ),
         "VM"/(
           "isBooted()Z" - (() => true)
         )
@@ -89,7 +113,29 @@ object Natives {
 
     )
   )
+  def getObject(x: Any, i: Long) = {
+    x match{
+      case o: svm.Object =>
+        (for {
+          m <- o.members
+          k <- m.keys.find(_.hashCode == i)
+        } yield m(k)).head
 
+      case r: Array[Any] =>
+        r(i.toInt)
+    }
+  }
+  def putObject(x: Any, i: Long, b: Any) = {
+    x match{
+      case o: svm.Object =>
+        for {
+          m <- o.members
+          k <- m.keys.find(_.hashCode == i)
+        } yield m(k) = b
+      case r: Array[Any] =>
+        r(i.toInt) = b
+    }
+  }
 
   def nativeX(thread: VmThread, stackTrace: () => List[StackTraceElement])(implicit getClassFor: String => Class): Route = Route(
     "java"/(
@@ -106,6 +152,13 @@ object Natives {
         )
       ),
       "lang"/(
+        "reflect"/(
+          "Array"/(
+            "newArray(Ljava/lang/Class;I)Ljava/lang/Object;" - {
+              (x: svm.ClassObject, n: Int) => new Array[svm.Object](n)
+            }
+          )
+        ),
         "Class"/(
           "registerNatives()V"-noOp,
           "getName0()L//String;" - ((s: svm.ClassObject) => Virtualizer.toVirtual[svm.Object](s.name.replace("/", "."))),
@@ -115,6 +168,13 @@ object Natives {
           "getClassLoader0()L//ClassLoader;"-((x: Any) => null),
           "getDeclaringClass()L//Class;" - {() =>
             null
+          },
+          "getComponentType()Ljava/lang/Class;" - { (x: svm.ClassObject) =>
+            x.name.splitAt(1) match {
+              case ("[", rest) =>
+                getClassFor(Natives.shortMap(rest)).obj
+              case _ => null
+            }
           },
           "getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;" - {
             (cls: svm.ClassObject, b: Int) => cls.getDeclaredConstructors().toArray
@@ -164,7 +224,8 @@ object Natives {
           "notifyAll()V" - noOp1
         ),
         "Runtime"/(
-            "freeMemory()J" - {() => 1000000000L  }
+          "freeMemory()J" - {() => 1000000000L  },
+          "availableProcessors()I" - {() => 1}
         ),
         "String"/(
           "intern()L//String;" - intern _
@@ -186,11 +247,7 @@ object Natives {
         ),
         "Thread"/(
           "currentThread()L//Thread;" - { () =>
-            new svm.Object("java/lang/Thread",
-              "name" -> "MyThread".toCharArray,
-              "group" -> new svm.Object("java/lang/ThreadGroup"),
-              "priority" -> 5
-            )
+            thread.obj
 
           },
           "setPriority0(I)V" - { noOp2 },
@@ -238,13 +295,44 @@ object Natives {
           "arrayBaseOffset(Ljava/lang/Class;)I" - ((x: Any) => 0),
           "arrayIndexScale(Ljava/lang/Class;)I" - ((x: Any) => 1),
           "addressSize()I" - ((x: Any) => 4),
-          "compareAndSwapInt(Ljava/lang/Object;JII)Z" - {(s: Any, x: svm.Object, offset: Int, expected: Int, target: Int) =>
-            val key = x.members.head.keys.toSeq(offset.toInt)
-
-            if (x(x.cls.name, key) == expected) x(x.cls.name, key) = target
+          "compareAndSwapInt(Ljava/lang/Object;JII)Z" - {(unsafe: Any, a: svm.Object, i: Long, b: Int, c: Int) =>
+            if (getObject(a, i) == b) {
+              println("win")
+              putObject(a, i, b)
+              true
+            }else{
+              println("fail")
+              false
+            }
             true;
           },
-          "objectFieldOffset(Ljava/lang/reflect/Field;)J" - {(x: svm.Object) => 0 }
+          "putOrderedObject(Ljava/lang/Object;JLjava/lang/Object;)V" - {
+            (unsafe: svm.Object, a: Any, i: Long, b: Any) => putObject(a, i, b)
+          },
+          "getObject(Ljava/lang/Object;J)Ljava/lang/Object;" - {
+            (unsafe: svm.Object, a: Any, i: Long) => getObject(a, i)
+          },
+          "getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;" - {
+            (unsafe: svm.Object, a: Any, i: Long) => getObject(a, i)
+          },
+          "compareAndSwapObject(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z" - {
+            (unsafe: svm.Object, a: Any, i: Long, b: Any, c: Any) =>
+              println("CAS" + a + "\t" + b + " for " + c + " found " + getObject(a, i))
+
+              if (getObject(a, i) == b) {
+                println("win")
+                putObject(a, i, b)
+                true
+              }else{
+                println("fail")
+                false
+              }
+          },
+          "objectFieldOffset(Ljava/lang/reflect/Field;)J" - {(unsafe: Any, x: svm.Object) =>
+            println(x)
+            println(x.members)
+            x("java/lang/reflect/Field", "slot").asInstanceOf[Int].toLong
+          }
         ),
         "VM"/(
           "initialize()V" - noOp
