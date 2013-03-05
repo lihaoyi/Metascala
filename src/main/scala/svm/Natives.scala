@@ -2,6 +2,7 @@ package svm
 
 import annotation.tailrec
 import java.util.concurrent.atomic.AtomicInteger
+import model.{TypeDesc, Type}
 
 object Natives {
 
@@ -23,27 +24,7 @@ object Natives {
   val noOp = value(())
   val noOp1 = value1(())
   val noOp2 = value2(())
-  val primitiveMap = Map(
-    "boolean" -> "java/lang/Boolean",
-    "byte" -> "java/lang/Byte",
-    "char" -> "java/lang/Character",
-    "short" -> "java/lang/Short",
-    "int" -> "java/lang/Integer",
-    "long" -> "java/lang/Long",
-    "float" -> "java/lang/Float",
-    "double" -> "java/lang/Double"
-  )
-  val shortMap = (_: String) match {
-    case "Z" => "boolean"
-    case "B" => "byte"
-    case "C" => "char"
-    case "S" => "short"
-    case "I" => "int"
-    case "J" => "long"
-    case "F" => "float"
-    case "D" => "double"
-    case x => x.drop(1).dropRight(1)
-  }
+
 
   val properties = Map(
     "java.home" -> "C ->/java_home",
@@ -160,13 +141,13 @@ object Natives {
           "getName0()L//String;" - ((s: svm.ClsObj) => Virtualizer.toVirtual[svm.Obj](s.name.replace("/", "."))),
           "forName0(L//String;)L//Class;" - ((s: svm.Obj) => Virtualizer.fromVirtual[String](s).obj),
           "forName0(L//String;ZL//ClassLoader;)L//Class;" - ((s: svm.Obj, x: Any, w: Any, y: Any) => Virtualizer.fromVirtual[String](s).obj),
-          "getPrimitiveClass(L//String;)L//Class;"-((s: svm.Obj) => getClassFor(primitiveMap(Virtualizer.fromVirtual(s).asInstanceOf[String])).obj),
+          "getPrimitiveClass(L//String;)L//Class;"-((s: svm.Obj) => getClassFor(Type.primitiveMap(Virtualizer.fromVirtual(s).asInstanceOf[String])).obj),
           "getClassLoader0()L//ClassLoader;" - value1(null),
           "getDeclaringClass()L//Class;" - value(null),
           "getComponentType()Ljava/lang/Class;" - { (x: svm.ClsObj) =>
             x.name.splitAt(1) match {
               case ("[", rest) =>
-                getClassFor(Natives.shortMap(rest)).obj
+                getClassFor(Type.shortMap(rest)).obj
               case _ => null
             }
           },
@@ -175,6 +156,9 @@ object Natives {
           },
           "getDeclaredFields0(Z)[L//reflect/Field;" - {(cls: svm.ClsObj, b: Int) =>
             cls.getDeclaredFields().toArray
+          },
+          "getDeclaredMethods0(Z)[L//reflect/Method;" - {(cls: svm.ClsObj, b: Int) =>
+            cls.getDeclaredMethods().toArray
           },
           "getEnclosingMethod0()[L//Object;" - value(null),
           "getModifiers()I" - { (x: svm.ClsObj) => getClassFor(x.name).classData.access_flags },
@@ -364,9 +348,12 @@ object Natives {
           children.get(first).flatMap(_.lookup(rest, parts :+ first))
         }else{
 
-          children.find(_._1.replace("L///", "L" + parts(0) + "/" + parts(1) + "/" + parts(2) + "/")
-              .replace("L//", "L" + parts(0) + "/" + parts(1) + "/")
-              .replace("L/", "L" + parts(0) + "/") == s
+          children.find(x =>
+
+              x._1.replace("L///", "L" + parts(0) + "/" + parts(1) + "/" + parts(2) + "/")
+                  .replace("L//", "L" + parts(0) + "/" + parts(1) + "/")
+                  .replace("L/", "L" + parts(0) + "/") == s
+
           ).flatMap(_._2.lookup("", Nil))
         }
 

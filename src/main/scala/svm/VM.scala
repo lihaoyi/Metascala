@@ -32,7 +32,7 @@ class VM(classLoader: String => Array[Byte]){
         case Some(cls) => cls
         case None
           if name.contains("[")
-          || Natives.primitiveMap.keySet.contains(name) =>
+          || Type.primitiveMap.keySet.contains(name) =>
 
           val newCls = new Cls(new ClassData(0, name))
           classes(name) = newCls
@@ -192,7 +192,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
         //log(indent + args)
         val foundMethod =
           cls.ancestry
-             .flatMap(c => nativeX.lookup(c.name+"/"+m.name + m.desc))
+             .flatMap(c => nativeX.lookup(c.name+"/"+m.name + m.desc.unparse))
              .headOption
 
         val result = foundMethod match {

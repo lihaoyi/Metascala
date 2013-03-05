@@ -20,7 +20,7 @@ class Cls(val classData: ClassData,
   }
 
   def method(name: String, desc: String): Option[Method] = {
-    ancestry.flatMap(_.methods).find(m => m.name == name && m.desc == desc)
+    ancestry.flatMap(_.methods).find(m => m.name == name && m.desc == TypeDesc.read(desc))
   }
 
   def apply(owner: String, name: String) = {
@@ -127,7 +127,7 @@ class ClsObj(val name: String)
       new svm.Obj("java/lang/reflect/Constructor",
         "clazz" -> classes(name.replace(".", "/")).obj,
         "slot" -> 0,
-        "parameterTypes" -> Type.getType(m.desc).getArgumentTypes.map(_.getClassName).map(classes.andThen(_.obj)),
+        "parameterTypes" -> m.desc.args.map(???),
         "exceptionTypes" -> new Array[svm.ClsObj](0),
         "modifiers" -> m.access
       )
@@ -144,6 +144,46 @@ class ClsObj(val name: String)
         "modifiers" -> f.access,
         "type" -> classes(Type.getType(f.desc).getClassName).obj,
         "signature" -> Virtualizer.toVirtual(f.desc)
+
+      )
+    }
+  }
+  def getDeclaredMethods() = {
+
+    /**
+     * private Class<?>            clazz;
+    private int                 slot;
+    // This is guaranteed to be interned by the VM in the 1.4
+    // reflection implementation
+    private String              name;
+    private Class<?>            returnType;
+    private Class<?>[]          parameterTypes;
+    private Class<?>[]          exceptionTypes;
+    private int                 modifiers;
+    // Generics and annotations support
+    private transient String              signature;
+    // generic info repository; lazily initialized
+    private transient MethodRepository genericInfo;
+    private byte[]              annotations;
+    private byte[]              parameterAnnotations;
+    private byte[]              annotationDefault;
+    private volatile MethodAccessor methodAccessor;
+    // For sharing of MethodAccessors. This branching structure is
+    // currently only two levels deep (i.e., one root Method and
+    // potentially many Method objects pointing to it.)
+    private Method              root;
+     */
+    classes(name).classData.methods.map {m =>
+      println(m.desc)
+      new svm.Obj("java/lang/reflect/Method",
+        "clazz" -> this,
+        "slot" -> m.name.hashCode,
+        "name" -> m.name,
+
+        "modifiers" -> m.access,
+        "returnType" -> ???,
+        "parameterTypes" -> ???,
+        "exceptionTypes" -> new Array[svm.ClsObj](0)
 
       )
     }

@@ -10,7 +10,7 @@ object Method {
     Method(
       mn.access,
       mn.name,
-      mn.desc,
+      TypeDesc.read(mn.desc),
       mn.exceptions.safeList,
       Code.read(mn.instructions),
       Misc(
@@ -45,7 +45,7 @@ object Method {
 }
 case class Method(access: Int,
                   name: String,
-                  desc: String,
+                  desc: TypeDesc,
                   exceptions: List[String],
                   code: Code,
                   misc: Method.Misc,

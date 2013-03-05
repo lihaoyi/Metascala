@@ -23,10 +23,10 @@ class ClassloaderTests extends FreeSpec{
       import opcodes.StackManip._
       import opcodes.Misc._
       import Attached._
-      val Method(1, "<init>", "()V", Nil, Code(
+      val Method(1, "<init>", TypeDesc(Nil, Type.Primitive("V")), Nil, Code(
         List(
           ALoad(0),
-          InvokeSpecial("java/lang/Obj", "<init>", "()V"),
+          InvokeSpecial("java/lang/Object", "<init>", "()V"),
           Return
         ), List(
           List(LineNumber(3, 0)),
@@ -36,7 +36,7 @@ class ClassloaderTests extends FreeSpec{
       ), _, _) = initMethod
 
 
-      val Method(9, "main", "([Ljava/lang/String;)V", Nil, Code(
+      val Method(9, "main", _/*"([Ljava/lang/String;)V"*/, Nil, Code(
         List(
           GetStatic("java/lang/System", "out", "Ljava/io/PrintStream;"),
           Ldc("Hello World"),
@@ -55,21 +55,22 @@ class ClassloaderTests extends FreeSpec{
 
 
   "TypeDescriptor tests" - {
+    import Type._
     "hello word" in {
-      val TypeDesc(Seq(), "V") = TypeDesc.read("()V")
+      val TypeDesc(Seq(), Primitive("V")) = TypeDesc.read("()V")
     }
     "more" in {
-      val TypeDesc(Seq("J", "Z"), "I") = TypeDesc.read("(JZ)I")
-      val TypeDesc(Seq("I", "F"), "V") = TypeDesc.read("(IF)V")
+      val TypeDesc(Seq(Primitive("J"), Primitive("Z")), Primitive("I")) = TypeDesc.read("(JZ)I")
+      val TypeDesc(Seq(Primitive("I"), Primitive("F")), Primitive("V")) = TypeDesc.read("(IF)V")
     }
     "more with objects" in {
-      val TypeDesc(Seq("Ljava/lang/Obj;"), "I") = TypeDesc.read("(Ljava/lang/Obj;)I")
-      val TypeDesc(Seq("I", "Ljava/lang/String;"), "[I") = TypeDesc.read("(ILjava/lang/String;)[I")
-      val TypeDesc(Seq("[I"), "Ljava/lang/Obj;") = TypeDesc.read("([I)Ljava/lang/Obj;")
+      val TypeDesc(Seq(Class("java/lang/Object")), Primitive("I")) = TypeDesc.read("(Ljava/lang/Object;)I")
+      val TypeDesc(Seq(Primitive("I"), Class("java/lang/String")), Array(Primitive("I"))) = TypeDesc.read("(ILjava/lang/String;)[I")
+      val TypeDesc(Seq(Array(Primitive("I"))), Class("java/lang/Object")) = TypeDesc.read("([I)Ljava/lang/Object;")
       val TypeDesc(
-        Seq("I", "D", "Ljava/lang/Thread;"),
-        "Ljava/lang/Obj;"
-      ) = TypeDesc.read("(IDLjava/lang/Thread;)Ljava/lang/Obj;")
+        Seq(Primitive("I"), Primitive("D"), Class("java/lang/Thread")),
+        Class("java/lang/Object")
+      ) = TypeDesc.read("(IDLjava/lang/Thread;)Ljava/lang/Object;")
     }
   }
 }

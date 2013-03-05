@@ -28,6 +28,7 @@ object Build extends sbt.Build{
       libraryDependencies ++= Seq(
         "com.typesafe.akka"       %%  "akka-actor"    % "2.1.0",
         "com.typesafe.akka"       %%  "akka-testkit"    % "2.1.0" % "test",
+        "rhino" % "js" % "1.7R2",
         "org.ow2.asm" % "asm-debug-all" % "4.1",
         "org.scalatest" 		   % "scalatest_2.10.0" % "2.0.M5" % "test"
       )
