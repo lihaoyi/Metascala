@@ -18,9 +18,9 @@ object Natives {
         x
     }
   }
-  def value(x: Any) = () => x
-  def value1(x: Any) = (a: Any) => x
-  def value2(x: Any) = (a: Any, b: Any) => x
+  def value(x: Any) = (vm: VmThread)  => x
+  def value1(x: Any) = (vm: VmThread) => (a: Any) => x
+  def value2(x: Any) = (vm: VmThread) => (a: Any, b: Any) => x
   val noOp = value(())
   val noOp1 = value1(())
   val noOp2 = value2(())
@@ -49,8 +49,8 @@ object Natives {
     "os.version" -> "0"
 
   )
-  def trapped(implicit vm: VM): Map[(String, Type.Desc), Seq[Any] => Any] = {
-    import vm._
+  val trapped: NativeMap = {
+
     Map(
       "java"/(
         "lang"/(
@@ -59,12 +59,14 @@ object Natives {
             ),
           "System"/(
             "getProperty(L//String;)L//String;" - {
-              (s: svm.Obj) =>
+              vt => (s: svm.Obj) =>
+                import vt.vm
                 Virtualizer.toVirtual[Any](properties(Virtualizer.fromVirtual[String](s)))
 
             },
             "getProperty(L//String;L//String;)L//String;" - {
-              (s: svm.Obj, dflt: svm.Obj) =>
+              vt => (s: svm.Obj, dflt: svm.Obj) =>
+                import vt.vm
                 properties.get(Virtualizer.fromVirtual[String](s))
                   .map(Virtualizer.toVirtual[svm.Obj])
                   .getOrElse(dflt)
@@ -83,8 +85,11 @@ object Natives {
             "randomHashSeed(Ljava/lang/Object;)I" - value1(1)
             ),
           "Unsafe"/(
-            "getUnsafe()Lsun/misc/Unsafe;" - value(svm.Obj("sun/misc/Unsafe"))
-            ),
+            "getUnsafe()Lsun/misc/Unsafe;" - {vt =>
+              import vt._
+              svm.Obj("sun/misc/Unsafe")
+            }
+          ),
           "VM"/(
             "isBooted()Z" - value(true)
             )
@@ -117,8 +122,8 @@ object Natives {
     }
   }
 
-  def nativeX(thread: VmThread, stackTrace: () => List[StackTraceElement])(implicit vm: VM): Map[(String, Type.Desc), Seq[Any] => Any] = {
-    import vm._
+  val nativeX: NativeMap = {
+
     Map(
       "java"/(
         "io"/(
@@ -130,26 +135,39 @@ object Natives {
             ),
           "FileDescriptor"/(
             "initIDs()V" - noOp,
-            "set(I)J" - {(x: Int) => x.toLong}
+            "set(I)J" - {vt => (x: Int) => x.toLong}
             )
           ),
         "lang"/(
           "reflect"/(
             "Array"/(
               "newArray(Ljava/lang/Class;I)Ljava/lang/Object;" - {
-                (x: svm.ClsObj, n: Int) => new Array[svm.Obj](n)
+                vt =>(x: svm.ClsObj, n: Int) => new Array[svm.Obj](n)
               }
               )
             ),
           "Class"/(
             "registerNatives()V" - noOp,
-            "getName0()L//String;" - ((s: svm.TpeObj) => Virtualizer.toVirtual[svm.Obj](s.tpe.unparse.replace("/", "."))),
-            "forName0(L//String;)L//Class;" - ((s: svm.Obj) => Type.Cls(Virtualizer.fromVirtual[String](s)).obj),
-            "forName0(L//String;ZL//ClassLoader;)L//Class;" - ((s: svm.Obj, x: Any, w: Any, y: Any) => Type.Cls(Virtualizer.fromVirtual[String](s)).obj),
-            "getPrimitiveClass(L//String;)L//Class;"-((s: svm.Obj) => Type.Cls(Type.primitiveMap(Virtualizer.fromVirtual(s).asInstanceOf[String])).obj),
+            "getName0()L//String;" - {vt => (s: svm.TpeObj) =>
+              import vt.vm
+              Virtualizer.toVirtual[svm.Obj](s.tpe.unparse.replace("/", "."))
+            },
+            "forName0(L//String;)L//Class;" - {vt => (s: svm.Obj) =>
+              import vt._
+              Type.Cls(Virtualizer.fromVirtual[String](s)).obj
+            },
+            "forName0(L//String;ZL//ClassLoader;)L//Class;" - {vt => (s: svm.Obj, x: Any, w: Any, y: Any) =>
+              import vt._
+              Type.Cls(Virtualizer.fromVirtual[String](s)).obj
+            },
+            "getPrimitiveClass(L//String;)L//Class;" - {vt => (s: svm.Obj) =>
+              import vt._
+              Type.Cls(Type.primitiveMap(Virtualizer.fromVirtual(s).asInstanceOf[String])).obj
+            },
             "getClassLoader0()L//ClassLoader;" - value1(null),
             "getDeclaringClass()L//Class;" - value(null),
-            "getComponentType()Ljava/lang/Class;" - { (x: svm.ClsObj) =>
+            "getComponentType()Ljava/lang/Class;" - { vt => (x: svm.ClsObj) =>
+              import vt._
               x.name.splitAt(1) match {
                 case ("[", rest) =>
                   Type.Cls(Type.shortMap(rest)).obj
@@ -157,37 +175,39 @@ object Natives {
               }
             },
             "getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;" - {
-              (cls: svm.ClsObj, b: Int) => cls.getDeclaredConstructors().toArray
+              vt => (cls: svm.ClsObj, b: Int) => cls.getDeclaredConstructors().toArray
             },
-            "getDeclaredFields0(Z)[L//reflect/Field;" - {(cls: svm.TpeObj, b: Int) =>
+            "getDeclaredFields0(Z)[L//reflect/Field;" - { vt => (cls: svm.TpeObj, b: Int) =>
               cls.getDeclaredFields()
             },
-            "getDeclaredMethods0(Z)[L//reflect/Method;" - {(cls: svm.TpeObj, b: Int) =>
+            "getDeclaredMethods0(Z)[L//reflect/Method;" - { vt => (cls: svm.TpeObj, b: Int) =>
               cls.getDeclaredMethods()
             },
             "getEnclosingMethod0()[L//Object;" - value(null),
-            "getModifiers()I" - { (x: svm.ClsObj) => Type.Cls(x.name).classData.access_flags },
-            "getSuperclass()L//Class;" - {(x: svm.ClsObj) =>
+            "getModifiers()I" - { vt => (x: svm.ClsObj) => import vt.vm._; Type.Cls(x.name).classData.access_flags },
+            "getSuperclass()L//Class;" - { vt => (x: svm.ClsObj) =>
+              import vt.vm
+              import vm._
               Type.Cls(x.name).classData
                 .superType
                 .map(_.obj)
                 .getOrElse(null)
             },
             "isPrimitive()Z" - value1(false),
-            "isInterface()Z" - ((x: svm.ClsObj) => (Type.Cls(x.name.replace(".", "/")).classData.access_flags & Access.Interface) != 0),
-            "isAssignableFrom(Ljava/lang/Class;)Z" - {(x: svm.ClsObj, y: svm.ClsObj) =>
+            "isInterface()Z" - { vt => (x: svm.ClsObj) => import vt.vm._; (Type.Cls(x.name.replace(".", "/")).classData.access_flags & Access.Interface) != 0},
+            "isAssignableFrom(Ljava/lang/Class;)Z" - { vt => (x: svm.ClsObj, y: svm.ClsObj) =>
               true
             },
-            "isArray()Z" - ((_: svm.TpeObj).tpe.isInstanceOf[Type.Arr]),
+            "isArray()Z" - ( vt => (_: svm.TpeObj).tpe.isInstanceOf[Type.Arr]),
             "desiredAssertionStatus0(L//Class;)Z" - value1(0)
             ),
           "Double"/(
-            "doubleToRawLongBits(D)J"-{ java.lang.Double.doubleToRawLongBits(_: Double)},
-            "longBitsToDouble(J)D"-{ java.lang.Double.longBitsToDouble(_: Long)}
+            "doubleToRawLongBits(D)J"-{ vt => java.lang.Double.doubleToRawLongBits(_: Double)},
+            "longBitsToDouble(J)D"-{ vt => java.lang.Double.longBitsToDouble(_: Long)}
           ),
           "Float"/(
-            "intBitsToFloat(I)F"-{ java.lang.Float.intBitsToFloat(_: Int)},
-            "floatToRawIntBits(F)I"-{ java.lang.Float.floatToIntBits(_: Float)}
+            "intBitsToFloat(I)F"-{ vt => java.lang.Float.intBitsToFloat(_: Int)},
+            "floatToRawIntBits(F)I"-{ vt => java.lang.Float.floatToIntBits(_: Float)}
           ),
           "Object"/(
             "clone()L//Object;" -  {(_: Any ) match{
@@ -195,11 +215,11 @@ object Natives {
               case (a: Array[_]) => a.clone
             }},
             "registerNatives()V" - noOp,
-            "getClass()L//Class;" - { (_: Any) match{
+            "getClass()L//Class;" - { vt => (_: Any) match{
               case (x: svm.Obj) => x.cls.obj
-              case a: Array[_] => Type.Arr.read(a.getClass.getName).obj
+              case a: Array[_] => import vt.vm; Type.Arr.read(a.getClass.getName).obj
             }},
-            "hashCode()I" - {(_: svm.Obj).hashCode()},
+            "hashCode()I" - { vt => (_: svm.Obj).hashCode()},
             "notify()V" - noOp1,
             "notifyAll()V" - noOp1
             ),
@@ -208,30 +228,32 @@ object Natives {
             "availableProcessors()I" - value(1)
             ),
           "String"/(
-            "intern()L//String;" - intern _
+            "intern()L//String;" - (vt => intern _)
             ),
           "System"/(
-            "arraycopy(L//Object;IL//Object;II)V"-((src: Any, srcPos: Int, dest: Any, destPos: Int, length: Int) =>
+            "arraycopy(L//Object;IL//Object;II)V"-( vt => (src: Any, srcPos: Int, dest: Any, destPos: Int, length: Int) =>
               System.arraycopy(src, srcPos, dest, destPos, length)
               ),
             "currentTimeMillis()J" - value(System.currentTimeMillis()),
             "nanoTime()J" - value(System.nanoTime()),
             "initProperties(Ljava/util/Properties;)Ljava/util/Properties;" - value1(null),
-            "identityHashCode(L//Object;)I"-((x: svm.Obj) => System.identityHashCode(x)),
+            "identityHashCode(L//Object;)I"-( vt => (x: svm.Obj) => System.identityHashCode(x)),
             "registerNatives()V" - noOp,
             "setIn0(Ljava/io/InputStream;)V" - noOp1,
             "setOut0(Ljava/io/PrintStream;)V" - noOp1,
             "setErr0(Ljava/io/PrintStream;)V" - noOp1
             ),
           "Thread"/(
-            "currentThread()L//Thread;" - value(thread.obj),
+            "currentThread()L//Thread;" - {vt => vt.obj},
             "setPriority0(I)V" - noOp2,
             "start0()V" - noOp
             ),
           "Throwable"/(
-            "fillInStackTrace(I)L//Throwable;" - { (throwable: svm.Obj, dummy: Int) =>
+            "fillInStackTrace(I)L//Throwable;" - { vt => (throwable: svm.Obj, dummy: Int) =>
+              import vt.vm;
+              import vm._
               throwable.members(0)("stackTrace") =
-                stackTrace().map { f =>
+                vt.getStackTrace.map { f =>
                   svm.Obj("java/lang/StackTraceElement",
                     "declaringClass" -> Virtualizer.toVirtual(f.getClassName),
                     "methodName" -> Virtualizer.toVirtual(f.getMethodName),
@@ -251,12 +273,12 @@ object Natives {
         "security"/(
           "AccessController"/(
             "doPrivileged(L//PrivilegedAction;)L/lang/Object;" - {
-              (pa: svm.Obj) =>
+              vt => (pa: svm.Obj) =>
 
-                thread.prepInvoke(pa.cls, pa.cls.classData.methods.find(_.name == "run").get, Seq(pa))
+                vt.prepInvoke(pa.cls, pa.cls.classData.methods.find(_.name == "run").get, Seq(pa))
             },
-            "getStackAccessControlContext()L//AccessControlContext;" - value(svm.Obj("java/security/AccessControlContext")),
-            "getInheritedAccessControlContext()L//AccessControlContext;" - value(svm.Obj("java/security/AccessControlContext"))
+            "getStackAccessControlContext()L//AccessControlContext;" - { vt => svm.Obj("java/security/AccessControlContext")(vt.vm)},
+            "getInheritedAccessControlContext()L//AccessControlContext;" - { vt => svm.Obj("java/security/AccessControlContext")(vt.vm)}
             )
           )
         ),
@@ -266,7 +288,7 @@ object Natives {
             "arrayBaseOffset(Ljava/lang/Class;)I" - value1(0),
             "arrayIndexScale(Ljava/lang/Class;)I" - value1(1),
             "addressSize()I" - ((x: Any) => 4),
-            "compareAndSwapInt(Ljava/lang/Object;JII)Z" - {(unsafe: Any, a: svm.Obj, i: Long, b: Int, c: Int) =>
+            "compareAndSwapInt(Ljava/lang/Object;JII)Z" - { vt => (unsafe: Any, a: svm.Obj, i: Long, b: Int, c: Int) =>
               if (getObject(a, i) == b) {
                 println("win")
                 putObject(a, i, b)
@@ -278,16 +300,16 @@ object Natives {
               true;
             },
             "putOrderedObject(Ljava/lang/Object;JLjava/lang/Object;)V" - {
-              (unsafe: svm.Obj, a: Any, i: Long, b: Any) => putObject(a, i, b)
+              vt => (unsafe: svm.Obj, a: Any, i: Long, b: Any) => putObject(a, i, b)
             },
             "getObject(Ljava/lang/Object;J)Ljava/lang/Object;" - {
-              (unsafe: svm.Obj, a: Any, i: Long) => getObject(a, i)
+              vt => (unsafe: svm.Obj, a: Any, i: Long) => getObject(a, i)
             },
             "getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;" - {
-              (unsafe: svm.Obj, a: Any, i: Long) => getObject(a, i)
+              vt => (unsafe: svm.Obj, a: Any, i: Long) => getObject(a, i)
             },
             "compareAndSwapObject(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z" - {
-              (unsafe: svm.Obj, a: Any, i: Long, b: Any, c: Any) =>
+              vt => (unsafe: svm.Obj, a: Any, i: Long, b: Any, c: Any) =>
                 println("CAS" + a + "\t" + b + " for " + c + " found " + getObject(a, i))
 
                 if (getObject(a, i) == b) {
@@ -299,7 +321,7 @@ object Natives {
                   false
                 }
             },
-            "objectFieldOffset(Ljava/lang/reflect/Field;)J" - {(unsafe: Any, x: svm.Obj) =>
+            "objectFieldOffset(Ljava/lang/reflect/Field;)J" - { vt => (unsafe: Any, x: svm.Obj) =>
               println(x)
               println(x.members)
               x(Type.Cls("java/lang/reflect/Field"), "slot").asInstanceOf[Int].toLong
@@ -313,23 +335,21 @@ object Natives {
         "reflect"/(
           "NativeConstructorAccessorImpl"/(
             "newInstance0(Ljava/lang/reflect/Constructor;[Ljava/lang/Object;)Ljava/lang/Object;" - {
-              (constr: svm.Obj, args: Array[svm.Obj]) =>
-                println("NewInstanceZero!")
-                VM.log("NewInstanceZero!")
+              vt => (constr: svm.Obj, args: Array[svm.Obj]) =>
+                import vt.vm; import vm._
                 val cls: svm.Cls = Type.Cls(constr.members(0)("clazz").asInstanceOf[svm.ClsObj].name)
                 val newObj = new svm.Obj(cls)
-                VM.log("|" + newObj)
-                VM.log("|" + thread.threadStack.head.stack)
-                thread.invoke(cls, cls.method("<init>", Type.Desc.read("()V")).get, Seq(newObj))
-                VM.log("|" + thread.threadStack.head.stack)
+                vt.invoke(cls, cls.method("<init>", Type.Desc.read("()V")).get, Seq(newObj))
                 newObj
             }
             ),
           "Reflection"/(
-            "getCallerClass(I)Ljava/lang/Class;" - { (n: Int) =>
-              Type.Cls(stackTrace().drop(n).head.getClassName).obj
+            "getCallerClass(I)Ljava/lang/Class;" - { vt => (n: Int) =>
+              import vt.vm; import vm._
+              Type.Cls(vt.getStackTrace.drop(n).head.getClassName).obj
             },
-            "getClassAccessFlags(Ljava/lang/Class;)I" - { (x: svm.ClsObj) =>
+            "getClassAccessFlags(Ljava/lang/Class;)I" - { vt => (x: svm.ClsObj) =>
+              import vt.vm._;
               Type.Cls(x.name).classData.access_flags
             }
             )
@@ -338,8 +358,10 @@ object Natives {
     ).toRoute()
   }
 
+  type NativeMap = Map[(String, Type.Desc), VmThread => Seq[Any] => Any]
+
   implicit class pimpedRoute(m: Map[String, Any]){
-    def toRoute(parts: List[String] = Nil): Map[(String, Type.Desc), Seq[Any] => Any] = {
+    def toRoute(parts: List[String] = Nil): NativeMap = {
       m.flatMap{ case (k, v) =>
         v match{
           case thing: Map[String, Any] =>
@@ -347,7 +369,7 @@ object Natives {
               case ((path, desc), func) => ((k + "/" + path, desc), func)
             }
 
-          case func =>
+          case func: (VmThread => Any) =>
             val (name, descString) = k.splitAt(k.indexOf('('))
             val p = parts.reverse
             val fullDescString =
@@ -356,25 +378,22 @@ object Natives {
                         .replace("L/", s"L${p(0)}/")
 
             val desc = Type.Desc.read(fullDescString)
-            def rec(f: Any, args: Seq[Any]): Any = {
-              f match{
-                case f: ((Any, Any, Any, Any, Any) => Any) => f(args(0), args(1), args(2), args(3), args(4))
-                case f: ((Any, Any, Any, Any) => Any) => f(args(0), args(1), args(2), args(3))
-                case f: ((Any, Any, Any) => Any) => f(args(0), args(1), args(2))
-                case f: ((Any, Any) => Any) => f(args(0), args(1))
-                case f: ((Any) => Any) => f(args(0))
-                case f: (() => Any) => f()
-                case x => x
-              }
+            val newFunc = (vt: VmThread) => (args: Seq[Any]) => func(vt) match{
+              case f: ((Any, Any, Any, Any, Any) => Any) => f(args(0), args(1), args(2), args(3), args(4))
+              case f: ((Any, Any, Any, Any) => Any) => f(args(0), args(1), args(2), args(3))
+              case f: ((Any, Any, Any) => Any) => f(args(0), args(1), args(2))
+              case f: ((Any, Any) => Any) => f(args(0), args(1))
+              case f: ((Any) => Any) => f(args(0))
+              case f: (Any) => f
             }
-            Map((name, desc) -> ((args: Seq[Any]) => rec(func, args)))
+            Map((name, desc) -> newFunc)
         }
       }
     }
   }
   implicit class pimpedMap(s: String){
     def /(a: (String, Any)*) = s -> a.toMap
-    def -(a: Any) = s -> a
+    def -(a: VmThread => Any) = s -> a
   }
 
 }

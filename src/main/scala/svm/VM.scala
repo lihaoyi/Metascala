@@ -72,14 +72,14 @@ class VM(classLoader: String => Array[Byte]) {
 object VmThread{
   def apply()(implicit vmt: VmThread) = vmt
 }
-class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit vm: VM){
+class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit val vm: VM){
   import vm._
   lazy val obj = svm.Obj("java/lang/Thread",
     "name" -> "MyThread".toCharArray,
     "group" -> svm.Obj("java/lang/ThreadGroup"),
     "priority" -> 5
   )
-  val nativeX = Natives.nativeX(this, getStackTrace _)
+  val nativeX = Natives.nativeX
   def getStackTrace =
     threadStack.map { f =>
       new StackTraceElement(
@@ -159,7 +159,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
     (Natives.trapped.get(cls.classData.tpe.name + "/" + method.name, method.desc), method) match{
       case (Some(trap), _) =>
-        val result = trap.apply(args)
+        val result = trap(this)(args)
         val topFrame = threadStack.head
         topFrame.stack = result match{
           case () => topFrame.stack
@@ -198,7 +198,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
               log(f.runningClass.name.padTo(30, ' ') + f.method.name.padTo(20, ' ') + " " + (f.pc-1) + "\t" + f.method.code.instructions(f.pc-1))
             )
             throw new Exception("Can't find Native Method: " + cls.name + " " + method.name + " " + method.desc)
-          case Some(n) => n.apply(args)
+          case Some(n) => n(this)(args)
         }
 
         topFrame.stack = result match{
