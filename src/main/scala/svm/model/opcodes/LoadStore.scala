@@ -1,8 +1,8 @@
 package svm.model.opcodes
 
 import org.objectweb.asm
-import svm.model.{OpCode}
-import svm.model.TypeDesc._
+import svm.model.{Type, OpCode}
+
 import collection.mutable
 import svm.{Natives, Virtualizer}
 
@@ -48,9 +48,9 @@ object LoadStore {
     def op = implicit ctx => {
 
       val newConst = const match{
-        case s: String => Natives.intern(new svm.Obj("java/lang/String", "value" -> s.toCharArray))
+        case s: String => Natives.intern(new svm.Obj(Type.Cls("java/lang/String"), "value" -> s.toCharArray))
         case t: asm.Type =>
-          ctx(t.getClassName).obj
+          Type.Cls(t.getClassName).obj
 
         case x => x
       }
@@ -115,7 +115,7 @@ object LoadStore {
         ctx.frame.stack = array(index) :: stack
       else{
         ctx.throwException{
-          new svm.Obj("java/lang/ArrayIndexOutOfBoundsException",
+          svm.Obj("java/lang/ArrayIndexOutOfBoundsException",
             "detailMessage" ->  Virtualizer.toVirtual(index+"")
           )
         }
@@ -129,7 +129,7 @@ object LoadStore {
           ctx.frame.stack = (if(array(index)) 1 else 0) :: stack
         else{
           ctx.throwException{
-            new svm.Obj("java/lang/ArrayIndexOutOfBoundsException",
+            svm.Obj("java/lang/ArrayIndexOutOfBoundsException",
               "detailMessage" -> Virtualizer.toVirtual(index+"")
             )
           }
@@ -139,7 +139,7 @@ object LoadStore {
           ctx.frame.stack = implicitly[Numeric[T]].toInt(array(index)) :: stack
         else{
           ctx.throwException{
-            new svm.Obj("java/lang/ArrayIndexOutOfBoundsException",
+            svm.Obj("java/lang/ArrayIndexOutOfBoundsException",
               "detailMessage" -> Virtualizer.toVirtual(index+"")
             )
           }

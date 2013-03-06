@@ -7,8 +7,8 @@ import asm.Label
 import org.objectweb.asm.tree._
 
 
-case class Context(thread: VmThread) extends (String => svm.Cls){
-  def apply(s: String) = thread.classes(s)
+case class Context(thread: VmThread) extends (svm.model.Type.Cls => svm.Cls){
+  def apply(s: Type.Cls): Cls = thread.classes(s)
   def frame = thread.threadStack.head
   def stack = frame.stack
   def swapStack(transform: PartialFunction[List[Any], List[Any]]) = {
@@ -42,8 +42,10 @@ abstract class OpCode{
 }
 
 object OpCode {
+  implicit def parseTypeCls(x: String) = Type.Cls.read(x)
+  implicit def parseTypeDesc(x: String) = Type.Desc.read(x)
   def read(implicit labelMap: Map[Label, Int]): PartialFunction[Any, OpCode] = {
-    case x: FieldInsnNode           => all(x.getOpcode).asInstanceOf[(String, String, String) => OpCode].apply(x.owner, x.name, x.desc)
+    case x: FieldInsnNode           => all(x.getOpcode).asInstanceOf[(Type.Cls, String, Type) => OpCode].apply(x.owner, x.name, Type.read(x.desc))
     case x: IincInsnNode            => all(x.getOpcode).asInstanceOf[(Int, Int) => OpCode].apply(x.`var`, x.incr)
     case x: InsnNode                => all(x.getOpcode).asInstanceOf[OpCode]
     case x: IntInsnNode             => all(x.getOpcode).asInstanceOf[Int => OpCode].apply(x.operand)
@@ -51,10 +53,10 @@ object OpCode {
     case x: JumpInsnNode            => all(x.getOpcode).asInstanceOf[Int => OpCode].apply(x.label.getLabel)
     case x: LdcInsnNode             => all(x.getOpcode).asInstanceOf[Object => OpCode].apply(x.cst)
     case x: LookupSwitchInsnNode    => all(x.getOpcode).asInstanceOf[(Int, Seq[Int], Seq[Int]) => OpCode].apply(x.dflt.getLabel, x.keys.safeList.map(x => x: Int), x.labels.safeList.map(x => labelMap(x.getLabel)))
-    case x: MethodInsnNode          => all(x.getOpcode).asInstanceOf[(String, String, String) => OpCode].apply(x.owner, x.name, x.desc)
-    case x: MultiANewArrayInsnNode  => all(x.getOpcode).asInstanceOf[(String, Int) => OpCode].apply(x.desc, x.dims)
+    case x: MethodInsnNode          => all(x.getOpcode).asInstanceOf[(Type.Cls, String, Type.Desc) => OpCode].apply(x.owner, x.name, x.desc)
+    case x: MultiANewArrayInsnNode  => all(x.getOpcode).asInstanceOf[(Type, Int) => OpCode].apply(Type.read(x.desc), x.dims)
     case x: TableSwitchInsnNode     => all(x.getOpcode).asInstanceOf[(Int, Int, Int, Seq[Int]) => OpCode].apply(x.min, x.max, x.dflt.getLabel, x.labels.safeList.map(x => labelMap(x.getLabel)))
-    case x: TypeInsnNode            => all(x.getOpcode).asInstanceOf[String=> OpCode].apply(x.desc)
+    case x: TypeInsnNode            => all(x.getOpcode).asInstanceOf[Type => OpCode].apply(Type.read(x.desc))
     case x: VarInsnNode             => all(x.getOpcode).asInstanceOf[Int => OpCode].apply(x.`var`)
   }
 

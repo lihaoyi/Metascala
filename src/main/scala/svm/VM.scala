@@ -12,13 +12,11 @@ object VM{
   var count = 0
 }
 import VM._
-class VClassLoader(var children: Seq[VClassLoader]) extends (String => Cls){
+class VClassLoader(var children: Seq[VClassLoader]) extends (Type.Cls => Cls){
   implicit val loader = this
-  val classes = mutable.Map.empty[String, Cls]
+  val classes = mutable.Map.empty[Type, Cls]
 
-  def apply(s: String): Cls = {
-    ???
-  }
+  def apply(s: Type.Cls): Cls = ???
 }
 
 class VM(classLoader: String => Array[Byte]){
@@ -26,27 +24,18 @@ class VM(classLoader: String => Array[Byte]){
   implicit object RootLoader extends VClassLoader(Nil){
 
 
-    override def apply(badname: String): Cls = {
-      val name = badname.replace('.', '/')
-      classes.get(name) match{
+    override def apply(t: Type.Cls): Cls = {
+
+      classes.get(t) match {
         case Some(cls) => cls
-        case None
-          if name.contains("[")
-          || Type.primitiveMap.keySet.contains(name) =>
-
-          val newCls = new Cls(new ClassData(0, name))
-          classes(name) = newCls
-          newCls
-
         case None =>
-          val newCls = new Cls(ClassData.parse(classLoader(name)))
-          classes(name) = newCls
-          if (name != "sun/misc/Unsafe")
-            newCls.method("<clinit>", "()V").foreach( m =>
+          val newCls = new Cls(ClassData.parse(classLoader(t.name)))
+          classes(t) = newCls
+          if (t.name != "sun/misc/Unsafe")
+            newCls.method("<clinit>", Type.Desc.read("()V")).foreach( m =>
               threads(0).invoke(newCls, m, Nil)
             )
           newCls
-
       }
     }
   }
@@ -57,8 +46,8 @@ class VM(classLoader: String => Array[Byte]){
     try{
       Virtualizer.fromVirtual[Any](
         threads(0).invoke(
-          bootClass,
-          bootClass
+          Type.Cls(bootClass),
+          Type.Cls(bootClass)
             .classData
             .methods
             .find(x => x.name == mainMethod)
@@ -67,7 +56,7 @@ class VM(classLoader: String => Array[Byte]){
         )
       )
     }catch {case x =>
-      lines.takeRight(10000).foreach(println)
+      lines.takeRight(1000).foreach(println)
       throw x
     }
   }
@@ -77,10 +66,10 @@ class VM(classLoader: String => Array[Byte]){
 object VmThread{
   def apply()(implicit vmt: VmThread) = vmt
 }
-class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit val classes: String => svm.Cls){
-  lazy val obj = new svm.Obj("java/lang/Thread",
+class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit val classes: Type.Cls => svm.Cls){
+  lazy val obj = svm.Obj("java/lang/Thread",
     "name" -> "MyThread".toCharArray,
-    "group" -> new svm.Obj("java/lang/ThreadGroup"),
+    "group" -> svm.Obj("java/lang/ThreadGroup"),
     "priority" -> 5
   )
   val nativeX = Natives.nativeX(this, getStackTrace _)
@@ -144,12 +133,12 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
         }
       case None =>
 
-        println("Stack Trace")
-        println(ex.apply("java.lang.Throwable", "stackTrace"))
 
-        ex.apply("java.lang.Throwable", "stackTrace")
+        ex.apply(Type.Cls("java.lang.Throwable"), "stackTrace")
           .asInstanceOf[Array[svm.Obj]]
-          .map(x => "" + Virtualizer.fromVirtual(x("java.lang.StackTraceElement", "declaringClass")) + " " + Virtualizer.fromVirtual(x("java.lang.StackTraceElement", "methodName")))
+          .map(x => "" +
+            Virtualizer.fromVirtual(x(Type.Cls("java.lang.StackTraceElement"), "declaringClass")) + " " +
+          Virtualizer.fromVirtual(x(Type.Cls("java.lang.StackTraceElement"), "methodName")))
           .foreach(println)
 
         throw new Exception("Uncaught Exception: ")
@@ -190,9 +179,10 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
         val topFrame = threadStack.head
         //log(indent + "Native Method Call!")
         //log(indent + args)
+        log(m.desc.unparse)
         val foundMethod =
           cls.ancestry
-             .flatMap(c => nativeX.lookup(c.name+"/"+m.name + m.desc.unparse))
+             .flatMap(c => nativeX.lookup(c.tpe.name + "/" + m.name + m.desc.unparse))
              .headOption
 
         val result = foundMethod match {

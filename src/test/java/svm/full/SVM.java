@@ -13,5 +13,11 @@ public class SVM {
         Object result = cx.evaluateString(scope, s, "<cmd>", 1, null);
         return ""+result;
     }
+    public static void main(String[] args){
+        System.out.println(int.class);
+        System.out.println(Integer.class);
+        System.out.println(new int[0].getClass() == new int[10].getClass());
+        System.out.println(new Integer[0].getClass());
+    }
 
 }

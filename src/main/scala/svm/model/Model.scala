@@ -3,7 +3,7 @@ package svm.model
 import org.objectweb.asm.tree._
 
 import org.objectweb.asm
-import asm.{Type, Label}
+import asm.Label
 import collection.mutable
 
 object InnerClass {
@@ -44,7 +44,7 @@ object Field {
     Field(
       fn.access,
       fn.name,
-      fn.desc,
+      svm.model.Type.read(fn.desc),
       fn.signature.safeOpt,
       fn.value,
       fn.visibleAnnotations.safeList.map(Annotation.read),
@@ -57,7 +57,7 @@ object Field {
 
 case class Field(access: Int,
                  name: String,
-                 desc: String,
+                 desc: svm.model.Type,
                  signature: Option[String],
                  value: Any,
                  visibleAnnotations: List[Annotation],
@@ -72,14 +72,14 @@ object TryCatchBlock {
     tcbn.start.getLabel,
     tcbn.end.getLabel,
     tcbn.handler.getLabel,
-    tcbn.`type`.safeOpt
+    tcbn.`type`.safeOpt.map(Type.Cls.read)
   )
 }
 
 case class TryCatchBlock(start: Int,
                          end: Int,
                          handler: Int,
-                         blockType: Option[String])
+                         blockType: Option[Type.Cls])
 
 object Attribute {
   def read(a: asm.Attribute) = Attribute(a.`type`)

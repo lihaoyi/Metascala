@@ -1,5 +1,7 @@
 package svm
 
+import model.Type
+
 object Virtualizer {
   def fromVirtual[T](x: Any): T = {
     def cloneArray[T](x: Array[T]): Array[T] = {
@@ -34,7 +36,7 @@ object Virtualizer {
   }.asInstanceOf[T]
 
 
-  def toVirtual[T](x: Any)(implicit classes: String => Cls): T = {
+  def toVirtual[T](x: Any)(implicit classes: Type.Cls => Cls): T = {
     def cloneArray  [T](x: Array[T]): Array[T] = {
       val newArray = x.clone()
       for(i <- 0 until x.length){
@@ -61,7 +63,7 @@ object Virtualizer {
       case x: Array[Long] => cloneArray(x)
       case x: Array[Float] => cloneArray(x)
       case x: Array[Double] => cloneArray(x)
-      case x: String => new svm.Obj("java/lang/String", "value" -> x.toCharArray)
+      case x: String => svm.Obj("java/lang/String", "value" -> x.toCharArray)
     }
   }.asInstanceOf[T]
 }

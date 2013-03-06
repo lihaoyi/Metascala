@@ -5,54 +5,57 @@ import collection.mutable
 import java.io.{ObjectInputStream, ObjectOutputStream}
 import annotation.tailrec
 import scala.Some
-import svm.ClsObj
-import org.objectweb.asm.Type
+
 
 class Cls(val classData: ClassData,
-            val statics: mutable.Map[String, Any] = mutable.Map.empty)
-           (implicit classes: String => Cls, loader: VClassLoader){
+          val statics: mutable.Map[String, Any] = mutable.Map.empty)
+         (implicit classes: Type.Cls => Cls){
 
-  classData.superName.map(classes)
-  lazy val obj = new ClsObj(name)
+  implicit def autoClass(x: String) = classes(svm.model.Type.Cls(x))
+  classData.superType.map(classes)
+  lazy val obj = new ClsObj(Type.Cls(name))
 
   classData.fields.map{f =>
     statics(f.name) = Obj.initField(f.desc)
   }
 
-  def method(name: String, desc: String): Option[Method] = {
-    ancestry.flatMap(_.methods).find(m => m.name == name && m.desc == TypeDesc.read(desc))
+  def method(name: String, desc: Type.Desc): Option[Method] = {
+    ancestry.flatMap(_.methods).find(m => m.name == name && m.desc == desc)
   }
 
-  def apply(owner: String, name: String) = {
-    this.ancestry.dropWhile(_.name != owner)
+  def apply(owner: Type.Cls, name: String) = {
+    this.ancestry.dropWhile(_.tpe != owner)
                  .find(_.fields.exists(_.name == name))
-                 .get.name.statics(name)
+                 .get.tpe.statics(name)
   }
 
-  def update(owner: String, name: String, value: Any) = {
-    this.ancestry.dropWhile(_.name != owner)
+  def update(owner: Type.Cls, name: String, value: Any) = {
+    println(
+
+    )
+    this.ancestry.dropWhile(_.tpe != owner)
       .find(_.fields.exists(_.name == name))
-      .get.name.statics(name) = value
+      .get.tpe.statics(name) = value
   }
 
-  def name = classData.name
+  def name = classData.tpe.name
 
   def ancestry = {
     def rec(cd: ClassData): List[ClassData] = {
-      cd.superName match{
+      cd.superType match{
         case None => List(cd)
-        case Some(x) => cd :: rec(classes(x).classData)
+        case Some(x) => cd :: rec(x.classData)
       }
     }
     rec(classData)
   }
 
-  def isInstanceOf(desc: String)(implicit classes: String => Cls): Boolean = {
+  def isInstanceOf(desc: Type)(implicit classes: Type.Cls => Cls): Boolean = {
 
     val res =
-      classData.name == desc ||
+      classData.tpe == desc ||
       classData.interfaces.contains(desc) ||
-      (classData.superName.isDefined && classes(classData.superName.get).isInstanceOf(desc))
+      (classData.superType.isDefined && classes(classData.superType.get).isInstanceOf(desc))
 
     res
   }
@@ -60,49 +63,52 @@ class Cls(val classData: ClassData,
 
 object Obj{
 
-  def initMembers(cls: ClassData, filter: Field => Boolean)(implicit classes: String => Cls): List[Map[String, Any]] = {
+  def initMembers(cls: ClassData, filter: Field => Boolean)(implicit classes: Type.Cls => Cls): List[Map[String, Any]] = {
     cls.fields.filter(filter).map{f =>
       f.name -> initField(f.desc)
-    }.toMap :: cls.superName.toList.flatMap(x => initMembers(classes(x).classData, filter))
+    }.toMap :: cls.superType.toList.flatMap(x => initMembers(classes(x).classData, filter))
   }
 
-  def initField(desc: String) = {
-    desc(0) match{
-      case 'B' => 0: Byte
-      case 'C' => 0: Char
-      case 'I' => 0
-      case 'J' => 0L
-      case 'F' => 0F
-      case 'D' => 0D
-      case 'S' => 0: Short
-      case 'Z' => false
-      case 'L' => null
-      case '[' => null
+  def initField(desc: Type) = {
+
+    desc match{
+      case Type.Prim("B") => 0: Byte
+      case Type.Prim("C") => 0: Char
+      case Type.Prim("I") => 0
+      case Type.Prim("J") => 0L
+      case Type.Prim("F") => 0F
+      case Type.Prim("D") => 0D
+      case Type.Prim("S") => 0: Short
+      case Type.Prim("Z") => false
+      case _ => null
+
     }
   }
+  def apply(clsName: String, initMembers: (String, Any)*)(implicit classes: Type.Cls => Cls) = {
+    new Obj(Type.Cls(clsName), initMembers: _*)
+  }
 }
-
 class Obj(val cls: Cls, initMembers: (String, Any)*)
-            (implicit classes: String => Cls){
+            (implicit classes: Type.Cls => Cls){
 
 
   val members = Obj.initMembers(cls.classData, x => (x.access & Access.Static) == 0).map(x => mutable.Map(x.toSeq:_*))
 
 
   for ((s, v) <- initMembers){
-    this(cls.name, s) = v
+    this(Type.Cls.read(cls.name), s) = v
   }
 
-  def apply(owner: String, name: String) = {
-    val start = cls.ancestry.indexWhere(_.name == owner)
+  def apply(owner: Type.Cls, name: String) = {
+    val start = cls.ancestry.indexWhere(_.tpe == owner)
 
     members.drop(start)
            .find(_.contains(name))
            .get(name)
 
   }
-  def update(owner: String, name: String, value: Any) = {
-    val start = cls.ancestry.indexWhere(_.name == owner)
+  def update(owner: Type.Cls, name: String, value: Any) = {
+    val start = cls.ancestry.indexWhere(_.tpe == owner)
 
     members.drop(start)
            .find(_.contains(name))
@@ -113,19 +119,31 @@ class Obj(val cls: Cls, initMembers: (String, Any)*)
     s"svm.Obj(${cls.name})"
   }
 }
+object TpeObj{
+  def apply(t: Type)(implicit classes: Type.Cls => Cls) = t match{
+    case tpe: Type.Cls => new ClsObj(tpe)
+    case tpe => new TpeObj(tpe)
+  }
+}
+class TpeObj(val tpe: Type)(implicit classes: Type.Cls => Cls)
+  extends Obj(Type.Cls("java/lang/Class")){
+  def getDeclaredConstructors() = new Array[Object](0)
+  def getDeclaredFields() = new Array[Object](0)
+  def getDeclaredMethods() = new Array[Object](0)
 
-class ClsObj(val name: String)
-                 (implicit classes: String => Cls)
-                  extends Obj("java/lang/Class"){
+}
+class ClsObj(val tpe: Type.Cls)
+            (implicit classes: Type.Cls => Cls)
+             extends Obj(Type.Cls("java/lang/Class")){
 
-
+  def name = tpe.unparse
   def getDeclaredConstructors() = {
-    classes(name.replace(".", "/")).classData
+    classes(tpe).classData
       .methods
       .filter(_.name == "<init>")
       .map{m =>
-      new svm.Obj("java/lang/reflect/Constructor",
-        "clazz" -> classes(name.replace(".", "/")).obj,
+      svm.Obj("java/lang/reflect/Constructor",
+        "clazz" -> tpe.obj,
         "slot" -> 0,
         "parameterTypes" -> m.desc.args.map(???),
         "exceptionTypes" -> new Array[svm.ClsObj](0),
@@ -134,54 +152,30 @@ class ClsObj(val name: String)
     }
   }
   def getDeclaredFields() = {
+      classes(tpe).classData.fields.map {f =>
 
-    classes(name).classData.fields.map {f =>
+        svm.Obj("java/lang/reflect/Field",
+          "clazz" -> this,
+          "slot" -> f.name.hashCode,
+          "name" -> Natives.intern(Virtualizer.toVirtual(f.name)),
+          "modifiers" -> f.access,
+          "type" -> f.desc,
+          "signature" -> Virtualizer.toVirtual(f.desc)
 
-      new svm.Obj("java/lang/reflect/Field",
-        "clazz" -> this,
-        "slot" -> f.name.hashCode,
-        "name" -> Natives.intern(Virtualizer.toVirtual(f.name)),
-        "modifiers" -> f.access,
-        "type" -> classes(Type.getType(f.desc).getClassName).obj,
-        "signature" -> Virtualizer.toVirtual(f.desc)
-
-      )
-    }
+        )
+      }
   }
   def getDeclaredMethods() = {
 
-    /**
-     * private Class<?>            clazz;
-    private int                 slot;
-    // This is guaranteed to be interned by the VM in the 1.4
-    // reflection implementation
-    private String              name;
-    private Class<?>            returnType;
-    private Class<?>[]          parameterTypes;
-    private Class<?>[]          exceptionTypes;
-    private int                 modifiers;
-    // Generics and annotations support
-    private transient String              signature;
-    // generic info repository; lazily initialized
-    private transient MethodRepository genericInfo;
-    private byte[]              annotations;
-    private byte[]              parameterAnnotations;
-    private byte[]              annotationDefault;
-    private volatile MethodAccessor methodAccessor;
-    // For sharing of MethodAccessors. This branching structure is
-    // currently only two levels deep (i.e., one root Method and
-    // potentially many Method objects pointing to it.)
-    private Method              root;
-     */
-    classes(name).classData.methods.map {m =>
+    classes(tpe).classData.methods.map {m =>
       println(m.desc)
-      new svm.Obj("java/lang/reflect/Method",
+      svm.Obj("java/lang/reflect/Method",
         "clazz" -> this,
         "slot" -> m.name.hashCode,
         "name" -> m.name,
 
         "modifiers" -> m.access,
-        "returnType" -> ???,
+        "returnType" -> m.desc.ret,
         "parameterTypes" -> ???,
         "exceptionTypes" -> new Array[svm.ClsObj](0)
 
@@ -189,7 +183,7 @@ class ClsObj(val name: String)
     }
   }
   override def toString = {
-    s"svm.ClsObj($name)"
+    s"svm.ClsObj(${tpe.unparse}})"
   }
 }
 

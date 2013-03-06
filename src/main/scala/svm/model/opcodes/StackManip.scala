@@ -1,6 +1,6 @@
 package svm.model.opcodes
 
-import svm.model.TypeDesc._
+import svm.model.Type.Primitives._
 import svm.model.{OpCode, a}
 import svm.Virtualizer
 

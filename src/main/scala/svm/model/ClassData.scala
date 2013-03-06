@@ -7,8 +7,8 @@ object ClassData {
 
   def read(cn: ClassNode) = ClassData(
     cn.access,
-    cn.name,
-    cn.superName.safeOpt,
+    Type.Cls.read(cn.name),
+    cn.superName.safeOpt.map(Type.Cls.read),
     cn.interfaces.safeList,
     cn.fields.safeList.map(Field.read),
     cn.methods.safeList.map(Method.read),
@@ -47,8 +47,8 @@ object ClassData {
                   innerClasses: List[InnerClass] = Nil)
 }
 case class ClassData(access_flags: Int,
-                     name: String,
-                     superName: Option[String] = None,
+                     tpe: Type.Cls,
+                     superType: Option[Type.Cls] = None,
                      interfaces: List[String] = Nil,
                      fields: List[Field] = Nil,
                      methods: List[Method] = Nil,

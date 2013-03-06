@@ -5,7 +5,7 @@ public class Natives {
         return Float.intBitsToFloat(n);
     }
     public static long currentTimeMillis(){
-        return System.currentTimeMillis() / 1000;
+        return System.currentTimeMillis() / 100000;
     }
     public static String inheritedNative(){
 

@@ -1,7 +1,9 @@
 package svm.model.opcodes
 
-import svm.model.{Context, TypeDesc}
-import TypeDesc._
+import svm.model.Context
+
+import svm.model.Type.Primitives._
+import svm.model.Type
 
 object Misc {
   case class Goto(label: Int) extends BaseOpCode(167, "goto"){
@@ -38,51 +40,51 @@ object Misc {
   case object AReturn extends BaseOpCode(176, "areturn"){ def op = ctx => ctx.returnVal(Some(ctx.stack.head)) }
   case object Return extends BaseOpCode(177, "return"){ def op = ctx => ctx.returnVal(None) }
 
-  case class GetStatic(owner: String, name: String, desc: String) extends BaseOpCode(178, "getstatic"){
+  case class GetStatic(owner: Type.Cls, name: String, desc: Type) extends BaseOpCode(178, "getstatic"){
     def op = implicit ctx => ctx.frame.stack = owner(owner, name) :: ctx.stack
   }
-  case class PutStatic(owner: String, name: String, desc: String) extends BaseOpCode(179, "putstatic"){
+  case class PutStatic(owner: Type.Cls, name: String, desc: Type) extends BaseOpCode(179, "putstatic"){
     def op = implicit ctx => ctx.swapStack{ case value :: stack =>
       owner(owner, name) = value
       stack
     }
   }
 
-  case class GetField(owner: String, name: String, desc: String) extends BaseOpCode(180, "getfield"){
+  case class GetField(owner: Type.Cls, name: String, desc: Type) extends BaseOpCode(180, "getfield"){
     def op = implicit ctx => ctx.swapStack{
       case (objectRef: svm.Obj) :: stack => ext(objectRef(owner, name)) :: stack
       case null :: stack =>
-        ctx.throwException(new svm.Obj("java/lang/NullPointerException"))
+        ctx.throwException(svm.Obj("java/lang/NullPointerException"))
       stack
     }
   }
-  case class PutField(owner: String, name: String, desc: String) extends BaseOpCode(181, "putfield"){
+  case class PutField(owner: Type.Cls, name: String, desc: Type) extends BaseOpCode(181, "putfield"){
     def op = implicit ctx => ctx.swapStack {
       case value :: (objectRef: svm.Obj) :: stack =>
         objectRef(owner, name) = value
         stack
       case value :: null :: stack =>
-        ctx.throwException(new svm.Obj("java/lang/NullPointerException"))
+        ctx.throwException(svm.Obj("java/lang/NullPointerException"))
         stack
     }
   }
 
   def ensureNonNull(x: Any)(thunk: => Unit)(implicit ctx: Context) = {
     if (x == null){
-      ctx.throwException(new svm.Obj("java/lang/NullPointerException"))
+      ctx.throwException(svm.Obj("java/lang/NullPointerException"))
     }else {
       thunk
     }
   }
 
-  case class InvokeVirtual(owner: String, name: String, desc: String) extends BaseOpCode(182, "invokevirtual"){
+  case class InvokeVirtual(owner: Type.Cls, name: String, desc: Type.Desc) extends BaseOpCode(182, "invokevirtual"){
     def op = implicit ctx => {
-      val argCount = TypeDesc.read(desc).args.length
+      val argCount = desc.args.length
       val (args, rest) = ctx.frame.stack.splitAt(argCount+1)
       ensureNonNull(args.last){
         val cls = args.last match {
           case o: svm.Obj => o.cls
-          case a: Array[_] => ctx("java/lang/Object")
+          case a: Array[_] => ctx(Type.Cls("java/lang/Object"))
         }
         /*svm.VM.log("InvokeVirtual")
         svm.VM.log(cls.name + " " + name + " " + desc)
@@ -97,10 +99,10 @@ object Misc {
       }
     }
   }
-  case class InvokeSpecial(owner: String, name: String, desc: String) extends BaseOpCode(183, "invokespecial"){
+  case class InvokeSpecial(owner: Type.Cls, name: String, desc: Type.Desc) extends BaseOpCode(183, "invokespecial"){
     def op = implicit ctx => {
 
-      val argCount = TypeDesc.read(desc).args.length
+      val argCount = desc.args.length
       val cls = ctx(owner)
       val method = cls.method(name, desc).get
 
@@ -109,11 +111,11 @@ object Misc {
       ctx.prepInvoke(cls, method, args.reverse)
     }
   }
-  case class InvokeStatic(owner: String, name: String, desc: String) extends BaseOpCode(184, "invokestatic"){
+  case class InvokeStatic(owner: Type.Cls, name: String, desc: Type.Desc) extends BaseOpCode(184, "invokestatic"){
 
     def op = ctx => {
 
-      val argCount = TypeDesc.read(desc).args.length
+      val argCount = desc.args.length
 
       val cls = ctx(owner)
       val method = cls.method(name, desc).get
@@ -123,13 +125,13 @@ object Misc {
       ctx.prepInvoke(cls, method, args.reverse)
     }
   }
-  case class InvokeInterface(owner: String, name: String, desc: String) extends BaseOpCode(185, "invokeinterface"){
+  case class InvokeInterface(owner: Type.Cls, name: String, desc: Type.Desc) extends BaseOpCode(185, "invokeinterface"){
     def op = InvokeVirtual(owner, name, desc).op
   }
 
   case class InvokeDynamic(name: String, desc: String, bsm: Object, args: Object) extends BaseOpCode(186, "invokedynamic"){ def op = ??? }
 
-  case class New(desc: String) extends BaseOpCode(187, "new"){
+  case class New(desc: Type.Cls) extends BaseOpCode(187, "new"){
     def op = implicit ctx => desc match {
       case _ => ctx.frame.stack ::= new svm.Obj(desc)
     }
@@ -149,7 +151,7 @@ object Misc {
       newArray :: stack
     }
   }
-  case class ANewArray(desc: String) extends BaseOpCode(189, "anewarray"){
+  case class ANewArray(desc: Type.Cls) extends BaseOpCode(189, "anewarray"){
     def op = _.swapStack{
       case Intish(count) :: stack => new Array[Object](count) :: stack
     }
@@ -169,12 +171,12 @@ object Misc {
 
     }
   }
-  case class CheckCast(desc: String) extends BaseOpCode(192, "checkcast"){
+  case class CheckCast(desc: Type) extends BaseOpCode(192, "checkcast"){
     def op = ctx => {
 
     }
   }
-  case class InstanceOf(desc: String) extends BaseOpCode(193, "instanceof"){
+  case class InstanceOf(desc: Type) extends BaseOpCode(193, "instanceof"){
     def op = implicit ctx => ctx.swapStack{ case top :: rest =>
       val res = top match{
         case null => 0
@@ -198,12 +200,15 @@ object Misc {
   val Wide = UnusedOpCode(196, "wide")
   //===============================================================
 
-  case class MultiANewArray(desc: String, dims: Int) extends BaseOpCode(197, "multianewarray"){
+  case class MultiANewArray(desc: Type.Arr, dims: Int) extends BaseOpCode(197, "multianewarray"){
     def op = ctx => {
-
+      def next(t: Type): Type =  t match {
+        case Type.Arr(in) => next(in)
+        case x => x
+      }
       val (dimValues, newStack) = ctx.stack.splitAt(dims)
       val dimArray = dimValues.map(x => x.asInstanceOf[Int])
-      val array = java.lang.reflect.Array.newInstance(TypeDesc.fromChar(desc.last), dimArray:_*)
+      val array = java.lang.reflect.Array.newInstance(next(desc).realCls, dimArray:_*)
       ctx.frame.stack = array :: newStack
     }
   }
