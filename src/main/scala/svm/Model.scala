@@ -9,7 +9,7 @@ import scala.Some
 
 class Cls(val classData: ClassData,
           val statics: mutable.Map[String, Any] = mutable.Map.empty)
-         (implicit classes: Type.Cls => Cls){
+         (implicit classes: Type.Cls => Cls, tpeObjs: Type => TpeObj){
 
   implicit def autoClass(x: String) = classes(svm.model.Type.Cls(x))
   classData.superType.map(classes)
@@ -50,7 +50,7 @@ class Cls(val classData: ClassData,
     rec(classData)
   }
 
-  def isInstanceOf(desc: Type)(implicit classes: Type.Cls => Cls): Boolean = {
+  def isInstanceOf(desc: Type)(implicit classes: Type.Cls => Cls, tpeObjs: Type => TpeObj): Boolean = {
 
     val res =
       classData.tpe == desc ||
@@ -63,7 +63,7 @@ class Cls(val classData: ClassData,
 
 object Obj{
 
-  def initMembers(cls: ClassData, filter: Field => Boolean)(implicit classes: Type.Cls => Cls): List[Map[String, Any]] = {
+  def initMembers(cls: ClassData, filter: Field => Boolean)(implicit classes: Type.Cls => Cls, tpeObjs: Type => TpeObj): List[Map[String, Any]] = {
     cls.fields.filter(filter).map{f =>
       f.name -> initField(f.desc)
     }.toMap :: cls.superType.toList.flatMap(x => initMembers(classes(x).classData, filter))
@@ -84,12 +84,12 @@ object Obj{
 
     }
   }
-  def apply(clsName: String, initMembers: (String, Any)*)(implicit classes: Type.Cls => Cls) = {
+  def apply(clsName: String, initMembers: (String, Any)*)(implicit classes: Type.Cls => Cls, tpeObjs: Type => TpeObj) = {
     new Obj(Type.Cls(clsName), initMembers: _*)
   }
 }
 class Obj(val cls: Cls, initMembers: (String, Any)*)
-            (implicit classes: Type.Cls => Cls){
+            (implicit classes: Type.Cls => Cls, tpeObjs: Type => TpeObj){
 
 
   val members = Obj.initMembers(cls.classData, x => (x.access & Access.Static) == 0).map(x => mutable.Map(x.toSeq:_*))
@@ -120,24 +120,24 @@ class Obj(val cls: Cls, initMembers: (String, Any)*)
   }
 }
 object TpeObj{
-  def apply(t: Type)(implicit classes: Type.Cls => Cls) = t match{
+  def apply(t: Type)(implicit classes: Type.Cls => Cls, tpeObjs: Type => TpeObj) = t match{
     case tpe: Type.Cls => new ClsObj(tpe)
     case tpe => new TpeObj(tpe)
   }
 }
-class TpeObj(val tpe: Type)(implicit classes: Type.Cls => Cls)
+class TpeObj(val tpe: Type)(implicit classes: Type.Cls => Cls, tpeObjs: Type => TpeObj)
   extends Obj(Type.Cls("java/lang/Class")){
   def getDeclaredConstructors() = new Array[Object](0)
   def getDeclaredFields() = new Array[Object](0)
   def getDeclaredMethods() = new Array[Object](0)
 
 }
-class ClsObj(val tpe: Type.Cls)
-            (implicit classes: Type.Cls => Cls)
-             extends Obj(Type.Cls("java/lang/Class")){
+class ClsObj(override val tpe: Type.Cls)
+            (implicit classes: Type.Cls => Cls, tpeObjs: Type => TpeObj)
+             extends TpeObj(tpe){
 
   def name = tpe.unparse
-  def getDeclaredConstructors() = {
+  override def getDeclaredConstructors() = {
     classes(tpe).classData
       .methods
       .filter(_.name == "<init>")
@@ -149,9 +149,9 @@ class ClsObj(val tpe: Type.Cls)
         "exceptionTypes" -> new Array[svm.ClsObj](0),
         "modifiers" -> m.access
       )
-    }
+    }.toArray
   }
-  def getDeclaredFields() = {
+  override def getDeclaredFields() = {
       classes(tpe).classData.fields.map {f =>
 
         svm.Obj("java/lang/reflect/Field",
@@ -163,9 +163,9 @@ class ClsObj(val tpe: Type.Cls)
           "signature" -> Virtualizer.toVirtual(f.desc)
 
         )
-      }
+      }.toArray
   }
-  def getDeclaredMethods() = {
+  override def getDeclaredMethods() = {
 
     classes(tpe).classData.methods.map {m =>
       println(m.desc)
@@ -180,7 +180,7 @@ class ClsObj(val tpe: Type.Cls)
         "exceptionTypes" -> new Array[svm.ClsObj](0)
 
       )
-    }
+    }.toArray
   }
   override def toString = {
     s"svm.ClsObj(${tpe.unparse}})"

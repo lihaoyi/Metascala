@@ -49,7 +49,7 @@ object Natives {
     "os.version" -> "0"
 
   )
-  def trapped(implicit getClassFor: Type.Cls => Cls) = Route(
+  def trapped(implicit getClassFor: Type.Cls => Cls, clsObjs: Type => TpeObj) = Route(
     "java"/(
       "lang"/(
         "ClassLoader"/(
@@ -114,7 +114,7 @@ object Natives {
     }
   }
 
-  def nativeX(thread: VmThread, stackTrace: () => List[StackTraceElement])(implicit getClassFor: Type.Cls => Cls): Route = Route(
+  def nativeX(thread: VmThread, stackTrace: () => List[StackTraceElement])(implicit getClassFor: Type.Cls => Cls, clsObjs: Type => TpeObj): Route = Route(
     "java"/(
       "io"/(
         "FileInputStream"/(
@@ -192,7 +192,7 @@ object Natives {
           "registerNatives()V" - noOp,
           "getClass()L//Class;" - { (_: Any) match{
             case (x: svm.Obj) => x.cls.obj
-            case a: Array[_] => Type.Cls(a.getClass.getName).obj
+            case a: Array[_] => Type.Arr.read(a.getClass.getName).obj
           }},
           "hashCode()I" - {(_: svm.Obj).hashCode()},
           "notify()V" - noOp1,

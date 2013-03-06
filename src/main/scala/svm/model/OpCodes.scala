@@ -7,7 +7,7 @@ import asm.Label
 import org.objectweb.asm.tree._
 
 
-case class Context(thread: VmThread) extends (svm.model.Type.Cls => svm.Cls){
+case class Context(thread: VmThread) extends (svm.model.Type.Cls => svm.Cls) with (svm.model.Type => svm.TpeObj){
   def apply(s: Type.Cls): Cls = thread.classes(s)
   def frame = thread.threadStack.head
   def stack = frame.stack

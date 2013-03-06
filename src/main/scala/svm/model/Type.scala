@@ -83,6 +83,7 @@ object Type{
     def unparse = name
     def cls(implicit x: String => svm.Cls) = name
     def realCls = classOf[svm.Obj]
+    override def obj(implicit t: Type => TpeObj): TpeObj = t(this)
   }
 
   object Prim{
@@ -127,6 +128,7 @@ trait Type{
   def unparse: String
   def cls(implicit x: String => Cls): Cls
   def realCls: Class[_]
+  def obj(implicit t: Type => TpeObj): TpeObj = t(this)
 }
 
 
