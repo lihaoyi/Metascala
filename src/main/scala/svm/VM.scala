@@ -14,21 +14,21 @@ object VM{
 import VM._
 
 class VM(classLoader: String => Array[Byte]) {
-
-  implicit object Intern extends (Type => TpeObj){
+  private[this] implicit val vm = this
+  implicit object TpeObjs extends (Type => TpeObj){
     val classes = mutable.Map.empty[Type, TpeObj]
     def apply(t: Type): TpeObj = {
       classes.get(t) match{
         case Some(clsObj) => clsObj
         case None =>
-          val clsObj = new TpeObj(t)(RootLoader, this)
+          val clsObj = new TpeObj(t)
           classes(t) = clsObj
           clsObj
       }
     }
-
   }
-  implicit object RootLoader extends (Type.Cls => Cls){
+
+  implicit object Classes extends (Type.Cls => Cls){
     val classes = mutable.Map.empty[Type.Cls, Cls]
     def apply(t: Type.Cls): Cls = {
 
@@ -52,8 +52,8 @@ class VM(classLoader: String => Array[Byte]) {
     try{
       Virtualizer.fromVirtual[Any](
         threads(0).invoke(
-          RootLoader(Type.Cls(bootClass)),
-          RootLoader(Type.Cls(bootClass))
+          Classes(Type.Cls(bootClass)),
+          Classes(Type.Cls(bootClass))
             .classData
             .methods
             .find(x => x.name == mainMethod)
@@ -72,7 +72,8 @@ class VM(classLoader: String => Array[Byte]) {
 object VmThread{
   def apply()(implicit vmt: VmThread) = vmt
 }
-class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit val classes: Type.Cls => svm.Cls, clsObjs: Type => TpeObj){
+class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit vm: VM){
+  import vm._
   lazy val obj = svm.Obj("java/lang/Thread",
     "name" -> "MyThread".toCharArray,
     "group" -> svm.Obj("java/lang/ThreadGroup"),

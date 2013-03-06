@@ -8,7 +8,7 @@ import org.objectweb.asm.tree._
 
 
 case class Context(thread: VmThread) extends (svm.model.Type.Cls => svm.Cls) with (svm.model.Type => svm.TpeObj){
-  def apply(s: Type.Cls): Cls = thread.classes(s)
+  def apply(s: Type.Cls): Cls = thread(s)
   def frame = thread.threadStack.head
   def stack = frame.stack
   def swapStack(transform: PartialFunction[List[Any], List[Any]]) = {

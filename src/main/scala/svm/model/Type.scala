@@ -72,7 +72,7 @@ object Type{
   }
   case class Arr(innerType: Type) extends Type{
     def unparse = "[" + innerType.unparse
-    def cls(implicit x: String => svm.Cls) = primitiveMap(shortMap(???))
+    def cls(implicit vm: VM) = vm.TpeObjs(this)
 
     def realCls = ???
   }
@@ -81,9 +81,9 @@ object Type{
   }
   case class Cls(name: String) extends Type{
     def unparse = name
-    def cls(implicit x: String => svm.Cls) = name
+    def cls(implicit vm: VM) = vm.Classes(this)
     def realCls = classOf[svm.Obj]
-    override def obj(implicit t: Type => TpeObj): TpeObj = t(this)
+    override def obj(implicit vm: VM): TpeObj = vm.TpeObjs(this)
   }
 
   object Prim{
@@ -92,7 +92,6 @@ object Type{
   case class Prim(name: String) extends Type{
     def unparse = name
     def clsType = Cls(primitiveMap(shortMap(name)))
-    def cls(implicit x: String => svm.Cls) = primitiveMap(shortMap(name))
     def realCls = Primitives.fromChar(name(0))
   }
   object Desc{
@@ -120,15 +119,15 @@ object Type{
   }
   case class Desc(args: Seq[Type], ret: Type) extends Type{
     def unparse = "(" + args.map(Desc.unparse).foldLeft("")(_+_) + ")" + Desc.unparse(ret)
-    def cls(implicit x: String => svm.Cls) = ???
+    def cls(implicit vm: VM) = ???
     def realCls = ???
   }
 }
 trait Type{
   def unparse: String
-  def cls(implicit x: String => Cls): Cls
+
   def realCls: Class[_]
-  def obj(implicit t: Type => TpeObj): TpeObj = t(this)
+  def obj(implicit vm: VM): TpeObj = vm.TpeObjs(this)
 }
 
 

@@ -9,10 +9,10 @@ import scala.Some
 
 class Cls(val classData: ClassData,
           val statics: mutable.Map[String, Any] = mutable.Map.empty)
-         (implicit classes: Type.Cls => Cls, tpeObjs: Type => TpeObj){
+         (implicit vm: VM){
+  import vm._
 
-  implicit def autoClass(x: String) = classes(svm.model.Type.Cls(x))
-  classData.superType.map(classes)
+  classData.superType.map(vm.Classes)
   lazy val obj = new ClsObj(Type.Cls(name))
 
   classData.fields.map{f =>
@@ -84,12 +84,12 @@ object Obj{
 
     }
   }
-  def apply(clsName: String, initMembers: (String, Any)*)(implicit classes: Type.Cls => Cls, tpeObjs: Type => TpeObj) = {
-    new Obj(Type.Cls(clsName), initMembers: _*)
+  def apply(clsName: String, initMembers: (String, Any)*)(implicit vm: VM) = {
+    new Obj(vm.Classes(Type.Cls(clsName)), initMembers: _*)
   }
 }
 class Obj(val cls: Cls, initMembers: (String, Any)*)
-            (implicit classes: Type.Cls => Cls, tpeObjs: Type => TpeObj){
+            (implicit vm: VM){ import vm._
 
 
   val members = Obj.initMembers(cls.classData, x => (x.access & Access.Static) == 0).map(x => mutable.Map(x.toSeq:_*))
@@ -120,25 +120,25 @@ class Obj(val cls: Cls, initMembers: (String, Any)*)
   }
 }
 object TpeObj{
-  def apply(t: Type)(implicit classes: Type.Cls => Cls, tpeObjs: Type => TpeObj) = t match{
+  def apply(t: Type)(implicit vm: VM) = t match{
     case tpe: Type.Cls => new ClsObj(tpe)
     case tpe => new TpeObj(tpe)
   }
 }
-class TpeObj(val tpe: Type)(implicit classes: Type.Cls => Cls, tpeObjs: Type => TpeObj)
-  extends Obj(Type.Cls("java/lang/Class")){
+class TpeObj(val tpe: Type)(implicit vm: VM)
+  extends Obj(vm.Classes(Type.Cls("java/lang/Class"))){
   def getDeclaredConstructors() = new Array[Object](0)
   def getDeclaredFields() = new Array[Object](0)
   def getDeclaredMethods() = new Array[Object](0)
 
 }
 class ClsObj(override val tpe: Type.Cls)
-            (implicit classes: Type.Cls => Cls, tpeObjs: Type => TpeObj)
+            (implicit vm: VM)
              extends TpeObj(tpe){
-
+  import vm._
   def name = tpe.unparse
   override def getDeclaredConstructors() = {
-    classes(tpe).classData
+    tpe.classData
       .methods
       .filter(_.name == "<init>")
       .map{m =>
@@ -152,7 +152,7 @@ class ClsObj(override val tpe: Type.Cls)
     }.toArray
   }
   override def getDeclaredFields() = {
-      classes(tpe).classData.fields.map {f =>
+      tpe.classData.fields.map {f =>
 
         svm.Obj("java/lang/reflect/Field",
           "clazz" -> this,
@@ -167,7 +167,7 @@ class ClsObj(override val tpe: Type.Cls)
   }
   override def getDeclaredMethods() = {
 
-    classes(tpe).classData.methods.map {m =>
+    tpe.classData.methods.map {m =>
       println(m.desc)
       svm.Obj("java/lang/reflect/Method",
         "clazz" -> this,

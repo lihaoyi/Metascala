@@ -49,47 +49,50 @@ object Natives {
     "os.version" -> "0"
 
   )
-  def trapped(implicit getClassFor: Type.Cls => Cls, clsObjs: Type => TpeObj) = Route(
-    "java"/(
-      "lang"/(
-        "ClassLoader"/(
-          "getSystemClassLoader()Ljava/lang/ClassLoader;" - value(null)
-        ),
-        "System"/(
-          "getProperty(L//String;)L//String;" - {
-            (s: svm.Obj) =>
-              Virtualizer.toVirtual[Any](properties(Virtualizer.fromVirtual[String](s)))
+  def trapped(implicit vm: VM) = {
+    import vm._
+    Route(
+      "java"/(
+        "lang"/(
+          "ClassLoader"/(
+            "getSystemClassLoader()Ljava/lang/ClassLoader;" - value(null)
+            ),
+          "System"/(
+            "getProperty(L//String;)L//String;" - {
+              (s: svm.Obj) =>
+                Virtualizer.toVirtual[Any](properties(Virtualizer.fromVirtual[String](s)))
 
-          },
-          "getProperty(L//String;L//String;)L//String;" - {
-            (s: svm.Obj, dflt: svm.Obj) =>
-              properties.get(Virtualizer.fromVirtual[String](s))
-                        .map(Virtualizer.toVirtual[svm.Obj])
-                        .getOrElse(dflt)
-          }
-        )
-      )
-    ),
-    "sun"/(
-      "reflect"/(
-        "Reflection"/(
-          "registerMethodsToFilter(Ljava/lang/Class;[Ljava/lang/String;)V" - noOp2
-        )
-      ),
-      "misc"/(
-        "Hashing"/(
-          "randomHashSeed(Ljava/lang/Object;)I" - value1(1)
+            },
+            "getProperty(L//String;L//String;)L//String;" - {
+              (s: svm.Obj, dflt: svm.Obj) =>
+                properties.get(Virtualizer.fromVirtual[String](s))
+                  .map(Virtualizer.toVirtual[svm.Obj])
+                  .getOrElse(dflt)
+            }
+            )
+          )
         ),
-        "Unsafe"/(
-          "getUnsafe()Lsun/misc/Unsafe;" - value(svm.Obj("sun/misc/Unsafe"))
-        ),
-        "VM"/(
-          "isBooted()Z" - value(true)
-        )
-      )
+      "sun"/(
+        "reflect"/(
+          "Reflection"/(
+            "registerMethodsToFilter(Ljava/lang/Class;[Ljava/lang/String;)V" - noOp2
+            )
+          ),
+        "misc"/(
+          "Hashing"/(
+            "randomHashSeed(Ljava/lang/Object;)I" - value1(1)
+            ),
+          "Unsafe"/(
+            "getUnsafe()Lsun/misc/Unsafe;" - value(svm.Obj("sun/misc/Unsafe"))
+            ),
+          "VM"/(
+            "isBooted()Z" - value(true)
+            )
+          )
 
+        )
     )
-  )
+  }
   def getObject(x: Any, i: Long) = {
     x match{
       case o: svm.Obj =>
@@ -114,177 +117,156 @@ object Natives {
     }
   }
 
-  def nativeX(thread: VmThread, stackTrace: () => List[StackTraceElement])(implicit getClassFor: Type.Cls => Cls, clsObjs: Type => TpeObj): Route = Route(
-    "java"/(
-      "io"/(
-        "FileInputStream"/(
-          "initIDs()V" - noOp
-        ),
-        "FileOutputStream"/(
-          "initIDs()V" - noOp
+  def nativeX(thread: VmThread, stackTrace: () => List[StackTraceElement])(implicit vm: VM): Route = {
+    import vm._
+    Route(
+      "java"/(
+        "io"/(
+          "FileInputStream"/(
+            "initIDs()V" - noOp
+            ),
+          "FileOutputStream"/(
+            "initIDs()V" - noOp
+            ),
+          "FileDescriptor"/(
+            "initIDs()V" - noOp,
+            "set(I)J" - {(x: Int) => x.toLong}
+            )
           ),
-        "FileDescriptor"/(
-          "initIDs()V" - noOp,
-          "set(I)J" - {(x: Int) => x.toLong}
-        )
-      ),
-      "lang"/(
-        "reflect"/(
-          "Array"/(
-            "newArray(Ljava/lang/Class;I)Ljava/lang/Object;" - {
-              (x: svm.ClsObj, n: Int) => new Array[svm.Obj](n)
-            }
-          )
-        ),
-        "Class"/(
-          "registerNatives()V" - noOp,
-          "getName0()L//String;" - ((s: svm.ClsObj) => Virtualizer.toVirtual[svm.Obj](s.name.replace("/", "."))),
-          "forName0(L//String;)L//Class;" - ((s: svm.Obj) => Type.Cls(Virtualizer.fromVirtual[String](s)).obj),
-          "forName0(L//String;ZL//ClassLoader;)L//Class;" - ((s: svm.Obj, x: Any, w: Any, y: Any) => Type.Cls(Virtualizer.fromVirtual[String](s)).obj),
-          "getPrimitiveClass(L//String;)L//Class;"-((s: svm.Obj) => getClassFor(Type.Cls(Type.primitiveMap(Virtualizer.fromVirtual(s).asInstanceOf[String]))).obj),
-          "getClassLoader0()L//ClassLoader;" - value1(null),
-          "getDeclaringClass()L//Class;" - value(null),
-          "getComponentType()Ljava/lang/Class;" - { (x: svm.ClsObj) =>
-            x.name.splitAt(1) match {
-              case ("[", rest) =>
-                getClassFor(Type.Cls(Type.shortMap(rest))).obj
-              case _ => null
-            }
-          },
-          "getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;" - {
-            (cls: svm.ClsObj, b: Int) => cls.getDeclaredConstructors().toArray
-          },
-          "getDeclaredFields0(Z)[L//reflect/Field;" - {(cls: svm.ClsObj, b: Int) =>
-            cls.getDeclaredFields().toArray
-          },
-          "getDeclaredMethods0(Z)[L//reflect/Method;" - {(cls: svm.ClsObj, b: Int) =>
-            cls.getDeclaredMethods().toArray
-          },
-          "getEnclosingMethod0()[L//Object;" - value(null),
-          "getModifiers()I" - { (x: svm.ClsObj) => getClassFor(Type.Cls(x.name)).classData.access_flags },
-          "getSuperclass()L//Class;" - {(x: svm.ClsObj) =>
-            getClassFor(Type.Cls(x.name)).classData
-                               .superType
-                               .map(x => getClassFor(x).obj)
-                               .getOrElse(null)
-          },
-          "isPrimitive()Z" - value1(false),
-          "isInterface()Z" - ((x: svm.ClsObj) => (getClassFor(Type.Cls(x.name.replace(".", "/"))).classData.access_flags & Access.Interface) != 0),
-          "isAssignableFrom(Ljava/lang/Class;)Z" - {(x: svm.ClsObj, y: svm.ClsObj) =>
-            true
-          },
-          "isArray()Z" - ((_: svm.ClsObj).name.startsWith("[")),
-          "desiredAssertionStatus0(L//Class;)Z" - value1(0)
-        ),
-        "Double"/(
-          "doubleToRawLongBits(D)J"-{ java.lang.Double.doubleToRawLongBits(_: Double)},
-          "longBitsToDouble(J)D"-{ java.lang.Double.longBitsToDouble(_: Long)}
-        ),
-        "Float"/(
-          "intBitsToFloat(I)F"-{ java.lang.Float.intBitsToFloat(_: Int)},
-          "floatToRawIntBits(F)I"-{ java.lang.Float.floatToIntBits(_: Float)}
-        ),
-        "Object"/(
-          "clone()L//Object;" -  {(_: Any ) match{
-            case (x: svm.Obj) => x
-            case (a: Array[_]) => a.clone
-          }},
-          "registerNatives()V" - noOp,
-          "getClass()L//Class;" - { (_: Any) match{
-            case (x: svm.Obj) => x.cls.obj
-            case a: Array[_] => Type.Arr.read(a.getClass.getName).obj
-          }},
-          "hashCode()I" - {(_: svm.Obj).hashCode()},
-          "notify()V" - noOp1,
-          "notifyAll()V" - noOp1
-        ),
-        "Runtime"/(
-          "freeMemory()J" - value(1000000000L),
-          "availableProcessors()I" - value(1)
-        ),
-        "String"/(
-          "intern()L//String;" - intern _
-        ),
-        "System"/(
-          "arraycopy(L//Object;IL//Object;II)V"-((src: Any, srcPos: Int, dest: Any, destPos: Int, length: Int) =>
-            System.arraycopy(src, srcPos, dest, destPos, length)
-          ),
-          "currentTimeMillis()J" - value(System.currentTimeMillis()),
-          "nanoTime()J" - value(System.nanoTime()),
-          "initProperties(Ljava/util/Properties;)Ljava/util/Properties;" - value1(null),
-          "identityHashCode(L//Object;)I"-((x: svm.Obj) => System.identityHashCode(x)),
-          "registerNatives()V" - noOp,
-          "setIn0(Ljava/io/InputStream;)V" - noOp1,
-          "setOut0(Ljava/io/PrintStream;)V" - noOp1,
-          "setErr0(Ljava/io/PrintStream;)V" - noOp1
-        ),
-        "Thread"/(
-          "currentThread()L//Thread;" - value(thread.obj),
-          "setPriority0(I)V" - noOp2,
-          "start0()V" - noOp
-        ),
-        "Throwable"/(
-          "fillInStackTrace(I)L//Throwable;" - { (throwable: svm.Obj, dummy: Int) =>
-            throwable.members(0)("stackTrace") =
-              stackTrace().map { f =>
-              svm.Obj("java/lang/StackTraceElement",
-                "declaringClass" -> Virtualizer.toVirtual(f.getClassName),
-                "methodName" -> Virtualizer.toVirtual(f.getMethodName),
-                "fileName" -> Virtualizer.toVirtual(f.getFileName),
-                "lineNumber" -> Virtualizer.toVirtual(f.getLineNumber)
+        "lang"/(
+          "reflect"/(
+            "Array"/(
+              "newArray(Ljava/lang/Class;I)Ljava/lang/Object;" - {
+                (x: svm.ClsObj, n: Int) => new Array[svm.Obj](n)
+              }
               )
-            }.toArray
-            throwable
-          }
-        ),
-        "ref"/(
-          "Reference$ReferenceHandler"/(
-            "isAlive()Z" - value(false)
-          )
-        )
-      ),
-      "security"/(
-        "AccessController"/(
-          "doPrivileged(L//PrivilegedAction;)L/lang/Object;" - {
-            (pa: svm.Obj) =>
-
-              thread.prepInvoke(pa.cls, pa.cls.classData.methods.find(_.name == "run").get, Seq(pa))
-          },
-          "getStackAccessControlContext()L//AccessControlContext;" - value(svm.Obj("java/security/AccessControlContext")),
-          "getInheritedAccessControlContext()L//AccessControlContext;" - value(svm.Obj("java/security/AccessControlContext"))
-        )
-      )
-    ),
-    "sun"/(
-      "misc"/(
-        "Unsafe"/(
-          "arrayBaseOffset(Ljava/lang/Class;)I" - value1(0),
-          "arrayIndexScale(Ljava/lang/Class;)I" - value1(1),
-          "addressSize()I" - ((x: Any) => 4),
-          "compareAndSwapInt(Ljava/lang/Object;JII)Z" - {(unsafe: Any, a: svm.Obj, i: Long, b: Int, c: Int) =>
-            if (getObject(a, i) == b) {
-              println("win")
-              putObject(a, i, b)
+            ),
+          "Class"/(
+            "registerNatives()V" - noOp,
+            "getName0()L//String;" - ((s: svm.ClsObj) => Virtualizer.toVirtual[svm.Obj](s.name.replace("/", "."))),
+            "forName0(L//String;)L//Class;" - ((s: svm.Obj) => Type.Cls(Virtualizer.fromVirtual[String](s)).obj),
+            "forName0(L//String;ZL//ClassLoader;)L//Class;" - ((s: svm.Obj, x: Any, w: Any, y: Any) => Type.Cls(Virtualizer.fromVirtual[String](s)).obj),
+            "getPrimitiveClass(L//String;)L//Class;"-((s: svm.Obj) => Type.Cls(Type.primitiveMap(Virtualizer.fromVirtual(s).asInstanceOf[String])).obj),
+            "getClassLoader0()L//ClassLoader;" - value1(null),
+            "getDeclaringClass()L//Class;" - value(null),
+            "getComponentType()Ljava/lang/Class;" - { (x: svm.ClsObj) =>
+              x.name.splitAt(1) match {
+                case ("[", rest) =>
+                  Type.Cls(Type.shortMap(rest)).obj
+                case _ => null
+              }
+            },
+            "getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;" - {
+              (cls: svm.ClsObj, b: Int) => cls.getDeclaredConstructors().toArray
+            },
+            "getDeclaredFields0(Z)[L//reflect/Field;" - {(cls: svm.ClsObj, b: Int) =>
+              cls.getDeclaredFields().toArray
+            },
+            "getDeclaredMethods0(Z)[L//reflect/Method;" - {(cls: svm.ClsObj, b: Int) =>
+              cls.getDeclaredMethods().toArray
+            },
+            "getEnclosingMethod0()[L//Object;" - value(null),
+            "getModifiers()I" - { (x: svm.ClsObj) => Type.Cls(x.name).classData.access_flags },
+            "getSuperclass()L//Class;" - {(x: svm.ClsObj) =>
+              Type.Cls(x.name).classData
+                .superType
+                .map(_.obj)
+                .getOrElse(null)
+            },
+            "isPrimitive()Z" - value1(false),
+            "isInterface()Z" - ((x: svm.ClsObj) => (Type.Cls(x.name.replace(".", "/")).classData.access_flags & Access.Interface) != 0),
+            "isAssignableFrom(Ljava/lang/Class;)Z" - {(x: svm.ClsObj, y: svm.ClsObj) =>
               true
-            }else{
-              println("fail")
-              false
+            },
+            "isArray()Z" - ((_: svm.ClsObj).name.startsWith("[")),
+            "desiredAssertionStatus0(L//Class;)Z" - value1(0)
+            ),
+          "Double"/(
+            "doubleToRawLongBits(D)J"-{ java.lang.Double.doubleToRawLongBits(_: Double)},
+            "longBitsToDouble(J)D"-{ java.lang.Double.longBitsToDouble(_: Long)}
+            ),
+          "Float"/(
+            "intBitsToFloat(I)F"-{ java.lang.Float.intBitsToFloat(_: Int)},
+            "floatToRawIntBits(F)I"-{ java.lang.Float.floatToIntBits(_: Float)}
+            ),
+          "Object"/(
+            "clone()L//Object;" -  {(_: Any ) match{
+              case (x: svm.Obj) => x
+              case (a: Array[_]) => a.clone
+            }},
+            "registerNatives()V" - noOp,
+            "getClass()L//Class;" - { (_: Any) match{
+              case (x: svm.Obj) => x.cls.obj
+              case a: Array[_] => Type.Arr.read(a.getClass.getName).obj
+            }},
+            "hashCode()I" - {(_: svm.Obj).hashCode()},
+            "notify()V" - noOp1,
+            "notifyAll()V" - noOp1
+            ),
+          "Runtime"/(
+            "freeMemory()J" - value(1000000000L),
+            "availableProcessors()I" - value(1)
+            ),
+          "String"/(
+            "intern()L//String;" - intern _
+            ),
+          "System"/(
+            "arraycopy(L//Object;IL//Object;II)V"-((src: Any, srcPos: Int, dest: Any, destPos: Int, length: Int) =>
+              System.arraycopy(src, srcPos, dest, destPos, length)
+              ),
+            "currentTimeMillis()J" - value(System.currentTimeMillis()),
+            "nanoTime()J" - value(System.nanoTime()),
+            "initProperties(Ljava/util/Properties;)Ljava/util/Properties;" - value1(null),
+            "identityHashCode(L//Object;)I"-((x: svm.Obj) => System.identityHashCode(x)),
+            "registerNatives()V" - noOp,
+            "setIn0(Ljava/io/InputStream;)V" - noOp1,
+            "setOut0(Ljava/io/PrintStream;)V" - noOp1,
+            "setErr0(Ljava/io/PrintStream;)V" - noOp1
+            ),
+          "Thread"/(
+            "currentThread()L//Thread;" - value(thread.obj),
+            "setPriority0(I)V" - noOp2,
+            "start0()V" - noOp
+            ),
+          "Throwable"/(
+            "fillInStackTrace(I)L//Throwable;" - { (throwable: svm.Obj, dummy: Int) =>
+              throwable.members(0)("stackTrace") =
+                stackTrace().map { f =>
+                  svm.Obj("java/lang/StackTraceElement",
+                    "declaringClass" -> Virtualizer.toVirtual(f.getClassName),
+                    "methodName" -> Virtualizer.toVirtual(f.getMethodName),
+                    "fileName" -> Virtualizer.toVirtual(f.getFileName),
+                    "lineNumber" -> Virtualizer.toVirtual(f.getLineNumber)
+                  )
+                }.toArray
+              throwable
             }
-            true;
-          },
-          "putOrderedObject(Ljava/lang/Object;JLjava/lang/Object;)V" - {
-            (unsafe: svm.Obj, a: Any, i: Long, b: Any) => putObject(a, i, b)
-          },
-          "getObject(Ljava/lang/Object;J)Ljava/lang/Object;" - {
-            (unsafe: svm.Obj, a: Any, i: Long) => getObject(a, i)
-          },
-          "getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;" - {
-            (unsafe: svm.Obj, a: Any, i: Long) => getObject(a, i)
-          },
-          "compareAndSwapObject(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z" - {
-            (unsafe: svm.Obj, a: Any, i: Long, b: Any, c: Any) =>
-              println("CAS" + a + "\t" + b + " for " + c + " found " + getObject(a, i))
+            ),
+          "ref"/(
+            "Reference$ReferenceHandler"/(
+              "isAlive()Z" - value(false)
+              )
+            )
+          ),
+        "security"/(
+          "AccessController"/(
+            "doPrivileged(L//PrivilegedAction;)L/lang/Object;" - {
+              (pa: svm.Obj) =>
 
+                thread.prepInvoke(pa.cls, pa.cls.classData.methods.find(_.name == "run").get, Seq(pa))
+            },
+            "getStackAccessControlContext()L//AccessControlContext;" - value(svm.Obj("java/security/AccessControlContext")),
+            "getInheritedAccessControlContext()L//AccessControlContext;" - value(svm.Obj("java/security/AccessControlContext"))
+            )
+          )
+        ),
+      "sun"/(
+        "misc"/(
+          "Unsafe"/(
+            "arrayBaseOffset(Ljava/lang/Class;)I" - value1(0),
+            "arrayIndexScale(Ljava/lang/Class;)I" - value1(1),
+            "addressSize()I" - ((x: Any) => 4),
+            "compareAndSwapInt(Ljava/lang/Object;JII)Z" - {(unsafe: Any, a: svm.Obj, i: Long, b: Int, c: Int) =>
               if (getObject(a, i) == b) {
                 println("win")
                 putObject(a, i, b)
@@ -293,44 +275,68 @@ object Natives {
                 println("fail")
                 false
               }
-          },
-          "objectFieldOffset(Ljava/lang/reflect/Field;)J" - {(unsafe: Any, x: svm.Obj) =>
-            println(x)
-            println(x.members)
-            x(Type.Cls("java/lang/reflect/Field"), "slot").asInstanceOf[Int].toLong
-          }
-        ),
-        "VM"/(
-          "initialize()V" - noOp
-        )
-      ),
+              true;
+            },
+            "putOrderedObject(Ljava/lang/Object;JLjava/lang/Object;)V" - {
+              (unsafe: svm.Obj, a: Any, i: Long, b: Any) => putObject(a, i, b)
+            },
+            "getObject(Ljava/lang/Object;J)Ljava/lang/Object;" - {
+              (unsafe: svm.Obj, a: Any, i: Long) => getObject(a, i)
+            },
+            "getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;" - {
+              (unsafe: svm.Obj, a: Any, i: Long) => getObject(a, i)
+            },
+            "compareAndSwapObject(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z" - {
+              (unsafe: svm.Obj, a: Any, i: Long, b: Any, c: Any) =>
+                println("CAS" + a + "\t" + b + " for " + c + " found " + getObject(a, i))
 
-      "reflect"/(
-        "NativeConstructorAccessorImpl"/(
-          "newInstance0(Ljava/lang/reflect/Constructor;[Ljava/lang/Object;)Ljava/lang/Object;" - {
-            (constr: svm.Obj, args: Array[svm.Obj]) =>
-              println("NewInstanceZero!")
-              VM.log("NewInstanceZero!")
-              val cls: svm.Cls = Type.Cls(constr.members(0)("clazz").asInstanceOf[svm.ClsObj].name)
-              val newObj = new svm.Obj(cls)
-              VM.log("|" + newObj)
-              VM.log("|" + thread.threadStack.head.stack)
-              thread.invoke(cls, cls.method("<init>", Type.Desc.read("()V")).get, Seq(newObj))
-              VM.log("|" + thread.threadStack.head.stack)
-              newObj
-          }
-        ),
-        "Reflection"/(
-          "getCallerClass(I)Ljava/lang/Class;" - { (n: Int) =>
-            Type.Cls(stackTrace().drop(n).head.getClassName).obj
-          },
-          "getClassAccessFlags(Ljava/lang/Class;)I" - { (x: svm.ClsObj) =>
-            getClassFor(Type.Cls(x.name)).classData.access_flags
-          }
+                if (getObject(a, i) == b) {
+                  println("win")
+                  putObject(a, i, b)
+                  true
+                }else{
+                  println("fail")
+                  false
+                }
+            },
+            "objectFieldOffset(Ljava/lang/reflect/Field;)J" - {(unsafe: Any, x: svm.Obj) =>
+              println(x)
+              println(x.members)
+              x(Type.Cls("java/lang/reflect/Field"), "slot").asInstanceOf[Int].toLong
+            }
+            ),
+          "VM"/(
+            "initialize()V" - noOp
+            )
+          ),
+
+        "reflect"/(
+          "NativeConstructorAccessorImpl"/(
+            "newInstance0(Ljava/lang/reflect/Constructor;[Ljava/lang/Object;)Ljava/lang/Object;" - {
+              (constr: svm.Obj, args: Array[svm.Obj]) =>
+                println("NewInstanceZero!")
+                VM.log("NewInstanceZero!")
+                val cls: svm.Cls = Type.Cls(constr.members(0)("clazz").asInstanceOf[svm.ClsObj].name)
+                val newObj = new svm.Obj(cls)
+                VM.log("|" + newObj)
+                VM.log("|" + thread.threadStack.head.stack)
+                thread.invoke(cls, cls.method("<init>", Type.Desc.read("()V")).get, Seq(newObj))
+                VM.log("|" + thread.threadStack.head.stack)
+                newObj
+            }
+            ),
+          "Reflection"/(
+            "getCallerClass(I)Ljava/lang/Class;" - { (n: Int) =>
+              Type.Cls(stackTrace().drop(n).head.getClassName).obj
+            },
+            "getClassAccessFlags(Ljava/lang/Class;)I" - { (x: svm.ClsObj) =>
+              Type.Cls(x.name).classData.access_flags
+            }
+            )
+          )
         )
-      )
     )
-  )
+  }
 
 
   object Route{

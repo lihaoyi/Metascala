@@ -36,7 +36,7 @@ object Virtualizer {
   }.asInstanceOf[T]
 
 
-  def toVirtual[T](x: Any)(implicit classes: Type.Cls => Cls, tpeObjs: Type => TpeObj): T = {
+  def toVirtual[T](x: Any)(implicit vm: VM): T = {
     def cloneArray  [T](x: Array[T]): Array[T] = {
       val newArray = x.clone()
       for(i <- 0 until x.length){
