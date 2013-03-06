@@ -50,12 +50,15 @@ class Cls(val classData: ClassData,
     rec(classData)
   }
 
-  def isInstanceOf(desc: Type)(implicit classes: Type.Cls => Cls, tpeObjs: Type => TpeObj): Boolean = {
+  def checkIsInstanceOf(desc: Type)(implicit vm: VM): Boolean = {
+    import vm._
 
     val res =
       classData.tpe == desc ||
       classData.interfaces.contains(desc) ||
-      (classData.superType.isDefined && classes(classData.superType.get).isInstanceOf(desc))
+      classData.superType
+          .map(l => l.checkIsInstanceOf(desc))
+          .getOrElse(false)
 
     res
   }
@@ -63,10 +66,11 @@ class Cls(val classData: ClassData,
 
 object Obj{
 
-  def initMembers(cls: ClassData, filter: Field => Boolean)(implicit classes: Type.Cls => Cls, tpeObjs: Type => TpeObj): List[Map[String, Any]] = {
+  def initMembers(cls: ClassData, filter: Field => Boolean)(implicit vm: VM): List[Map[String, Any]] = {
+    import vm._
     cls.fields.filter(filter).map{f =>
       f.name -> initField(f.desc)
-    }.toMap :: cls.superType.toList.flatMap(x => initMembers(classes(x).classData, filter))
+    }.toMap :: cls.superType.toList.flatMap(x => initMembers(x.classData, filter))
   }
 
   def initField(desc: Type) = {

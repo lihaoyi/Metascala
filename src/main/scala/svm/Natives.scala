@@ -49,9 +49,9 @@ object Natives {
     "os.version" -> "0"
 
   )
-  def trapped(implicit vm: VM) = {
+  def trapped(implicit vm: VM): Map[(String, Type.Desc), Seq[Any] => Any] = {
     import vm._
-    Route(
+    Map(
       "java"/(
         "lang"/(
           "ClassLoader"/(
@@ -91,7 +91,7 @@ object Natives {
           )
 
         )
-    )
+    ).toRoute()
   }
   def getObject(x: Any, i: Long) = {
     x match{
@@ -117,9 +117,9 @@ object Natives {
     }
   }
 
-  def nativeX(thread: VmThread, stackTrace: () => List[StackTraceElement])(implicit vm: VM): Route = {
+  def nativeX(thread: VmThread, stackTrace: () => List[StackTraceElement])(implicit vm: VM): Map[(String, Type.Desc), Seq[Any] => Any] = {
     import vm._
-    Route(
+    Map(
       "java"/(
         "io"/(
           "FileInputStream"/(
@@ -143,7 +143,7 @@ object Natives {
             ),
           "Class"/(
             "registerNatives()V" - noOp,
-            "getName0()L//String;" - ((s: svm.ClsObj) => Virtualizer.toVirtual[svm.Obj](s.name.replace("/", "."))),
+            "getName0()L//String;" - ((s: svm.TpeObj) => Virtualizer.toVirtual[svm.Obj](s.tpe.unparse.replace("/", "."))),
             "forName0(L//String;)L//Class;" - ((s: svm.Obj) => Type.Cls(Virtualizer.fromVirtual[String](s)).obj),
             "forName0(L//String;ZL//ClassLoader;)L//Class;" - ((s: svm.Obj, x: Any, w: Any, y: Any) => Type.Cls(Virtualizer.fromVirtual[String](s)).obj),
             "getPrimitiveClass(L//String;)L//Class;"-((s: svm.Obj) => Type.Cls(Type.primitiveMap(Virtualizer.fromVirtual(s).asInstanceOf[String])).obj),
@@ -159,11 +159,11 @@ object Natives {
             "getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;" - {
               (cls: svm.ClsObj, b: Int) => cls.getDeclaredConstructors().toArray
             },
-            "getDeclaredFields0(Z)[L//reflect/Field;" - {(cls: svm.ClsObj, b: Int) =>
-              cls.getDeclaredFields().toArray
+            "getDeclaredFields0(Z)[L//reflect/Field;" - {(cls: svm.TpeObj, b: Int) =>
+              cls.getDeclaredFields()
             },
-            "getDeclaredMethods0(Z)[L//reflect/Method;" - {(cls: svm.ClsObj, b: Int) =>
-              cls.getDeclaredMethods().toArray
+            "getDeclaredMethods0(Z)[L//reflect/Method;" - {(cls: svm.TpeObj, b: Int) =>
+              cls.getDeclaredMethods()
             },
             "getEnclosingMethod0()[L//Object;" - value(null),
             "getModifiers()I" - { (x: svm.ClsObj) => Type.Cls(x.name).classData.access_flags },
@@ -178,17 +178,17 @@ object Natives {
             "isAssignableFrom(Ljava/lang/Class;)Z" - {(x: svm.ClsObj, y: svm.ClsObj) =>
               true
             },
-            "isArray()Z" - ((_: svm.ClsObj).name.startsWith("[")),
+            "isArray()Z" - ((_: svm.TpeObj).tpe.isInstanceOf[Type.Arr]),
             "desiredAssertionStatus0(L//Class;)Z" - value1(0)
             ),
           "Double"/(
             "doubleToRawLongBits(D)J"-{ java.lang.Double.doubleToRawLongBits(_: Double)},
             "longBitsToDouble(J)D"-{ java.lang.Double.longBitsToDouble(_: Long)}
-            ),
+          ),
           "Float"/(
             "intBitsToFloat(I)F"-{ java.lang.Float.intBitsToFloat(_: Int)},
             "floatToRawIntBits(F)I"-{ java.lang.Float.floatToIntBits(_: Float)}
-            ),
+          ),
           "Object"/(
             "clone()L//Object;" -  {(_: Any ) match{
               case (x: svm.Obj) => x
@@ -335,59 +335,46 @@ object Natives {
             )
           )
         )
-    )
+    ).toRoute()
   }
 
+  implicit class pimpedRoute(m: Map[String, Any]){
+    def toRoute(parts: List[String] = Nil): Map[(String, Type.Desc), Seq[Any] => Any] = {
+      m.flatMap{ case (k, v) =>
+        v match{
+          case thing: Map[String, Any] =>
+            thing.toRoute(k :: parts).map {
+              case ((path, desc), func) => ((k + "/" + path, desc), func)
+            }
 
-  object Route{
-    def apply(a: (String, Route)*) = Node(a.toMap)
-  }
-  trait Route{
-    def lookup(s: String, parts: List[String] = Nil): Option[Leaf]
-  }
-  case class Node(children: Map[String, Route]) extends Route{
-    def lookup(s: String, parts: List[String] = Nil) = {
+          case func =>
+            val (name, descString) = k.splitAt(k.indexOf('('))
+            val p = parts.reverse
+            val fullDescString =
+              descString.replace("L///", s"L${p(0)}/${p(1)}/${p(2)}/")
+                        .replace("L//", s"L${p(0)}/${p(1)}/")
+                        .replace("L/", s"L${p(0)}/")
 
-        if (s.indexOf('/') != -1 && s.indexOf('/') < s.indexOf('(')){
-          val Array(first, rest) =s.split("/", 2)
-          children.get(first).flatMap(_.lookup(rest, parts :+ first))
-        }else{
-
-          children.find(x =>
-
-              x._1.replace("L///", "L" + parts(0) + "/" + parts(1) + "/" + parts(2) + "/")
-                  .replace("L//", "L" + parts(0) + "/" + parts(1) + "/")
-                  .replace("L/", "L" + parts(0) + "/") == s
-
-          ).flatMap(_._2.lookup("", Nil))
+            val desc = Type.Desc.read(fullDescString)
+            def rec(f: Any, args: Seq[Any]): Any = {
+              f match{
+                case f: ((Any, Any, Any, Any, Any) => Any) => f(args(0), args(1), args(2), args(3), args(4))
+                case f: ((Any, Any, Any, Any) => Any) => f(args(0), args(1), args(2), args(3))
+                case f: ((Any, Any, Any) => Any) => f(args(0), args(1), args(2))
+                case f: ((Any, Any) => Any) => f(args(0), args(1))
+                case f: ((Any) => Any) => f(args(0))
+                case f: (() => Any) => f()
+                case x => x
+              }
+            }
+            Map((name, desc) -> ((args: Seq[Any]) => rec(func, args)))
         }
-
-    }
-  }
-
-  implicit def func0(f: () => Any) = (x: Any) => f()
-  implicit def func2(f: (Nothing, Nothing) => Any) = f.curried
-  implicit def func3(f: (Nothing, Nothing, Nothing) => Any) = f.curried
-  implicit def func4(f: (Nothing, Nothing, Nothing, Nothing) => Any) = f.curried
-  implicit def func5(f: (Nothing, Nothing, Nothing, Nothing, Nothing) => Any) = f.curried
-  case class Leaf(f: Nothing => Any) extends Route{
-    def lookup(s: String, parts: List[String] = Nil) = {
-
-      if (s == "") Some(this)
-      else None
-    }
-    def apply(s: Seq[Any]) = {
-      @tailrec def rec(f: Any, s: Seq[Any]): Any = (f, s) match {
-        case (f1: Function1[Any, Any], head :: tail) => rec(f1(head), tail)
-        case (f1: Function1[Any, Any], _) => f1(null)
-        case (x, _) => x
       }
-      rec(f, s)
     }
   }
-
   implicit class pimpedMap(s: String){
-    def /(a: (String, Route)*) = s -> Node(a.toMap)
-    def -(a: Nothing => Any) = s -> Leaf(a)
+    def /(a: (String, Any)*) = s -> a.toMap
+    def -(a: Any) = s -> a
   }
+
 }

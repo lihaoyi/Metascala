@@ -94,6 +94,7 @@ object Type{
     def clsType = Cls(primitiveMap(shortMap(name)))
     def realCls = Primitives.fromChar(name(0))
   }
+
   object Desc{
     def read(s: String) = {
       val scala.Array(argString, ret) = s.drop(1).split(')')
@@ -111,10 +112,14 @@ object Type{
       }
       Desc(args.map(Type.read), Type.read(ret))
     }
-    def unparse(t: Type) = t match{
-      case t: Type.Cls => "L" + t.unparse + ";"
-      case x => x.unparse
+    def unparse(t: Type): String = {
+      VM.log("UNPARSING " + t)
+      t match{
+        case t: Type.Cls => "L" + t.unparse + ";"
+        case t: Type.Arr => "[" + unparse(t.innerType)
+        case x => x.unparse
 
+      }
     }
   }
   case class Desc(args: Seq[Type], ret: Type) extends Type{

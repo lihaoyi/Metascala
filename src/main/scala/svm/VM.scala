@@ -110,7 +110,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     log(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack)
     log(indent + topFrame.pc + "\t---------------------- " + node )
     topFrame.pc += 1
-    node.op(Context(this))
+    node.op(Context(this, vm))
 
 
     //log(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack.map(x => if (x == null) null else x.getClass))
@@ -126,7 +126,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
         val handler =
           frame.method.misc.tryCatchBlocks
             .filter(x => x.start <= frame.pc && x.end >= frame.pc)
-            .filter(x => !x.blockType.isDefined || ex.cls.isInstanceOf(x.blockType.get))
+            .filter(x => !x.blockType.isDefined || ex.cls.checkIsInstanceOf(x.blockType.get))
             .headOption
 
 
@@ -157,7 +157,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
     method.code.instructions.zipWithIndex.foreach{case (x, i) => log(indent + i + "\t" + x) }
 
-    (Natives.trapped.lookup(cls.name + "/" + method.name + method.desc.unparse), method) match{
+    (Natives.trapped.get(cls.classData.tpe.name + "/" + method.name, method.desc), method) match{
       case (Some(trap), _) =>
         val result = trap.apply(args)
         val topFrame = threadStack.head
@@ -189,7 +189,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
         log(m.desc.unparse)
         val foundMethod =
           cls.ancestry
-             .flatMap(c => nativeX.lookup(c.tpe.name + "/" + m.name + m.desc.unparse))
+             .flatMap(c => nativeX.get(c.tpe.name + "/" +  m.name, m.desc))
              .headOption
 
         val result = foundMethod match {

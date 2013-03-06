@@ -1,14 +1,14 @@
 package svm.model
 
-import svm.{Cls, VmThread, Frame}
+import svm.{VM, Cls, VmThread, Frame}
 import collection.mutable
 import org.objectweb.asm
 import asm.Label
 import org.objectweb.asm.tree._
 
 
-case class Context(thread: VmThread) extends (svm.model.Type.Cls => svm.Cls) with (svm.model.Type => svm.TpeObj){
-  def apply(s: Type.Cls): Cls = thread(s)
+case class Context(thread: VmThread, implicit val vm: VM) extends (svm.model.Type.Cls => svm.Cls){
+  def apply(s: Type.Cls): Cls = vm.Classes(s)
   def frame = thread.threadStack.head
   def stack = frame.stack
   def swapStack(transform: PartialFunction[List[Any], List[Any]]) = {

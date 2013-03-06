@@ -46,7 +46,7 @@ object LoadStore {
 
   class PushConstOpCode(val id: Byte, val insnName: String, const: Any) extends OpCode{
     def op = implicit ctx => {
-
+      import ctx._
       val newConst = const match{
         case s: String => Natives.intern(new svm.Obj(Type.Cls("java/lang/String"), "value" -> s.toCharArray))
         case t: asm.Type =>
@@ -110,6 +110,7 @@ object LoadStore {
 
   class PushFromArray[T](val id: Byte, val insnName: String) extends OpCode{
     def op = implicit ctx => {
+      import ctx._
       val Intish(index) :: (array: Array[T]) :: stack = ctx.stack
       if (array.isDefinedAt(index))
         ctx.frame.stack = array(index) :: stack
@@ -124,9 +125,10 @@ object LoadStore {
   }
   class PushFromArrayInt[T: Numeric](val id: Byte, val insnName: String) extends OpCode{
     def op = implicit ctx => ctx.stack match {
-      case Intish(index) :: (array: Array[Boolean]) :: stack =>
+      case Intish(index) :: (array: Array[Boolean]) :: rest =>
+        import ctx._
         if (array.isDefinedAt(index))
-          ctx.frame.stack = (if(array(index)) 1 else 0) :: stack
+          ctx.frame.stack = (if(array(index)) 1 else 0) :: rest
         else{
           ctx.throwException{
             svm.Obj("java/lang/ArrayIndexOutOfBoundsException",
@@ -134,9 +136,10 @@ object LoadStore {
             )
           }
         }
-      case Intish(index) :: (array: Array[T]) :: stack =>
+      case Intish(index) :: (array: Array[T]) :: rest =>
+        import ctx._
         if (array.isDefinedAt(index))
-          ctx.frame.stack = implicitly[Numeric[T]].toInt(array(index)) :: stack
+          ctx.frame.stack = implicitly[Numeric[T]].toInt(array(index)) :: rest
         else{
           ctx.throwException{
             svm.Obj("java/lang/ArrayIndexOutOfBoundsException",

@@ -53,9 +53,10 @@ object Misc {
   case class GetField(owner: Type.Cls, name: String, desc: Type) extends BaseOpCode(180, "getfield"){
     def op = implicit ctx => ctx.swapStack{
       case (objectRef: svm.Obj) :: stack => ext(objectRef(owner, name)) :: stack
-      case null :: stack =>
+      case null :: rest =>
+        import ctx._
         ctx.throwException(svm.Obj("java/lang/NullPointerException"))
-      stack
+        rest
     }
   }
   case class PutField(owner: Type.Cls, name: String, desc: Type) extends BaseOpCode(181, "putfield"){
@@ -63,13 +64,15 @@ object Misc {
       case value :: (objectRef: svm.Obj) :: stack =>
         objectRef(owner, name) = value
         stack
-      case value :: null :: stack =>
+      case value :: null :: rest =>
+        import ctx._
         ctx.throwException(svm.Obj("java/lang/NullPointerException"))
-        stack
+        rest
     }
   }
 
   def ensureNonNull(x: Any)(thunk: => Unit)(implicit ctx: Context) = {
+    import ctx._
     if (x == null){
       ctx.throwException(svm.Obj("java/lang/NullPointerException"))
     }else {
@@ -133,7 +136,7 @@ object Misc {
 
   case class New(desc: Type.Cls) extends BaseOpCode(187, "new"){
     def op = implicit ctx => desc match {
-      case _ => ctx.frame.stack ::= new svm.Obj(desc)
+      case _ => ctx.frame.stack ::= new svm.Obj(desc)(ctx.vm)
     }
   }
   case class NewArray(typeCode: Int) extends BaseOpCode(188, "newarray"){
@@ -178,9 +181,10 @@ object Misc {
   }
   case class InstanceOf(desc: Type) extends BaseOpCode(193, "instanceof"){
     def op = implicit ctx => ctx.swapStack{ case top :: rest =>
+      import ctx._
       val res = top match{
         case null => 0
-        case x: svm.Obj =>  if(x.cls.isInstanceOf(desc)) 1 else 0
+        case x: svm.Obj =>  if(x.cls.checkIsInstanceOf(desc)) 1 else 0
         case x: Array[Object] => 1
 
 
