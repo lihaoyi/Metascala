@@ -39,7 +39,7 @@ class VM(classLoader: String => Array[Byte]) {
           classes(t) = newCls
           if (t.name != "sun/misc/Unsafe")
             newCls.method("<clinit>", Type.Desc.read("()V")).foreach( m =>
-              threads(0).invoke(newCls, m, Nil)
+              threads(0).invoke(Type.Cls(t.name), "<clinit>", Type.Desc.read("()V"), Nil)
             )
           newCls
       }
@@ -52,11 +52,13 @@ class VM(classLoader: String => Array[Byte]) {
     try{
       Virtualizer.fromVirtual[Any](
         threads(0).invoke(
-          Classes(Type.Cls(bootClass)),
-          Classes(Type.Cls(bootClass))
+          Type.Cls(bootClass),
+          mainMethod,
+          Type.Cls(bootClass).cls
             .classData
             .methods
             .find(x => x.name == mainMethod)
+            .map(_.desc)
             .getOrElse(throw new IllegalArgumentException("Can't find method: " + mainMethod)),
           args.map(Virtualizer.toVirtual[Any])
         )
@@ -72,6 +74,7 @@ class VM(classLoader: String => Array[Byte]) {
 object VmThread{
   def apply()(implicit vmt: VmThread) = vmt
 }
+
 class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit val vm: VM){
   import vm._
   lazy val obj = svm.Obj("java/lang/Thread",
@@ -80,6 +83,11 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     "priority" -> 5
   )
   val nativeX = Natives.nativeX
+  def frame = threadStack.head
+
+  def swapStack(transform: PartialFunction[List[Any], List[Any]]) = {
+    frame.stack = transform(frame.stack)
+  }
   def getStackTrace =
     threadStack.map { f =>
       new StackTraceElement(
@@ -110,7 +118,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     log(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack)
     log(indent + topFrame.pc + "\t---------------------- " + node )
     topFrame.pc += 1
-    node.op(Context(this, vm))
+    node.op(this)
 
 
     //log(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack.map(x => if (x == null) null else x.getClass))
@@ -151,75 +159,57 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
         throw new Exception("Uncaught Exception: ")
     }
   }
-  def prepInvoke(cls: Cls, method: Method, args: Seq[Any]) = {
-    log(indent + "prepInvoke " + cls.name + " " + method.name)
+  @tailrec final def prepInvoke(cls: Type.Cls, methodName: String, desc: Type.Desc, args: Seq[Any]): Unit = {
 
 
-    method.code.instructions.zipWithIndex.foreach{case (x, i) => log(indent + i + "\t" + x) }
 
-    (Natives.trapped.get(cls.classData.tpe.name + "/" + method.name, method.desc), method) match{
-      case (Some(trap), _) =>
+
+    Natives.nativeX.get(cls.classData.tpe.name + "/" + methodName, desc) match{
+      case Some(trap) =>
         val result = trap(this)(args)
         val topFrame = threadStack.head
         topFrame.stack = result match{
           case () => topFrame.stack
           case nonUnit => nonUnit :: topFrame.stack
         }
-      case (_, m) if m.code != Code.Empty =>
-        val stretchedArgs = args.flatMap {
-          case l: Long => Seq(l, l)
-          case d: Double => Seq(d, d)
-          case x => Seq(x)
-        }
-        val startFrame = new Frame(
-          runningClass = cls,
-          method = method,
-          locals = mutable.Seq.tabulate(method.misc.maxLocals)(stretchedArgs.orElse{case x => null}),
-          stack = Nil
-        )
-
-        log(indent + "locals " + startFrame.locals)
-        threadStack.push(startFrame)
-        //log(indent + "Invoking " + method.name)
-        //log(indent + "Locals " + startFrame.locals)
-      case (_, m) if (m.access | Access.Native) != 0 =>
-        val topFrame = threadStack.head
-        //log(indent + "Native Method Call!")
-        //log(indent + args)
-        log(m.desc.unparse)
-        val foundMethod =
-          cls.ancestry
-             .flatMap(c => nativeX.get(c.tpe.name + "/" +  m.name, m.desc))
-             .headOption
-
-        val result = foundMethod match {
-          case None =>
-            threadStack.filter(_.method.name != "Dummy").foreach(f =>
-              log(f.runningClass.name.padTo(30, ' ') + f.method.name.padTo(20, ' ') + " " + (f.pc-1) + "\t" + f.method.code.instructions(f.pc-1))
+      case None =>
+        cls.cls.method(methodName, desc) match{
+          case Some(m) =>
+            val stretchedArgs = args.flatMap {
+              case l: Long => Seq(l, l)
+              case d: Double => Seq(d, d)
+              case x => Seq(x)
+            }
+            val startFrame = new Frame(
+              runningClass = cls,
+              method = m,
+              locals = mutable.Seq.tabulate(m.misc.maxLocals)(stretchedArgs.orElse{case x => null}),
+              stack = Nil
             )
-            throw new Exception("Can't find Native Method: " + cls.name + " " + method.name + " " + method.desc)
-          case Some(n) => n(this)(args)
-        }
 
-        topFrame.stack = result match{
-          case () => topFrame.stack
-          case nonUnit => nonUnit :: topFrame.stack
+            log(indent + "locals " + startFrame.locals)
+            threadStack.push(startFrame)
+          case None =>
+            cls.cls.ancestry.tail.headOption match{
+              case Some(x) =>
+                prepInvoke(x.tpe, methodName, desc, args)
+              case None =>
+                throw new Exception("Can't find method " + cls + " " + methodName + " " + desc.unparse)
+            }
         }
-      case _ =>
-        //log(indent + "Empty Method!")
     }
 
   }
-  def invoke(cls: Cls, method: Method, args: Seq[Any]) = {
+  def invoke(cls: Type.Cls, methodName: String, desc: Type.Desc, args: Seq[Any]) = {
     val dummyFrame = new Frame(
       runningClass = cls,
-      method = method.copy(name = "Dummy"),
+      method = Method(0, "Dummy", Type.Desc.read("()V")),
       locals = mutable.Seq.empty,
       stack = Nil
     )
 
     threadStack.push(dummyFrame)
-    prepInvoke(cls, method, args)
+    prepInvoke(cls, methodName, desc, args)
 
     while(threadStack.head != dummyFrame) step()
 
@@ -227,13 +217,12 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
   }
 }
 
+
 class Frame(
   var pc: Int = 0,
   val runningClass: Cls,
   val method: Method,
   val locals: mutable.Seq[Any] = mutable.Seq.empty,
-  var stack: List[Any] = Nil){
-
-}
+  var stack: List[Any] = Nil)
 
 

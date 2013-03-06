@@ -1,5 +1,7 @@
 package svm.model
 
+import svm.VmThread
+
 /**
  * Created with IntelliJ IDEA.
  * User: Haoyi
@@ -54,7 +56,7 @@ package object opcodes {
   implicit def intToByte(n: Int) = n.toByte
 
   abstract class BaseOpCode(val id: Byte, val insnName: String) extends OpCode{
-    def op: Context => Unit
+    def op: VmThread => Unit
   }
 
 }

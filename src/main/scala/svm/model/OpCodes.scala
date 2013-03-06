@@ -7,38 +7,12 @@ import asm.Label
 import org.objectweb.asm.tree._
 
 
-case class Context(thread: VmThread, implicit val vm: VM) extends (svm.model.Type.Cls => svm.Cls){
-  def apply(s: Type.Cls): Cls = vm.Classes(s)
-  def frame = thread.threadStack.head
-  def stack = frame.stack
-  def swapStack(transform: PartialFunction[List[Any], List[Any]]) = {
-    frame.stack = transform(frame.stack)
-  }
-  def jumpTo(l: Int) = frame.pc = l
-  def throwException(ex: svm.Obj) = {
-    println("Throwing " + ex.cls.name)
-    thread.threadStack.filter(_.method.name != "Dummy").foreach(f =>
-      println(f.runningClass.name.padTo(30, ' ') + f.method.name.padTo(20, ' ') + " " + (f.pc-1) + "\t" + f.method.code.instructions(f.pc-1) + "\t" + f.stack)
-    )
-    svm.VM.log("Throwing " + ex.cls.name)
-    thread.threadStack.filter(_.method.name != "Dummy").foreach(f =>
-      svm.VM.log(f.runningClass.name.padTo(30, ' ') + f.method.name.padTo(20, ' ') + " " + (f.pc-1) + "\t" + f.method.code.instructions(f.pc-1) + "\t" + f.stack)
-    )
-    thread.throwException(ex)
-  }
 
-  def prepInvoke(cls: Cls, method: Method, args: Seq[Any]) = {
-    thread.prepInvoke(cls, method, args)
-  }
-  def returnVal(x: Option[Any]) = {
-    thread.returnVal(x)
-  }
-}
 
 abstract class OpCode{
   def insnName: String
   def id: Byte
-  def op: Context => Unit
+  def op: VmThread => Unit
 }
 
 object OpCode {

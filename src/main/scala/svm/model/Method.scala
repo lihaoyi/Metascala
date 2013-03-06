@@ -31,28 +31,28 @@ object Method {
     )
   }
 
-  case class Annotations(visibleAnnotations: List[Annotation],
-                         invisibleAnnotations: List[Annotation],
-                         annotationDefault: Any,
-                         visibleParameterAnnotations: List[List[Annotation]],
-                         invisibleParameterAnnotations: List[List[Annotation]])
-  case class Misc(signature: Option[String],
-                  tryCatchBlocks: List[TryCatchBlock],
-                  localVariables: List[LocalVariable],
-                  maxStack: Int,
-                  maxLocals: Int,
-                  attrs: List[Attribute])
+  case class Annotations(visibleAnnotations: List[Annotation] = Nil,
+                         invisibleAnnotations: List[Annotation] = Nil,
+                         annotationDefault: Any = null,
+                         visibleParameterAnnotations: List[List[Annotation]] = Nil,
+                         invisibleParameterAnnotations: List[List[Annotation]] = Nil)
+  case class Misc(signature: Option[String] = None,
+                  tryCatchBlocks: List[TryCatchBlock] = Nil,
+                  localVariables: List[LocalVariable] = Nil,
+                  maxStack: Int = 0,
+                  maxLocals: Int = 0,
+                  attrs: List[Attribute] = Nil)
 }
 case class Method(access: Int,
                   name: String,
                   desc: Type.Desc,
-                  exceptions: List[String],
-                  code: Code,
-                  misc: Method.Misc,
-                  annotations: Method.Annotations)
+                  exceptions: List[String] = Nil,
+                  code: Code = Code(),
+                  misc: Method.Misc = Method.Misc(),
+                  annotations: Method.Annotations = Method.Annotations())
 
 object Code{
-  val Empty = Code(Nil, Nil)
+
 
   def makeLabelMap(nodesList: InsnList): Map[Label, Int] = {
     val nodes = nodesList.toArray
@@ -89,8 +89,8 @@ object Code{
   }
 }
 
-case class Code(instructions: List[OpCode],
-                attachments: List[List[Attached]])
+case class Code(instructions: List[OpCode] = Nil,
+                attachments: List[List[Attached]] = Nil)
 
 trait Attached
 object Attached{

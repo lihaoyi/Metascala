@@ -9,7 +9,7 @@ import java.util
 
 object  StackManip {
   class PureStackOpCode(val id: Byte, val insnName: String)(transform: List[Any] => List[Any]) extends OpCode{
-    def op = ctx => ctx.frame.stack = transform(ctx.stack)
+    def op = vt => vt.frame.stack = transform(vt.frame.stack)
   }
   case object Pop extends PureStackOpCode(87, "pop")({ case _ :: s => s })
   case object Pop2 extends PureStackOpCode(88, "pop2")({
@@ -88,7 +88,7 @@ object  StackManip {
   case class IInc(varId: Int, amount: Int) extends OpCode{
     def id = 132
     def insnName = "iinc"
-    def op = ctx => ctx.frame.locals(varId) = (ctx.frame.locals(varId).asInstanceOf[Int]) + amount
+    def op = vt => vt.frame.locals(varId) = (vt.frame.locals(varId).asInstanceOf[Int]) + amount
   }
 
   case object I2L extends PureStackOpCode(133, "i2l")({ case (x: I) :: s => x.toLong :: s})
@@ -120,8 +120,8 @@ object  StackManip {
 
   abstract class UnaryBranch(val id: Byte, val insnName: String)(pred: Int => Boolean) extends OpCode{
     def label: Int
-    def op = ctx => ctx.swapStack{ case Intish(top) :: stack =>
-      if(pred(top)) ctx.jumpTo(label)
+    def op = vt => vt.swapStack{ case Intish(top) :: stack =>
+      if(pred(top)) vt.frame.pc = label
       stack
     }
   }
@@ -135,8 +135,8 @@ object  StackManip {
 
   abstract class BinaryBranch(val id: Byte, val insnName: String)(pred: (Int, Int) => Boolean) extends OpCode{
     def label: Int
-    def op = ctx => ctx.swapStack{ case Intish(top) :: Intish(next) :: stack =>
-      if(pred(next, top)) ctx.jumpTo(label)
+    def op = vt => vt.swapStack{ case Intish(top) :: Intish(next) :: stack =>
+      if(pred(next, top)) vt.frame.pc = label
       stack
     }
   }
@@ -149,7 +149,7 @@ object  StackManip {
   case class IfICmpLe(label: Int) extends BinaryBranch(164, "if_icmple")(_ <= _)
   abstract class BinaryBranchObj(val id: Byte, val insnName: String)(pred: Boolean => Boolean) extends OpCode{
     def label: Int
-    def op = ctx => ctx.swapStack{ case top :: next :: stack =>
+    def op = vt => vt.swapStack{ case top :: next :: stack =>
       val res = (next, top) match{
         case (null, null) => true
         case (a: Array[Byte], b: Array[Byte]) => util.Arrays.equals(a, b)
@@ -163,7 +163,7 @@ object  StackManip {
         case _ =>
           false
       }
-      if(pred(res)) ctx.jumpTo(label)
+      if(pred(res)) vt.frame.pc = label
       stack
 
     }

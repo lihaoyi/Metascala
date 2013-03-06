@@ -45,17 +45,18 @@ object LoadStore {
   case class SiPush(value: Int) extends PushValOpCode(17,"sipush", value)
 
   class PushConstOpCode(val id: Byte, val insnName: String, const: Any) extends OpCode{
-    def op = implicit ctx => {
-      import ctx._
+    def op = implicit vt => {
+      import vt.vm
+      import vm._
       val newConst = const match{
-        case s: String => Natives.intern(new svm.Obj(Type.Cls("java/lang/String"), "value" -> s.toCharArray))
+        case s: String => new svm.Obj(Type.Cls("java/lang/String"), "value" -> s.toCharArray)
         case t: asm.Type =>
           Type.Cls(t.getClassName).obj
 
         case x => x
       }
 
-      ctx.frame.stack ::= newConst
+      vt.frame.stack ::= newConst
     }
   }
 
@@ -109,13 +110,13 @@ object LoadStore {
   //===============================================================
 
   class PushFromArray[T](val id: Byte, val insnName: String) extends OpCode{
-    def op = implicit ctx => {
-      import ctx._
-      val Intish(index) :: (array: Array[T]) :: stack = ctx.stack
+    def op = implicit vt => {
+      import vt._
+      val Intish(index) :: (array: Array[T]) :: rest = frame.stack
       if (array.isDefinedAt(index))
-        ctx.frame.stack = array(index) :: stack
+        frame.stack = array(index) :: rest
       else{
-        ctx.throwException{
+        throwException{
           svm.Obj("java/lang/ArrayIndexOutOfBoundsException",
             "detailMessage" ->  Virtualizer.toVirtual(index+"")
           )
@@ -124,24 +125,24 @@ object LoadStore {
     }
   }
   class PushFromArrayInt[T: Numeric](val id: Byte, val insnName: String) extends OpCode{
-    def op = implicit ctx => ctx.stack match {
+    def op = implicit vt => vt.frame.stack match {
       case Intish(index) :: (array: Array[Boolean]) :: rest =>
-        import ctx._
+        import vt._
         if (array.isDefinedAt(index))
-          ctx.frame.stack = (if(array(index)) 1 else 0) :: rest
+          frame.stack = (if(array(index)) 1 else 0) :: rest
         else{
-          ctx.throwException{
+          throwException{
             svm.Obj("java/lang/ArrayIndexOutOfBoundsException",
               "detailMessage" -> Virtualizer.toVirtual(index+"")
             )
           }
         }
       case Intish(index) :: (array: Array[T]) :: rest =>
-        import ctx._
+        import vt._
         if (array.isDefinedAt(index))
-          ctx.frame.stack = implicitly[Numeric[T]].toInt(array(index)) :: rest
+          frame.stack = implicitly[Numeric[T]].toInt(array(index)) :: rest
         else{
-          ctx.throwException{
+          throwException{
             svm.Obj("java/lang/ArrayIndexOutOfBoundsException",
               "detailMessage" -> Virtualizer.toVirtual(index+"")
             )

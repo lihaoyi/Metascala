@@ -6,18 +6,7 @@ import model.Type
 
 object Natives {
 
-  var internedStrings: List[svm.Obj] = Nil
-  def intern(x: svm.Obj) = {
 
-
-    val interned = internedStrings.find(y => Virtualizer.fromVirtual(y) == Virtualizer.fromVirtual(x))
-    interned match{
-      case Some(i) => i
-      case None =>
-        internedStrings ::= x
-        x
-    }
-  }
   def value(x: Any) = (vm: VmThread)  => x
   def value1(x: Any) = (vm: VmThread) => (a: Any) => x
   def value2(x: Any) = (vm: VmThread) => (a: Any, b: Any) => x
@@ -49,55 +38,7 @@ object Natives {
     "os.version" -> "0"
 
   )
-  val trapped: NativeMap = {
 
-    Map(
-      "java"/(
-        "lang"/(
-          "ClassLoader"/(
-            "getSystemClassLoader()Ljava/lang/ClassLoader;" - value(null)
-            ),
-          "System"/(
-            "getProperty(L//String;)L//String;" - {
-              vt => (s: svm.Obj) =>
-                import vt.vm
-                Virtualizer.toVirtual[Any](properties(Virtualizer.fromVirtual[String](s)))
-
-            },
-            "getProperty(L//String;L//String;)L//String;" - {
-              vt => (s: svm.Obj, dflt: svm.Obj) =>
-                import vt.vm
-                properties.get(Virtualizer.fromVirtual[String](s))
-                  .map(Virtualizer.toVirtual[svm.Obj])
-                  .getOrElse(dflt)
-            }
-            )
-          )
-        ),
-      "sun"/(
-        "reflect"/(
-          "Reflection"/(
-            "registerMethodsToFilter(Ljava/lang/Class;[Ljava/lang/String;)V" - noOp2
-            )
-          ),
-        "misc"/(
-          "Hashing"/(
-            "randomHashSeed(Ljava/lang/Object;)I" - value1(1)
-            ),
-          "Unsafe"/(
-            "getUnsafe()Lsun/misc/Unsafe;" - {vt =>
-              import vt._
-              svm.Obj("sun/misc/Unsafe")
-            }
-          ),
-          "VM"/(
-            "isBooted()Z" - value(true)
-            )
-          )
-
-        )
-    ).toRoute()
-  }
   def getObject(x: Any, i: Long) = {
     x match{
       case o: svm.Obj =>
@@ -200,7 +141,10 @@ object Natives {
             },
             "isArray()Z" - ( vt => (_: svm.TpeObj).tpe.isInstanceOf[Type.Arr]),
             "desiredAssertionStatus0(L//Class;)Z" - value1(0)
-            ),
+          ),
+          "ClassLoader"/(
+            "getSystemClassLoader()Ljava/lang/ClassLoader;" - value(null)
+          ),
           "Double"/(
             "doubleToRawLongBits(D)J"-{ vt => java.lang.Double.doubleToRawLongBits(_: Double)},
             "longBitsToDouble(J)D"-{ vt => java.lang.Double.longBitsToDouble(_: Long)}
@@ -228,13 +172,26 @@ object Natives {
             "availableProcessors()I" - value(1)
             ),
           "String"/(
-            "intern()L//String;" - (vt => intern _)
+            "intern()L//String;" - (vt => (x: Any) => x)
             ),
           "System"/(
             "arraycopy(L//Object;IL//Object;II)V"-( vt => (src: Any, srcPos: Int, dest: Any, destPos: Int, length: Int) =>
               System.arraycopy(src, srcPos, dest, destPos, length)
               ),
             "currentTimeMillis()J" - value(System.currentTimeMillis()),
+            "getProperty(L//String;)L//String;" - {
+              vt => (s: svm.Obj) =>
+                import vt.vm
+                Virtualizer.toVirtual[Any](properties(Virtualizer.fromVirtual[String](s)))
+
+            },
+            "getProperty(L//String;L//String;)L//String;" - {
+              vt => (s: svm.Obj, dflt: svm.Obj) =>
+                import vt.vm
+                properties.get(Virtualizer.fromVirtual[String](s))
+                  .map(Virtualizer.toVirtual[svm.Obj])
+                  .getOrElse(dflt)
+            },
             "nanoTime()J" - value(System.nanoTime()),
             "initProperties(Ljava/util/Properties;)Ljava/util/Properties;" - value1(null),
             "identityHashCode(L//Object;)I"-( vt => (x: svm.Obj) => System.identityHashCode(x)),
@@ -275,7 +232,7 @@ object Natives {
             "doPrivileged(L//PrivilegedAction;)L/lang/Object;" - {
               vt => (pa: svm.Obj) =>
 
-                vt.prepInvoke(pa.cls, pa.cls.classData.methods.find(_.name == "run").get, Seq(pa))
+                vt.prepInvoke(pa.cls.classData.tpe, "run", Type.Desc.read("()V"), Seq(pa))
             },
             "getStackAccessControlContext()L//AccessControlContext;" - { vt => svm.Obj("java/security/AccessControlContext")(vt.vm)},
             "getInheritedAccessControlContext()L//AccessControlContext;" - { vt => svm.Obj("java/security/AccessControlContext")(vt.vm)}
@@ -284,6 +241,9 @@ object Natives {
         ),
       "sun"/(
         "misc"/(
+          "Hashing"/(
+            "randomHashSeed(Ljava/lang/Object;)I" - value1(1)
+          ),
           "Unsafe"/(
             "arrayBaseOffset(Ljava/lang/Class;)I" - value1(0),
             "arrayIndexScale(Ljava/lang/Class;)I" - value1(1),
@@ -308,6 +268,10 @@ object Natives {
             "getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;" - {
               vt => (unsafe: svm.Obj, a: Any, i: Long) => getObject(a, i)
             },
+            "getUnsafe()Lsun/misc/Unsafe;" - {vt =>
+              import vt._
+              svm.Obj("sun/misc/Unsafe")
+            },
             "compareAndSwapObject(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z" - {
               vt => (unsafe: svm.Obj, a: Any, i: Long, b: Any, c: Any) =>
                 println("CAS" + a + "\t" + b + " for " + c + " found " + getObject(a, i))
@@ -328,8 +292,10 @@ object Natives {
             }
             ),
           "VM"/(
-            "initialize()V" - noOp
-            )
+            "initialize()V" - noOp,
+            "isBooted()Z" - value(true)
+          )
+
           ),
 
         "reflect"/(
@@ -339,7 +305,7 @@ object Natives {
                 import vt.vm; import vm._
                 val cls: svm.Cls = Type.Cls(constr.members(0)("clazz").asInstanceOf[svm.ClsObj].name)
                 val newObj = new svm.Obj(cls)
-                vt.invoke(cls, cls.method("<init>", Type.Desc.read("()V")).get, Seq(newObj))
+                vt.invoke(cls.classData.tpe, "<init>", Type.Desc.read("()V"), Seq(newObj))
                 newObj
             }
             ),
@@ -351,10 +317,11 @@ object Natives {
             "getClassAccessFlags(Ljava/lang/Class;)I" - { vt => (x: svm.ClsObj) =>
               import vt.vm._;
               Type.Cls(x.name).classData.access_flags
-            }
-            )
+            },
+            "registerMethodsToFilter(Ljava/lang/Class;[Ljava/lang/String;)V" - noOp2
           )
         )
+      )
     ).toRoute()
   }
 
@@ -378,13 +345,14 @@ object Natives {
                         .replace("L/", s"L${p(0)}/")
 
             val desc = Type.Desc.read(fullDescString)
+
             val newFunc = (vt: VmThread) => (args: Seq[Any]) => func(vt) match{
               case f: ((Any, Any, Any, Any, Any) => Any) => f(args(0), args(1), args(2), args(3), args(4))
               case f: ((Any, Any, Any, Any) => Any) => f(args(0), args(1), args(2), args(3))
               case f: ((Any, Any, Any) => Any) => f(args(0), args(1), args(2))
               case f: ((Any, Any) => Any) => f(args(0), args(1))
-              case f: ((Any) => Any) => f(args(0))
-              case f: (Any) => f
+              case f: (Any => Any) => f(args(0))
+              case f: Any => f
             }
             Map((name, desc) -> newFunc)
         }

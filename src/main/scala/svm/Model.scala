@@ -161,7 +161,7 @@ class ClsObj(override val tpe: Type.Cls)
         svm.Obj("java/lang/reflect/Field",
           "clazz" -> this,
           "slot" -> f.name.hashCode,
-          "name" -> Natives.intern(Virtualizer.toVirtual(f.name)),
+          "name" -> Virtualizer.toVirtual(f.name),
           "modifiers" -> f.access,
           "type" -> f.desc,
           "signature" -> Virtualizer.toVirtual(f.desc)
