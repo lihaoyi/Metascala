@@ -27,7 +27,6 @@ object Obj{
       case imm.Type.Prim("S") => 0: Short
       case imm.Type.Prim("Z") => false
       case _ => null
-
     }
   }
   def apply(clsName: String, initMembers: (String, Any)*)(implicit vm: VM) = {
@@ -37,9 +36,7 @@ object Obj{
 class Obj(val cls: svm.Cls, initMembers: (String, Any)*)
          (implicit vm: VM){ import vm._
 
-
   val members = Obj.initMembers(cls.classData, x => (x.access & Access.Static) == 0).map(x => mutable.Map(x.toSeq:_*))
-
 
   for ((s, v) <- initMembers){
     this(imm.Type.Cls.read(cls.name), s) = v

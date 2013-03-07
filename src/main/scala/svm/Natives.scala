@@ -100,7 +100,7 @@ object Natives {
               import vt._
               Type.Cls(Virtualizer.fromVirtual[String](s)).obj
             },
-            "forName0(L//String;ZL//ClassLoader;)L//Class;" - {vt => (s: Obj, x: Any, w: Any, y: Any) =>
+            "forName0(L//String;ZL//ClassLoader;)L//Class;" - {vt => (s: virt.Obj, w: Any, y: Any) =>
               import vt._
               Type.Cls(Virtualizer.fromVirtual[String](s)).obj
             },
@@ -147,6 +147,7 @@ object Natives {
           ),
           "ClassLoader"/(
             "getSystemClassLoader()Ljava/lang/ClassLoader;" - value(null)
+
           ),
           "Double"/(
             "doubleToRawLongBits(D)J"-{ vt => java.lang.Double.doubleToRawLongBits(_: Double)},
@@ -356,7 +357,7 @@ object Natives {
               case f: ((Any, Any, Any) => Any) => f(args(0), args(1), args(2))
               case f: ((Any, Any) => Any) => f(args(0), args(1))
               case f: (Any => Any) => f(args(0))
-              case f: Any => f
+              case f => f
             }
             Map((name, desc) -> newFunc)
         }

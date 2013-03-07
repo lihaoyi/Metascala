@@ -91,9 +91,16 @@ object Misc {
       val argCount = desc.args.length
       val (args, rest) = vt.frame.stack.splitAt(argCount+1)
       ensureNonNull(vt, args.last){
+        val objType =
+          args.last match{
+            case a: virt.Obj => a.cls.classData.tpe
+            case _ => owner
+          }
+
+
 
         vt.frame.stack = rest
-        vt.prepInvoke(owner, name, desc, args.reverse)
+        vt.prepInvoke(objType, name, desc, args.reverse)
       }
     }
   }

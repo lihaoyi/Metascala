@@ -89,7 +89,7 @@ object Code{
   }
 }
 
-case class Code(instructions: List[OpCode] = Nil,
+case class Code(insns: List[OpCode] = Nil,
                 attachments: List[List[Attached]] = Nil)
 
 trait Attached

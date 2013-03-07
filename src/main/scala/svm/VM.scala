@@ -66,7 +66,7 @@ class VM(classLoader: String => Array[Byte]) {
         )
       )
     }catch {case x =>
-      lines.takeRight(1000).foreach(println)
+      lines.takeRight(2000).foreach(println)
       throw x
     }
   }
@@ -94,7 +94,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     threadStack.map { f =>
       new StackTraceElement(
         f.runningClass.name,
-        if (f.method.code != Code()) "lol" + f.method.name + " " + f.method.code.instructions(f.pc) else "",
+        if (f.method.code != Code()) f.method.name + " " + f.method.code.insns(f.pc) else "",
         f.runningClass.classData.misc.sourceFile.getOrElse("[no source]"),
         f.method.code.attachments.flatten.reverse.collectFirst{
           case LineNumber(line, startPc) if startPc < f.pc => line
@@ -103,8 +103,8 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     }.toList
 
   def indent = "\t" * threadStack.filter(_.method.name != "Dummy").length
-  def step() = {
 
+  def step() = {
     VM.count += 1
     if (VM.count % 10000 == 0){
       println("SnapShot")
@@ -116,9 +116,9 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     }
     val topFrame = threadStack.head
 
-    val node = topFrame.method.code.instructions(topFrame.pc)
+    val node = topFrame.method.code.insns(topFrame.pc)
     log(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack)
-    log(indent + topFrame.pc + "\t---------------------- " + node )
+    log(indent + "---------------------- " + topFrame.pc + "\t" + node )
     topFrame.pc += 1
     node.op(this)
 
@@ -130,9 +130,18 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     threadStack.pop()
     x.foreach(value => threadStack.head.stack = value :: threadStack.head.stack)
   }
-  @tailrec final def throwException(ex: virt.Obj): Unit = {
-    VM.log("Throwing Exception!")
-    threadStack.foreach(f => VM.log(f.runningClass.name + "\t" + f.method.name))
+  def dumpStack =
+    threadStack.map(f =>
+      f.runningClass.name.padTo(35, ' ') + f.method.name.padTo(35, ' ') + f.pc.toString.padTo(5, ' ') + (try f.method.code.insns(f.pc-1) catch {case x =>})
+    )
+
+  @tailrec final def throwException(ex: virt.Obj, print: Boolean = true): Unit = {
+
+    if(print){
+      VM.log("Throwing Exception!")
+      dumpStack.foreach(VM.log)
+    }
+
     threadStack.headOption match{
       case Some(frame)=>
         val handler =
@@ -144,7 +153,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
         handler match{
           case None =>
             threadStack.pop()
-            throwException(ex)
+            throwException(ex, false)
           case Some(TryCatchBlock(start, end, handler, blockType)) =>
             frame.pc = handler
             frame.stack ::= ex
@@ -162,9 +171,9 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
   }
   @tailrec final def prepInvoke(cls: imm.Type.Cls, methodName: String, desc: imm.Type.Desc, args: Seq[Any]): Unit = {
 
+    VM.log(indent + "prepInvoke " + cls.name + "\t" + methodName  + desc.unparse)
 
-
-    Natives.nativeX.get(cls.classData.tpe.name + "/" + methodName, desc) match{
+    Natives.nativeX.get(cls.name + "/" + methodName, desc) match{
       case Some(trap) =>
         val result = trap(this)(args)
         val topFrame = threadStack.head
@@ -174,7 +183,10 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
         }
       case None =>
         cls.method(methodName, desc) match{
-          case Some(m) if m.code.instructions != Nil=>
+          case Some(m) if m.code.insns != Nil=>
+            m.code.insns.zipWithIndex
+                               .foreach(x => VM.log(indent + x._2 + "\t" + x._1))
+
             val stretchedArgs = args.flatMap {
               case l: Long => Seq(l, l)
               case d: Double => Seq(d, d)
