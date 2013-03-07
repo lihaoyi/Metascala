@@ -59,7 +59,7 @@ class Obj(val cls: svm.Cls, initMembers: (String, Any)*)
 
   }
   override def toString = {
-    s"svm.Obj(${cls.name})"
+    s"virt.Obj(${cls.name})"
   }
 }
 

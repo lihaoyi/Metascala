@@ -16,7 +16,10 @@ class Type(val tpe: imm.Type)(implicit vm: VM)
   def getDeclaredConstructors() = new Array[Object](0)
   def getDeclaredFields() = new Array[Object](0)
   def getDeclaredMethods() = new Array[Object](0)
-
+  def getInterfaces() = new Array[Object](0)
+  override def toString = {
+    s"virt.Type(${tpe.unparse})"
+  }
 }
 class Cls(override val tpe: imm.Type.Cls)
             (implicit vm: VM)
@@ -31,7 +34,7 @@ class Cls(override val tpe: imm.Type.Cls)
       virt.Obj("java/lang/reflect/Constructor",
         "clazz" -> tpe.obj,
         "slot" -> 0,
-        "parameterTypes" -> m.desc.args.map(???),
+        "parameterTypes" -> m.desc.args.map(_.obj),
         "exceptionTypes" -> new Array[virt.Cls](0),
         "modifiers" -> m.access
       )
@@ -43,14 +46,14 @@ class Cls(override val tpe: imm.Type.Cls)
         virt.Obj("java/lang/reflect/Field",
           "clazz" -> this,
           "slot" -> f.name.hashCode,
-          "name" -> Virtualizer.toVirtual(f.name),
+          "name" -> vm.InternedStrings(Virtualizer.toVirtual(f.name)),
           "modifiers" -> f.access,
-          "type" -> f.desc,
-          "signature" -> Virtualizer.toVirtual(f.desc)
+          "type" -> f.desc.obj
 
         )
       }.toArray
   }
+
   override def getDeclaredMethods() = {
 
     tpe.classData.methods.map {m =>
@@ -58,17 +61,20 @@ class Cls(override val tpe: imm.Type.Cls)
       virt.Obj("java/lang/reflect/Method",
         "clazz" -> this,
         "slot" -> m.name.hashCode,
-        "name" -> m.name,
+        "name" -> vm.InternedStrings(Virtualizer.toVirtual(m.name)),
 
         "modifiers" -> m.access,
-        "returnType" -> m.desc.ret,
-        "parameterTypes" -> ???,
+        "returnType" -> m.desc.ret.obj,
+        "parameterTypes" -> m.desc.args.map(_.obj).toArray,
         "exceptionTypes" -> new Array[virt.Cls](0)
 
       )
     }.toArray
   }
+  override def getInterfaces() = {
+    tpe.classData.interfaces.map(_.obj).toArray
+  }
   override def toString = {
-    s"svm.ClsObj(${tpe.unparse}})"
+    s"virt.Cls(${tpe.unparse}})"
   }
 }

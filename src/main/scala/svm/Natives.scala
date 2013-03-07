@@ -22,6 +22,8 @@ object Natives {
     "java.home" -> "C ->/java_home",
     "sun.boot.class.path" -> "C ->/classes",
     "file.encoding" ->"US_ASCII",
+    "java.ext.dirs" -> "",
+    "java.lang.Integer.IntegerCache.high" -> null,
     "java.vendor" ->"Doppio",
     "java.version" -> "1.6",
     "java.vendor.url" -> "https ->//github.com/int3/doppio",
@@ -38,7 +40,10 @@ object Natives {
     "user.name" ->"DoppioUser",
     "os.name" ->"doppio",
     "os.arch" -> "js",
-    "os.version" -> "0"
+    "os.version" -> "0",
+    "scala.control.noTraceSuppression" -> null,
+    "sun.io.useCanonCaches" -> null,
+    "sun.io.useCanonPrefixCache" -> null
 
   )
 
@@ -110,13 +115,15 @@ object Natives {
             },
             "getClassLoader0()L//ClassLoader;" - value1(null),
             "getDeclaringClass()L//Class;" - value(null),
-            "getComponentType()Ljava/lang/Class;" - { vt => (x: virt.Cls) =>
+            "getComponentType()Ljava/lang/Class;" - { vt => (x: virt.Type) =>
               import vt._
-              x.name.splitAt(1) match {
-                case ("[", rest) =>
-                  Type.Cls(Type.shortMap(rest)).obj
+              x.tpe match{
+                case imm.Type.Arr(inner) => inner.obj
                 case _ => null
               }
+            },
+            "getInterfaces()[Ljava/lang/Class;" - {
+              vt => (cls: virt.Cls) => cls.getInterfaces().toArray
             },
             "getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;" - {
               vt => (cls: virt.Cls, b: Int) => cls.getDeclaredConstructors().toArray
@@ -139,14 +146,23 @@ object Natives {
             },
             "isPrimitive()Z" - value1(false),
             "isInterface()Z" - { vt => (x: virt.Cls) => import vt.vm._; (Type.Cls(x.name.replace(".", "/")).classData.access_flags & Access.Interface) != 0},
-            "isAssignableFrom(Ljava/lang/Class;)Z" - { vt => (x: virt.Cls, y: virt.Cls) =>
+            "isAssignableFrom(L//Class;)Z" - { vt => (x: virt.Type, y: virt.Type) =>
               true
             },
             "isArray()Z" - ( vt => (_: virt.Type).tpe.isInstanceOf[Type.Arr]),
             "desiredAssertionStatus0(L//Class;)Z" - value1(0)
           ),
           "ClassLoader"/(
-            "getSystemClassLoader()Ljava/lang/ClassLoader;" - value(null)
+            "getSystemClassLoader()L//ClassLoader;" - value(null),
+            "getCaller(I)L//Class;" - { vt => (x: Int) =>
+              vt.threadStack(x).runningClass.obj
+            },
+            "getResourceAsStream(Ljava/lang/String;)Ljava/io/InputStream;" - { vt => (x: virt.Obj) =>
+              null
+            },
+            "getSystemResourceAsStream(Ljava/lang/String;)Ljava/io/InputStream;" - { vt => (x: virt.Obj) =>
+              null
+            }
 
           ),
           "Double"/(
@@ -158,7 +174,7 @@ object Natives {
             "floatToRawIntBits(F)I"-{ vt => java.lang.Float.floatToIntBits(_: Float)}
           ),
           "Object"/(
-            "clone()L//Object;" -  {(_: Any ) match{
+            "clone()L//Object;" -  {vt => (_: Any ) match{
               case (x: Obj) => x
               case (a: Array[_]) => a.clone
             }},
@@ -176,7 +192,7 @@ object Natives {
             "availableProcessors()I" - value(1)
             ),
           "String"/(
-            "intern()L//String;" - (vt => (x: Any) => x)
+            "intern()L//String;" - (vt => (x: virt.Obj) => vt.vm.InternedStrings(x))
             ),
           "System"/(
             "arraycopy(L//Object;IL//Object;II)V"-( vt => (src: Any, srcPos: Int, dest: Any, destPos: Int, length: Int) =>
@@ -236,8 +252,7 @@ object Natives {
           "AccessController"/(
             "doPrivileged(L//PrivilegedAction;)L/lang/Object;" - {
               vt => (pa: Obj) =>
-
-                vt.prepInvoke(pa.cls.classData.tpe, "run", Type.Desc.read("()Ljava/lang/Void;"), Seq(pa))
+                vt.prepInvoke(pa.cls.classData.tpe, "run", pa.cls.classData.methods.find(_.name == "run").get.desc, Seq(pa))
             },
             "getStackAccessControlContext()L//AccessControlContext;" - { vt => virt.Obj("java/security/AccessControlContext")(vt.vm)},
             "getInheritedAccessControlContext()L//AccessControlContext;" - { vt => virt.Obj("java/security/AccessControlContext")(vt.vm)}
@@ -298,7 +313,12 @@ object Natives {
             ),
           "VM"/(
             "initialize()V" - noOp,
-            "isBooted()Z" - value(true)
+            "isBooted()Z" - value(true),
+            "getSavedProperty(Ljava/lang/String;)Ljava/lang/String;" - {
+              vt => (s: Obj) =>
+                import vt.vm
+                Virtualizer.toVirtual[Any](properties(Virtualizer.fromVirtual[String](s)))
+            }
           )
 
           ),
@@ -345,9 +365,9 @@ object Natives {
             val (name, descString) = k.splitAt(k.indexOf('('))
             val p = parts.reverse
             val fullDescString =
-              descString.replace("L///", s"L${p(0)}/${p(1)}/${p(2)}/")
-                        .replace("L//", s"L${p(0)}/${p(1)}/")
-                        .replace("L/", s"L${p(0)}/")
+              descString.replaceAllLiterally("L///", s"L${p(0)}/${p(1)}/${p(2)}/")
+                        .replaceAllLiterally("L//", s"L${p(0)}/${p(1)}/")
+                        .replaceAllLiterally("L/", s"L${p(0)}/")
 
             val desc = Type.Desc.read(fullDescString)
 

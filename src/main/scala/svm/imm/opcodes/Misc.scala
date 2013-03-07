@@ -85,7 +85,7 @@ object Misc {
     }
   }
 
-  case class InvokeVirtual(owner: Type.Cls, name: String, desc: Type.Desc) extends BaseOpCode(182, "invokevirtual"){
+  case class InvokeVirtual(owner: Type, name: String, desc: Type.Desc) extends BaseOpCode(182, "invokevirtual"){
     def op = vt => {
       import vt.vm
       val argCount = desc.args.length
@@ -149,7 +149,7 @@ object Misc {
       newArray :: stack
     }
   }
-  case class ANewArray(desc: Type.Cls) extends BaseOpCode(189, "anewarray"){
+  case class ANewArray(desc: Type) extends BaseOpCode(189, "anewarray"){
     def op = _.swapStack{
       case Intish(count) :: stack => new Array[Object](count) :: stack
     }

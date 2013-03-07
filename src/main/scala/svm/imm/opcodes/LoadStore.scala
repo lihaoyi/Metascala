@@ -4,8 +4,7 @@ import org.objectweb.asm
 import svm.imm.{Type, OpCode}
 
 import collection.mutable
-import svm.{Natives, Virtualizer}
-import svm.virt
+import svm.{VM, Natives, Virtualizer, virt}
 
 object LoadStore {
   case object Nop extends OpCode{
@@ -50,7 +49,8 @@ object LoadStore {
       import vt.vm
       import vm._
       val newConst = const match{
-        case s: String => new virt.Obj(Type.Cls("java/lang/String"), "value" -> s.toCharArray)
+        case s: String =>
+          vt.vm.InternedStrings(virt.Obj("java/lang/String", "value" -> s.toCharArray))
         case t: asm.Type =>
           Type.Cls(t.getClassName).obj
 

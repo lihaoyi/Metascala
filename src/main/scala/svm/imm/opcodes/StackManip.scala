@@ -2,8 +2,7 @@ package svm.imm.opcodes
 
 import svm.imm.Type.Primitives._
 import svm.imm.{OpCode, a}
-import svm.virt
-import svm.Virtualizer
+import svm.{imm, VM, virt, Virtualizer}
 
 import scala.::
 import java.util
@@ -151,6 +150,7 @@ object  StackManip {
   abstract class BinaryBranchObj(val id: Byte, val insnName: String)(pred: Boolean => Boolean) extends OpCode{
     def label: Int
     def op = vt => vt.swapStack{ case top :: next :: stack =>
+
       val res = (next, top) match{
         case (null, null) => true
         case (a: Array[Byte], b: Array[Byte]) => util.Arrays.equals(a, b)
@@ -160,7 +160,9 @@ object  StackManip {
         case (a: Array[Long], b: Array[Long]) => util.Arrays.equals(a, b)
         case (a: Array[Float], b: Array[Float]) => util.Arrays.equals(a, b)
         case (a: Array[Double], b: Array[Double]) => util.Arrays.equals(a, b)
-        case (a: virt.Obj, b: virt.Obj) => a == b
+        case (a: virt.Obj, b: virt.Obj) =>
+
+          a == b
         case _ =>
           false
       }

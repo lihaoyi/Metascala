@@ -27,7 +27,7 @@ object OpCode {
     case x: JumpInsnNode            => all(x.getOpcode).asInstanceOf[Int => OpCode].apply(x.label.getLabel)
     case x: LdcInsnNode             => all(x.getOpcode).asInstanceOf[Object => OpCode].apply(x.cst)
     case x: LookupSwitchInsnNode    => all(x.getOpcode).asInstanceOf[(Int, Seq[Int], Seq[Int]) => OpCode].apply(x.dflt.getLabel, x.keys.safeList.map(x => x: Int), x.labels.safeList.map(x => labelMap(x.getLabel)))
-    case x: MethodInsnNode          => all(x.getOpcode).asInstanceOf[(Type.Cls, String, Type.Desc) => OpCode].apply(x.owner, x.name, x.desc)
+    case x: MethodInsnNode          => all(x.getOpcode).asInstanceOf[(Type, String, Type.Desc) => OpCode].apply(Type.read(x.owner), x.name, x.desc)
     case x: MultiANewArrayInsnNode  => all(x.getOpcode).asInstanceOf[(Type, Int) => OpCode].apply(Type.read(x.desc), x.dims)
     case x: TableSwitchInsnNode     => all(x.getOpcode).asInstanceOf[(Int, Int, Int, Seq[Int]) => OpCode].apply(x.min, x.max, x.dflt.getLabel, x.labels.safeList.map(x => labelMap(x.getLabel)))
     case x: TypeInsnNode            => all(x.getOpcode).asInstanceOf[Type => OpCode].apply(Type.read(x.desc))
