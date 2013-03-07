@@ -1,11 +1,8 @@
 package svm
-package model
+package imm
 
-import svm.Cls
 import scala.Array
-
-
-
+import virt._
 
 
 object Type{
@@ -72,7 +69,7 @@ object Type{
   }
   case class Arr(innerType: Type) extends Type{
     def unparse = "[" + innerType.unparse
-    def cls(implicit vm: VM) = vm.TpeObjs(this)
+    def cls(implicit vm: VM) = vm.Types(this)
 
     def realCls = ???
   }
@@ -82,8 +79,8 @@ object Type{
   case class Cls(name: String) extends Type{
     def unparse = name
     def cls(implicit vm: VM) = vm.Classes(this)
-    def realCls = classOf[svm.Obj]
-    override def obj(implicit vm: VM): TpeObj = vm.TpeObjs(this)
+    def realCls = classOf[virt.Obj]
+    override def obj(implicit vm: VM): virt.Type = vm.Types(this)
   }
 
   object Prim{
@@ -113,7 +110,6 @@ object Type{
       Desc(args.map(Type.read), Type.read(ret))
     }
     def unparse(t: Type): String = {
-      VM.log("UNPARSING " + t)
       t match{
         case t: Type.Cls => "L" + t.unparse + ";"
         case t: Type.Arr => "[" + unparse(t.innerType)
@@ -132,7 +128,7 @@ trait Type{
   def unparse: String
 
   def realCls: Class[_]
-  def obj(implicit vm: VM): TpeObj = vm.TpeObjs(this)
+  def obj(implicit vm: VM): virt.Type = vm.Types(this)
 }
 
 

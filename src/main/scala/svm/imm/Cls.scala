@@ -1,30 +1,32 @@
-package svm.model
+package svm.imm
 
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.ClassReader
 
-object ClassData {
+object Cls {
 
-  def read(cn: ClassNode) = ClassData(
-    cn.access,
-    Type.Cls.read(cn.name),
-    cn.superName.safeOpt.map(Type.Cls.read),
-    cn.interfaces.safeList,
-    cn.fields.safeList.map(Field.read),
-    cn.methods.safeList.map(Method.read),
-    Misc(
-      cn.signature.safeOpt,
-      cn.sourceFile.safeOpt,
-      cn.sourceDebug.safeOpt,
-      cn.outerClass.safeOpt,
-      cn.outerMethod.safeOpt,
-      cn.outerMethodDesc.safeOpt,
-      cn.visibleAnnotations.safeList.map(Annotation.read),
-      cn.invisibleAnnotations.safeList.map(Annotation.read),
-      cn.attrs.safeList.map(Attribute.read),
-      cn.innerClasses.safeList.map(InnerClass.read)
+  def read(cn: ClassNode) = {
+    Cls(
+      cn.access,
+      Type.Cls.read(cn.name),
+      cn.superName.safeOpt.map(Type.Cls.read),
+      cn.interfaces.safeList.map(Type.Cls.read),
+      cn.fields.safeList.map(Field.read),
+      cn.methods.safeList.map(Method.read),
+      Misc(
+        cn.signature.safeOpt,
+        cn.sourceFile.safeOpt,
+        cn.sourceDebug.safeOpt,
+        cn.outerClass.safeOpt,
+        cn.outerMethod.safeOpt,
+        cn.outerMethodDesc.safeOpt,
+        cn.visibleAnnotations.safeList.map(Annotation.read),
+        cn.invisibleAnnotations.safeList.map(Annotation.read),
+        cn.attrs.safeList.map(Attribute.read),
+        cn.innerClasses.safeList.map(InnerClass.read)
+      )
     )
-  )
+  }
 
   def parse(input: Array[Byte]) = {
     val cr = new ClassReader(input);
@@ -46,10 +48,10 @@ object ClassData {
                   attrs: List[Attribute] = Nil,
                   innerClasses: List[InnerClass] = Nil)
 }
-case class ClassData(access_flags: Int,
+case class Cls(access_flags: Int,
                      tpe: Type.Cls,
                      superType: Option[Type.Cls] = None,
-                     interfaces: List[String] = Nil,
+                     interfaces: List[Type.Cls] = Nil,
                      fields: List[Field] = Nil,
                      methods: List[Method] = Nil,
-                     misc: ClassData.Misc = ClassData.Misc())
+                     misc: Cls.Misc = Cls.Misc())

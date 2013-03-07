@@ -1,7 +1,8 @@
-package svm.model.opcodes
+package svm.imm.opcodes
 
-import svm.model.Type.Primitives._
-import svm.model.{OpCode, a}
+import svm.imm.Type.Primitives._
+import svm.imm.{OpCode, a}
+import svm.virt
 import svm.Virtualizer
 
 import scala.::
@@ -159,7 +160,7 @@ object  StackManip {
         case (a: Array[Long], b: Array[Long]) => util.Arrays.equals(a, b)
         case (a: Array[Float], b: Array[Float]) => util.Arrays.equals(a, b)
         case (a: Array[Double], b: Array[Double]) => util.Arrays.equals(a, b)
-        case (a: svm.Obj, b: svm.Obj) => a == b
+        case (a: virt.Obj, b: virt.Obj) => a == b
         case _ =>
           false
       }

@@ -1,6 +1,6 @@
-package svm.model
+package svm.imm
 
-import svm.{VM, Cls, VmThread, Frame}
+import svm.{VM, VmThread, Frame}
 import collection.mutable
 import org.objectweb.asm
 import asm.Label

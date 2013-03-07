@@ -1,4 +1,4 @@
-package svm.model
+package svm.imm
 
 import org.objectweb.asm.tree._
 import org.objectweb.asm.Label

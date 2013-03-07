@@ -75,7 +75,7 @@ object Util{
     val stream = new DataInputStream(loaded)
     val bytes = new Array[Byte](stream.available())
     stream.readFully(bytes)
-    //model.Util.printClass(bytes)
+    //imm.Util.printClass(bytes)
     bytes
   }
   def singleClassVm(className: String) = new SingleClassVM(className)

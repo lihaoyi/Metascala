@@ -1,4 +1,4 @@
-package svm.model
+package svm.imm
 
 import org.objectweb.asm.tree._
 
@@ -44,7 +44,7 @@ object Field {
     Field(
       fn.access,
       fn.name,
-      svm.model.Type.read(fn.desc),
+      svm.imm.Type.read(fn.desc),
       fn.signature.safeOpt,
       fn.value,
       fn.visibleAnnotations.safeList.map(Annotation.read),
@@ -57,7 +57,7 @@ object Field {
 
 case class Field(access: Int,
                  name: String,
-                 desc: svm.model.Type,
+                 desc: svm.imm.Type,
                  signature: Option[String],
                  value: Any,
                  visibleAnnotations: List[Annotation],

@@ -1,6 +1,7 @@
 package svm
 
-import model.Type
+import imm.Type
+import virt.Obj
 
 object Virtualizer {
   def fromVirtual[T](x: Any): T = {
@@ -30,7 +31,7 @@ object Virtualizer {
       case x: Array[Long] => cloneArray(x)
       case x: Array[Float] => cloneArray(x)
       case x: Array[Double] => cloneArray(x)
-      case x: svm.Obj if x.cls.name == "java/lang/String" =>
+      case x: virt.Obj if x.cls.name == "java/lang/String" =>
         new String(x.members(0)("value").asInstanceOf[Array[Char]])
     }
   }.asInstanceOf[T]
@@ -63,7 +64,7 @@ object Virtualizer {
       case x: Array[Long] => cloneArray(x)
       case x: Array[Float] => cloneArray(x)
       case x: Array[Double] => cloneArray(x)
-      case x: String => svm.Obj("java/lang/String", "value" -> x.toCharArray)
+      case x: String => virt.Obj("java/lang/String", "value" -> x.toCharArray)
     }
   }.asInstanceOf[T]
 }

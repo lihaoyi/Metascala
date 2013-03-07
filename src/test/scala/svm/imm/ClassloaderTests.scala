@@ -1,4 +1,4 @@
-package svm.model
+package svm.imm
 
 import org.scalatest.FreeSpec
 
@@ -7,9 +7,9 @@ class ClassloaderTests extends FreeSpec{
 
   "loading class files" - {
     "hello world" in {
-      val classData = ClassData.parse(svm.Util.loadClass("svm.helloworld.HelloWorld"))
+      val classData = Cls.parse(svm.Util.loadClass("svm.helloworld.HelloWorld"))
 
-      val ClassData(
+      val Cls(
         0x21, //access,
         Type.Cls("svm/helloworld/HelloWorld"), //name,
         Some(Type.Cls("java/lang/Object")), //superType,

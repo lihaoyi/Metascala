@@ -1,7 +1,8 @@
-package svm.model.opcodes
+package svm.imm.opcodes
 
-import svm.model.Type
-import svm.VmThread
+import svm.imm.Type
+import svm.{virt, VmThread}
+import svm.virt.Obj
 
 object Misc {
   case class Goto(label: Int) extends BaseOpCode(167, "goto"){
@@ -56,21 +57,21 @@ object Misc {
 
   case class GetField(owner: Type.Cls, name: String, desc: Type) extends BaseOpCode(180, "getfield"){
     def op = implicit vt => vt.swapStack{
-      case (objectRef: svm.Obj) :: stack => ext(objectRef(owner, name)) :: stack
+      case (objectRef: virt.Obj) :: stack => ext(objectRef(owner, name)) :: stack
       case null :: rest =>
         import vt._
-        vt.throwException(svm.Obj("java/lang/NullPointerException"))
+        vt.throwException(virt.Obj("java/lang/NullPointerException"))
         rest
     }
   }
   case class PutField(owner: Type.Cls, name: String, desc: Type) extends BaseOpCode(181, "putfield"){
     def op = implicit vt => vt.swapStack {
-      case value :: (objectRef: svm.Obj) :: stack =>
+      case value :: (objectRef: virt.Obj) :: stack =>
         objectRef(owner, name) = value
         stack
       case value :: null :: rest =>
         import vt._
-        vt.throwException(svm.Obj("java/lang/NullPointerException"))
+        vt.throwException(virt.Obj("java/lang/NullPointerException"))
         rest
     }
   }
@@ -78,7 +79,7 @@ object Misc {
   def ensureNonNull(vt: VmThread, x: Any)(thunk: => Unit) = {
     import vt._
     if (x == null){
-      throwException(svm.Obj("java/lang/NullPointerException"))
+      throwException(virt.Obj("java/lang/NullPointerException"))
     }else {
       thunk
     }
@@ -123,7 +124,7 @@ object Misc {
     def op = implicit vt => desc match {
       case _ =>
         import vt.vm._
-        vt.frame.stack ::= new svm.Obj(desc)(vt.vm)
+        vt.frame.stack ::= new virt.Obj(desc)(vt.vm)
     }
   }
   case class NewArray(typeCode: Int) extends BaseOpCode(188, "newarray"){
@@ -155,7 +156,7 @@ object Misc {
 
   case object AThrow extends BaseOpCode(191, "athrow"){
     def op = vt => {
-      val (exception: svm.Obj) :: stack = vt.frame.stack
+      val (exception: virt.Obj) :: stack = vt.frame.stack
       vt.frame.stack = stack
       vt.throwException(exception)
 
@@ -171,7 +172,7 @@ object Misc {
       import vt._
       val res = top match{
         case null => 0
-        case x: svm.Obj =>  if(x.cls.checkIsInstanceOf(desc)) 1 else 0
+        case x: virt.Obj =>  if(x.cls.checkIsInstanceOf(desc)) 1 else 0
         case x: Array[Object] => 1
 
 

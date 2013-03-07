@@ -1,4 +1,4 @@
-package svm.model
+package svm.imm
 
 import org.scalatest.FreeSpec
 

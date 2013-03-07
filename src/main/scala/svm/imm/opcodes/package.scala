@@ -1,14 +1,7 @@
-package svm.model
+package svm.imm
 
 import svm.VmThread
-
-/**
- * Created with IntelliJ IDEA.
- * User: Haoyi
- * Date: 2/26/13
- * Time: 12:44 AM
- * To change this template use File | Settings | File Templates.
- */
+import svm.virt
 package object opcodes {
   def ext(x: Any) = {
     x match {
@@ -38,7 +31,7 @@ package object opcodes {
       case i: Int => Some(i)
       case f: Float => Some(f)
       case a: Array[_] => Some(a)
-      case o: svm.Obj => Some(o)
+      case o: virt.Obj => Some(o)
       case _ => None
     }
   }
