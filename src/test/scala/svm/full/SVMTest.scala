@@ -18,7 +18,7 @@ class SVMTest extends FreeSpec with Util{
   "omg" in {
     val tester = new Tester("svm.full.Moo")
 
-    tester.run("run", 5.0)
+    tester.run("run")
 
 
   }
