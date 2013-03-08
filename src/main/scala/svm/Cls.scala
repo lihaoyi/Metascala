@@ -28,9 +28,6 @@ class Cls(val classData: imm.Cls,
   }
 
   def update(owner: Type.Cls, name: String, value: Any) = {
-    println(
-
-    )
     this.ancestry.dropWhile(_.tpe != owner)
       .find(_.fields.exists(_.name == name))
       .get.tpe.statics(name) = value

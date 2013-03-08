@@ -5,17 +5,80 @@ import java.util.concurrent.atomic.AtomicInteger
 import imm.{Access, Type}
 import svm.{virt, imm}
 import virt.Obj
+import java.io.{DataInputStream, IOException}
 
 
-object Natives {
-
-
+object Natives{
+  val default = new DefaultNatives {}
+  type NativeMap = Map[(String, Type.Desc), VmThread => Seq[Any] => Any]
+}
+trait Natives{
+  val properties: Map[String, Any]
+  val trapped: Natives.NativeMap
+  val fileLoader: String => Option[Array[Byte]]
+}
+trait NativeUtils{
   def value(x: Any) = (vm: VmThread)  => x
   def value1(x: Any) = (vm: VmThread) => (a: Any) => x
   def value2(x: Any) = (vm: VmThread) => (a: Any, b: Any) => x
   val noOp = value(())
   val noOp1 = value1(())
   val noOp2 = value2(())
+
+
+  implicit class pimpedRoute(m: Map[String, Any]){
+    def toRoute(parts: List[String] = Nil): Natives.NativeMap = {
+      m.flatMap{ case (k, v) =>
+        v match{
+          case thing: Map[String, Any] =>
+            thing.toRoute(k :: parts).map {
+              case ((path, desc), func) => ((k + "/" + path, desc), func)
+            }
+
+          case func: (VmThread => Any) =>
+            val (name, descString) = k.splitAt(k.indexOf('('))
+            val p = parts.reverse
+
+            val fullDescString =
+              descString//.replaceAllLiterally("L///", s"L${p(0)}/${p(1)}/${p(2)}/")
+                .replaceAllLiterally("L//", s"L${p(0)}/${p(1)}/")
+                .replaceAllLiterally("L/", s"L${p(0)}/")
+
+            val desc = Type.Desc.read(fullDescString)
+
+            val newFunc = (vt: VmThread) => (args: Seq[Any]) => func(vt) match{
+              case f: ((Any, Any, Any, Any, Any) => Any) => f(args(0), args(1), args(2), args(3), args(4))
+              case f: ((Any, Any, Any, Any) => Any) => f(args(0), args(1), args(2), args(3))
+              case f: ((Any, Any, Any) => Any) => f(args(0), args(1), args(2))
+              case f: ((Any, Any) => Any) => f(args(0), args(1))
+              case f: (Any => Any) => f(args(0))
+              case f => f
+            }
+            Map((name, desc) -> newFunc)
+        }
+      }
+    }
+  }
+  implicit class pimpedMap(s: String){
+    def /(a: (String, Any)*) = s -> a.toMap
+    def -(a: VmThread => Any) = s -> a
+  }
+}
+trait DefaultNatives extends Natives with NativeUtils{
+
+  val fileLoader = (name: String) => {
+    val slashName = s"/$name"
+
+    val loaded = getClass.getResourceAsStream(slashName)
+    if (loaded == null) None
+    else {
+      val stream = new DataInputStream(loaded)
+      val bytes = new Array[Byte](stream.available())
+      stream.readFully(bytes)
+      //imm.Util.printClass(bytes)
+      Some(bytes)
+    }
+  }
 
 
   val properties = Map(
@@ -71,8 +134,7 @@ object Natives {
     }
   }
 
-  val nativeX: NativeMap = {
-
+  val trapped: Natives.NativeMap = {
     Map(
       "java"/(
         "io"/(
@@ -157,11 +219,38 @@ object Natives {
             "getCaller(I)L//Class;" - { vt => (x: Int) =>
               vt.threadStack(x).runningClass.obj
             },
-            "getResourceAsStream(Ljava/lang/String;)Ljava/io/InputStream;" - { vt => (x: virt.Obj) =>
-              null
+            "getResourceAsStream(Ljava/lang/String;)Ljava/io/InputStream;" - { vt => (cl: virt.Obj, s: virt.Obj) =>
+              import vt.vm
+              val str = Virtualizer.fromVirtual[String](s)
+
+              fileLoader(str) match{
+                case None => null
+                case Some(bytes) =>
+                  virt.Obj("java.io.ByteArrayInputStream",
+                    "buf" -> bytes,
+                    "pos" -> 0,
+                    "mark" -> 0,
+                    "count" -> bytes.length
+                  )
+              }
             },
-            "getSystemResourceAsStream(Ljava/lang/String;)Ljava/io/InputStream;" - { vt => (x: virt.Obj) =>
-              null
+            "getSystemResourceAsStream(Ljava/lang/String;)Ljava/io/InputStream;" - { vt => (s: virt.Obj) =>
+
+              import vt.vm
+              val str = Virtualizer.fromVirtual[String](s)
+
+              fileLoader(str) match{
+                case None => null
+                case Some(bytes) =>
+                  virt.Obj("java.io.ByteArrayInputStream",
+                    "buf" -> bytes,
+                    "pos" -> 0,
+                    "mark" -> 0,
+                    "count" -> bytes.length
+                  )
+              }
+
+
             }
 
           ),
@@ -259,6 +348,17 @@ object Natives {
             )
           )
         ),
+      "scala"/(
+        "Predef$"/(
+          "println(Ljava/lang/String;)V" - {
+            svm => (x: virt.Obj, y: virt.Obj) => println("VIRTUAL " + Virtualizer.fromVirtual[String](y))
+          },
+          "println(Ljava/lang/Object;)V" - {
+            svm => (x: virt.Obj, y: virt.Obj) => println("VIRTUAL " + Virtualizer.fromVirtual[String](y))
+          }
+
+        )
+      ),
       "sun"/(
         "misc"/(
           "Hashing"/(
@@ -270,14 +370,12 @@ object Natives {
             "addressSize()I" - ((x: Any) => 4),
             "compareAndSwapInt(Ljava/lang/Object;JII)Z" - { vt => (unsafe: Any, a: Obj, i: Long, b: Int, c: Int) =>
               if (getObject(a, i) == b) {
-                println("win")
                 putObject(a, i, b)
                 true
               }else{
-                println("fail")
                 false
               }
-              true;
+              true
             },
             "putOrderedObject(Ljava/lang/Object;JLjava/lang/Object;)V" - {
               vt => (unsafe: Obj, a: Any, i: Long, b: Any) => putObject(a, i, b)
@@ -294,23 +392,17 @@ object Natives {
             },
             "compareAndSwapObject(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z" - {
               vt => (unsafe: Obj, a: Any, i: Long, b: Any, c: Any) =>
-                println("CAS" + a + "\t" + b + " for " + c + " found " + getObject(a, i))
-
                 if (getObject(a, i) == b) {
-                  println("win")
                   putObject(a, i, b)
                   true
                 }else{
-                  println("fail")
                   false
                 }
             },
             "objectFieldOffset(Ljava/lang/reflect/Field;)J" - { vt => (unsafe: Any, x: Obj) =>
-              println(x)
-              println(x.members)
               x(Type.Cls("java/lang/reflect/Field"), "slot").asInstanceOf[Int].toLong
             }
-            ),
+          ),
           "VM"/(
             "initialize()V" - noOp,
             "isBooted()Z" - value(true),
@@ -321,7 +413,7 @@ object Natives {
             }
           )
 
-          ),
+        ),
 
         "reflect"/(
           "NativeConstructorAccessorImpl"/(
@@ -350,43 +442,8 @@ object Natives {
     ).toRoute()
   }
 
-  type NativeMap = Map[(String, Type.Desc), VmThread => Seq[Any] => Any]
 
-  implicit class pimpedRoute(m: Map[String, Any]){
-    def toRoute(parts: List[String] = Nil): NativeMap = {
-      m.flatMap{ case (k, v) =>
-        v match{
-          case thing: Map[String, Any] =>
-            thing.toRoute(k :: parts).map {
-              case ((path, desc), func) => ((k + "/" + path, desc), func)
-            }
 
-          case func: (VmThread => Any) =>
-            val (name, descString) = k.splitAt(k.indexOf('('))
-            val p = parts.reverse
-            val fullDescString =
-              descString.replaceAllLiterally("L///", s"L${p(0)}/${p(1)}/${p(2)}/")
-                        .replaceAllLiterally("L//", s"L${p(0)}/${p(1)}/")
-                        .replaceAllLiterally("L/", s"L${p(0)}/")
 
-            val desc = Type.Desc.read(fullDescString)
-
-            val newFunc = (vt: VmThread) => (args: Seq[Any]) => func(vt) match{
-              case f: ((Any, Any, Any, Any, Any) => Any) => f(args(0), args(1), args(2), args(3), args(4))
-              case f: ((Any, Any, Any, Any) => Any) => f(args(0), args(1), args(2), args(3))
-              case f: ((Any, Any, Any) => Any) => f(args(0), args(1), args(2))
-              case f: ((Any, Any) => Any) => f(args(0), args(1))
-              case f: (Any => Any) => f(args(0))
-              case f => f
-            }
-            Map((name, desc) -> newFunc)
-        }
-      }
-    }
-  }
-  implicit class pimpedMap(s: String){
-    def /(a: (String, Any)*) = s -> a.toMap
-    def -(a: VmThread => Any) = s -> a
-  }
 
 }

@@ -57,7 +57,6 @@ class Cls(override val tpe: imm.Type.Cls)
   override def getDeclaredMethods() = {
 
     tpe.classData.methods.map {m =>
-      println(m.desc)
       virt.Obj("java/lang/reflect/Method",
         "clazz" -> this,
         "slot" -> m.name.hashCode,

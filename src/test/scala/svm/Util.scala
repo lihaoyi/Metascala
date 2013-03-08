@@ -71,16 +71,17 @@ object Util{
     val slashName = s"/${name.replace(".", "/")}.class"
 
     val loaded = getClass.getResourceAsStream(slashName)
-    if (loaded == null) throw new IOException("Can't find file " + slashName)
-    val stream = new DataInputStream(loaded)
-    val bytes = new Array[Byte](stream.available())
-    stream.readFully(bytes)
-    //imm.Util.printClass(bytes)
-    bytes
+    if (loaded == null) None
+    else {
+      val stream = new DataInputStream(loaded)
+      val bytes = new Array[Byte](stream.available())
+      stream.readFully(bytes)
+      //imm.Util.printClass(bytes)
+      Some(bytes)
+    }
   }
-  def singleClassVm(className: String) = new SingleClassVM(className)
-  class SingleClassVM(className: String, val classLoader: String => Array[Byte] = Util.loadClass)
-    extends VM(classLoader){
+
+  class SingleClassVM(className: String, printMore: Boolean = false) extends VM(printMore = printMore){
     def run(main: String, args: Any*): Any = invoke(className.replace('.', '/'), main, args)
   }
 }
@@ -100,7 +101,7 @@ trait Util extends ShouldMatchers { this: FreeSpec  =>
     }
   }
   class Tester(className: String){
-    val svm = new Util.SingleClassVM(className, Util.loadClass)
+    val svm = new Util.SingleClassVM(className)
     val ref = new ReflectiveRunner(className)
     def run(main: String, args: Any*) = {
       val svmRes = svm.run(main, args:_*)

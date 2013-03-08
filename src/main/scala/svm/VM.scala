@@ -15,18 +15,16 @@ object VM{
 }
 import VM._
 
-class VM(classLoader: String => Array[Byte]) {
+class VM(val natives: Natives = Natives.default, val printMore: Boolean = false) {
 
   private[this] implicit val vm = this
   implicit object InternedStrings extends (virt.Obj => virt.Obj){
     val strings = mutable.Map.empty[String, virt.Obj]
     def apply(s: virt.Obj) = {
       val realString = Virtualizer.fromVirtual[String](s)
-
       if (strings.contains(realString)){
         strings(realString)
       }else{
-
         strings(realString) = s
         s
       }
@@ -55,7 +53,7 @@ class VM(classLoader: String => Array[Byte]) {
       classes.get(t) match {
         case Some(cls) => cls
         case None =>
-          val newCls = new svm.Cls(imm.Cls.parse(classLoader(t.name)))
+          val newCls = new svm.Cls(imm.Cls.parse(natives.fileLoader(t.name.replace(".", "/") + ".class").get))
           classes(t) = newCls
           if (t.name != "sun/misc/Unsafe")
             newCls.method("<clinit>", imm.Type.Desc.read("()V")).foreach( m =>
@@ -90,6 +88,7 @@ class VM(classLoader: String => Array[Byte]) {
     }
   }
   //invoke("java/lang/System", "initializeSystemClass", Nil)
+
 }
 
 object VmThread{
@@ -103,7 +102,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     "group" -> virt.Obj("java/lang/ThreadGroup"),
     "priority" -> 5
   )
-  val nativeX = Natives.nativeX
+
   def frame = threadStack.head
 
   def swapStack(transform: PartialFunction[List[Any], List[Any]]) = {
@@ -113,7 +112,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     threadStack.map { f =>
       new StackTraceElement(
         f.runningClass.name,
-        if (f.method.code != Code()) f.method.name + " " + f.method.code.insns(f.pc) else "",
+        if (f.method.code != Code()) f.method.name + f.method.desc.unparse + " " + f.method.code.insns(f.pc) else "",
         f.runningClass.classData.misc.sourceFile.getOrElse("[no source]"),
         f.method.code.attachments.flatten.reverse.collectFirst{
           case LineNumber(line, startPc) if startPc < f.pc => line
@@ -125,9 +124,10 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
   def step() = {
     VM.count += 1
-    if (VM.count % 10000 == 0){
+    if (false){
       println("SnapShot")
       println("\n")
+      println(new Object())
       threadStack.foreach(f =>
         println(f.runningClass.name.padTo(60, ' ') + f.method.name.padTo(30, ' ') + f.pc)
       )
@@ -136,8 +136,8 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     val topFrame = threadStack.head
 
     val node = topFrame.method.code.insns(topFrame.pc)
-//    VM.log(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack)
-  //  VM.log(indent + "---------------------- " + topFrame.pc33+ "\t" + node )
+    if (vm.printMore) println(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack)
+    if (vm.printMore) println(indent + "---------------------- " + topFrame.pc + "\t" + node )
     topFrame.pc += 1
     node.op(this)
 
@@ -151,7 +151,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
   }
   def dumpStack =
     threadStack.map(f =>
-      f.runningClass.name.padTo(35, ' ') + f.method.name.padTo(35, ' ') + f.pc.toString.padTo(5, ' ') + (try f.method.code.insns(f.pc-1) catch {case x =>})
+      f.runningClass.name.padTo(35, ' ') + (f.method.name + f.method.desc.unparse).padTo(35, ' ') + f.pc.toString.padTo(5, ' ') + (try f.method.code.insns(f.pc-1) catch {case x =>})
     )
 
   @tailrec final def throwException(ex: virt.Obj, print: Boolean = true): Unit = {
@@ -188,7 +188,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
     cls match{
       case imm.Type.Arr(_) =>
-        val trap = Natives.nativeX.get("java/lang/Object/"+ methodName, desc).get
+        val trap = vm.natives.trapped.get("java/lang/Object/"+ methodName, desc).get
         val result = trap(this)(args)
         val topFrame = threadStack.head
         topFrame.stack = result match{
@@ -196,8 +196,8 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
           case nonUnit => nonUnit :: topFrame.stack
         }
       case cls@imm.Type.Cls(name) =>
-        //VM.log(indent + "prepInvoke " + cls.name + "\t" + methodName  + desc.unparse)
-        Natives.nativeX.get(cls.name + "/" + methodName, desc) match{
+        if (vm.printMore) println(indent + "prepInvoke " + cls.name + "\t" + methodName  + desc.unparse)
+        vm.natives.trapped.get(cls.name + "/" + methodName, desc) match{
           case Some(trap) =>
             val result = trap(this)(args)
             val topFrame = threadStack.head
@@ -216,6 +216,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
                   case d: Double => Seq(d, d)
                   case x => Seq(x)
                 }
+                if (vm.printMore) println(indent + "args " + stretchedArgs)
                 val startFrame = new Frame(
                   runningClass = cls,
                   method = m,

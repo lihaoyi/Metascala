@@ -6,18 +6,21 @@ import svm.Util.SingleClassVM
 
 object Moo{
   def run() = {
-    val x = svm.Util.singleClassVm("svm.math.HelloMath")
-    x.run("imain")
+    val x = new svm.Util.SingleClassVM("svm.helloworld.controlflow.Loops")
+    x.run("sqrtFinder", 5.0)
+  }
+  def main(args: Array[String]){
+    println(run())
   }
 }
+
 class SVMTest extends FreeSpec with Util{
   "omg" in {
-    val tester = new Tester("svm.full.Moo")
+   // val tester = new Tester("svm.full.Moo")
+    val vm = new svm.Util.SingleClassVM("svm.full.Moo")
+    vm.run("run", 5.0)
 
-    tester.run("run")
-  }
-  "thing" in {
-    println(System.getProperty("java.lang.Integer.IntegerCache.high"))
+
   }
   /*"rhino" in {
     val tester = new Tester("svm.full.SVM")
