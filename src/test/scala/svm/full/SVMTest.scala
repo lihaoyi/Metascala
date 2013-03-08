@@ -16,9 +16,9 @@ object Moo{
 
 class SVMTest extends FreeSpec with Util{
   "omg" in {
-   // val tester = new Tester("svm.full.Moo")
-    val vm = new svm.Util.SingleClassVM("svm.full.Moo")
-    vm.run("run", 5.0)
+    val tester = new Tester("svm.full.Moo")
+
+    tester.run("run", 5.0)
 
 
   }
