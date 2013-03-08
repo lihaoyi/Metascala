@@ -17,10 +17,7 @@ object Moo{
 class SVMTest extends FreeSpec with Util{
   "omg" in {
     val tester = new Tester("svm.full.Moo")
-
     tester.run("run")
-
-
   }
   /*"rhino" in {
     val tester = new Tester("svm.full.SVM")

@@ -156,7 +156,6 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
   @tailrec final def throwException(ex: virt.Obj, print: Boolean = true): Unit = {
 
-
     threadStack.headOption match{
       case Some(frame)=>
         val handler =
@@ -190,21 +189,16 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
       case imm.Type.Arr(_) =>
         val trap = vm.natives.trapped.get("java/lang/Object/"+ methodName, desc).get
         val result = trap(this)(args)
-        val topFrame = threadStack.head
-        topFrame.stack = result match{
-          case () => topFrame.stack
-          case nonUnit => nonUnit :: topFrame.stack
-        }
+
+        if (result != ()) threadStack.head.stack ::= result
       case cls@imm.Type.Cls(name) =>
         if (vm.printMore) println(indent + "prepInvoke " + cls.name + "\t" + methodName  + desc.unparse)
+
         vm.natives.trapped.get(cls.name + "/" + methodName, desc) match{
           case Some(trap) =>
             val result = trap(this)(args)
-            val topFrame = threadStack.head
-            topFrame.stack = result match{
-              case () => topFrame.stack
-              case nonUnit => nonUnit :: topFrame.stack
-            }
+            if (result != ()) threadStack.head.stack ::= result
+
           case None =>
             cls.method(methodName, desc) match{
               case Some(m) if m.code.insns != Nil=>

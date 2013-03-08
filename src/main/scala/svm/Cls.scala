@@ -35,7 +35,7 @@ class Cls(val classData: imm.Cls,
 
   def name = classData.tpe.name
 
-  def ancestry = {
+  val ancestry = {
     def rec(cd: imm.Cls): List[imm.Cls] = {
       cd.superType match{
         case None => List(cd)
