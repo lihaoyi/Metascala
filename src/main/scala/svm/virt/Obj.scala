@@ -12,7 +12,7 @@ object Obj{
     import vm._
     cls.fields.filter(filter).map{f =>
       f.name -> initField(f.desc)
-    }.toMap :: cls.superType.toList.flatMap(x => initMembers(x.classData, filter))
+    }.toMap :: cls.superType.toList.flatMap(x => initMembers(x.clsData, filter))
   }
 
   def initField(desc: imm.Type) = {
@@ -40,7 +40,7 @@ object Obj{
 class Obj(val cls: svm.Cls, initMembers: (String, Any)*)
          (implicit vm: VM){ import vm._
 
-  val members = Obj.initMembers(cls.classData, x => (x.access & Access.Static) == 0).map(x => mutable.Map(x.toSeq:_*))
+  val members = Obj.initMembers(cls.clsData, x => (x.access & Access.Static) == 0).map(x => mutable.Map(x.toSeq:_*))
 
   for ((s, v) <- initMembers){
     this(imm.Type.Cls.read(cls.name), s) = v

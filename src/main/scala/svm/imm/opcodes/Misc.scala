@@ -93,7 +93,7 @@ object Misc {
       ensureNonNull(vt, args.last){
         val objType =
           args.last match{
-            case a: virt.Obj => a.cls.classData.tpe
+            case a: virt.Obj => a.cls.clsData.tpe
             case _ => owner
           }
 

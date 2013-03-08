@@ -198,17 +198,17 @@ trait DefaultNatives extends Natives{
               cls.getDeclaredMethods()
             },
             "getEnclosingMethod0()[L//Object;" - value(null),
-            "getModifiers()I" - { vt => (x: virt.Cls) => import vt.vm._; Type.Cls(x.name).classData.access_flags },
+            "getModifiers()I" - { vt => (x: virt.Cls) => import vt.vm._; Type.Cls(x.name).clsData.access_flags },
             "getSuperclass()L//Class;" - { vt => (x: virt.Cls) =>
               import vt.vm
               import vm._
-              Type.Cls(x.name).classData
+              Type.Cls(x.name).clsData
                 .superType
                 .map(_.obj)
                 .getOrElse(null)
             },
             "isPrimitive()Z" - value1(false),
-            "isInterface()Z" - { vt => (x: virt.Cls) => import vt.vm._; (Type.Cls(x.name.replace(".", "/")).classData.access_flags & Access.Interface) != 0},
+            "isInterface()Z" - { vt => (x: virt.Cls) => import vt.vm._; (Type.Cls(x.name.replace(".", "/")).clsData.access_flags & Access.Interface) != 0},
             "isAssignableFrom(L//Class;)Z" - { vt => (x: virt.Type, y: virt.Type) =>
               true
             },
@@ -342,7 +342,7 @@ trait DefaultNatives extends Natives{
           "AccessController"/(
             "doPrivileged(L//PrivilegedAction;)L/lang/Object;" - {
               vt => (pa: Obj) =>
-                vt.prepInvoke(pa.cls.classData.tpe, "run", pa.cls.classData.methods.find(_.name == "run").get.desc, Seq(pa))
+                vt.prepInvoke(pa.cls.clsData.tpe, "run", pa.cls.clsData.methods.find(_.name == "run").get.desc, Seq(pa))
             },
             "getStackAccessControlContext()L//AccessControlContext;" - { vt => virt.Obj("java/security/AccessControlContext")(vt.vm)},
             "getInheritedAccessControlContext()L//AccessControlContext;" - { vt => virt.Obj("java/security/AccessControlContext")(vt.vm)}
@@ -423,7 +423,7 @@ trait DefaultNatives extends Natives{
                 import vt.vm; import vm._
                 val cls: svm.Cls = imm.Type.Cls(constr.members(0)("clazz").asInstanceOf[virt.Cls].name)
                 val newObj = new Obj(cls)
-                vt.invoke(cls.classData.tpe, "<init>", Type.Desc.read("()V"), Seq(newObj))
+                vt.invoke(cls.clsData.tpe, "<init>", Type.Desc.read("()V"), Seq(newObj))
                 newObj
             }
             ),
@@ -434,7 +434,7 @@ trait DefaultNatives extends Natives{
             },
             "getClassAccessFlags(Ljava/lang/Class;)I" - { vt => (x: virt.Cls) =>
               import vt.vm._;
-              Type.Cls(x.name).classData.access_flags
+              Type.Cls(x.name).clsData.access_flags
             },
             "registerMethodsToFilter(Ljava/lang/Class;[Ljava/lang/String;)V" - noOp2
           )

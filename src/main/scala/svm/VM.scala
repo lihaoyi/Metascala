@@ -73,7 +73,7 @@ class VM(val natives: Natives = Natives.default, val printMore: Boolean = false)
           imm.Type.Cls(bootClass),
           mainMethod,
           imm.Type.Cls(bootClass).cls
-            .classData
+            .clsData
             .methods
             .find(x => x.name == mainMethod)
             .map(_.desc)
@@ -113,7 +113,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
       new StackTraceElement(
         f.runningClass.name,
         if (f.method.code != Code()) f.method.name + f.method.desc.unparse + " " + f.method.code.insns(f.pc) else "",
-        f.runningClass.classData.misc.sourceFile.getOrElse("[no source]"),
+        f.runningClass.clsData.misc.sourceFile.getOrElse("[no source]"),
         f.method.code.attachments.flatten.reverse.collectFirst{
           case LineNumber(line, startPc) if startPc < f.pc => line
         }.getOrElse(-1)
@@ -183,24 +183,24 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
         throw new Exception("Uncaught Exception: " + Virtualizer.fromVirtual(ex(imm.Type.Cls("java.lang.Throwable"), "detailMessage")))
     }
   }
-  @tailrec final def prepInvoke(cls: imm.Type, methodName: String, desc: imm.Type.Desc, args: Seq[Any]): Unit = {
+  @tailrec final def prepInvoke(tpe: imm.Type, methodName: String, desc: imm.Type.Desc, args: Seq[Any]): Unit = {
 
-    cls match{
+    tpe match{
       case imm.Type.Arr(_) =>
         val trap = vm.natives.trapped.get("java/lang/Object/"+ methodName, desc).get
         val result = trap(this)(args)
 
         if (result != ()) threadStack.head.stack ::= result
-      case cls@imm.Type.Cls(name) =>
-        if (vm.printMore) println(indent + "prepInvoke " + cls.name + "\t" + methodName  + desc.unparse)
+      case tpe @ imm.Type.Cls(name) =>
+        if (vm.printMore) println(indent + "prepInvoke " + name + "\t" + methodName  + desc.unparse)
 
-        vm.natives.trapped.get(cls.name + "/" + methodName, desc) match{
+        vm.natives.trapped.get(name + "/" + methodName, desc) match{
           case Some(trap) =>
             val result = trap(this)(args)
             if (result != ()) threadStack.head.stack ::= result
 
           case None =>
-            cls.cls.classData.methods.find(x => x.name == methodName && x.desc == desc) match{
+            tpe.cls.clsData.methods.find(x => x.name == methodName && x.desc == desc) match{
               case Some(m) if m.code.insns != Nil=>
                 //m.code.insns.zipWithIndex
                 //  .foreach(x => VM.log(indent + x._2 + "\t" + x._1))
@@ -210,21 +210,23 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
                   case d: Double => Seq(d, d)
                   case x => Seq(x)
                 }
+                val array = new Array[Any](m.misc.maxLocals)
+                stretchedArgs.copyToArray(array)
+
                 if (vm.printMore) println(indent + "args " + stretchedArgs)
                 val startFrame = new Frame(
-                  runningClass = cls,
+                  runningClass = tpe,
                   method = m,
-                  locals = mutable.Seq.tabulate(m.misc.maxLocals)(stretchedArgs.orElse{case x => null}),
+                  locals = array,
                   stack = Nil
                 )
 
                 //log(indent + "locals " + startFrame.locals)
                 threadStack.push(startFrame)
               case _ =>
-
-                cls.cls.ancestry.tail.headOption match{
+                tpe.cls.clsData.superType match{
                   case Some(x) => prepInvoke(x.tpe, methodName, desc, args)
-                  case None => throw new Exception("Can't find method " + cls + " " + methodName + " " + desc.unparse)
+                  case None => throw new Exception("Can't find method " + tpe + " " + methodName + " " + desc.unparse)
                 }
             }
         }

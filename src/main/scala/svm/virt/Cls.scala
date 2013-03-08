@@ -27,7 +27,7 @@ class Cls(override val tpe: imm.Type.Cls)
   import vm._
   def name = tpe.unparse
   override def getDeclaredConstructors() = {
-    tpe.classData
+    tpe.clsData
       .methods
       .filter(_.name == "<init>")
       .map{m =>
@@ -41,7 +41,7 @@ class Cls(override val tpe: imm.Type.Cls)
     }.toArray
   }
   override def getDeclaredFields() = {
-      tpe.classData.fields.map {f =>
+      tpe.clsData.fields.map {f =>
 
         virt.Obj("java/lang/reflect/Field",
           "clazz" -> this,
@@ -56,7 +56,7 @@ class Cls(override val tpe: imm.Type.Cls)
 
   override def getDeclaredMethods() = {
 
-    tpe.classData.methods.map {m =>
+    tpe.clsData.methods.map {m =>
       virt.Obj("java/lang/reflect/Method",
         "clazz" -> this,
         "slot" -> m.name.hashCode,
@@ -71,7 +71,7 @@ class Cls(override val tpe: imm.Type.Cls)
     }.toArray
   }
   override def getInterfaces() = {
-    tpe.classData.interfaces.map(_.obj).toArray
+    tpe.clsData.interfaces.map(_.obj).toArray
   }
   override def toString = {
     s"virt.Cls(${tpe.unparse}})"

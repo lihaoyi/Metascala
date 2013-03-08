@@ -4,16 +4,16 @@ import collection.mutable
 
 import svm.{VM, imm}
 import imm.Type
-class Cls(val classData: imm.Cls,
+class Cls(val clsData: imm.Cls,
           val statics: mutable.Map[String, Any] = mutable.Map.empty)
          (implicit vm: VM){
 
   import vm._
 
-  classData.superType.map(vm.Classes)
+  clsData.superType.map(vm.Classes)
   lazy val obj = new virt.Cls(Type.Cls(name))
 
-  classData.fields.map{f =>
+  clsData.fields.map{f =>
     statics(f.name) = virt.Obj.initField(f.desc)
   }
 
@@ -33,25 +33,25 @@ class Cls(val classData: imm.Cls,
       .get.tpe.statics(name) = value
   }
 
-  def name = classData.tpe.name
+  def name = clsData.tpe.name
 
   val ancestry = {
     def rec(cd: imm.Cls): List[imm.Cls] = {
       cd.superType match{
         case None => List(cd)
-        case Some(x) => cd :: rec(x.classData)
+        case Some(x) => cd :: rec(x.clsData)
       }
     }
-    rec(classData)
+    rec(clsData)
   }
 
   def checkIsInstanceOf(desc: Type)(implicit vm: VM): Boolean = {
     import vm._
 
     val res =
-      classData.tpe == desc ||
-      classData.interfaces.contains(desc) ||
-      classData.superType
+      clsData.tpe == desc ||
+      clsData.interfaces.contains(desc) ||
+      clsData.superType
           .map(l => l.checkIsInstanceOf(desc))
           .getOrElse(false)
 
