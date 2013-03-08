@@ -22,7 +22,7 @@ object  StackManip {
     def op = vt => {
       val in = List.fill(vt.frame.stack.length min 4)(vt.pop)
       val out = transform(in)
-      out.reverse.foreach(vt.push)
+      out.reverseMap(vt.push)
     }
   }
   case object Pop extends ManipOpCode(87, "pop")({ case _ :: s => s })

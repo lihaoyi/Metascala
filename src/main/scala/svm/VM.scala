@@ -15,53 +15,49 @@ object VM{
 }
 import VM._
 
+trait Cache[In, Out] extends (In => Out){
+  val cache = mutable.Map.empty[Any, Out]
+  def pre(x: In): Any = x
+  def calc(x: In): Out
+  def post(y: Out): Unit = ()
+  def apply(x: In) = {
+    val newX = pre(x)
+    cache.get(newX) match{
+      case Some(y) => y
+      case None =>
+        val newY = calc(x)
+        cache(newX) = newY
+        post(newY)
+        newY
+    }
+  }
+}
 class VM(val natives: Natives = Natives.default, val printMore: Boolean = false) {
 
   private[this] implicit val vm = this
-  implicit object InternedStrings extends (virt.Obj => virt.Obj){
-    val strings = mutable.Map.empty[String, virt.Obj]
-    def apply(s: virt.Obj) = {
-      val realString = Virtualizer.fromVirtual[String](s)
-      if (strings.contains(realString)){
-        strings(realString)
-      }else{
-        strings(realString) = s
-        s
-      }
-    }
+  implicit object InternedStrings extends Cache[virt.Obj, virt.Obj]{
+    override def pre(x: virt.Obj) = Virtualizer.fromVirtual[String](x)
+    def calc(x: virt.Obj) = x
   }
-  implicit object Types extends (imm.Type => virt.Type){
-    val classes = mutable.Map.empty[imm.Type, virt.Type]
-    def apply(t: imm.Type): virt.Type = {
-      classes.get(t) match{
-        case Some(clsObj) => clsObj
-        case None =>
-          val clsObj = t match{
-            case t: imm.Type.Cls => new virt.Cls(t)
-            case _ => new virt.Type(t)
-          }
-          classes(t) = clsObj
-          clsObj
-      }
+  implicit object Types extends Cache[imm.Type, virt.Type]{
+    def calc(t: imm.Type) = t match{
+      case t: imm.Type.Cls => new virt.Cls(t)
+      case _ => new virt.Type(t)
     }
   }
 
-  implicit object Classes extends (imm.Type.Cls => svm.Cls){
-    val classes = mutable.Map.empty[imm.Type.Cls, svm.Cls]
-    def apply(t: imm.Type.Cls): svm.Cls = {
-
-      classes.get(t) match {
-        case Some(cls) => cls
-        case None =>
-          val newCls = new svm.Cls(imm.Cls.parse(natives.fileLoader(t.name.replace(".", "/") + ".class").get))
-          classes(t) = newCls
-          if (t.name != "sun/misc/Unsafe")
-            newCls.method("<clinit>", imm.Type.Desc.read("()V")).foreach( m =>
-              threads(0).invoke(imm.Type.Cls(t.name), "<clinit>", imm.Type.Desc.read("()V"), Nil)
-            )
-          newCls
+  implicit object Classes extends Cache[imm.Type.Cls, svm.Cls]{
+    def calc(t: imm.Type.Cls): svm.Cls = {
+      new svm.Cls(imm.Cls.parse(natives.fileLoader(t.name.replace(".", "/") + ".class").get))
+    }
+    override def post(cls: svm.Cls) = {
+      if (cls.name != "sun/misc/Unsafe"){
+        cls.method("<clinit>", imm.Type.Desc.read("()V")).foreach( m =>
+          threads(0).invoke(imm.Type.Cls(cls.name), "<clinit>", imm.Type.Desc.read("()V"), Nil)
+        )
       }
     }
+
   }
 
   lazy val threads = List(new VmThread())
