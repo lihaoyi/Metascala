@@ -36,7 +36,6 @@ object Cls {
     read(classNode)
   }
 
-
   case class Misc(signature: Option[String] = None,
                   sourceFile: Option[String] = None,
                   sourceDebug: Option[String] = None,

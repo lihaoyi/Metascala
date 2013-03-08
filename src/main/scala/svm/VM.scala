@@ -200,7 +200,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
             if (result != ()) threadStack.head.stack ::= result
 
           case None =>
-            cls.method(methodName, desc) match{
+            cls.cls.classData.methods.find(x => x.name == methodName && x.desc == desc) match{
               case Some(m) if m.code.insns != Nil=>
                 //m.code.insns.zipWithIndex
                 //  .foreach(x => VM.log(indent + x._2 + "\t" + x._1))
