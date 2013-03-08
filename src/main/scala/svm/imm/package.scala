@@ -1,17 +1,17 @@
 package svm
 import collection.convert.wrapAsScala._
 package object imm {
-  implicit class c[T](list: java.util.List[T]){
+  implicit class c[T](val list: java.util.List[T]) extends AnyVal{
     def safeList: List[T] = {
       Option(list).toList.flatten
     }
   }
-  implicit class a[T](list: Array[T]){
+  implicit class a[T](val list: Array[T]) extends AnyVal{
     def safeList: List[T] = {
       Option(list).toList.flatten
     }
   }
-  implicit class o[T](a: T){
+  implicit class o[T](val a: T) extends AnyVal{
     def safeOpt: Option[T] = Option(a)
   }
 

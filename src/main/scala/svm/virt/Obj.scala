@@ -32,6 +32,10 @@ object Obj{
   def apply(clsName: String, initMembers: (String, Any)*)(implicit vm: VM) = {
     new Obj(vm.Classes(imm.Type.Cls(clsName)), initMembers: _*)
   }
+  def unapply(x: Any) = x match{
+    case x: Obj => Some((x.cls.name, x.members))
+    case _ => None
+  }
 }
 class Obj(val cls: svm.Cls, initMembers: (String, Any)*)
          (implicit vm: VM){ import vm._

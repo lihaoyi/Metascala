@@ -31,10 +31,9 @@ object Virtualizer {
       case x: Array[Long] => cloneArray(x)
       case x: Array[Float] => cloneArray(x)
       case x: Array[Double] => cloneArray(x)
-      case x: virt.Obj if x.cls.name == "java/lang/String" =>
-        new String(x.members(0)("value").asInstanceOf[Array[Char]])
-      case x: virt.Obj if x.cls.name == "java/lang/Integer" => x.members(0)("value").asInstanceOf[Int]
-      case x: virt.Obj if x.cls.name == "java/lang/Double" => x.members(0)("value").asInstanceOf[Double]
+      case virt.Obj("java/lang/String", members) => new String(members(0)("value").asInstanceOf[Array[Char]])
+      case virt.Obj("java/lang/Integer", members) => members(0)("value").asInstanceOf[Int]
+      case virt.Obj("java/lang/Double", members) => members(0)("value").asInstanceOf[Double]
     }
   }.asInstanceOf[T]
 

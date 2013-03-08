@@ -17,7 +17,7 @@ trait Natives{
   val trapped: Natives.NativeMap
   val fileLoader: String => Option[Array[Byte]]
 }
-trait NativeUtils{
+object NativeUtils{
   def value(x: Any) = (vm: VmThread)  => x
   def value1(x: Any) = (vm: VmThread) => (a: Any) => x
   def value2(x: Any) = (vm: VmThread) => (a: Any, b: Any) => x
@@ -26,7 +26,7 @@ trait NativeUtils{
   val noOp2 = value2(())
 
 
-  implicit class pimpedRoute(m: Map[String, Any]){
+  implicit class pimpedRoute(val m: Map[String, Any]) extends AnyVal{
     def toRoute(parts: List[String] = Nil): Natives.NativeMap = {
       m.flatMap{ case (k, v) =>
         v match{
@@ -59,13 +59,14 @@ trait NativeUtils{
       }
     }
   }
-  implicit class pimpedMap(s: String){
+  implicit class pimpedMap(val s: String) extends AnyVal{
     def /(a: (String, Any)*) = s -> a.toMap
     def -(a: VmThread => Any) = s -> a
   }
 }
-trait DefaultNatives extends Natives with NativeUtils{
+trait DefaultNatives extends Natives{
 
+  import NativeUtils._
   val fileLoader = (name: String) => {
     val slashName = s"/$name"
 
