@@ -81,7 +81,7 @@ object Misc {
     }
   }
 
-  case class InvokeVirtual(owner: Type, name: String, desc: Type.Desc) extends BaseOpCode(182, "invokevirtual"){
+  case class InvokeVirtual(owner: Type.Entity, name: String, desc: Type.Desc) extends BaseOpCode(182, "invokevirtual"){
     def op = vt => {
       import vt.vm
       val argCount = desc.args.length

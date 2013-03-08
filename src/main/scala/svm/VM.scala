@@ -174,54 +174,45 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
         throw new Exception("Uncaught Exception: " + Virtualizer.fromVirtual(ex(imm.Type.Cls("java.lang.Throwable"), "detailMessage")))
     }
   }
-  @tailrec final def prepInvoke(tpe: imm.Type, methodName: String, desc: imm.Type.Desc, args: Seq[Any]): Unit = {
+  @tailrec final def prepInvoke(tpe: imm.Type.Entity, methodName: String, desc: imm.Type.Desc, args: Seq[Any]): Unit = {
+    println(indent + "prepInvoke " + tpe.name + "\t" + methodName  + desc.unparse)
 
-    tpe match{
-      case imm.Type.Arr(_) =>
-        val trap = vm.natives.trapped.get("java/lang/Object/"+ methodName, desc).get
+    vm.natives.trapped.get(tpe.name + "/" + methodName, desc) match{
+      case Some(trap) =>
         val result = trap(this)(args)
-
         if (result != ()) threadStack.head.stack.push(result)
-      case tpe @ imm.Type.Cls(name) =>
-        if (vm.printMore) println(indent + "prepInvoke " + name + "\t" + methodName  + desc.unparse)
 
-        vm.natives.trapped.get(name + "/" + methodName, desc) match{
-          case Some(trap) =>
-            val result = trap(this)(args)
-            if (result != ()) threadStack.head.stack.push(result)
+      case None =>
 
-          case None =>
-            tpe.cls.clsData.methods.find(x => x.name == methodName && x.desc == desc) match{
-              case Some(m) if m.code.insns != Nil=>
-                //m.code.insns.zipWithIndex
-                //  .foreach(x => VM.log(indent + x._2 + "\t" + x._1))
+        tpe.cls.clsData.methods.find(x => x.name == methodName && x.desc == desc) match{
+          case Some(m) if m.code.insns != Nil=>
+            //m.code.insns.zipWithIndex
+            //  .foreach(x => VM.log(indent + x._2 + "\t" + x._1))
 
-                val stretchedArgs = args.flatMap {
-                  case l: Long => Seq(l, l)
-                  case d: Double => Seq(d, d)
-                  case x => Seq(x)
-                }
-                val array = new Array[Any](m.misc.maxLocals)
-                stretchedArgs.copyToArray(array)
+            val stretchedArgs = args.flatMap {
+              case l: Long => Seq(l, l)
+              case d: Double => Seq(d, d)
+              case x => Seq(x)
+            }
+            val array = new Array[Any](m.misc.maxLocals)
+            stretchedArgs.copyToArray(array)
 
-                if (vm.printMore) println(indent + "args " + stretchedArgs)
-                val startFrame = new Frame(
-                  runningClass = tpe,
-                  method = m,
-                  locals = array
-                )
+            if (vm.printMore) println(indent + "args " + stretchedArgs)
+            val startFrame = new Frame(
+              runningClass = tpe.cls,
+              method = m,
+              locals = array
+            )
 
-                //log(indent + "locals " + startFrame.locals)
-                threadStack.push(startFrame)
-              case _ =>
-                tpe.cls.clsData.superType match{
-                  case Some(x) => prepInvoke(x.tpe, methodName, desc, args)
-                  case None => throw new Exception("Can't find method " + tpe + " " + methodName + " " + desc.unparse)
-                }
+            //log(indent + "locals " + startFrame.locals)
+            threadStack.push(startFrame)
+          case _ =>
+            tpe.parent match{
+              case Some(x) => prepInvoke(x, methodName, desc, args)
+              case None => throw new Exception("Can't find method " + tpe + " " + methodName + " " + desc.unparse)
             }
         }
     }
-
 
   }
   def invoke(cls: imm.Type.Cls, methodName: String, desc: imm.Type.Desc, args: Seq[Any]) = {

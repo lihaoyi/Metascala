@@ -67,20 +67,21 @@ object Type{
   object Arr{
     def read(s: String) = Arr(Type.read(s.drop(1)))
   }
-  case class Arr(innerType: Type) extends Type{
+  case class Arr(innerType: Type) extends Entity{
     def unparse = "[" + innerType.unparse
     def name = "["
-    def cls(implicit vm: VM) = vm.Types(this)
-
+    def cls(implicit vm: VM) = ???
+    def parent(implicit vm: VM) = Some(imm.Type.Cls("java/lang/Object"))
     def realCls = ???
   }
   object Cls{
     def read(s: String) = Cls(s)
   }
-  case class Cls(name: String) extends Type{
+  case class Cls(name: String) extends Entity{
     def unparse = name
     def cls(implicit vm: VM) = vm.Classes(this)
     def realCls = classOf[virt.Obj]
+    def parent(implicit vm: VM) = this.cls.clsData.superType
     override def obj(implicit vm: VM): virt.Type = vm.Types(this)
   }
 
@@ -124,6 +125,11 @@ object Type{
     def unparse = "(" + args.map(Desc.unparse).foldLeft("")(_+_) + ")" + Desc.unparse(ret)
     def cls(implicit vm: VM) = ???
     def realCls = ???
+  }
+  trait Entity extends Type{
+    def parent(implicit vm: VM): Option[Entity]
+    def name: String
+    def cls(implicit vm: VM): svm.Cls
   }
 }
 trait Type{
