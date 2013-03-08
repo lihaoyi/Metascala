@@ -11,6 +11,7 @@ import java.io.{DataInputStream, IOException}
 object Natives{
   val default = new DefaultNatives {}
   type NativeMap = Map[(String, Type.Desc), VmThread => Seq[Any] => Any]
+  type NativeSeq = Seq[((String, Type.Desc), VmThread => Seq[Any] => Any)]
 }
 trait Natives{
   val properties: Map[String, Any]
@@ -26,11 +27,11 @@ object NativeUtils{
   val noOp2 = value2(())
 
 
-  implicit class pimpedRoute(val m: Map[String, Any]) extends AnyVal{
-    def toRoute(parts: List[String] = Nil): Natives.NativeMap = {
+  implicit class pimpedRoute(val m: Seq[(String, Any)]) extends AnyVal{
+    def toRoute(parts: List[String] = Nil): Natives.NativeSeq = {
       m.flatMap{ case (k, v) =>
         v match{
-          case thing: Map[String, Any] =>
+          case thing: Seq[(String, Any)] =>
             thing.toRoute(k :: parts).map {
               case ((path, desc), func) => ((k + "/" + path, desc), func)
             }
@@ -54,13 +55,13 @@ object NativeUtils{
               case f: (Any => Any) => f(args(0))
               case f => f
             }
-            Map((name, desc) -> newFunc)
+            Seq((name, desc) -> newFunc)
         }
       }
     }
   }
   implicit class pimpedMap(val s: String) extends AnyVal{
-    def /(a: (String, Any)*) = s -> a.toMap
+    def /(a: (String, Any)*) = s -> a
     def -(a: VmThread => Any) = s -> a
   }
 }
@@ -136,7 +137,7 @@ trait DefaultNatives extends Natives{
   }
 
   val trapped: Natives.NativeMap = {
-    Map(
+    Seq(
       "java"/(
         "io"/(
           "FileInputStream"/(
@@ -440,7 +441,7 @@ trait DefaultNatives extends Natives{
           )
         )
       )
-    ).toRoute()
+    ).toRoute().toMap
   }
 
 
