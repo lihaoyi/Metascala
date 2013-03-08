@@ -69,6 +69,7 @@ object Type{
   }
   case class Arr(innerType: Type) extends Type{
     def unparse = "[" + innerType.unparse
+    def name = "["
     def cls(implicit vm: VM) = vm.Types(this)
 
     def realCls = ???
@@ -119,6 +120,7 @@ object Type{
     }
   }
   case class Desc(args: Seq[Type], ret: Type) extends Type{
+    def name = unparse
     def unparse = "(" + args.map(Desc.unparse).foldLeft("")(_+_) + ")" + Desc.unparse(ret)
     def cls(implicit vm: VM) = ???
     def realCls = ???
@@ -126,7 +128,7 @@ object Type{
 }
 trait Type{
   def unparse: String
-
+  def name: String
   def realCls: Class[_]
   def obj(implicit vm: VM): virt.Type = vm.Types(this)
 }

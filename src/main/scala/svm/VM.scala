@@ -51,13 +51,10 @@ class VM(val natives: Natives = Natives.default, val printMore: Boolean = false)
       new svm.Cls(imm.Cls.parse(natives.fileLoader(t.name.replace(".", "/") + ".class").get))
     }
     override def post(cls: svm.Cls) = {
-      if (cls.name != "sun/misc/Unsafe"){
-        cls.method("<clinit>", imm.Type.Desc.read("()V")).foreach( m =>
-          threads(0).invoke(imm.Type.Cls(cls.name), "<clinit>", imm.Type.Desc.read("()V"), Nil)
-        )
-      }
+      cls.method("<clinit>", imm.Type.Desc.read("()V")).foreach( m =>
+        threads(0).invoke(imm.Type.Cls(cls.name), "<clinit>", imm.Type.Desc.read("()V"), Nil)
+      )
     }
-
   }
 
   lazy val threads = List(new VmThread())
