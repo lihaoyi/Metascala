@@ -16,19 +16,19 @@ object Misc {
   //===============================================================
 
   case class TableSwitch(min: Int, max: Int, defaultTarget: Int, targets: Seq[Int]) extends BaseOpCode(170, "tableswitch"){
-    def op = vt => vt.swapStack{ case Intish(top) :: rest =>
+    def op = vt => {
+      val Intish(top) = vt.pop
       val newPc: Int =
         if (targets.isDefinedAt(top - min)) targets(top - min)
         else defaultTarget
       vt.frame.pc = newPc
-      rest
     }
   }
   case class LookupSwitch(defaultTarget: Int, keys: Seq[Int], targets: Seq[Int]) extends BaseOpCode(171, "lookupswitch"){
-    def op = vt => vt.swapStack{ case Intish(top) :: rest =>
+    def op = vt => {
+      val Intish(top) = vt.pop
       val newPc: Int = keys.zip(targets).toMap.get(top).getOrElse(defaultTarget: Int)
       vt.frame.pc = newPc
-      rest
     }
   }
 
@@ -43,36 +43,32 @@ object Misc {
     def op = vt => {
       import vt.vm
       import vm._
-      vt.frame.stack = owner.cls.apply(owner, name) :: vt.frame.stack
+      vt.push(owner.cls.apply(owner, name))
     }
   }
   case class PutStatic(owner: Type.Cls, name: String, desc: Type) extends BaseOpCode(179, "putstatic"){
-    def op = vt => vt.swapStack{ case value :: stack =>
+    def op = vt => {
       import vt.vm
       import vm._
-      owner.cls.update(owner, name, value)
-      stack
+      owner.cls.update(owner, name, vt.pop)
     }
   }
 
   case class GetField(owner: Type.Cls, name: String, desc: Type) extends BaseOpCode(180, "getfield"){
-    def op = implicit vt => vt.swapStack{
-      case (objectRef: virt.Obj) :: stack => ext(objectRef(owner, name)) :: stack
-      case null :: rest =>
+    def op = vt => vt.pop match {
+      case (objectRef: virt.Obj) => vt.push(ext(objectRef(owner, name)))
+      case null =>
         import vt._
         vt.throwException(virt.Obj("java/lang/NullPointerException"))
-        rest
     }
   }
   case class PutField(owner: Type.Cls, name: String, desc: Type) extends BaseOpCode(181, "putfield"){
-    def op = implicit vt => vt.swapStack {
-      case value :: (objectRef: virt.Obj) :: stack =>
+    def op = vt => (vt.pop, vt.pop) match {
+      case (value, objectRef: virt.Obj) =>
         objectRef(owner, name) = value
-        stack
-      case value :: null :: rest =>
+      case (value, null) =>
         import vt._
         vt.throwException(virt.Obj("java/lang/NullPointerException"))
-        rest
     }
   }
 
@@ -131,11 +127,12 @@ object Misc {
     def op = implicit vt => desc match {
       case _ =>
         import vt.vm._
-        vt.frame.stack ::= new virt.Obj(desc)(vt.vm)
+        vt.push(new virt.Obj(desc)(vt.vm))
     }
   }
   case class NewArray(typeCode: Int) extends BaseOpCode(188, "newarray"){
-    def op = _.swapStack { case Intish(count) :: stack =>
+    def op = vt => {
+      val Intish(count) = vt.pop
       val newArray = typeCode match{
         case 4 => new Array[Boolean](count)
         case 5 => new Array[Char](count)
@@ -146,26 +143,27 @@ object Misc {
         case 10 => new Array[Int](count)
         case 11 => new Array[Long](count)
       }
-      newArray :: stack
+      vt.push(newArray)
     }
   }
   case class ANewArray(desc: Type) extends BaseOpCode(189, "anewarray"){
-    def op = _.swapStack{
-      case Intish(count) :: stack => new Array[Object](count) :: stack
+    def op = vt => {
+      val Intish(count) = vt.pop
+      vt.push(new Array[Object](count))
     }
   }
 
   case object ArrayLength extends BaseOpCode(190, "arraylength"){
-    def op = _.swapStack{
-      case (array: Array[_]) :: stack => array.length :: stack
+    def op = vt => {
+
+      vt.push(vt.pop.asInstanceOf[Array[_]].length)
     }
   }
 
   case object AThrow extends BaseOpCode(191, "athrow"){
     def op = vt => {
-      val (exception: virt.Obj) :: stack = vt.frame.stack
-      vt.frame.stack = stack
-      vt.throwException(exception)
+
+      vt.throwException(vt.pop.asInstanceOf[virt.Obj])
 
     }
   }
@@ -175,23 +173,23 @@ object Misc {
     }
   }
   case class InstanceOf(desc: Type) extends BaseOpCode(193, "instanceof"){
-    def op = implicit vt => vt.swapStack{ case top :: rest =>
+    def op = implicit vt => {
       import vt._
-      val res = top match{
+      val res = vt.pop match{
         case null => 0
         case x: virt.Obj =>  if(x.cls.checkIsInstanceOf(desc)) 1 else 0
         case x: Array[Object] => 1
 
 
       }
-      res :: vt.frame.stack
+      vt.push(res)
     }
   }
   case object MonitorEnter extends BaseOpCode(194, "monitorenter"){
-    def op = _.swapStack{case x :: stack => stack}
+    def op = _.pop
   }
   case object MonitorExit extends BaseOpCode(195, "monitorexit"){
-    def op = _.swapStack{case x :: stack => stack}
+    def op = _.pop
   }
 
   // Not used, because ASM folds these into the following bytecode for us
@@ -208,21 +206,19 @@ object Misc {
       val (dimValues, newStack) = vt.frame.stack.splitAt(dims)
       val dimArray = dimValues.map(x => x.asInstanceOf[Int])
       val array = java.lang.reflect.Array.newInstance(next(desc).realCls, dimArray:_*)
-      vt.frame.stack = array :: newStack
+      vt.push(array)
     }
   }
 
   case class IfNull(label: Int) extends BaseOpCode(198, "ifnull"){
-    def op = vt => vt.swapStack{ case ref :: stack =>
-      if (ref == null) vt.frame.pc = label
-      stack
+    def op = vt => {
+      if (vt.pop == null) vt.frame.pc = label
     }
   }
 
   case class IfNonNull(label: Int) extends BaseOpCode(199, "ifnonnull"){
-    def op = vt => vt.swapStack{ case ref :: stack =>
-      if (ref != null) vt.frame.pc = label
-      stack
+    def op = vt => {
+      if (vt.pop != null) vt.frame.pc = label
     }
   }
 

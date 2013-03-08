@@ -14,7 +14,7 @@ object LoadStore {
   }
 
   class PushOpCode(val id: Byte, val insnName: String, value: Any) extends OpCode{
-    def op = _.frame.stack ::= value
+    def op = _.frame.stack.push(value)
   }
 
   case object AConstNull extends PushOpCode(1, "aconst_null", null)
@@ -38,7 +38,7 @@ object LoadStore {
   case object DConst1 extends PushOpCode(15, "dconst_1", 1d)
 
   class PushValOpCode(val id: Byte, val insnName: String, value: Int) extends OpCode{
-    def op = _.frame.stack ::= value
+    def op = _.frame.stack.push(value)
   }
 
   case class BiPush(value: Int) extends PushValOpCode(16, "bipush", value)
@@ -57,7 +57,7 @@ object LoadStore {
         case x => x
       }
 
-      vt.frame.stack ::= newConst
+      vt.push(newConst)
     }
   }
 
@@ -70,7 +70,7 @@ object LoadStore {
   //===============================================================
 
   abstract class PushLocalIndexed(val id: Byte, val insnName: String) extends OpCode{
-    def op = (ctx => ctx.frame.stack ::= ctx.frame.locals(index))
+    def op = (ctx => ctx.frame.stack.push(ctx.frame.locals(index)))
     def index: Int
   }
 
@@ -113,9 +113,9 @@ object LoadStore {
   class PushFromArray[T](val id: Byte, val insnName: String) extends OpCode{
     def op = implicit vt => {
       import vt._
-      val Intish(index) :: (array: Array[T]) :: rest = frame.stack
+      val (Intish(index), array: Array[T]) = (frame.stack.pop(), frame.stack.pop())
       if (array.isDefinedAt(index))
-        frame.stack = array(index) :: rest
+        frame.stack.push(array(index))
       else{
         throwException{
           virt.Obj("java/lang/ArrayIndexOutOfBoundsException",
@@ -126,11 +126,11 @@ object LoadStore {
     }
   }
   class PushFromArrayInt[T: Numeric](val id: Byte, val insnName: String) extends OpCode{
-    def op = implicit vt => vt.frame.stack match {
-      case Intish(index) :: (array: Array[Boolean]) :: rest =>
+    def op = implicit vt => (vt.pop, vt.pop) match {
+      case (Intish(index), array: Array[Boolean])=>
         import vt._
         if (array.isDefinedAt(index))
-          frame.stack = (if(array(index)) 1 else 0) :: rest
+          vt.push(if(array(index)) 1 else 0)
         else{
           throwException{
             svm.virt.Obj("java/lang/ArrayIndexOutOfBoundsException",
@@ -138,10 +138,10 @@ object LoadStore {
             )
           }
         }
-      case Intish(index) :: (array: Array[T]) :: rest =>
+      case (Intish(index), array: Array[T]) =>
         import vt._
         if (array.isDefinedAt(index))
-          frame.stack = implicitly[Numeric[T]].toInt(array(index)) :: rest
+          vt.push(implicitly[Numeric[T]].toInt(array(index)))
         else{
           throwException{
             svm.virt.Obj("java/lang/ArrayIndexOutOfBoundsException",
@@ -164,10 +164,8 @@ object LoadStore {
 
   abstract class StoreLocal(val id: Byte, val insnName: String) extends OpCode{
     def varId: Int
-    def op = ctx => ctx.swapStack{ case top :: stack =>
-      ctx.frame.locals(varId) = top
-      stack
-    }
+    def op = vt => vt.frame.locals(varId) = vt.pop
+
   }
   case class IStore(varId: Int) extends StoreLocal(54, "istore")
   case class LStore(varId: Int) extends StoreLocal(55, "lstore")
@@ -203,41 +201,31 @@ object LoadStore {
   val AStore3 = UnusedOpCode(78, "astore_3")
   //===============================================================
   class StoreArray[T](val id: Byte, val insnName: String) extends OpCode{
-    def op = _.swapStack{
-      case (value: T) :: Intish(index) :: (array: Array[T]) :: stack =>
+    def op = vt => {
+      val (value: T, Intish(index), array: Array[T]) = (vt.pop, vt.pop, vt.pop)
         array(index) = value
-        stack
     }
   }
 
   class StoreArrayObj(val id: Byte, val insnName: String) extends OpCode{
-    def op = _.swapStack{
-      case (value: Any) :: Intish(index) :: (array: Array[Any]) :: stack =>
+    def op = vt => (vt.pop, vt.pop, vt.pop) match {
+      case (value: Any, Intish(index), array: Array[Any])=>
         array(index) = value
-        stack
-      case null :: Intish(index) :: (array: Array[Any]) :: stack =>
+      case (null, Intish(index), array: Array[Any]) =>
         array(index) = null
-        stack
     }
   }
 
   class StoreArrayInt[T](val id: Byte, val insnName: String)(x: Int => T) extends OpCode{
-    def op = ctx => {
-
-      ctx.swapStack {
-        case (value: Boolean) :: Intish(index) :: (array: Array[Boolean]) :: stack =>
-          array(index) = value
-          stack
-        case v@Intish(value) :: Intish(index) :: (array: Array[Boolean]) :: stack =>
-          array(index) = x(value) != 0
-          stack
-        case v@Intish(value) :: Intish(index) :: (array: Array[T]) :: stack =>
-          array(index) = x(value)
-          stack
-
-
-      }
+    def op = vt => (vt.pop, vt.pop, vt.pop) match {
+      case (value: Boolean, Intish(index), array: Array[Boolean]) =>
+        array(index) = value
+      case (Intish(value), Intish(index), array: Array[Boolean]) =>
+        array(index) = x(value) != 0
+      case (Intish(value), Intish(index), array: Array[T]) =>
+        array(index) = x(value)
     }
+
   }
   case object IAStore extends StoreArray[Int](79, "iastore")
   case object LAStore extends StoreArray[Long](80, "lastore")

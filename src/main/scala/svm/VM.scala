@@ -105,9 +105,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
   def frame = threadStack.head
 
-  def swapStack(transform: PartialFunction[List[Any], List[Any]]) = {
-    frame.stack = transform(frame.stack)
-  }
+  
   def getStackTrace =
     threadStack.map { f =>
       new StackTraceElement(
@@ -147,7 +145,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
   def returnVal(x: Option[Any]) = {
 //    log(indent + "Returning from " + threadStack.head.runningClass.name + " " + threadStack.head.method.name)
     threadStack.pop()
-    x.foreach(value => threadStack.head.stack = value :: threadStack.head.stack)
+    x.foreach(value => threadStack.head.stack.push(value))
   }
   def dumpStack =
     threadStack.map(f =>
@@ -170,7 +168,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
             throwException(ex, false)
           case Some(TryCatchBlock(start, end, handler, blockType)) =>
             frame.pc = handler
-            frame.stack ::= ex
+            frame.stack.push(ex)
         }
       case None =>
         ex.apply(imm.Type.Cls("java.lang.Throwable"), "stackTrace")
@@ -190,14 +188,14 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
         val trap = vm.natives.trapped.get("java/lang/Object/"+ methodName, desc).get
         val result = trap(this)(args)
 
-        if (result != ()) threadStack.head.stack ::= result
+        if (result != ()) threadStack.head.stack.push(result)
       case tpe @ imm.Type.Cls(name) =>
         if (vm.printMore) println(indent + "prepInvoke " + name + "\t" + methodName  + desc.unparse)
 
         vm.natives.trapped.get(name + "/" + methodName, desc) match{
           case Some(trap) =>
             val result = trap(this)(args)
-            if (result != ()) threadStack.head.stack ::= result
+            if (result != ()) threadStack.head.stack.push(result)
 
           case None =>
             tpe.cls.clsData.methods.find(x => x.name == methodName && x.desc == desc) match{
@@ -217,8 +215,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
                 val startFrame = new Frame(
                   runningClass = tpe,
                   method = m,
-                  locals = array,
-                  stack = Nil
+                  locals = array
                 )
 
                 //log(indent + "locals " + startFrame.locals)
@@ -238,8 +235,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     val dummyFrame = new Frame(
       runningClass = cls,
       method = Method(0, "Dummy", imm.Type.Desc.read("()V")),
-      locals = mutable.Seq.empty,
-      stack = Nil
+      locals = mutable.Seq.empty    
     )
 
     threadStack.push(dummyFrame)
@@ -257,6 +253,6 @@ class Frame(
   val runningClass: svm.Cls,
   val method: Method,
   val locals: mutable.Seq[Any] = mutable.Seq.empty,
-  var stack: List[Any] = Nil)
+  var stack: mutable.Stack[Any] = mutable.Stack.empty[Any])
 
 

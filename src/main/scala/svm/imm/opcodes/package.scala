@@ -47,7 +47,10 @@ package object opcodes {
     def op = ctx => ???
   }
   implicit def intToByte(n: Int) = n.toByte
-
+  implicit class poppable(val vt: VmThread) extends AnyVal{
+    def pop = vt.frame.stack.pop()
+    def push(x: Any) = vt.frame.stack.push(x)
+  }
   abstract class BaseOpCode(val id: Byte, val insnName: String) extends OpCode{
     def op: VmThread => Unit
   }
