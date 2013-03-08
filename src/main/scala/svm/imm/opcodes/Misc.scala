@@ -199,13 +199,10 @@ object Misc {
 
   case class MultiANewArray(desc: Type.Arr, dims: Int) extends BaseOpCode(197, "multianewarray"){
     def op = vt => {
-      def next(t: Type): Type =  t match {
-        case Type.Arr(in) => next(in)
-        case x => x
-      }
+
       val (dimValues, newStack) = vt.frame.stack.splitAt(dims)
       val dimArray = dimValues.map(x => x.asInstanceOf[Int])
-      val array = java.lang.reflect.Array.newInstance(next(desc).realCls, dimArray:_*)
+      val array = java.lang.reflect.Array.newInstance(desc.realCls, dimArray:_*)
       vt.push(array)
     }
   }
