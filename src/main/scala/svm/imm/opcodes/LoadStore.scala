@@ -52,7 +52,7 @@ object LoadStore {
         case s: String =>
           vt.vm.InternedStrings(virt.Obj("java/lang/String", "value" -> s.toCharArray))
         case t: asm.Type =>
-          Type.Cls(t.getClassName).obj
+          Type.Cls(t.getInternalName).obj
 
         case x => x
       }

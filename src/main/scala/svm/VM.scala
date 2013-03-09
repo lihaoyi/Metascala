@@ -49,17 +49,20 @@ class VM(val natives: Natives = Natives.default, val printMore: Boolean = false)
 
   implicit object Classes extends Cache[imm.Type.Cls, svm.Cls]{
     def load(t: imm.Type.Cls): svm.Cls = {
+
       if (!cache.contains(t)){
+        println("Loading " + t.unparse)
         val cls = new svm.Cls(imm.Cls.parse(natives.fileLoader(t.name.replace(".", "/") + ".class").get))
         cache(t) = cls
         cls.method("<clinit>", imm.Type.Desc.read("()V")).foreach( m =>
           threads(0).invoke(imm.Type.Cls(cls.name), "<clinit>", imm.Type.Desc.read("()V"), Nil)
         )
+        println("Done Loading " + t.unparse)
       }
       cache(t)
     }
     def calc(t: imm.Type.Cls): svm.Cls = {
-      println("Can't find Class: " + t)
+      println("Can't find Class: " + t + " " + cache.contains(t))
       ???
     }
 
@@ -68,11 +71,7 @@ class VM(val natives: Natives = Natives.default, val printMore: Boolean = false)
   lazy val threads = List(new VmThread())
 
   def invoke(bootClass: String, mainMethod: String, args: Seq[Any]) = {
-    Classes.load(imm.Type.Cls("java/lang/Class"))
-    Classes.load(imm.Type.Cls("java/lang/String"))
-    Classes.load(imm.Type.Cls("java/lang/ArrayIndexOutOfBoundsException"))
-    Classes.load(imm.Type.Cls("java/lang/NullPointerException"))
-    Classes.load(imm.Type.Cls("java/lang/StackTraceElement"))
+
     try{
       Classes.load(imm.Type.Cls(bootClass))
       Virtualizer.fromVirtual[Any](
@@ -95,6 +94,17 @@ class VM(val natives: Natives = Natives.default, val printMore: Boolean = false)
     }
   }
   //invoke("java/lang/System", "initializeSystemClass", Nil)
+  Classes.load(imm.Type.Cls("java/lang/Class"))
+  Classes.load(imm.Type.Cls("java/lang/String"))
+  Classes.load(imm.Type.Cls("java/lang/ArrayIndexOutOfBoundsException"))
+  Classes.load(imm.Type.Cls("java/lang/NullPointerException"))
+  Classes.load(imm.Type.Cls("java/lang/StackTraceElement"))
+  Classes.load(imm.Type.Cls("java/security/AccessControlContext"))
+  Classes.load(imm.Type.Cls("java/lang/reflect/Field"))
+  Classes.load(imm.Type.Cls("java/lang/ThreadGroup"))
+  Classes.load(imm.Type.Cls("java/util/HashMap"))
+  Classes.load(imm.Type.Cls("java/util/Hashtable"))
+
 
 }
 

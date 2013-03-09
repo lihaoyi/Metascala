@@ -77,6 +77,7 @@ object Type{
     def read(s: String) = Cls(s)
   }
   case class Cls(name: String) extends Entity{
+    assert(!name.contains("."))
     def unparse = name
     def cls(implicit vm: VM) = vm.Classes(this)
     def parent(implicit vm: VM) = this.cls.clsData.superType

@@ -167,11 +167,15 @@ trait DefaultNatives extends Natives{
             },
             "forName0(L//String;)L//Class;" - {vt => (s: Obj) =>
               import vt._
-              Type.Cls(Virtualizer.fromVirtual[String](s)).obj
+              val cls = Type.Cls(Virtualizer.fromVirtual[String](s).replace('.', '/'))
+              vt.vm.Classes.load(cls)
+              cls.obj
             },
             "forName0(L//String;ZL//ClassLoader;)L//Class;" - {vt => (s: virt.Obj, w: Any, y: Any) =>
               import vt._
-              Type.Cls(Virtualizer.fromVirtual[String](s)).obj
+              val cls = Type.Cls(Virtualizer.fromVirtual[String](s).replace('.', '/'))
+              vt.vm.Classes.load(cls)
+              cls.obj
             },
             "getPrimitiveClass(L//String;)L//Class;" - {vt => (s: Obj) =>
               import vt._
