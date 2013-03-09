@@ -10,7 +10,7 @@ class Cls(val clsData: imm.Cls,
 
   import vm._
 
-  clsData.superType.map(vm.Classes)
+
   lazy val obj = new virt.Cls(Type.Cls(name))
 
   clsData.fields.map{f =>
@@ -39,7 +39,7 @@ class Cls(val clsData: imm.Cls,
     def rec(cd: imm.Cls): List[imm.Cls] = {
       cd.superType match{
         case None => List(cd)
-        case Some(x) => cd :: rec(x.clsData)
+        case Some(x) => cd :: rec(vm.Classes.load(x).clsData)
       }
     }
     rec(clsData)

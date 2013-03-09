@@ -5,6 +5,7 @@ import imm._
 import imm.Attached.LineNumber
 import annotation.tailrec
 import java.security.AccessController
+import opcodes.Misc.{New, PutStatic, GetStatic, InvokeStatic}
 import virt.{Obj}
 import svm.virt
 import virt.Type
@@ -47,20 +48,33 @@ class VM(val natives: Natives = Natives.default, val printMore: Boolean = false)
   }
 
   implicit object Classes extends Cache[imm.Type.Cls, svm.Cls]{
+    def load(t: imm.Type.Cls): svm.Cls = {
+      if (!cache.contains(t)){
+        val cls = new svm.Cls(imm.Cls.parse(natives.fileLoader(t.name.replace(".", "/") + ".class").get))
+        cache(t) = cls
+        cls.method("<clinit>", imm.Type.Desc.read("()V")).foreach( m =>
+          threads(0).invoke(imm.Type.Cls(cls.name), "<clinit>", imm.Type.Desc.read("()V"), Nil)
+        )
+      }
+      cache(t)
+    }
     def calc(t: imm.Type.Cls): svm.Cls = {
-      new svm.Cls(imm.Cls.parse(natives.fileLoader(t.name.replace(".", "/") + ".class").get))
+      println("Can't find Class: " + t)
+      ???
     }
-    override def post(cls: svm.Cls) = {
-      cls.method("<clinit>", imm.Type.Desc.read("()V")).foreach( m =>
-        threads(0).invoke(imm.Type.Cls(cls.name), "<clinit>", imm.Type.Desc.read("()V"), Nil)
-      )
-    }
+
   }
 
   lazy val threads = List(new VmThread())
 
   def invoke(bootClass: String, mainMethod: String, args: Seq[Any]) = {
+    Classes.load(imm.Type.Cls("java/lang/Class"))
+    Classes.load(imm.Type.Cls("java/lang/String"))
+    Classes.load(imm.Type.Cls("java/lang/ArrayIndexOutOfBoundsException"))
+    Classes.load(imm.Type.Cls("java/lang/NullPointerException"))
+    Classes.load(imm.Type.Cls("java/lang/StackTraceElement"))
     try{
+      Classes.load(imm.Type.Cls(bootClass))
       Virtualizer.fromVirtual[Any](
         threads(0).invoke(
           imm.Type.Cls(bootClass),
@@ -127,9 +141,16 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     val topFrame = threadStack.head
 
     val node = topFrame.method.code.insns(topFrame.pc)
-    if (vm.printMore) println(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack)
-    if (vm.printMore) println(indent + "---------------------- " + topFrame.pc + "\t" + node )
+    //println(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack)
+    //println(indent + "---------------------- " + topFrame.pc + "\t" + node )
     topFrame.pc += 1
+    node match{
+      case New(tpe) => Classes.load(tpe)
+      case InvokeStatic(tpe, b, c) => Classes.load(tpe)
+      case GetStatic(tpe, b, c) => Classes.load(tpe)
+      case PutStatic(tpe, b, c) => Classes.load(tpe)
+      case _ =>
+    }
     node.op(this)
 
 
@@ -175,7 +196,6 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     }
   }
   @tailrec final def prepInvoke(tpe: imm.Type.Entity, methodName: String, desc: imm.Type.Desc, args: Seq[Any]): Unit = {
-
 
     (vm.natives.trapped.get(tpe.name + "/" + methodName, desc), tpe) match{
       case (Some(trap), _) =>
