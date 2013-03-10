@@ -6,22 +6,28 @@ import svm.Util.SingleClassVM
 
 object Moo{
   def run() = {
-    val x = new svm.Util.SingleClassVM("svm.helloworld.controlflow.Loops")
+    val x = new svm.Util.SingleClassVM("svm.helloworld.controlflow.Loops", println)
     x.run("sqrtFinder", 5.0)
   }
-  def main(args: Array[String]){
+  /*def main(args: Array[String]){
     println(run())
-  }
+  }*/
 }
 
 class SVMTest extends FreeSpec with Util{
-  /*"omg" in {
+  "omg" in {
     val tester = new Tester("svm.full.Moo")
     tester.run("run")
   }
-  "rhino" in {
+  /*"rhino" in {
     val tester = new Tester("svm.full.SVM")
     tester.run("rhino")
+  }
+  "test"  in {
+    println(Class.forName("java.util.concurrent.locks.AbstractQueuedSynchronizer"))
+    println(ClassLoader.getSystemResource("java/util/concurrent/locks/AbstractQueuedSynchronizer.class"))
+    println(ClassLoader.getSystemResource("java/util/concurrent/locks/AbstractQueuedSynchronizer$Node.class"))
+
   }*/
 
 }

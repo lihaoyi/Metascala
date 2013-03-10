@@ -108,7 +108,9 @@ trait DefaultNatives extends Natives{
     "os.version" -> "0",
     "scala.control.noTraceSuppression" -> null,
     "sun.io.useCanonCaches" -> null,
-    "sun.io.useCanonPrefixCache" -> null
+    "sun.io.useCanonPrefixCache" -> null,
+    "sun.timezone.ids.oldmapping" -> null,
+    "user.timezone" -> "America/New_York"
 
   )
 
@@ -174,8 +176,12 @@ trait DefaultNatives extends Natives{
             "forName0(L//String;ZL//ClassLoader;)L//Class;" - {vt => (s: virt.Obj, w: Any, y: Any) =>
               import vt._
               val cls = Type.Cls(Virtualizer.fromVirtual[String](s).replace('.', '/'))
-              vt.vm.Classes.load(cls)
-              cls.obj
+              vt.vm.Classes.load(cls) match{
+                case Some(x) => x.obj
+                case None => vt.throwException(virt.Obj(
+                  "java/lang/ClassNotFoundException"
+                ))
+              }
             },
             "getPrimitiveClass(L//String;)L//Class;" - {vt => (s: Obj) =>
               import vt._
@@ -232,7 +238,7 @@ trait DefaultNatives extends Natives{
               fileLoader(str) match{
                 case None => null
                 case Some(bytes) =>
-                  virt.Obj("java.io.ByteArrayInputStream",
+                  virt.Obj("java/io/ByteArrayInputStream",
                     "buf" -> bytes,
                     "pos" -> 0,
                     "mark" -> 0,
@@ -248,7 +254,7 @@ trait DefaultNatives extends Natives{
               fileLoader(str) match{
                 case None => null
                 case Some(bytes) =>
-                  virt.Obj("java.io.ByteArrayInputStream",
+                  virt.Obj("java/io/ByteArrayInputStream",
                     "buf" -> bytes,
                     "pos" -> 0,
                     "mark" -> 0,
@@ -269,14 +275,15 @@ trait DefaultNatives extends Natives{
             "floatToRawIntBits(F)I"-{ vt => java.lang.Float.floatToIntBits(_: Float)}
           ),
           "Object"/(
-            "clone()L//Object;" -  {vt => (_: Any ) match{
+            "clone()L//Object;" -  {vt => (x: Any) =>
+              x match{
               case (x: Obj) => x
               case (a: Array[_]) => a.clone
             }},
             "registerNatives()V" - noOp,
             "getClass()L//Class;" - { vt => (_: Any) match{
               case (x: Obj) => x.cls.obj
-              case a: Array[_] => import vt.vm; Type.Arr.read(a.getClass.getName).obj
+              case a: Array[_] => import vt.vm; Type.Arr.read(a.getClass.getName.replace('.', '/')).obj
             }},
             "hashCode()I" - { vt => (_: Obj).hashCode()},
             "notify()V" - noOp1,
@@ -297,7 +304,7 @@ trait DefaultNatives extends Natives{
             "getProperty(L//String;)L//String;" - {
               vt => (s: Obj) =>
                 import vt.vm
-                Virtualizer.toVirtual[Any](properties(Virtualizer.fromVirtual[String](s)))
+                Virtualizer.toVirtual[Any](properties.getOrElse(Virtualizer.fromVirtual[String](s), null))
 
             },
             "getProperty(L//String;L//String;)L//String;" - {
@@ -352,15 +359,25 @@ trait DefaultNatives extends Natives{
             "getStackAccessControlContext()L//AccessControlContext;" - { vt => virt.Obj("java/security/AccessControlContext")(vt.vm)},
             "getInheritedAccessControlContext()L//AccessControlContext;" - { vt => virt.Obj("java/security/AccessControlContext")(vt.vm)}
             )
+          ),
+        "util"/(
+          "concurrent"/(
+            "atomic"/(
+              "AtomicLong"/(
+                "VMSupportsCS8()Z" - value(true)
+                )
+              )
+            )
           )
+
         ),
       "scala"/(
         "Predef$"/(
           "println(Ljava/lang/String;)V" - {
-            svm => (x: virt.Obj, y: virt.Obj) => println("VIRTUAL " + Virtualizer.fromVirtual[String](y))
+            vt => (x: virt.Obj, y: virt.Obj) => vt.vm.log("VIRTUAL " + Virtualizer.fromVirtual[String](y))
           },
           "println(Ljava/lang/Object;)V" - {
-            svm => (x: virt.Obj, y: virt.Obj) => println("VIRTUAL " + Virtualizer.fromVirtual[String](y))
+            vt => (x: virt.Obj, y: virt.Obj) => vt.vm.log("VIRTUAL " + Virtualizer.fromVirtual[String](y))
           }
 
         )
@@ -444,9 +461,10 @@ trait DefaultNatives extends Natives{
             "registerMethodsToFilter(Ljava/lang/Class;[Ljava/lang/String;)V" - noOp2
           )
         )
-      )
-    ).toRoute().toMap
-  }
+
+    )
+  ).toRoute().toMap
+}
 
 
 

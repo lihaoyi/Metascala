@@ -34,7 +34,7 @@ object Virtualizer {
       case virt.Obj("java/lang/String", members) => new String(members(0)("value").asInstanceOf[Array[Char]])
       case virt.Obj("java/lang/Integer", members) => members(0)("value").asInstanceOf[Int]
       case virt.Obj("java/lang/Double", members) => members(0)("value").asInstanceOf[Double]
-      case virt.Obj(cls, members) => println("Unknown Object " + cls)
+      case virt.Obj(cls, members) =>
     }
   }.asInstanceOf[T]
 

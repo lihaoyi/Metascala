@@ -39,7 +39,7 @@ class Cls(val clsData: imm.Cls,
     def rec(cd: imm.Cls): List[imm.Cls] = {
       cd.superType match{
         case None => List(cd)
-        case Some(x) => cd :: rec(vm.Classes.load(x).clsData)
+        case Some(x) => cd :: rec(vm.Classes.load(x).get.clsData)
       }
     }
     rec(clsData)

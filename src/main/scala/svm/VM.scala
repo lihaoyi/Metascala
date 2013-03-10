@@ -7,14 +7,8 @@ import annotation.tailrec
 import java.security.AccessController
 import opcodes.Misc.{New, PutStatic, GetStatic, InvokeStatic}
 import virt.{Obj}
-import svm.virt
-import virt.Type
-object VM{
-  val lines = mutable.Buffer.empty[String]
-  def log(s: String) = lines.append(s)
-  var count = 0
-}
-import VM._
+
+
 
 trait Cache[In, Out] extends (In => Out){
   val cache = mutable.Map.empty[Any, Out]
@@ -33,7 +27,7 @@ trait Cache[In, Out] extends (In => Out){
     }
   }
 }
-class VM(val natives: Natives = Natives.default, val printMore: Boolean = false) {
+class VM(val natives: Natives = Natives.default, val log: (String => Unit)) {
 
   private[this] implicit val vm = this
   implicit object InternedStrings extends Cache[virt.Obj, virt.Obj]{
@@ -48,21 +42,27 @@ class VM(val natives: Natives = Natives.default, val printMore: Boolean = false)
   }
 
   implicit object Classes extends Cache[imm.Type.Cls, svm.Cls]{
-    def load(t: imm.Type.Cls): svm.Cls = {
+    def load(t: imm.Type.Cls): Option[svm.Cls] = {
 
       if (!cache.contains(t)){
-        println("Loading " + t.unparse)
-        val cls = new svm.Cls(imm.Cls.parse(natives.fileLoader(t.name.replace(".", "/") + ".class").get))
-        cache(t) = cls
-        cls.method("<clinit>", imm.Type.Desc.read("()V")).foreach( m =>
-          threads(0).invoke(imm.Type.Cls(cls.name), "<clinit>", imm.Type.Desc.read("()V"), Nil)
-        )
-        println("Done Loading " + t.unparse)
-      }
-      cache(t)
+        vm.log("Loading " + t.unparse)
+        natives.fileLoader(t.name.replace(".", "/") + ".class").map{ d =>
+          val cls = new svm.Cls(imm.Cls.parse(d))
+          cache(t) = cls
+          cls.method("<clinit>", imm.Type.Desc.read("()V")).foreach( m =>
+            threads(0).invoke(imm.Type.Cls(cls.name), "<clinit>", imm.Type.Desc.read("()V"), Nil)
+          )
+          vm.log("Done Loading " + t.unparse)
+          cache(t)
+        }.orElse{
+          vm.log("Failed Loading " + t.unparse)
+          None
+        }
+      }else
+        Some(cache(t))
     }
     def calc(t: imm.Type.Cls): svm.Cls = {
-      println("Can't find Class: " + t + " " + cache.contains(t))
+      vm.log("Can't find Class: " + t + " " + cache.contains(t))
       ???
     }
 
@@ -72,38 +72,39 @@ class VM(val natives: Natives = Natives.default, val printMore: Boolean = false)
 
   def invoke(bootClass: String, mainMethod: String, args: Seq[Any]) = {
 
-    try{
-      Classes.load(imm.Type.Cls(bootClass))
-      Virtualizer.fromVirtual[Any](
-        threads(0).invoke(
-          imm.Type.Cls(bootClass),
-          mainMethod,
-          imm.Type.Cls(bootClass).cls
-            .clsData
-            .methods
-            .find(x => x.name == mainMethod)
-            .map(_.desc)
-            .getOrElse(throw new IllegalArgumentException("Can't find method: " + mainMethod)),
-          args.map(Virtualizer.toVirtual[Any])
-        )
+
+    Classes.load(imm.Type.Cls(bootClass))
+    Virtualizer.fromVirtual[Any](
+      threads(0).invoke(
+        imm.Type.Cls(bootClass),
+        mainMethod,
+        imm.Type.Cls(bootClass).cls
+          .clsData
+          .methods
+          .find(x => x.name == mainMethod)
+          .map(_.desc)
+          .getOrElse(throw new IllegalArgumentException("Can't find method: " + mainMethod)),
+        args.map(Virtualizer.toVirtual[Any])
       )
-    }catch {case x =>
-      lines.takeRight(2000).foreach(println)
-      threads(0).dumpStack.foreach(println)
-      throw x
-    }
+    )
+
   }
   //invoke("java/lang/System", "initializeSystemClass", Nil)
   Classes.load(imm.Type.Cls("java/lang/Class"))
   Classes.load(imm.Type.Cls("java/lang/String"))
   Classes.load(imm.Type.Cls("java/lang/ArrayIndexOutOfBoundsException"))
   Classes.load(imm.Type.Cls("java/lang/NullPointerException"))
+  Classes.load(imm.Type.Cls("java/lang/ClassNotFoundException"))
   Classes.load(imm.Type.Cls("java/lang/StackTraceElement"))
   Classes.load(imm.Type.Cls("java/security/AccessControlContext"))
   Classes.load(imm.Type.Cls("java/lang/reflect/Field"))
+  Classes.load(imm.Type.Cls("java/lang/reflect/Method"))
+  Classes.load(imm.Type.Cls("java/lang/reflect/Constructor"))
   Classes.load(imm.Type.Cls("java/lang/ThreadGroup"))
   Classes.load(imm.Type.Cls("java/util/HashMap"))
   Classes.load(imm.Type.Cls("java/util/Hashtable"))
+  Classes.load(imm.Type.Cls("java/io/Serializable"))
+  Classes.load(imm.Type.Cls("java/io/ByteArrayInputStream"))
 
 
 }
@@ -138,21 +139,12 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
   def indent = "\t" * threadStack.filter(_.method.name != "Dummy").length
 
   def step() = {
-    VM.count += 1
-    if (false){
-      println("SnapShot")
-      println("\n")
-      println(new Object())
-      threadStack.foreach(f =>
-        println(f.runningClass.name.padTo(60, ' ') + f.method.name.padTo(30, ' ') + f.pc)
-      )
-      println("\n")
-    }
+
     val topFrame = threadStack.head
 
     val node = topFrame.method.code.insns(topFrame.pc)
-    //println(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack)
-    //println(indent + "---------------------- " + topFrame.pc + "\t" + node )
+    log(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack)
+    log(indent + "---------------------- " + topFrame.pc + "\t" + node )
     topFrame.pc += 1
     node match{
       case New(tpe) => Classes.load(tpe)
@@ -200,7 +192,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
           .map(x => "" +
             Virtualizer.fromVirtual(x(imm.Type.Cls("java.lang.StackTraceElement"), "declaringClass")) + " " +
           Virtualizer.fromVirtual(x(imm.Type.Cls("java.lang.StackTraceElement"), "methodName")))
-          .foreach(println)
+          .foreach(log)
 
         throw new Exception("Uncaught Exception: " + Virtualizer.fromVirtual(ex(imm.Type.Cls("java.lang.Throwable"), "detailMessage")))
     }
@@ -227,7 +219,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
             val array = new Array[Any](m.misc.maxLocals)
             stretchedArgs.copyToArray(array)
 
-            if (vm.printMore) println(indent + "args " + stretchedArgs)
+
             val startFrame = new Frame(
               runningClass = tpe.cls,
               method = m,

@@ -25,6 +25,7 @@ class Cls(override val tpe: imm.Type.Cls)
             (implicit vm: VM)
              extends Type(tpe){
   import vm._
+  Classes.load(tpe)
   def name = tpe.unparse
   override def getDeclaredConstructors() = {
     tpe.clsData
@@ -34,7 +35,7 @@ class Cls(override val tpe: imm.Type.Cls)
       virt.Obj("java/lang/reflect/Constructor",
         "clazz" -> tpe.obj,
         "slot" -> 0,
-        "parameterTypes" -> m.desc.args.map(_.obj),
+        "parameterTypes" -> m.desc.args.map(_.obj).toArray,
         "exceptionTypes" -> new Array[virt.Cls](0),
         "modifiers" -> m.access
       )

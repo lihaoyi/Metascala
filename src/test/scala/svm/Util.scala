@@ -81,7 +81,7 @@ object Util{
     }
   }
 
-  class SingleClassVM(className: String, printMore: Boolean = false) extends VM(printMore = printMore){
+  class SingleClassVM(className: String, log: (String => Unit)) extends VM(log = log){
     def run(main: String, args: Any*): Any = invoke(className.replace('.', '/'), main, args)
   }
 }
@@ -101,17 +101,24 @@ trait Util extends ShouldMatchers { this: FreeSpec  =>
     }
   }
   class Tester(className: String){
-    val svm = new Util.SingleClassVM(className)
+    import collection.mutable
+    val buffer = mutable.Buffer[String]()
+    val svm = new Util.SingleClassVM(className, x => buffer.append(x))
     val ref = new ReflectiveRunner(className)
+
     def run(main: String, args: Any*) = {
-      val svmRes = svm.run(main, args:_*)
-      val refRes = ref.run(main, args:_*)
+      println("Running...")
       val inString = args.toString
-      println(svmRes)
-      println(refRes)
       try{
+        val svmRes = svm.run(main, args:_*)
+        val refRes = ref.run(main, args:_*)
+
+        println(svmRes)
+        println(refRes)
         svmRes should be === refRes
-      }catch {case ex: TestFailedException =>
+      }catch {case ex: Throwable =>
+        println("Failure... " + buffer.length)
+        buffer.takeRight(2000).foreach(println)
         println("Test failed for input")
         println(inString)
 
