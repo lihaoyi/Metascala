@@ -4,7 +4,7 @@ import imm.Type
 import virt.Obj
 
 object Virtualizer {
-  def fromVirtual[T](x: Any): T = {
+  def fromVirtual[T](x: Any)(implicit vm: VM): T = {
     def cloneArray[T](x: Array[T]): Array[T] = {
       val newArray = x.clone()
       for(i <- 0 until x.length){
@@ -34,7 +34,7 @@ object Virtualizer {
       case virt.Obj("java/lang/String", members) => new String(members(0)("value").asInstanceOf[Array[Char]])
       case virt.Obj("java/lang/Integer", members) => members(0)("value").asInstanceOf[Int]
       case virt.Obj("java/lang/Double", members) => members(0)("value").asInstanceOf[Double]
-      case virt.Obj(cls, members) => println("Unknown Object " + cls)
+      case virt.Obj(cls, members) => vm.log("Unknown Object " + cls)
     }
   }.asInstanceOf[T]
 

@@ -71,7 +71,7 @@ class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) 
       )
     }catch {case x =>
 
-      threads(0).dumpStack.foreach(println)
+      //threads(0).dumpStack.foreach(println)
       throw x
     }
   }
@@ -151,12 +151,12 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
             frame.stack.push(ex)
         }
       case None =>
-        ex.apply(imm.Type.Cls("java.lang.Throwable"), "stackTrace")
+        /*ex.apply(imm.Type.Cls("java.lang.Throwable"), "stackTrace")
           .asInstanceOf[Array[virt.Obj]]
           .map(x => "" +
             Virtualizer.fromVirtual(x(imm.Type.Cls("java.lang.StackTraceElement"), "declaringClass")) + " " +
           Virtualizer.fromVirtual(x(imm.Type.Cls("java.lang.StackTraceElement"), "methodName")))
-          .foreach(println)
+          .foreach(println)*/
 
         throw new Exception("Uncaught Exception: " + Virtualizer.fromVirtual(ex(imm.Type.Cls("java.lang.Throwable"), "detailMessage")))
     }

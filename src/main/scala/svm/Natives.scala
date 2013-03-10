@@ -353,10 +353,10 @@ trait DefaultNatives extends Natives{
       "scala"/(
         "Predef$"/(
           "println(Ljava/lang/String;)V" - {
-            svm => (x: virt.Obj, y: virt.Obj) => println("VIRTUAL " + Virtualizer.fromVirtual[String](y))
+            vt => (x: virt.Obj, y: virt.Obj) => vt.vm.log("VIRTUAL " + Virtualizer.fromVirtual[String](y)(vt.vm))
           },
           "println(Ljava/lang/Object;)V" - {
-            svm => (x: virt.Obj, y: virt.Obj) => println("VIRTUAL " + Virtualizer.fromVirtual[String](y))
+            vt => (x: virt.Obj, y: virt.Obj) => vt.vm.log("VIRTUAL " + Virtualizer.fromVirtual[String](y)(vt.vm))
           }
 
         )

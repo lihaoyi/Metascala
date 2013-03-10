@@ -43,15 +43,8 @@ object Gen{
   }
 
 
-  def int(bits: Int) = {
-    println("Gen Int")
-    println(bits)
-    println(1 << bits)
-    val res = Random.nextInt(1 << bits)
-    println(res)
-    res
+  def int(bits: Int) = Random.nextInt(1 << bits)
 
-  }
   def long(bits: Int) =  {
     if (bits >= 32){
       (Random.nextInt(1 << (bits - 32)).toLong << 32) | Random.nextInt(32)
