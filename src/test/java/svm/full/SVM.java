@@ -12,8 +12,5 @@ public class SVM {
         Object result = cx.evaluateString(scope, s, "<cmd>", 1, null);
         return ""+result;
     }
-    public static void main(String[] args){
-        System.out.println(rhino());
-    }
 
 }

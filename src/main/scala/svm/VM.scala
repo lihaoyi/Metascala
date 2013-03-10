@@ -8,12 +8,7 @@ import java.security.AccessController
 import virt.{Obj}
 import svm.virt
 import virt.Type
-object VM{
-  val lines = mutable.Buffer.empty[String]
-  def log(s: String) = lines.append(s)
-  var count = 0
-}
-import VM._
+
 
 trait Cache[In, Out] extends (In => Out){
   val cache = mutable.Map.empty[Any, Out]
@@ -32,7 +27,7 @@ trait Cache[In, Out] extends (In => Out){
     }
   }
 }
-class VM(val natives: Natives = Natives.default, val printMore: Boolean = false) {
+class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) {
 
   private[this] implicit val vm = this
   implicit object InternedStrings extends Cache[virt.Obj, virt.Obj]{
@@ -75,7 +70,7 @@ class VM(val natives: Natives = Natives.default, val printMore: Boolean = false)
         )
       )
     }catch {case x =>
-      lines.takeRight(2000).foreach(println)
+
       threads(0).dumpStack.foreach(println)
       throw x
     }
@@ -114,21 +109,13 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
   def indent = "\t" * threadStack.filter(_.method.name != "Dummy").length
 
   def step() = {
-    VM.count += 1
-    if (false){
-      println("SnapShot")
-      println("\n")
-      println(new Object())
-      threadStack.foreach(f =>
-        println(f.runningClass.name.padTo(60, ' ') + f.method.name.padTo(30, ' ') + f.pc)
-      )
-      println("\n")
-    }
+
+
     val topFrame = threadStack.head
 
     val node = topFrame.method.code.insns(topFrame.pc)
-    if (vm.printMore) println(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack)
-    if (vm.printMore) println(indent + "---------------------- " + topFrame.pc + "\t" + node )
+    vm.log(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack)
+    vm.log(indent + "---------------------- " + topFrame.pc + "\t" + node )
     topFrame.pc += 1
     node.op(this)
 
@@ -176,7 +163,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
   }
   @tailrec final def prepInvoke(tpe: imm.Type.Entity, methodName: String, desc: imm.Type.Desc, args: Seq[Any]): Unit = {
 
-
+    vm.log("prepInvoke " + tpe + " " + methodName + desc.unparse)
     (vm.natives.trapped.get(tpe.name + "/" + methodName, desc), tpe) match{
       case (Some(trap), _) =>
         val result = trap(this)(args)
@@ -197,7 +184,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
             val array = new Array[Any](m.misc.maxLocals)
             stretchedArgs.copyToArray(array)
 
-            if (vm.printMore) println(indent + "args " + stretchedArgs)
+            vm.log(indent + "args " + stretchedArgs)
             val startFrame = new Frame(
               runningClass = tpe.cls,
               method = m,

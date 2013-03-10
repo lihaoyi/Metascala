@@ -81,7 +81,7 @@ object Util{
     }
   }
 
-  class SingleClassVM(className: String, printMore: Boolean = false) extends VM(printMore = printMore){
+  class SingleClassVM(className: String, log: (=>String) => Unit) extends VM(log = log){
     def run(main: String, args: Any*): Any = invoke(className.replace('.', '/'), main, args)
   }
 }
@@ -100,8 +100,8 @@ trait Util extends ShouldMatchers { this: FreeSpec  =>
       method.invoke(null, args.map(x => x.asInstanceOf[AnyRef]):_*)
     }
   }
-  class Tester(className: String){
-    val svm = new Util.SingleClassVM(className)
+  class Tester(className: String, log: (=>String) => Unit = x => ()){
+    val svm = new Util.SingleClassVM(className, log)
     val ref = new ReflectiveRunner(className)
     def run(main: String, args: Any*) = {
       val svmRes = svm.run(main, args:_*)
