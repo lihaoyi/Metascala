@@ -3,6 +3,8 @@ package svm
 import org.scalatest.FreeSpec
 
 import svm.Gen._
+import util.{Failure, Try}
+import svm.UncaughtVmException
 
 class IOTest extends FreeSpec with Util{
 
@@ -21,7 +23,11 @@ class IOTest extends FreeSpec with Util{
   }
   "exceptions" -{
     val tester = new Tester("svm.io.Exceptions")
-    "runtime" in tester.run("runtime")
+    "runtime" in {
+      val x = Try(tester.svm.invoke("svm.io.Exceptions", "runtime", Nil))
+
+      val Failure(UncaughtVmException("java/lang/RuntimeException", "omg!", _)) = x
+    }
   }
 
 }

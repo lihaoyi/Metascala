@@ -121,7 +121,6 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     topFrame.pc += 1
     node.op(this)
 
-
     //log(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack.map(x => if (x == null) null else x.getClass))
   }
   def returnVal(x: Option[Any]) = {
@@ -160,7 +159,9 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
           Virtualizer.fromVirtual(x(imm.Type.Cls("java.lang.StackTraceElement"), "methodName")))
           .foreach(println)*/
 
-        throw new Exception("Uncaught Exception: " + Virtualizer.fromVirtual(ex(imm.Type.Cls("java.lang.Throwable"), "detailMessage")))
+        throw new UncaughtVmException(ex.cls.clsData.tpe.unparse,
+                                      Virtualizer.fromVirtual(ex(imm.Type.Cls("java.lang.Throwable"), "detailMessage")),
+                                      Nil)
     }
   }
   @tailrec final def prepInvoke(tpe: imm.Type.Entity, methodName: String, desc: imm.Type.Desc, args: Seq[Any]): Unit = {
@@ -226,7 +227,12 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
   }
 }
 
+case class UncaughtVmException(name: String,
+                               msg: String,
+                               stackTrace: Seq[StackTraceElement])
+                               extends Exception{
 
+}
 class Frame(
   var pc: Int = 0,
   val runningClass: svm.Cls,
