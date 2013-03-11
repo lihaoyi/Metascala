@@ -27,7 +27,7 @@ trait Cache[In, Out] extends (In => Out){
     }
   }
 }
-class VM(val natives: Natives = Natives.default, val log: ((String) => Unit)) {
+class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) {
 
   private[this] implicit val vm = this
   implicit object InternedStrings extends Cache[virt.Obj, virt.Obj]{
