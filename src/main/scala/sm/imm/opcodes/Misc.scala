@@ -174,13 +174,19 @@ object Misc {
   }
   case class InstanceOf(desc: Type) extends BaseOpCode(193, "instanceof"){
     def op = implicit vt => {
+
       import vt._
       val res = vt.pop match{
         case null => 0
-        case x: virt.Obj =>  if(x.cls.checkIsInstanceOf(desc)) 1 else 0
+        case x: virt.Obj =>
+          if(sm.VM.go){
+            println(s"InstanceOf ${x.cls.name} ${desc.unparse}")
+          }
+          if(x.cls.checkIsInstanceOf(desc)) 1 else 0
         case x: Array[Object] => 1
-
-
+      }
+      if(sm.VM.go){
+        println(s"InstanceOf Result $res")
       }
       vt.push(res)
     }

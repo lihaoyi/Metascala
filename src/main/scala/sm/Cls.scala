@@ -50,7 +50,7 @@ class Cls(val clsData: imm.Cls,
 
     val res =
       clsData.tpe == desc ||
-      clsData.interfaces.contains(desc) ||
+      clsData.interfaces.exists(_.checkIsInstanceOf(desc)) ||
       clsData.superType
           .map(l => l.checkIsInstanceOf(desc))
           .getOrElse(false)

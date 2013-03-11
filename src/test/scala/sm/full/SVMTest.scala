@@ -1,9 +1,11 @@
-package sm.full
+package sm
+package full
 
 import sm.{UncaughtVmException, Gen, Util}
 import org.scalatest.FreeSpec
 import sm.Util.{SingleClassVM}
 import com.fasterxml.jackson.databind.ObjectMapper
+import collection.GenSeq
 
 object Moo{
   def sqrtFinder() = {
@@ -15,6 +17,25 @@ object Moo{
     x.run("run")
   }
   def helloWorld = {
+    /*val a = imm.Type.Desc.read("(I)I")
+    import imm.Type._
+    val b = Desc(List(Prim("I")),Prim("I"))
+
+    println(a)
+    println(b)
+    println(a == b)
+    println("omg")
+    println(a.args.getClass)
+    println(b.args.getClass)
+    println(a.args match {
+      case that: GenSeq[_] => 1//(that canEqual desc.args) && (desc.args sameElements that)
+      case _               => 0//false
+    })
+    println(b.args match {
+      case that: GenSeq[_] => 1//(that canEqual desc.args) && (desc.args sameElements that)
+      case _               => 0//false
+    })
+    1*/
     val x = new sm.Util.SingleClassVM("sm.features.methods.Statics", s => println(s))
     x.run("helloWorld", 1)
   }
