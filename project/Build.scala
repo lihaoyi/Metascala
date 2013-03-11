@@ -30,7 +30,8 @@ object Build extends sbt.Build{
         "com.typesafe.akka"       %%  "akka-testkit"    % "2.1.0" % "test",
         "rhino" % "js" % "1.7R2",
         "org.ow2.asm" % "asm-debug-all" % "4.1",
-        "org.scalatest" 		   % "scalatest_2.10.0" % "2.0.M5" % "test"
+        "org.scalatest" 		   % "scalatest_2.10.0" % "2.0.M5" % "test",
+        "com.fasterxml.jackson.core" % "jackson-databind" % "2.1.3"
       )
     )
   )

@@ -4,10 +4,6 @@ import collection.mutable
 import imm._
 import imm.Attached.LineNumber
 import annotation.tailrec
-import java.security.AccessController
-import virt.{Obj}
-import sm.virt
-import virt.Type
 
 
 trait Cache[In, Out] extends (In => Out){
@@ -57,33 +53,23 @@ class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) 
   lazy val threads = List(new VmThread())
 
   def invoke(bootClass: String, mainMethod: String, args: Seq[Any]) = {
-    try{
-      Virtualizer.fromVirtual[Any](
-        threads(0).invoke(
-          imm.Type.Cls(bootClass),
-          mainMethod,
-          imm.Type.Cls(bootClass).cls
-            .clsData
-            .methods
-            .find(x => x.name == mainMethod)
-            .map(_.desc)
-            .getOrElse(throw new IllegalArgumentException("Can't find method: " + mainMethod)),
-          args.map(Virtualizer.toVirtual[Any])
-        )
+
+    Virtualizer.fromVirtual[Any](
+      threads(0).invoke(
+        imm.Type.Cls(bootClass),
+        mainMethod,
+        imm.Type.Cls(bootClass).cls
+          .clsData
+          .methods
+          .find(x => x.name == mainMethod)
+          .map(_.desc)
+          .getOrElse(throw new IllegalArgumentException("Can't find method: " + mainMethod)),
+        args.map(Virtualizer.toVirtual[Any])
       )
-    }catch {case x =>
-
-      //threads(0).dumpStack.foreach(println)
-      throw x
-    }
+    )
   }
-  //invoke("java/lang/System", "initializeSystemClass", Nil)
-
 }
 
-object VmThread{
-  def apply()(implicit vmt: VmThread) = vmt
-}
 
 class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit val vm: VM){
   import vm._
@@ -95,7 +81,15 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
   def frame = threadStack.head
 
-  
+  def getFramesDump = {
+    threadStack.map{ f =>
+      FrameDump(f.runningClass.name, f.method.name,
+        f.method.code.insns.take(f.pc)
+                           .zipWithIndex
+                           .map(t => t._2 + "\t" + t._1)
+      )
+    }
+  }
   def getStackTrace =
     threadStack.map { f =>
       new StackTraceElement(
@@ -134,7 +128,9 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     )
 
   @tailrec final def throwException(ex: virt.Obj, print: Boolean = true): Unit = {
-
+    ex.magicMembers.get("stackData").getOrElse(
+      ex.withMagic("stackData", getFramesDump)
+    )
     threadStack.headOption match{
       case Some(frame)=>
         val handler =
@@ -152,19 +148,13 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
             frame.stack.push(ex)
         }
       case None =>
-        /*ex.apply(imm.Type.Cls("java.lang.Throwable"), "stackTrace")
-          .asInstanceOf[Array[virt.Obj]]
-          .map(x => "" +
-            Virtualizer.fromVirtual(x(imm.Type.Cls("java.lang.StackTraceElement"), "declaringClass")) + " " +
-          Virtualizer.fromVirtual(x(imm.Type.Cls("java.lang.StackTraceElement"), "methodName")))
-          .foreach(println)*/
-
         throw new UncaughtVmException(ex.cls.clsData.tpe.unparse,
                                       Virtualizer.fromVirtual(ex(imm.Type.Cls("java.lang.Throwable"), "detailMessage")),
-                                      Nil)
+                                      Nil,
+                                      ex.magicMembers("stackData").asInstanceOf[mutable.Seq[FrameDump]])
     }
   }
-  @tailrec final def prepInvoke(tpe: imm.Type.Entity, methodName: String, desc: imm.Type.Desc, args: Seq[Any]): Unit = {
+  @tailrec final def prepInvoke(tpe: imm.Type.Entity, methodName: String, desc: imm.Type.Desc, args: Seq[Any])(implicit originalType: imm.Type.Entity = tpe): Unit = {
 
     vm.log("prepInvoke " + tpe + " " + methodName + desc.unparse)
     (vm.natives.trapped.get(tpe.name + "/" + methodName, desc), tpe) match{
@@ -176,8 +166,6 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
         tpe.cls.clsData.methods.find(x => x.name == methodName && x.desc == desc) match {
           case Some(m) if m.code.insns != Nil=>
-            //m.code.insns.zipWithIndex
-            //  .foreach(x => VM.log(indent + x._2 + "\t" + x._1))
 
             val stretchedArgs = args.flatMap {
               case l: Long => Seq(l, l)
@@ -199,13 +187,22 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
           case _ =>
             tpe.parent match{
               case Some(x) => prepInvoke(x, methodName, desc, args)
-              case None => throw new Exception("Can't find method " + tpe + " " + methodName + " " + desc.unparse)
+              case None => throwException(
+                virt.Obj("java/lang/RuntimeException",
+                  "detailMessage" -> Virtualizer.toVirtual(s"A Can't find method $originalType $methodName ${desc.unparse}")
+                )
+              )
             }
+
         }
       case _ =>
         tpe.parent match{
           case Some(x) => prepInvoke(x, methodName, desc, args)
-          case None => throw new Exception("Can't find method " + tpe + " " + methodName + " " + desc.unparse)
+          case None => throwException(
+            virt.Obj("java/lang/RuntimeException",
+              "detailMessage" -> Virtualizer.toVirtual(s"B Can't find method $originalType $methodName ${desc.unparse}")
+            )
+          )
         }
     }
 
@@ -229,15 +226,20 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
 case class UncaughtVmException(name: String,
                                msg: String,
-                               stackTrace: Seq[StackTraceElement])
-                               extends Exception{
+                               stackTrace: Seq[StackTraceElement],
+                               stackData: Seq[FrameDump])
+                               extends Exception(msg){
 
 }
-class Frame(
-  var pc: Int = 0,
-  val runningClass: sm.Cls,
-  val method: Method,
-  val locals: mutable.Seq[Any] = mutable.Seq.empty,
-  var stack: mutable.Stack[Any] = mutable.Stack.empty[Any])
+
+case class FrameDump(clsName: String,
+                     methodName: String,
+                     bytecodes: Seq[String])
+
+class Frame(var pc: Int = 0,
+            val runningClass: sm.Cls,
+            val method: Method,
+            val locals: mutable.Seq[Any] = mutable.Seq.empty,
+            var stack: mutable.Stack[Any] = mutable.Stack.empty[Any])
 
 

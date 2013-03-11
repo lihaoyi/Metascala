@@ -3,9 +3,8 @@ package sm
 import annotation.tailrec
 import java.util.concurrent.atomic.AtomicInteger
 import imm.{Access, Type}
-import sm.{virt, imm}
 import virt.Obj
-import java.io.{DataInputStream, IOException}
+import java.io.{DataInputStream}
 
 
 object Natives{
@@ -208,6 +207,7 @@ trait DefaultNatives extends Natives{
                 .map(_.obj)
                 .getOrElse(null)
             },
+            "getRawAnnotations()[B" - value1(new Array[Byte](0)),
             "isPrimitive()Z" - value1(false),
             "isInterface()Z" - { vt => (x: virt.Cls) => import vt.vm._; (Type.Cls(x.name.replace(".", "/")).clsData.access_flags & Access.Interface) != 0},
             "isAssignableFrom(L//Class;)Z" - { vt => (x: virt.Type, y: virt.Type) =>
