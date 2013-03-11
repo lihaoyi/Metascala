@@ -184,6 +184,8 @@ object Misc {
           }
           if(x.cls.checkIsInstanceOf(desc)) 1 else 0
         case x: Array[Object] => 1
+        case x: Array[_] => 1
+
       }
       if(sm.VM.go){
         println(s"InstanceOf Result $res")

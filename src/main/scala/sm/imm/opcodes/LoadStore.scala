@@ -213,6 +213,7 @@ object LoadStore {
         array(index) = value
       case (null, Intish(index), array: Array[Any]) =>
         array(index) = null
+
     }
   }
 

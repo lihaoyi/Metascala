@@ -159,12 +159,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     }
   }
   @tailrec final def prepInvoke(tpe: imm.Type.Entity, methodName: String, desc: imm.Type.Desc, args: Seq[Any])(implicit originalType: imm.Type.Entity = tpe): Unit = {
-    if (methodName == "equals" || VM.go){
-      println("prepInvoke " + tpe + " " + methodName + desc.unparse)
-    }
-    if (methodName == "triggerGo"){
-      VM.go = true
-    }
+
     vm.log("prepInvoke " + tpe + " " + methodName + desc.unparse)
 
     (vm.natives.trapped.get(tpe.name + "/" + methodName, desc), tpe) match{
@@ -174,32 +169,9 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
       case (None, tpe: imm.Type.Cls) =>
 
-        tpe.cls.clsData.methods.foreach{x =>
-          if (x.name == methodName && x.desc.unparse == desc.unparse && x.desc != desc){
-
-            vm.log(x.name + x.desc.unparse)
-            vm.log(""+(x.name == methodName))
-            vm.log(""+(x.desc.unparse == desc.unparse))
-            vm.log(x.desc.unparse + " " + desc.unparse)
-            vm.log(x.desc + " " + desc)
-            vm.log(x.desc.ret + " " + desc.ret)
-            VM.triggerGo()
-            vm.log(""+x.desc.args.equals(desc.args))
-            vm.log("" + (x.desc.args match {
-              case that: GenSeq[_] => (that canEqual desc.args) && (desc.args sameElements that)
-              case _               => false
-            }))
-            vm.log("" + (desc.args match {
-              case that: GenSeq[_] => (that canEqual x.desc.args) && (x.desc.args sameElements that)
-              case _               => false
-            }))
-
-            while(true){}
-          }
-        }
 
         vm.log("")
-        tpe.cls.clsData.methods.find(x => x.name == methodName && x.desc.unparse == desc.unparse) match {
+        tpe.cls.clsData.methods.find(x => x.name == methodName && x.desc == desc) match {
           case Some(m) if m.code.insns != Nil=>
 
             val stretchedArgs = args.flatMap {
