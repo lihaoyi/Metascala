@@ -6,7 +6,7 @@ import svm.Util.SingleClassVM
 
 object Moo{
   def run() = {
-    val x = new svm.Util.SingleClassVM("svm.helloworld.controlflow.Loops", s => println(s))
+    val x = new svm.Util.SingleClassVM("svm.features.controlflow.Loops", s => ())
     x.run("sqrtFinder", 5.0)
   }
 }

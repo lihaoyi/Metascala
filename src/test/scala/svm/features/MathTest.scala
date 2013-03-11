@@ -1,5 +1,5 @@
 package svm
-package helloworld
+package features
 
 
 import org.scalatest.FreeSpec
@@ -16,7 +16,7 @@ class MathTest extends FreeSpec with Util{
   implicit val longAll10 = 10 ** Gen.longAll
   implicit val doubleAll110 = 10 ** Gen.doubleAll
   "single precision" - {
-    val tester = new Tester("svm.helloworld.math.HelloMath")
+    val tester = new Tester("svm.features.math.HelloMath")
     "hello math" - {
 
       "imain" in tester.run("imain")
@@ -52,7 +52,7 @@ class MathTest extends FreeSpec with Util{
     }
   }
   "double precision" - {
-    val tester = new Tester("svm.helloworld.math.HelloLongs")
+    val tester = new Tester("svm.features.math.HelloLongs")
     "hello longs" - {
 
       "lmain" in tester.run("lmain")
@@ -88,7 +88,7 @@ class MathTest extends FreeSpec with Util{
   }
 
   "combined" - {
-    val tester = new Tester("svm.helloworld.math.Combined")
+    val tester = new Tester("svm.features.math.Combined")
     "hmsToDays" in
       chk(tester.run("hmsToDays", _: Double, _: Double, _: Double))(
         Seq.fill(0)(Random.nextInt(24).toDouble),

@@ -1,4 +1,4 @@
-package svm.helloworld
+package svm.features
 
 import org.scalatest.FreeSpec
 
@@ -11,7 +11,7 @@ class MethodTest extends FreeSpec with Util{
   implicit val intAll10 = 10 ** Gen.intAll
 
   "static" - {
-    val tester = new Tester("svm.helloworld.methods.Statics")
+    val tester = new Tester("svm.features.methods.Statics")
     "helloWorld" in chk(tester.run("helloWorld", _: Int))
     "helloWorld2" in chk(tester.run("helloWorld2", _: Int, _: Int))
     "tailFactorial" in chk(tester.run("tailFactorial", _: Int))(Seq(2, 5, 10, 20, 50))
@@ -19,13 +19,13 @@ class MethodTest extends FreeSpec with Util{
 
   }
   "natives" - {
-    val tester = new Tester("svm.helloworld.methods.Natives")
+    val tester = new Tester("svm.features.methods.Natives")
     "intBitsToFloat" in chk(tester.run("intBitsToFloat", _: Int))
     "currentTimeMillis" in tester.run("currentTimeMillis")
     "inheritedNative" in tester.run("inheritedNative")
   }
   "objects" - {
-    val tester = new Tester("svm.helloworld.methods.Objects")
+    val tester = new Tester("svm.features.methods.Objects")
     "dumbobjects" in tester.run("helloWorld", 5)
     "inheritance" in tester.run("inheritance", 5)
     "points" in chk(tester.run("points", _: Int))

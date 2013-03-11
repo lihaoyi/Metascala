@@ -1,5 +1,5 @@
 package svm
-package helloworld
+package features
 
 
 import org.scalatest.FreeSpec
@@ -10,7 +10,7 @@ class ControlFlowTest extends FreeSpec with Util{
 
 
   "if else" - {
-    val tester = new Tester("svm.helloworld.controlflow.IfElse")
+    val tester = new Tester("svm.features.controlflow.IfElse")
     "basicIf" in tester.run("basicIf")
     "ifNonIntZero" in tester.run("ifNonIntZero")
     "ifNonIntBinary" in tester.run("ifNonIntBinary")
@@ -18,7 +18,7 @@ class ControlFlowTest extends FreeSpec with Util{
     "ifElseIfBig" in tester.run("ifElseIfBig")
   }
   "loops" - {
-    val tester = new Tester("svm.helloworld.controlflow.Loops")
+    val tester = new Tester("svm.features.controlflow.Loops")
     "nullFor" in tester.run("nullFor", 100)
     "basicFor" in chk(tester.run("basicFor", _: Int))(Seq.fill(0)(Gen.int(256)))
     "nullWhile" in tester.run("nullWhile", 100)
@@ -26,7 +26,7 @@ class ControlFlowTest extends FreeSpec with Util{
     "sqrtFinder" in chk(tester.run("sqrtFinder", _: Double))(Seq.fill(10)(Math.random() * 1000))
   }
   "switches" - {
-    val tester = new Tester("svm.helloworld.controlflow.Switches")
+    val tester = new Tester("svm.features.controlflow.Switches")
     "smallSwitch" in chk(tester.run("smallSwitch", _: Int))(Seq(0, 1, 2))
     "bigDenseSwitch" in chk(tester.run("bigDenseSwitch", _: Int))(0 to 30)
     "bigSparseSwitch" in chk(tester.run("bigSparseSwitch", _: Int))((0 to 23).map(x => Math.pow(2, x).toInt))

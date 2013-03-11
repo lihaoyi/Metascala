@@ -1,4 +1,4 @@
-package svm.helloworld.math;
+package svm.features.math;
 
 public class HelloLongs {
 

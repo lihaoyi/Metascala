@@ -1,4 +1,4 @@
-package svm.helloworld.methods;
+package svm.features.methods;
 
 import java.awt.*;
 

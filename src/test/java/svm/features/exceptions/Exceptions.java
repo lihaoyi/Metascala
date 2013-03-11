@@ -1,4 +1,4 @@
-package svm.helloworld.exceptions;
+package svm.features.exceptions;
 
 import java.io.IOException;
 

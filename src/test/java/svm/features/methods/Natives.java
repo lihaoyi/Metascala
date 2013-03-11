@@ -1,4 +1,4 @@
-package svm.helloworld.methods;
+package svm.features.methods;
 
 public class Natives {
     public static float intBitsToFloat(int n){

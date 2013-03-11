@@ -1,4 +1,4 @@
-package svm.helloworld.arrays;
+package svm.features.arrays;
 
 public class MultiDimArrays {
     public static int[][] make2D(int a, int b){

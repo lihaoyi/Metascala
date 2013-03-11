@@ -1,4 +1,4 @@
-package svm.helloworld.arrays;
+package svm.features.arrays;
 
 public class ArrayStuff {
     public static int[] makeIntArray(int n){

@@ -1,4 +1,4 @@
-package svm.helloworld.methods;
+package svm.features.methods;
 
 public class Statics {
     public static int helloWorld(int n){

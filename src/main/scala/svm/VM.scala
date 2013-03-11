@@ -30,10 +30,12 @@ trait Cache[In, Out] extends (In => Out){
 class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) {
 
   private[this] implicit val vm = this
+
   implicit object InternedStrings extends Cache[virt.Obj, virt.Obj]{
     override def pre(x: virt.Obj) = Virtualizer.fromVirtual[String](x)
     def calc(x: virt.Obj) = x
   }
+
   implicit object Types extends Cache[imm.Type, virt.Type]{
     def calc(t: imm.Type) = t match{
       case t: imm.Type.Cls => new virt.Cls(t)
@@ -123,7 +125,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     //log(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack.map(x => if (x == null) null else x.getClass))
   }
   def returnVal(x: Option[Any]) = {
-//    log(indent + "Returning from " + threadStack.head.runningClass.name + " " + threadStack.head.method.name)
+//    log(indent + "Primitives from " + threadStack.head.runningClass.name + " " + threadStack.head.method.name)
     threadStack.pop()
     x.foreach(value => threadStack.head.stack.push(value))
   }

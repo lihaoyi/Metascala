@@ -1,5 +1,5 @@
 package svm
-package helloworld
+package features
 
 import org.scalatest.FreeSpec
 

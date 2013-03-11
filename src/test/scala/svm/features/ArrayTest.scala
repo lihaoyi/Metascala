@@ -1,5 +1,5 @@
 package svm
-package helloworld
+package features
 
 import org.scalatest.FreeSpec
 
@@ -11,7 +11,7 @@ class ArrayTest extends FreeSpec with Util{
 
 
   "array stuff" - {
-    val tester = new Tester("svm.helloworld.arrays.ArrayStuff")
+    val tester = new Tester("svm.features.arrays.ArrayStuff")
     "makeIntArray" in chk(tester.run("makeIntArray", _: Int))(Seq(0, 1, 2, 3, 4, 5, 6, 7, 8, 9))
     "makeFloatArray" in tester.run("makeFloatArray")
     "makeStringArray" in tester.run("makeStringArray")
@@ -29,7 +29,7 @@ class ArrayTest extends FreeSpec with Util{
     ))
   }
   "multi dim arrays" - {
-    val tester = new Tester("svm.helloworld.arrays.MultiDimArrays")
+    val tester = new Tester("svm.features.arrays.MultiDimArrays")
     "make2D" in chk(tester.run("make2D", _: Int, _: Int))(Seq(0, 1, 2), Seq(0, 1, 2))
     "make3D" in chk(tester.run("make3D", _: Int, _: Int, _ : Int))(Seq(0, 1, 2), Seq(0, 1, 2), Seq(0, 1, 2))
     "getAndSet" in tester.run("getAndSet")

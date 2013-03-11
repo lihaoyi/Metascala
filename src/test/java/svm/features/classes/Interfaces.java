@@ -1,4 +1,4 @@
-package svm.helloworld.classes;
+package svm.features.classes;
 
 public class Interfaces {
     public static String implement(int n){

@@ -1,4 +1,4 @@
-package svm.helloworld.controlflow;
+package svm.features.controlflow;
 
 public class Switches {
     public static int smallSwitch(int a){

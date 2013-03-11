@@ -1,4 +1,4 @@
-package svm.helloworld.controlflow;
+package svm.features.controlflow;
 
 public class Loops {
     public static int nullFor(int a){

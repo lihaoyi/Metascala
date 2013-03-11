@@ -1,4 +1,4 @@
-package svm.helloworld;
+package svm.features;
 
 public class HelloWorld {
     public static void main(String[] args){
