@@ -157,6 +157,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
   @tailrec final def prepInvoke(tpe: imm.Type.Entity, methodName: String, desc: imm.Type.Desc, args: Seq[Any])(implicit originalType: imm.Type.Entity = tpe): Unit = {
 
     vm.log("prepInvoke " + tpe + " " + methodName + desc.unparse)
+
     (vm.natives.trapped.get(tpe.name + "/" + methodName, desc), tpe) match{
       case (Some(trap), _) =>
         val result = trap(this)(args)
@@ -164,6 +165,12 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
       case (None, tpe: imm.Type.Cls) =>
 
+        tpe.cls.clsData.methods.foreach{x =>
+          vm.log(x.name + x.desc.unparse)
+          vm.log(""+(x.name == methodName))
+          vm.log(""+(x.desc.unparse == desc.unparse) + " " + x.desc.unparse + " " + desc.unparse)
+        }
+        vm.log("")
         tpe.cls.clsData.methods.find(x => x.name == methodName && x.desc == desc) match {
           case Some(m) if m.code.insns != Nil=>
 

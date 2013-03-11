@@ -15,7 +15,7 @@ object Moo{
     x.run("run")
   }
   def helloWorld = {
-    val x = new sm.Util.SingleClassVM("sm.features.methods.Statics", s => ())
+    val x = new sm.Util.SingleClassVM("sm.features.methods.Statics", s => println(s))
     x.run("helloWorld", 1)
   }
   def runJson() = {
