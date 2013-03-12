@@ -1,4 +1,6 @@
-package sm.imm.opcodes
+package sm
+package imm
+package opcodes
 
 import sm.imm.Type
 import sm.{virt, VmThread}
@@ -172,10 +174,25 @@ object Misc {
 
     }
   }
+  implicit class ArrType(a: Array[_]){
+
+    def tpe = a match{
+      case a: Array[Boolean] => imm.Type.Arr(imm.Type.Prim("Z"))
+      case a: Array[Byte] => imm.Type.Arr(imm.Type.Prim("B"))
+      case a: Array[Char] => imm.Type.Arr(imm.Type.Prim("C"))
+      case a: Array[Short] => imm.Type.Arr(imm.Type.Prim("S"))
+      case a: Array[Int] => imm.Type.Arr(imm.Type.Prim("I"))
+      case a: Array[Float] => imm.Type.Arr(imm.Type.Prim("F"))
+      case a: Array[Double] => imm.Type.Arr(imm.Type.Prim("D"))
+      case a: Array[Long] => imm.Type.Arr(imm.Type.Prim("J"))
+      case a: Array[_] => imm.Type.Arr(imm.Type.Cls("java/lang/Object"))
+    }
+  }
   case class InstanceOf(desc: Type) extends BaseOpCode(193, "instanceof"){
     def op = implicit vt => {
 
       import vt._
+      import vm._
       val res = vt.pop match{
         case null => 0
         case x: virt.Obj =>
@@ -183,9 +200,12 @@ object Misc {
             println(s"InstanceOf ${x.cls.name} ${desc.unparse}")
           }
           if(x.cls.checkIsInstanceOf(desc)) 1 else 0
-        case x: Array[Object] => 1
-        case x: Array[_] => 1
-
+        case x: Array[_] => desc match{
+          case imm.Type.Cls("java/lang/Object") => 1
+          case imm.Type.Arr(innerType) => 1
+          case _ => 0
+        }
+        case _ => 0
       }
       if(sm.VM.go){
         println(s"InstanceOf Result $res")

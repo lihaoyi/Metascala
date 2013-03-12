@@ -25,7 +25,6 @@ object NativeUtils{
   val noOp1 = value1(())
   val noOp2 = value2(())
 
-
   implicit class pimpedRoute(val m: Seq[(String, Any)]) extends AnyVal{
     def toRoute(parts: List[String] = Nil): Natives.NativeSeq = {
       m.flatMap{ case (k, v) =>
@@ -80,7 +79,6 @@ trait DefaultNatives extends Natives{
       Some(bytes)
     }
   }
-
 
   val properties = Map[String, String](
     /*"java.home" -> "C ->/java_home",

@@ -1,5 +1,7 @@
 package sm.features.arrays;
 
+import java.awt.geom.Point2D;
+
 public class ArrayStuff {
     public static int[] makeIntArray(int n){
         int[] arr = new int[(short)n];
@@ -47,5 +49,7 @@ public class ArrayStuff {
         }
         return arr;
     }
+    public static void main(String[] args){
 
+    }
 }

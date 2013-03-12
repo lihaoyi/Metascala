@@ -15,8 +15,14 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
   def frame = threadStack.head
 
   def getFramesDump = {
+
     threadStack.map{ f =>
-      FrameDump(f.runningClass.name, f.method.name,
+      println(f.method.code.attachments)
+      FrameDump(
+        f.runningClass.name,
+        f.method.name,
+        f.runningClass.clsData.misc.sourceFile.getOrElse(""),
+        f.method.code.attachments.take(f.pc).flatten.collect{ case LineNumber(i, _) => i }.lastOption.getOrElse(0),
         f.method.code.insns.take(f.pc)
                            .zipWithIndex
                            .map(t => t._2 + "\t" + t._1)
@@ -46,7 +52,16 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     vm.log(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack)
     vm.log(indent + "---------------------- " + topFrame.pc + "\t" + node )
     topFrame.pc += 1
-    node.op(this)
+    try
+      node.op(this)
+    catch{ case e: Throwable =>
+      throw new UncaughtVmException(
+        e.getClass.getCanonicalName,
+        e.getMessage,
+        Nil,
+        getFramesDump
+      )
+    }
 
     //log(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack.map(x => if (x == null) null else x.getClass))
   }
@@ -90,7 +105,8 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
   }
   @tailrec final def prepInvoke(tpe: imm.Type.Entity, methodName: String, desc: imm.Type.Desc, args: Seq[Any])(implicit originalType: imm.Type.Entity = tpe): Unit = {
 
-    vm.log("prepInvoke " + tpe + " " + methodName + desc.unparse)
+    vm.log(indent + "prepInvoke " + tpe + " " + methodName + desc.unparse)
+    vm.log(indent + "args " + args)
 
     (vm.natives.trapped.get(tpe.name + "/" + methodName, desc), tpe) match{
       case (Some(trap), _) =>
@@ -100,7 +116,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
       case (None, tpe: imm.Type.Cls) =>
 
 
-        vm.log("")
+
         tpe.cls.clsData.methods.find(x => x.name == methodName && x.desc == desc) match {
           case Some(m) if m.code.insns != Nil=>
 

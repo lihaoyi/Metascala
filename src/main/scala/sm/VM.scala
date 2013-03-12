@@ -88,6 +88,8 @@ case class UncaughtVmException(name: String,
 
 case class FrameDump(clsName: String,
                      methodName: String,
+                     fileName: String,
+                     lineNumber: Int,
                      bytecodes: Seq[String])
 
 class Frame(var pc: Int = 0,
