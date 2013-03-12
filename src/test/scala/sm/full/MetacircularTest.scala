@@ -22,14 +22,20 @@ object MetacircularTest{
     x.run("fibonacci", 6)
   }
 
-  def getAndSet = {
+  def innerClass = {
+    val x = new sm.Util.SingleClassVM("sm.features.classes.ClassStuff", s => ())
+    x.run("innerClass")
+  }
 
+  def throwCatch = {
+    val x = new sm.Util.SingleClassVM("sm.features.exceptions.Exceptions", s => ())
+    x.run("throwCatch")
   }
 
 }
 
 class MetacircularTest extends FreeSpec with Util{
-  val tester = new Tester("sm.full.MetacircularTest")
+  val tester = new Tester("sm.full.MetacircularTest", x => ())
   "sqrtFinder" in {
     tester.run("sqrtFinder")
   }
@@ -39,8 +45,11 @@ class MetacircularTest extends FreeSpec with Util{
   "fibonacci" in {
     tester.run("fibonacci")
   }
-
-
-
+  "innerClass" in {
+    tester.run("innerClass")
+  }
+  /*"throwCatch" in {
+    tester.run("throwCatch")
+  }*/
 }
 
