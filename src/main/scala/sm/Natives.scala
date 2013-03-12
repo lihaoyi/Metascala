@@ -1,5 +1,5 @@
 package sm
-
+import collection.mutable
 import annotation.tailrec
 import java.util.concurrent.atomic.AtomicInteger
 import imm.{Access, Type}
@@ -13,7 +13,7 @@ object Natives{
   type NativeSeq = Seq[((String, Type.Desc), VmThread => Seq[Any] => Any)]
 }
 trait Natives{
-  val properties: Map[String, Any]
+  val properties: Map[String, String]
   val trapped: Natives.NativeMap
   val fileLoader: String => Option[Array[Byte]]
 }
@@ -82,12 +82,11 @@ trait DefaultNatives extends Natives{
   }
 
 
-  val properties = Map(
-    "java.home" -> "C ->/java_home",
+  val properties = Map[String, String](
+    /*"java.home" -> "C ->/java_home",
     "sun.boot.class.path" -> "C ->/classes",
     "file.encoding" ->"US_ASCII",
     "java.ext.dirs" -> "",
-    "java.lang.Integer.IntegerCache.high" -> null,
     "java.vendor" ->"Doppio",
     "java.version" -> "1.6",
     "java.vendor.url" -> "https ->//github.com/int3/doppio",
@@ -104,10 +103,7 @@ trait DefaultNatives extends Natives{
     "user.name" ->"DoppioUser",
     "os.name" ->"doppio",
     "os.arch" -> "js",
-    "os.version" -> "0",
-    "scala.control.noTraceSuppression" -> null,
-    "sun.io.useCanonCaches" -> null,
-    "sun.io.useCanonPrefixCache" -> null
+    "os.version" -> "0"*/
 
   )
 
@@ -293,15 +289,15 @@ trait DefaultNatives extends Natives{
             "getProperty(L//String;)L//String;" - {
               vt => (s: Obj) =>
                 import vt.vm
-                Virtualizer.toVirtual[Any](properties(Virtualizer.fromVirtual[String](s)))
+                Virtualizer.toVirtual[Any](properties.getOrElse(Virtualizer.fromVirtual[String](s), null))
 
             },
             "getProperty(L//String;L//String;)L//String;" - {
               vt => (s: Obj, dflt: Obj) =>
                 import vt.vm
                 properties.get(Virtualizer.fromVirtual[String](s))
-                  .map(Virtualizer.toVirtual[Obj])
-                  .getOrElse(dflt)
+                          .map(Virtualizer.toVirtual[Obj])
+                          .getOrElse(dflt)
             },
             "nanoTime()J" - value(System.nanoTime()),
             "initProperties(Ljava/util/Properties;)Ljava/util/Properties;" - value1(null),
@@ -411,7 +407,7 @@ trait DefaultNatives extends Natives{
             "getSavedProperty(Ljava/lang/String;)Ljava/lang/String;" - {
               vt => (s: Obj) =>
                 import vt.vm
-                Virtualizer.toVirtual[Any](properties(Virtualizer.fromVirtual[String](s)))
+                Virtualizer.toVirtual[Any](properties.getOrElse(Virtualizer.fromVirtual[String](s), null))
             }
           )
 

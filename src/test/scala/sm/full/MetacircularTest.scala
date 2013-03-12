@@ -8,7 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import collection.GenSeq
 
 object MetacircularTest{
-  def sqrtFinder() = {
+  def sqrtFinder = {
     val x = new sm.Util.SingleClassVM("sm.features.controlflow.Loops", s => ())
     x.run("sqrtFinder", 5.0)
   }
@@ -45,6 +45,8 @@ class MetacircularTest extends FreeSpec with Util{
   "fibonacci" in {
     tester.run("fibonacci")
   }
+
+
   "innerClass" in {
     tester.run("innerClass")
   }
