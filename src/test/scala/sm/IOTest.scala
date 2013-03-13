@@ -4,7 +4,6 @@ import org.scalatest.FreeSpec
 
 import sm.Gen._
 import util.{Failure, Try}
-import sm.UncaughtVmException
 
 class IOTest extends FreeSpec with Util{
 

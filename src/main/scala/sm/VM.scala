@@ -32,8 +32,8 @@ class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) 
 
   private[this] implicit val vm = this
 
-  implicit object InternedStrings extends Cache[virt.Obj, virt.Obj]{
-    override def pre(x: virt.Obj) = Virtualizer.fromVirtual(x).cast[String]
+  object InternedStrings extends Cache[virt.Obj, virt.Obj]{
+    override def pre(x: virt.Obj) = virt.Val.unvirtString(x)
     def calc(x: virt.Obj) = x
   }
 
@@ -57,21 +57,20 @@ class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) 
 
   lazy val threads = List(new VmThread())
 
-  def invoke(bootClass: String, mainMethod: String, args: Seq[Any]) = {
-
-    Virtualizer.fromVirtual(
-      threads(0).invoke(
-        imm.Type.Cls(bootClass),
-        mainMethod,
-        imm.Type.Cls(bootClass).cls
-          .clsData
-          .methods
-          .find(x => x.name == mainMethod)
-          .map(_.desc)
-          .getOrElse(throw new IllegalArgumentException("Can't find method: " + mainMethod)),
-        args.map(Virtualizer.toVirtual)
-      )
+  def invoke(bootClass: String, mainMethod: String, args: Seq[virt.Val]): virt.Val = {
+    val res = threads(0).invoke(
+      imm.Type.Cls(bootClass),
+      mainMethod,
+      imm.Type.Cls(bootClass).cls
+        .clsData
+        .methods
+        .find(x => x.name == mainMethod)
+        .map(_.desc)
+        .getOrElse(throw new IllegalArgumentException("Can't find method: " + mainMethod)),
+      args
     )
+    println("VMInvoked " + res)
+    res
   }
 }
 

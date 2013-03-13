@@ -2,7 +2,6 @@ package sm.virt
 
 import sm.imm
 import sm.{virt, VM}
-import sm.virt.Obj
 
 
 object Type{
@@ -11,8 +10,9 @@ object Type{
     case tpe => new Type(tpe)
   }
 }
-class Type(val tpe: imm.Type)(implicit vm: VM)
-  extends Obj(vm.Classes(imm.Type.Cls("java/lang/Class"))){
+class Type(val tpe: imm.Type, initMembers: (String, virt.Val)*)
+          (implicit vm: VM)
+          extends Obj(vm.Classes(imm.Type.Cls("java/lang/Class")), initMembers: _*){
   def getDeclaredConstructors() = new Array[Object](0)
   def getDeclaredFields() = new Array[Object](0)
   def getDeclaredMethods() = new Array[Object](0)
@@ -23,7 +23,7 @@ class Type(val tpe: imm.Type)(implicit vm: VM)
 }
 class Cls(override val tpe: imm.Type.Cls)
             (implicit vm: VM)
-             extends Type(tpe){
+             extends Type(tpe, "name" -> tpe.name.replace('/', '.')){
   import vm._
   def name = tpe.unparse
   override def getDeclaredConstructors() = {
@@ -34,7 +34,7 @@ class Cls(override val tpe: imm.Type.Cls)
       virt.Obj("java/lang/reflect/Constructor",
         "clazz" -> tpe.obj,
         "slot" -> 0,
-        "parameterTypes" -> m.desc.args.map(_.obj).toArray,
+        "parameterTypes" -> virt.Val.virtArray(m.desc.args.map(_.obj).toArray),
         "exceptionTypes" -> new Array[virt.Cls](0),
         "modifiers" -> m.access
       )
@@ -64,7 +64,7 @@ class Cls(override val tpe: imm.Type.Cls)
 
         "modifiers" -> m.access,
         "returnType" -> m.desc.ret.obj,
-        "parameterTypes" -> m.desc.args.map(_.obj).toArray,
+        "parameterTypes" -> virt.Val.virtArray(m.desc.args.map(_.obj).toArray),
         "exceptionTypes" -> new Array[virt.Cls](0)
 
       )

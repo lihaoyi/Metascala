@@ -8,7 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import collection.GenSeq
 
 object MetacircularTest{
-  def sqrtFinder = {
+  /*def sqrtFinder = {
     val x = new sm.Util.SingleClassVM("sm.features.controlflow.Loops", s => ())
     x.run("sqrtFinder", 5.0)
   }
@@ -30,7 +30,7 @@ object MetacircularTest{
   def bubbleSort = {
     val x = new sm.Util.SingleClassVM("sm.features.arrays.ArrayStuff", s => ())
     x.run("makeIntArray", 10)
-  }
+  }*/
 
 }
 

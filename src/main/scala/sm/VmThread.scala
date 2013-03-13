@@ -98,18 +98,23 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
         }
       case None =>
         throw new UncaughtVmException(ex.cls.clsData.tpe.unparse,
-                                      ex(imm.Type.Cls("java.lang.Throwable"), "detailMessage"),
+                                      virt.Val.unvirtString(ex(imm.Type.Cls("java.lang.Throwable"), "detailMessage").cast[virt.Obj]),
                                       Nil,
                                       ex.magicMembers("stackData").asInstanceOf[mutable.Seq[FrameDump]])
     }
   }
-  @tailrec final def prepInvoke(tpe: imm.Type.Entity, methodName: String, desc: imm.Type.Desc, args: Seq[virt.Val])(implicit originalType: imm.Type.Entity = tpe): Unit = {
+  @tailrec final def prepInvoke(tpe: imm.Type.Entity,
+                                methodName: String,
+                                desc: imm.Type.Desc,
+                                args: Seq[virt.Val])
+                               (implicit originalType: imm.Type.Entity = tpe): Unit = {
 
     vm.log(indent + "prepInvoke " + tpe + " " + methodName + desc.unparse)
     vm.log(indent + "args " + args)
 
     (vm.natives.trapped.get(tpe.name + "/" + methodName, desc), tpe) match{
       case (Some(trap), _) =>
+        println("NATIVE: " + tpe.name + "/" + methodName + desc)
         val result = trap(this)(args)
         if (result != ()) threadStack.head.stack.push(result)
 
@@ -125,7 +130,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
               case d: virt.Double => Seq(d, d)
               case x => Seq(x)
             }
-            val array = new Array[Any](m.misc.maxLocals)
+            val array = new Array[virt.Val](m.misc.maxLocals)
             stretchedArgs.copyToArray(array)
 
             vm.log(indent + "args " + stretchedArgs)
@@ -161,7 +166,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
 
   }
-  def invoke(cls: imm.Type.Cls, methodName: String, desc: imm.Type.Desc, args: Seq[virt.Val]) = {
+  def invoke(cls: imm.Type.Cls, methodName: String, desc: imm.Type.Desc, args: Seq[virt.Val]): virt.Val = {
     val dummyFrame = new Frame(
       runningClass = cls,
       method = Method(0, "Dummy", imm.Type.Desc.read("()V")),
@@ -173,6 +178,8 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
     while(threadStack.head != dummyFrame) step()
 
-    threadStack.pop().stack.headOption.getOrElse(())
+    val x = threadStack.pop().stack.headOption.getOrElse(virt.Unit)
+    println("Thread Invoke " + x)
+    x
   }
 }

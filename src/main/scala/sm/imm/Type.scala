@@ -1,10 +1,6 @@
 package sm
 package imm
 
-import scala.Array
-import virt._
-
-
 object Type{
   object Primitives{
     type B = virt.Byte
@@ -30,7 +26,7 @@ object Type{
   }
 
   def default(desc: imm.Type): virt.Val = {
-    import imm.Type.Prim
+
     desc match{
       case Prim("B") => virt.Byte(0)
       case Prim("C") => virt.Char(0)
@@ -55,18 +51,17 @@ object Type{
     "double" -> "java/lang/Double",
     "void" -> "java/lang/Void"
   )
-  val shortMap = (_: String) match {
-    case "Z" => "boolean"
-    case "B" => "byte"
-    case "C" => "char"
-    case "S" => "short"
-    case "I" => "int"
-    case "J" => "long"
-    case "F" => "float"
-    case "D" => "double"
-    case "V" => "void"
-    case x => x.drop(1).dropRight(1)
-  }
+  val shortMap = Seq(
+    "Z" -> "boolean",
+    "B" -> "byte",
+    "C" -> "char",
+    "S" -> "short",
+    "I" -> "int",
+    "J" -> "long",
+    "F" -> "float",
+    "D" -> "double",
+    "V" -> "void"
+  )
 
   def read(s: String): Type = {
     s match{
@@ -82,7 +77,7 @@ object Type{
   }
   case class Arr(innerType: Type.Entity) extends Entity{
     def unparse = "[" + innerType.unparse
-    def name = "["
+    def name = "[" + innerType.unparse
     def parent(implicit vm: VM) = Some(imm.Type.Cls("java/lang/Object"))
     def realCls = innerType.realCls
   }
@@ -100,9 +95,10 @@ object Type{
   object Prim{
     def read(s: String) = Prim(s)
   }
-  case class Prim(name: String) extends Entity{
-    def unparse = name
-    def clsType = Cls(primitiveMap(shortMap(name)))
+  case class Prim(char: String) extends Entity{
+    def unparse = char
+    def name = shortMap.toMap.apply(char)
+
     def realCls = Primitives.fromChar(name(0))
 
     def parent(implicit vm: VM) = ???
@@ -135,17 +131,19 @@ object Type{
     }
   }
   case class Desc(args: Seq[Type], ret: Type) extends Type{
-    def name = unparse
     def unparse = "(" + args.map(Desc.unparse).foldLeft("")(_+_) + ")" + Desc.unparse(ret)
   }
   trait Entity extends Type{
     def parent(implicit vm: VM): Option[Entity]
     def realCls: Class[_]
+    // byte char int long java/lang/String
+    def name: String
+
   }
 }
 trait Type{
+  //  B C I J Ljava/lang/String;
   def unparse: String
-  def name: String
 
   def obj(implicit vm: VM): virt.Type = vm.Types(this)
 }

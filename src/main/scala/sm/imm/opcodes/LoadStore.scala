@@ -6,7 +6,7 @@ import org.objectweb.asm
 import sm.imm.{Type, OpCode}
 
 import collection.mutable
-import sm.{VM, Natives, Virtualizer, virt}
+import sm.virt
 
 object LoadStore {
   case object Nop extends OpCode{
@@ -48,21 +48,24 @@ object LoadStore {
 
 
 
-  case class Ldc(const: virt.Val) extends BaseOpCode(18, "ldc"){
+  case class Ldc(const: Any) extends BaseOpCode(18, "ldc"){
     def op = implicit vt => {
       import vt.vm
       import vm._
       val newConst = const match{
         case s: String =>
-
-          val v = Virtualizer.toVirtual(s).asInstanceOf[virt.Obj]
-          println(s)
-          println("LDC " + v)
+          val v: virt.Obj = s
           vt.vm.InternedStrings(v)
         case t: asm.Type =>
           Type.Cls(t.getClassName).obj
 
-        case x => x
+        case x: Byte => x: virt.Val
+        case x: Char => x: virt.Val
+        case x: Short => x: virt.Val
+        case x: Int => x: virt.Val
+        case x: Float => x: virt.Val
+        case x: Long => x: virt.Val
+        case x: Double => x: virt.Val
       }
 
       vt.push(newConst)
@@ -124,17 +127,17 @@ object LoadStore {
         if (arr.backing.isDefinedAt(index)){
           vt.push(
             arr.backing(index) match{
-              case x: Boolean => if (x) 1 else 0
-              case x: Char => x.toInt
-              case x: Byte => x.toInt
-              case x: Short => x.toInt
+              case x: virt.Boolean => if (x) 1 else 0
+              case x: virt.Char => x.toInt
+              case x: virt.Byte => x.toInt
+              case x: virt.Short => x.toInt
               case x => x
             }
           )
         }else{
           throwException{
             sm.virt.Obj("java/lang/ArrayIndexOutOfBoundsException",
-              "detailMessage" -> Virtualizer.toVirtual(index+"")
+              "detailMessage" -> (index+"")
             )
           }
         }
@@ -196,7 +199,7 @@ object LoadStore {
   }
 
 
-  class StoreArrayInt[T](val id: Byte, val insnName: String)(x: Int => T) extends OpCode{
+  class StoreArrayInt[T <% virt.Val](val id: Byte, val insnName: String)(x: Int => T) extends OpCode{
     def op = vt => (vt.pop, vt.pop, vt.pop) match {
 
       case (Intish(value), Intish(index), arr: virt.Arr) =>

@@ -149,7 +149,7 @@ object Misc {
       vt.push(newArray)
     }
   }
-  case class ANewArray(desc: Type) extends BaseOpCode(189, "anewarray"){
+  case class ANewArray(desc: Type.Entity) extends BaseOpCode(189, "anewarray"){
     def op = vt => {
       val Intish(count) = vt.pop
       vt.push(virt.Arr(desc, count))
@@ -185,7 +185,7 @@ object Misc {
         case x: virt.Obj =>
 
           if(x.cls.checkIsInstanceOf(desc)) 1 else 0
-        case x: Array[_] => desc match {
+        case x: virt.Arr => desc match {
           case imm.Type.Cls("java/lang/Object") => 1
           case imm.Type.Arr(innerType) => 1
           case _ => 0
@@ -210,13 +210,13 @@ object Misc {
 
   case class MultiANewArray(desc: Type.Arr, dims: Int) extends BaseOpCode(197, "multianewarray"){
     def op = vt => {
-      def rec(dims: List[Int], tpe: Type): virt.Arr = {
+      def rec(dims: List[Int], tpe: Type.Entity): virt.Arr = {
 
         (dims, tpe) match {
           case (size :: Nil, Type.Arr(innerType)) =>
-            virt.Arr(tpe, Array.fill[Any](size)(Type.default(innerType)))
+            virt.Arr(tpe, Array.fill[virt.Val](size)(Type.default(innerType)))
           case (size :: tail, Type.Arr(innerType)) =>
-            virt.Arr(tpe, Array.fill[Any](size)(rec(tail, innerType)))
+            virt.Arr(tpe, Array.fill[virt.Val](size)(rec(tail, innerType)))
         }
       }
       val (dimValues, newStack) = vt.frame.stack.splitAt(dims)

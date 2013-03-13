@@ -19,7 +19,7 @@ class MethodTest extends FreeSpec with Util{
 
   }
   "natives" - {
-    val tester = new Tester("sm.features.methods.Natives")
+    val tester = new Tester("sm.features.methods.Natives", x => println(x))
     "intBitsToFloat" in chk(tester.run("intBitsToFloat", _: Int))
     "currentTimeMillis" in tester.run("currentTimeMillis")
     "inheritedNative" in tester.run("inheritedNative")

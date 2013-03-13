@@ -1,24 +1,26 @@
-package sm.imm.opcodes
+package sm
+package imm
+package opcodes
 import scala.collection.mutable
 import sm.imm.Type.Primitives._
-import sm.imm.{OpCode, a}
-import sm.{imm, VM, virt, Virtualizer}
+
+
 
 import scala.::
 import java.util
 
 object  StackManip {
-  class PureStackOpCode(val id: Byte, val insnName: String)(transform: PartialFunction[mutable.Stack[Any], Any]) extends OpCode{
+  class PureStackOpCode(val id: Byte, val insnName: String)(transform: PartialFunction[mutable.Stack[virt.Val], virt.Val]) extends OpCode{
     def op = vt => vt.push(transform(vt.frame.stack))
   }
   object S2{
-    def unapply(x: mutable.Stack[Any]) = Some((x.pop, x.pop))
+    def unapply(x: mutable.Stack[virt.Val]) = Some((x.pop, x.pop))
   }
   object S1{
-    def unapply(x: mutable.Stack[Any]) = Some((x.pop))
+    def unapply(x: mutable.Stack[virt.Val]) = Some((x.pop))
   }
 
-  class ManipOpCode(val id: Byte, val insnName: String)(transform: List[Any] => List[Any]) extends OpCode{
+  class ManipOpCode(val id: Byte, val insnName: String)(transform: List[virt.Val] => List[virt.Val]) extends OpCode{
     def op = vt => {
       val in = List.fill(vt.frame.stack.length min 4)(vt.pop)
       val out = transform(in)
@@ -53,10 +55,10 @@ object  StackManip {
   case object Swap extends ManipOpCode(95, "swap")({ case x :: y :: s=> y :: x :: s })
 
 
-  case object IAdd extends PureStackOpCode(96, "iadd")({ case S2(x: I, y: I) => x + y})
-  case object LAdd extends PureStackOpCode(97, "ladd")({ case S2(x: J, y: J) => y + x})
-  case object FAdd extends PureStackOpCode(98, "fadd")({ case S2(x: F, y: F)  => y + x})
-  case object DAdd extends PureStackOpCode(99, "dadd")({ case S2(x: D, y: D)  => y + x})
+  case object IAdd extends PureStackOpCode(96, "iadd")({ case S2(x: I, y: I) => x.v + y})
+  case object LAdd extends PureStackOpCode(97, "ladd")({ case S2(x: J, y: J) => y.v + x})
+  case object FAdd extends PureStackOpCode(98, "fadd")({ case S2(x: F, y: F)  => y.v + x})
+  case object DAdd extends PureStackOpCode(99, "dadd")({ case S2(x: D, y: D)  => y.v + x})
 
   case object ISub extends PureStackOpCode(100, "isub")({ case S2(x: I, y: I)  => (y - x) })
   case object LSub extends PureStackOpCode(101, "lsub")({ case S2(x: J, y: J)  => (y - x) })
@@ -103,7 +105,7 @@ object  StackManip {
   case class IInc(varId: Int, amount: Int) extends OpCode{
     def id = 132
     def insnName = "iinc"
-    def op = vt => vt.frame.locals(varId) = (vt.frame.locals(varId).asInstanceOf[Int]) + amount
+    def op = vt => vt.frame.locals(varId) = (vt.frame.locals(varId).asInstanceOf[virt.Int].v) + amount
   }
 
   case object I2L extends PureStackOpCode(133, "i2l")({ case S1(x: I)  => x.toLong })
@@ -126,11 +128,11 @@ object  StackManip {
   case object I2C extends PureStackOpCode(146, "i2c")({ case S1(x: I)  => x.toChar.toInt  })
   case object I2S extends PureStackOpCode(147, "i2s")({ case S1(x: I)  => x.toShort.toInt  })
 
-  case object LCmp extends PureStackOpCode(148, "lcmp")({ case S2(x: J, y: J)  => y.compare(x)  })
-  case object FCmpl extends PureStackOpCode(149, "fcmpl")({ case S2(x: F, y: F)  => y.compare(x)  })
-  case object FCmpg extends PureStackOpCode(150, "fcmpg")({ case S2(x: F, y: F)  => y.compare(x)  })
-  case object DCmpl extends PureStackOpCode(151, "dcmpl")({ case S2(x: D, y: D)  => y.compare(x)  })
-  case object DCmpg extends PureStackOpCode(152, "dcmpg")({ case S2(x: D, y: D)  => y.compare(x)  })
+  case object LCmp extends PureStackOpCode(148, "lcmp")({ case S2(x: J, y: J)  => y.v.compare(x)  })
+  case object FCmpl extends PureStackOpCode(149, "fcmpl")({ case S2(x: F, y: F)  => y.v.compare(x)  })
+  case object FCmpg extends PureStackOpCode(150, "fcmpg")({ case S2(x: F, y: F)  => y.v.compare(x)  })
+  case object DCmpl extends PureStackOpCode(151, "dcmpl")({ case S2(x: D, y: D)  => y.v.compare(x)  })
+  case object DCmpg extends PureStackOpCode(152, "dcmpg")({ case S2(x: D, y: D)  => y.v.compare(x)  })
 
 
   abstract class UnaryBranch(val id: Byte, val insnName: String)(pred: Int => Boolean) extends OpCode{
@@ -170,13 +172,9 @@ object  StackManip {
 
       val res = (vt.pop, vt.pop) match{
         case (null, null) => true
-        case (a: Array[Byte], b: Array[Byte]) => util.Arrays.equals(a, b)
-        case (a: Array[Char], b: Array[Char]) => util.Arrays.equals(a, b)
-        case (a: Array[Short], b: Array[Short]) => util.Arrays.equals(a, b)
-        case (a: Array[Int], b: Array[Int]) => util.Arrays.equals(a, b)
-        case (a: Array[Long], b: Array[Long]) => util.Arrays.equals(a, b)
-        case (a: Array[Float], b: Array[Float]) => util.Arrays.equals(a, b)
-        case (a: Array[Double], b: Array[Double]) => util.Arrays.equals(a, b)
+
+        case (a: virt.Arr, b: virt.Arr) => a == b
+
         case (a: virt.Obj, b: virt.Obj) =>
 
           a == b

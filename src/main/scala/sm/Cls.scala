@@ -5,7 +5,7 @@ import collection.mutable
 
 import imm.Type
 class Cls(val clsData: imm.Cls,
-          val statics: mutable.Map[String, Any] = mutable.Map.empty)
+          val statics: mutable.Map[String, virt.Val] = mutable.Map.empty)
          (implicit vm: VM){
 
   import vm._
@@ -27,7 +27,7 @@ class Cls(val clsData: imm.Cls,
                  .get.tpe.statics(name)
   }
 
-  def update(owner: Type.Cls, name: String, value: Any) = {
+  def update(owner: Type.Cls, name: String, value: virt.Val) = {
     this.ancestry.dropWhile(_.tpe != owner)
       .find(_.fields.exists(_.name == name))
       .get.tpe.statics(name) = value

@@ -3,42 +3,41 @@ package sm.imm
 import sm.VmThread
 import sm.virt
 package object opcodes {
-  def ext(x: Any) = {
+  def ext(x: virt.Val): virt.Val = {
     x match {
-      case b: Boolean => if (b) 1 else 0
-      case c: Char => c.toInt
-      case b: Byte => b.toInt
-      case s: Short => s.toInt
+      case b: virt.Boolean => if (b) 1 else 0
+      case c: virt.Char => c.toInt
+      case b: virt.Byte => b.toInt
+      case s: virt.Short => s.toInt
       case x => x
     }
   }
   object Intish{
-    def unapply(x: Any) = x match{
-      case b: Boolean => Some(if (b) 1 else 0 )
-      case c: Char => Some(c.toInt)
-      case b: Byte => Some(b.toInt)
-      case s: Short => Some(s.toInt)
-      case i: Int => Some(i)
+    def unapply(x: virt.Val): Option[virt.Int] = x match{
+      case b: virt.Boolean => Some(if (b) 1 else 0 )
+      case c: virt.Char => Some(c.toInt)
+      case b: virt.Byte => Some(b.toInt)
+      case s: virt.Short => Some(s.toInt)
+      case i: virt.Int => Some(i)
       case _ => None
     }
   }
   object Cat1{
-    def unapply(x: Any): Option[Any] = x match{
-      case b: Boolean => Some(b)
-      case c: Char => Some(c)
-      case b: Byte => Some(b)
-      case s: Short => Some(s)
-      case i: Int => Some(i)
-      case f: Float => Some(f)
-      case a: Array[_] => Some(a)
+    def unapply(x: virt.Val): Option[virt.Val] = x match{
+      case b: virt.Boolean => Some(b)
+      case c: virt.Char => Some(c)
+      case b: virt.Byte => Some(b)
+      case s: virt.Short => Some(s)
+      case i: virt.Int => Some(i)
+      case f: virt.Float => Some(f)
+      case a: virt.Arr => Some(a)
       case o: virt.Obj => Some(o)
-      case _ => None
     }
   }
   object Cat2{
-    def unapply(x: Any): Option[Any] = x match{
-      case l: Long => Some(l)
-      case d: Double => Some(d)
+    def unapply(x: virt.Val): Option[virt.Val] = x match{
+      case l: virt.Long => Some(l)
+      case d: virt.Double => Some(d)
       case _ => None
 
     }
