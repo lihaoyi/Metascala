@@ -29,7 +29,20 @@ object Type{
     }
   }
 
+  def default(desc: imm.Type) = {
 
+    desc match{
+      case imm.Type.Prim("B") => 0: Byte
+      case imm.Type.Prim("C") => 0: Char
+      case imm.Type.Prim("I") => 0
+      case imm.Type.Prim("J") => 0L
+      case imm.Type.Prim("F") => 0F
+      case imm.Type.Prim("D") => 0D
+      case imm.Type.Prim("S") => 0: Short
+      case imm.Type.Prim("Z") => false
+      case _ => null
+    }
+  }
 
   val primitiveMap = Map(
     "boolean" -> "java/lang/Boolean",
@@ -133,6 +146,7 @@ object Type{
 trait Type{
   def unparse: String
   def name: String
+
   def obj(implicit vm: VM): virt.Type = vm.Types(this)
 }
 

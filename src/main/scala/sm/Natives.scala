@@ -156,19 +156,19 @@ trait DefaultNatives extends Natives{
             "registerNatives()V" - noOp,
             "getName0()L//String;" - {vt => (s: virt.Type) =>
               import vt.vm
-              Virtualizer.toVirtual[Obj](s.tpe.unparse.replace("/", "."))
+              Virtualizer.toVirtual(s.tpe.unparse.replace("/", ".")).cast[Obj]
             },
             "forName0(L//String;)L//Class;" - {vt => (s: Obj) =>
               import vt._
-              Type.Cls(Virtualizer.fromVirtual[String](s)).obj
+              Type.Cls(Virtualizer.fromVirtual(s).cast[String]).obj
             },
             "forName0(L//String;ZL//ClassLoader;)L//Class;" - {vt => (s: virt.Obj, w: Any, y: Any) =>
               import vt._
-              Type.Cls(Virtualizer.fromVirtual[String](s)).obj
+              Type.Cls(Virtualizer.fromVirtual(s).cast[String]).obj
             },
             "getPrimitiveClass(L//String;)L//Class;" - {vt => (s: Obj) =>
               import vt._
-              Type.Cls(Type.primitiveMap(Virtualizer.fromVirtual(s).asInstanceOf[String])).obj
+              Type.Cls(Type.primitiveMap(Virtualizer.fromVirtual(s).cast[String])).obj
             },
             "getClassLoader0()L//ClassLoader;" - value1(null),
             "getDeclaringClass()L//Class;" - value(null),
@@ -217,7 +217,7 @@ trait DefaultNatives extends Natives{
             },
             "getResourceAsStream(Ljava/lang/String;)Ljava/io/InputStream;" - { vt => (cl: virt.Obj, s: virt.Obj) =>
               import vt.vm
-              val str = Virtualizer.fromVirtual[String](s)
+              val str = Virtualizer.fromVirtual(s).cast[String]
 
               fileLoader(str) match{
                 case None => null
@@ -233,7 +233,7 @@ trait DefaultNatives extends Natives{
             "getSystemResourceAsStream(Ljava/lang/String;)Ljava/io/InputStream;" - { vt => (s: virt.Obj) =>
 
               import vt.vm
-              val str = Virtualizer.fromVirtual[String](s)
+              val str = Virtualizer.fromVirtual(s).cast[String]
 
               fileLoader(str) match{
                 case None => null
@@ -280,21 +280,22 @@ trait DefaultNatives extends Natives{
             "intern()L//String;" - (vt => (x: virt.Obj) => vt.vm.InternedStrings(x))
             ),
           "System"/(
-            "arraycopy(L//Object;IL//Object;II)V"-( vt => (src: Any, srcPos: Int, dest: Any, destPos: Int, length: Int) =>
-              System.arraycopy(src, srcPos, dest, destPos, length)
-              ),
+            "arraycopy(L//Object;IL//Object;II)V" - { vt => (src: virt.Arr, srcPos: Int, dest: virt.Arr, destPos: Int, length: Int) =>
+
+              System.arraycopy(src.backing, srcPos, dest.backing, destPos, length)
+            },
             "currentTimeMillis()J" - value(System.currentTimeMillis()),
             "getProperty(L//String;)L//String;" - {
               vt => (s: Obj) =>
                 import vt.vm
-                Virtualizer.toVirtual[Any](properties.getOrElse(Virtualizer.fromVirtual[String](s), null))
+                Virtualizer.toVirtual(properties.getOrElse(Virtualizer.fromVirtual(s).cast[String], null))
 
             },
             "getProperty(L//String;L//String;)L//String;" - {
               vt => (s: Obj, dflt: Obj) =>
                 import vt.vm
-                properties.get(Virtualizer.fromVirtual[String](s))
-                          .map(Virtualizer.toVirtual[Obj])
+                properties.get(Virtualizer.fromVirtual(s).cast[String])
+                          .map(x => Virtualizer.toVirtual(x).cast[Obj])
                           .getOrElse(dflt)
             },
             "nanoTime()J" - value(System.nanoTime()),
@@ -347,10 +348,10 @@ trait DefaultNatives extends Natives{
       "scala"/(
         "Predef$"/(
           "println(Ljava/lang/String;)V" - {
-            vt => (x: virt.Obj, y: virt.Obj) => vt.vm.log("VIRTUAL " + Virtualizer.fromVirtual[String](y)(vt.vm))
+            vt => (x: virt.Obj, y: virt.Obj) => vt.vm.log("VIRTUAL " + Virtualizer.fromVirtual(y)(vt.vm).cast[String])
           },
           "println(Ljava/lang/Object;)V" - {
-            vt => (x: virt.Obj, y: virt.Obj) => vt.vm.log("VIRTUAL " + Virtualizer.fromVirtual[String](y)(vt.vm))
+            vt => (x: virt.Obj, y: virt.Obj) => vt.vm.log("VIRTUAL " + Virtualizer.fromVirtual(y)(vt.vm).cast[String])
           }
 
         )
@@ -405,7 +406,7 @@ trait DefaultNatives extends Natives{
             "getSavedProperty(Ljava/lang/String;)Ljava/lang/String;" - {
               vt => (s: Obj) =>
                 import vt.vm
-                Virtualizer.toVirtual[Any](properties.getOrElse(Virtualizer.fromVirtual[String](s), null))
+                Virtualizer.toVirtual(properties.getOrElse(Virtualizer.fromVirtual(s).cast[String], null))
             }
           )
 

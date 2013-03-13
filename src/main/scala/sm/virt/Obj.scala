@@ -5,30 +5,18 @@ import sm.{Cls, imm, virt, VM}
 import imm.Field
 import imm.Type
 import imm.Access
+import reflect.ClassTag
 
 object Obj{
 
   def initMembers(cls: imm.Cls, filter: Field => Boolean)(implicit vm: VM): List[Map[String, Any]] = {
     import vm._
     cls.fields.filter(filter).map{f =>
-      f.name -> initField(f.desc)
+      f.name -> imm.Type.default(f.desc)
     }.toMap :: cls.superType.toList.flatMap(x => initMembers(x.clsData, filter))
   }
 
-  def initField(desc: imm.Type) = {
 
-    desc match{
-      case imm.Type.Prim("B") => 0: Byte
-      case imm.Type.Prim("C") => 0: Char
-      case imm.Type.Prim("I") => 0
-      case imm.Type.Prim("J") => 0L
-      case imm.Type.Prim("F") => 0F
-      case imm.Type.Prim("D") => 0D
-      case imm.Type.Prim("S") => 0: Short
-      case imm.Type.Prim("Z") => false
-      case _ => null
-    }
-  }
   def apply(clsName: String, initMembers: (String, Any)*)(implicit vm: VM) = {
     new Obj(vm.Classes(imm.Type.Cls(clsName)), initMembers: _*)
   }
@@ -71,5 +59,14 @@ class Obj(val cls: sm.Cls, initMembers: (String, Any)*)
   }
 }
 
+object Arr{
+  class TypeX[T](val t: imm.Type)
 
+  def apply(t: imm.Type, n: Int) = {
+    new Arr(t, Array.fill[Any](n)(imm.Type.default(t)))
+  }
+}
+case class Arr(val tpe: imm.Type, val backing: Array[Any]){
+  override def toString = s"virt.Arr(${tpe.name}: ${backing.fold("")(_+", "+_)})"
+}
 

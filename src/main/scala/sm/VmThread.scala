@@ -52,16 +52,16 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     vm.log(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack)
     vm.log(indent + "---------------------- " + topFrame.pc + "\t" + node )
     topFrame.pc += 1
-    try
+//    try
       node.op(this)
-    catch{ case e: Throwable =>
-      throw new UncaughtVmException(
-        e.getClass.getCanonicalName,
-        e.getMessage,
-        Nil,
-        getFramesDump
-      )
-    }
+  /*catch{ case e: Throwable =>
+    throw new UncaughtVmException(
+      e.getClass.getCanonicalName,
+      e.getMessage,
+      Nil,
+      getFramesDump
+    )
+  }*/
 
     //log(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack.map(x => if (x == null) null else x.getClass))
   }
@@ -98,7 +98,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
         }
       case None =>
         throw new UncaughtVmException(ex.cls.clsData.tpe.unparse,
-                                      Virtualizer.fromVirtual(ex(imm.Type.Cls("java.lang.Throwable"), "detailMessage")),
+                                      Virtualizer.fromVirtual(ex(imm.Type.Cls("java.lang.Throwable"), "detailMessage")).asInstanceOf[String],
                                       Nil,
                                       ex.magicMembers("stackData").asInstanceOf[mutable.Seq[FrameDump]])
     }

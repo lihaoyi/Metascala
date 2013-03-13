@@ -135,15 +135,16 @@ object Misc {
   case class NewArray(typeCode: Int) extends BaseOpCode(188, "newarray"){
     def op = vt => {
       val Intish(count) = vt.pop
+
       val newArray = typeCode match{
-        case 4 => new Array[Boolean](count)
-        case 5 => new Array[Char](count)
-        case 6 => new Array[Float](count)
-        case 7 => new Array[Double](count)
-        case 8 => new Array[Byte](count)
-        case 9 => new Array[Short](count)
-        case 10 => new Array[Int](count)
-        case 11 => new Array[Long](count)
+        case 4  => virt.Arr(imm.Type.Prim("Z"), count)
+        case 5  => virt.Arr(imm.Type.Prim("C"), count)
+        case 6  => virt.Arr(imm.Type.Prim("F"), count)
+        case 7  => virt.Arr(imm.Type.Prim("D"), count)
+        case 8  => virt.Arr(imm.Type.Prim("B"), count)
+        case 9  => virt.Arr(imm.Type.Prim("S"), count)
+        case 10 => virt.Arr(imm.Type.Prim("I"), count)
+        case 11 => virt.Arr(imm.Type.Prim("J"), count)
       }
       vt.push(newArray)
     }
@@ -151,14 +152,13 @@ object Misc {
   case class ANewArray(desc: Type) extends BaseOpCode(189, "anewarray"){
     def op = vt => {
       val Intish(count) = vt.pop
-      vt.push(new Array[Object](count))
+      vt.push(virt.Arr(desc, count))
     }
   }
 
   case object ArrayLength extends BaseOpCode(190, "arraylength"){
     def op = vt => {
-
-      vt.push(vt.pop.asInstanceOf[Array[_]].length)
+      vt.push(vt.pop.asInstanceOf[virt.Arr].backing.length)
     }
   }
 
@@ -174,20 +174,7 @@ object Misc {
 
     }
   }
-  implicit class ArrType(a: Array[_]){
 
-    def tpe = a match{
-      case a: Array[Boolean] => imm.Type.Arr(imm.Type.Prim("Z"))
-      case a: Array[Byte] => imm.Type.Arr(imm.Type.Prim("B"))
-      case a: Array[Char] => imm.Type.Arr(imm.Type.Prim("C"))
-      case a: Array[Short] => imm.Type.Arr(imm.Type.Prim("S"))
-      case a: Array[Int] => imm.Type.Arr(imm.Type.Prim("I"))
-      case a: Array[Float] => imm.Type.Arr(imm.Type.Prim("F"))
-      case a: Array[Double] => imm.Type.Arr(imm.Type.Prim("D"))
-      case a: Array[Long] => imm.Type.Arr(imm.Type.Prim("J"))
-      case a: Array[_] => imm.Type.Arr(imm.Type.Cls("java/lang/Object"))
-    }
-  }
   case class InstanceOf(desc: Type) extends BaseOpCode(193, "instanceof"){
     def op = implicit vt => {
 
@@ -196,20 +183,16 @@ object Misc {
       val res = vt.pop match{
         case null => 0
         case x: virt.Obj =>
-          if(sm.VM.go){
-            println(s"InstanceOf ${x.cls.name} ${desc.unparse}")
-          }
+
           if(x.cls.checkIsInstanceOf(desc)) 1 else 0
-        case x: Array[_] => desc match{
+        case x: Array[_] => desc match {
           case imm.Type.Cls("java/lang/Object") => 1
           case imm.Type.Arr(innerType) => 1
           case _ => 0
         }
         case _ => 0
       }
-      if(sm.VM.go){
-        println(s"InstanceOf Result $res")
-      }
+
       vt.push(res)
     }
   }
@@ -227,10 +210,18 @@ object Misc {
 
   case class MultiANewArray(desc: Type.Arr, dims: Int) extends BaseOpCode(197, "multianewarray"){
     def op = vt => {
+      def rec(dims: List[Int], tpe: Type): virt.Arr = {
 
+        (dims, tpe) match {
+          case (size :: Nil, Type.Arr(innerType)) =>
+            virt.Arr(tpe, Array.fill[Any](size)(Type.default(innerType)))
+          case (size :: tail, Type.Arr(innerType)) =>
+            virt.Arr(tpe, Array.fill[Any](size)(rec(tail, innerType)))
+        }
+      }
       val (dimValues, newStack) = vt.frame.stack.splitAt(dims)
-      val dimArray = dimValues.map(x => x.asInstanceOf[Int])
-      val array = java.lang.reflect.Array.newInstance(desc.realCls, dimArray:_*)
+      val dimArray = dimValues.map(x => x.asInstanceOf[Int]).toList
+      val array = rec(dimArray, desc)
       vt.push(array)
     }
   }

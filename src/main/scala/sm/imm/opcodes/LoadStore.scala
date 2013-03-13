@@ -1,4 +1,6 @@
-package sm.imm.opcodes
+package sm
+package imm
+package opcodes
 
 import org.objectweb.asm
 import sm.imm.{Type, OpCode}
@@ -44,13 +46,19 @@ object LoadStore {
   case class BiPush(value: Int) extends PushValOpCode(16, "bipush", value)
   case class SiPush(value: Int) extends PushValOpCode(17,"sipush", value)
 
-  class PushConstOpCode(val id: Byte, val insnName: String, const: Any) extends OpCode{
+
+
+  case class Ldc(const: Any) extends BaseOpCode(18, "ldc"){
     def op = implicit vt => {
       import vt.vm
       import vm._
       val newConst = const match{
         case s: String =>
-          vt.vm.InternedStrings(virt.Obj("java/lang/String", "value" -> s.toCharArray))
+
+          val v = Virtualizer.toVirtual(s).asInstanceOf[virt.Obj]
+          println(s)
+          println("LDC " + v)
+          vt.vm.InternedStrings(v)
         case t: asm.Type =>
           Type.Cls(t.getClassName).obj
 
@@ -60,8 +68,6 @@ object LoadStore {
       vt.push(newConst)
     }
   }
-
-  case class Ldc(const: Any) extends PushConstOpCode(18, "ldc", const)
 
   // Not used, because ASM converts these Ldc(const: Any)
   //===============================================================
@@ -110,57 +116,39 @@ object LoadStore {
   val ALoad3 = UnusedOpCode(45, "aLoad_3")
   //===============================================================
 
-  class PushFromArray[T](val id: Byte, val insnName: String) extends OpCode{
-    def op = implicit vt => {
-      import vt._
-      val (Intish(index), array: Array[T]) = (frame.stack.pop(), frame.stack.pop())
-      if (array.isDefinedAt(index))
-        frame.stack.push(array(index))
-      else{
-        throwException{
-          virt.Obj("java/lang/ArrayIndexOutOfBoundsException",
-            "detailMessage" ->  Virtualizer.toVirtual(index+"")
-          )
-        }
-      }
-    }
-  }
-  class PushFromArrayInt[T: Numeric](val id: Byte, val insnName: String) extends OpCode{
+
+  class PushFromArray(val id: Byte, val insnName: String) extends OpCode{
     def op = implicit vt => (vt.pop, vt.pop) match {
-      case (Intish(index), array: Array[Boolean])=>
+      case (Intish(index), arr: virt.Arr)=>
         import vt._
-        if (array.isDefinedAt(index))
-          vt.push(if(array(index)) 1 else 0)
-        else{
+        if (arr.backing.isDefinedAt(index)){
+          vt.push(
+            arr.backing(index) match{
+              case x: Boolean => if (x) 1 else 0
+              case x: Char => x.toInt
+              case x: Byte => x.toInt
+              case x: Short => x.toInt
+              case x => x
+            }
+          )
+        }else{
           throwException{
             sm.virt.Obj("java/lang/ArrayIndexOutOfBoundsException",
               "detailMessage" -> Virtualizer.toVirtual(index+"")
             )
           }
         }
-      case (Intish(index), array: Array[T]) =>
-        import vt._
-        if (array.isDefinedAt(index))
-          vt.push(implicitly[Numeric[T]].toInt(array(index)))
-        else{
-          throwException{
-            sm.virt.Obj("java/lang/ArrayIndexOutOfBoundsException",
-              "detailMessage" -> Virtualizer.toVirtual(index+"")
-            )
-          }
-        }
-
     }
   }
 
-  case object IALoad extends PushFromArray[Int](46, "iaLoad")
-  case object LALoad extends PushFromArray[Long](47, "laLoad")
-  case object FALoad extends PushFromArray[Float](48, "faLoad")
-  case object DALoad extends PushFromArray[Double](49, "daLoad")
-  case object AALoad extends PushFromArray[Object](50, "aaLoad")
-  case object BALoad extends PushFromArrayInt[Byte](51, "baLoad")
-  case object CALoad extends PushFromArrayInt[Char](52, "caLoad")
-  case object SALoad extends PushFromArrayInt[Short](53, "saLoad")
+  case object IALoad extends PushFromArray(46, "iaLoad")
+  case object LALoad extends PushFromArray(47, "laLoad")
+  case object FALoad extends PushFromArray(48, "faLoad")
+  case object DALoad extends PushFromArray(49, "daLoad")
+  case object AALoad extends PushFromArray(50, "aaLoad")
+  case object BALoad extends PushFromArray(51, "baLoad")
+  case object CALoad extends PushFromArray(52, "caLoad")
+  case object SALoad extends PushFromArray(53, "saLoad")
 
   abstract class StoreLocal(val id: Byte, val insnName: String) extends OpCode{
     def varId: Int
@@ -200,39 +188,27 @@ object LoadStore {
   val AStore2 = UnusedOpCode(77, "astore_2")
   val AStore3 = UnusedOpCode(78, "astore_3")
   //===============================================================
-  class StoreArray[T](val id: Byte, val insnName: String) extends OpCode{
+  class StoreArray(val id: Byte, val insnName: String) extends OpCode{
     def op = vt => {
-      val (value: T, Intish(index), array: Array[T]) = (vt.pop, vt.pop, vt.pop)
-        array(index) = value
+      val (value, Intish(index), arr: virt.Arr) = (vt.pop, vt.pop, vt.pop)
+        arr.backing(index) = value
     }
   }
 
-  class StoreArrayObj(val id: Byte, val insnName: String) extends OpCode{
-    def op = vt => (vt.pop, vt.pop, vt.pop) match {
-      case (value: Any, Intish(index), array: Array[Any])=>
-        array(index) = value
-      case (null, Intish(index), array: Array[Any]) =>
-        array(index) = null
-
-    }
-  }
 
   class StoreArrayInt[T](val id: Byte, val insnName: String)(x: Int => T) extends OpCode{
     def op = vt => (vt.pop, vt.pop, vt.pop) match {
-      case (value: Boolean, Intish(index), array: Array[Boolean]) =>
-        array(index) = value
-      case (Intish(value), Intish(index), array: Array[Boolean]) =>
-        array(index) = x(value) != 0
-      case (Intish(value), Intish(index), array: Array[T]) =>
-        array(index) = x(value)
+
+      case (Intish(value), Intish(index), arr: virt.Arr) =>
+        arr.backing(index) = x(value)
     }
 
   }
-  case object IAStore extends StoreArray[Int](79, "iastore")
-  case object LAStore extends StoreArray[Long](80, "lastore")
-  case object FAStore extends StoreArray[Float](81, "fastore")
-  case object DAStore extends StoreArray[Double](82, "dastore")
-  case object AAStore extends StoreArrayObj(83, "aastore")
+  case object IAStore extends StoreArray(79, "iastore")
+  case object LAStore extends StoreArray(80, "lastore")
+  case object FAStore extends StoreArray(81, "fastore")
+  case object DAStore extends StoreArray(82, "dastore")
+  case object AAStore extends StoreArray(83, "aastore")
   case object BAStore extends StoreArrayInt[Byte](84, "bastore")(_.toByte)
   case object CAStore extends StoreArrayInt[Char](85, "castore")(_.toChar)
   case object SAStore extends StoreArrayInt[Short](86, "sastore")(_.toShort)
