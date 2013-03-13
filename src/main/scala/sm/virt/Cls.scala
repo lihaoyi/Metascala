@@ -1,7 +1,7 @@
 package sm.virt
 
 import sm.imm
-import sm.{Virtualizer, virt, VM}
+import sm.{virt, VM}
 import sm.virt.Obj
 
 
@@ -34,7 +34,7 @@ class Cls(override val tpe: imm.Type.Cls)
       virt.Obj("java/lang/reflect/Constructor",
         "clazz" -> tpe.obj,
         "slot" -> 0,
-        "parameterTypes" -> m.desc.args.map(_.obj),
+        "parameterTypes" -> m.desc.args.map(_.obj).toArray,
         "exceptionTypes" -> new Array[virt.Cls](0),
         "modifiers" -> m.access
       )
@@ -46,7 +46,7 @@ class Cls(override val tpe: imm.Type.Cls)
         virt.Obj("java/lang/reflect/Field",
           "clazz" -> this,
           "slot" -> f.name.hashCode,
-          "name" -> vm.InternedStrings(Virtualizer.toVirtual(f.name)),
+          "name" -> vm.InternedStrings(f.name),
           "modifiers" -> f.access,
           "type" -> f.desc.obj
 
@@ -60,7 +60,7 @@ class Cls(override val tpe: imm.Type.Cls)
       virt.Obj("java/lang/reflect/Method",
         "clazz" -> this,
         "slot" -> m.name.hashCode,
-        "name" -> vm.InternedStrings(Virtualizer.toVirtual(m.name)),
+        "name" -> vm.InternedStrings(m.name),
 
         "modifiers" -> m.access,
         "returnType" -> m.desc.ret.obj,

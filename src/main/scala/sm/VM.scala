@@ -33,7 +33,7 @@ class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) 
   private[this] implicit val vm = this
 
   implicit object InternedStrings extends Cache[virt.Obj, virt.Obj]{
-    override def pre(x: virt.Obj) = Virtualizer.fromVirtual[String](x)
+    override def pre(x: virt.Obj) = Virtualizer.fromVirtual(x).cast[String]
     def calc(x: virt.Obj) = x
   }
 
@@ -59,7 +59,7 @@ class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) 
 
   def invoke(bootClass: String, mainMethod: String, args: Seq[Any]) = {
 
-    Virtualizer.fromVirtual[Any](
+    Virtualizer.fromVirtual(
       threads(0).invoke(
         imm.Type.Cls(bootClass),
         mainMethod,
@@ -69,7 +69,7 @@ class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) 
           .find(x => x.name == mainMethod)
           .map(_.desc)
           .getOrElse(throw new IllegalArgumentException("Can't find method: " + mainMethod)),
-        args.map(Virtualizer.toVirtual[Any])
+        args.map(Virtualizer.toVirtual)
       )
     )
   }
@@ -95,7 +95,7 @@ case class FrameDump(clsName: String,
 class Frame(var pc: Int = 0,
             val runningClass: sm.Cls,
             val method: Method,
-            val locals: mutable.Seq[Any] = mutable.Seq.empty,
-            var stack: mutable.Stack[Any] = mutable.Stack.empty[Any])
+            val locals: mutable.Seq[virt.Val] = mutable.Seq.empty,
+            var stack: mutable.Stack[virt.Val] = mutable.Stack.empty[virt.Val])
 
 

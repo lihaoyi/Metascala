@@ -65,7 +65,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
     //log(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack.map(x => if (x == null) null else x.getClass))
   }
-  def returnVal(x: Option[Any]) = {
+  def returnVal(x: Option[virt.Val]) = {
 //    log(indent + "Primitives from " + threadStack.head.runningClass.name + " " + threadStack.head.method.name)
     threadStack.pop()
     x.foreach(value => threadStack.head.stack.push(value))
@@ -98,12 +98,12 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
         }
       case None =>
         throw new UncaughtVmException(ex.cls.clsData.tpe.unparse,
-                                      Virtualizer.fromVirtual(ex(imm.Type.Cls("java.lang.Throwable"), "detailMessage")).asInstanceOf[String],
+                                      ex(imm.Type.Cls("java.lang.Throwable"), "detailMessage"),
                                       Nil,
                                       ex.magicMembers("stackData").asInstanceOf[mutable.Seq[FrameDump]])
     }
   }
-  @tailrec final def prepInvoke(tpe: imm.Type.Entity, methodName: String, desc: imm.Type.Desc, args: Seq[Any])(implicit originalType: imm.Type.Entity = tpe): Unit = {
+  @tailrec final def prepInvoke(tpe: imm.Type.Entity, methodName: String, desc: imm.Type.Desc, args: Seq[virt.Val])(implicit originalType: imm.Type.Entity = tpe): Unit = {
 
     vm.log(indent + "prepInvoke " + tpe + " " + methodName + desc.unparse)
     vm.log(indent + "args " + args)
@@ -121,8 +121,8 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
           case Some(m) if m.code.insns != Nil=>
 
             val stretchedArgs = args.flatMap {
-              case l: Long => Seq(l, l)
-              case d: Double => Seq(d, d)
+              case l: virt.Long => Seq(l, l)
+              case d: virt.Double => Seq(d, d)
               case x => Seq(x)
             }
             val array = new Array[Any](m.misc.maxLocals)
@@ -142,7 +142,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
               case Some(x) => prepInvoke(x, methodName, desc, args)
               case None => throwException(
                 virt.Obj("java/lang/RuntimeException",
-                  "detailMessage" -> Virtualizer.toVirtual(s"A Can't find method $originalType $methodName ${desc.unparse}")
+                  "detailMessage" -> s"A Can't find method $originalType $methodName ${desc.unparse}"
                 )
               )
             }
@@ -153,7 +153,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
           case Some(x) => prepInvoke(x, methodName, desc, args)
           case None => throwException(
             virt.Obj("java/lang/RuntimeException",
-              "detailMessage" -> Virtualizer.toVirtual(s"B Can't find method $originalType $methodName ${desc.unparse}")
+              "detailMessage" -> s"B Can't find method $originalType $methodName ${desc.unparse}"
             )
           )
         }
@@ -161,7 +161,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
 
   }
-  def invoke(cls: imm.Type.Cls, methodName: String, desc: imm.Type.Desc, args: Seq[Any]) = {
+  def invoke(cls: imm.Type.Cls, methodName: String, desc: imm.Type.Desc, args: Seq[virt.Val]) = {
     val dummyFrame = new Frame(
       runningClass = cls,
       method = Method(0, "Dummy", imm.Type.Desc.read("()V")),

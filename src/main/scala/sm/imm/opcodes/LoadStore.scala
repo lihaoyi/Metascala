@@ -15,7 +15,7 @@ object LoadStore {
     def op = _ => ()
   }
 
-  class PushOpCode(val id: Byte, val insnName: String, value: Any) extends OpCode{
+  class PushOpCode(val id: Byte, val insnName: String, value: virt.Val) extends OpCode{
     def op = _.frame.stack.push(value)
   }
 
@@ -39,7 +39,7 @@ object LoadStore {
   case object DConst0 extends PushOpCode(14, "dconst_0", 0d)
   case object DConst1 extends PushOpCode(15, "dconst_1", 1d)
 
-  class PushValOpCode(val id: Byte, val insnName: String, value: Int) extends OpCode{
+  class PushValOpCode(val id: Byte, val insnName: String, value: virt.Int) extends OpCode{
     def op = _.frame.stack.push(value)
   }
 
@@ -48,7 +48,7 @@ object LoadStore {
 
 
 
-  case class Ldc(const: Any) extends BaseOpCode(18, "ldc"){
+  case class Ldc(const: virt.Val) extends BaseOpCode(18, "ldc"){
     def op = implicit vt => {
       import vt.vm
       import vm._

@@ -7,16 +7,16 @@ import virt._
 
 object Type{
   object Primitives{
-    type B = Byte
-    type C = Char
-    type I = Int
-    type J = Long
-    type F = Float
-    type D = Double
-    type S = Short
-    type Z = Boolean
-    type L = Object
-    def fromChar(c: Char) = c match{
+    type B = virt.Byte
+    type C = virt.Char
+    type I = virt.Int
+    type J = virt.Long
+    type F = virt.Float
+    type D = virt.Double
+    type S = virt.Short
+    type Z = virt.Boolean
+    type L = virt.Obj
+    def fromChar(c: scala.Char) = c match{
       case 'B' => classOf[B]
       case 'C' => classOf[C]
       case 'I' => classOf[I]
@@ -29,18 +29,18 @@ object Type{
     }
   }
 
-  def default(desc: imm.Type) = {
-
+  def default(desc: imm.Type): virt.Val = {
+    import imm.Type.Prim
     desc match{
-      case imm.Type.Prim("B") => 0: Byte
-      case imm.Type.Prim("C") => 0: Char
-      case imm.Type.Prim("I") => 0
-      case imm.Type.Prim("J") => 0L
-      case imm.Type.Prim("F") => 0F
-      case imm.Type.Prim("D") => 0D
-      case imm.Type.Prim("S") => 0: Short
-      case imm.Type.Prim("Z") => false
-      case _ => null
+      case Prim("B") => virt.Byte(0)
+      case Prim("C") => virt.Char(0)
+      case Prim("I") => virt.Int(0)
+      case Prim("J") => virt.Long(0)
+      case Prim("F") => virt.Float(0)
+      case Prim("D") => virt.Double(0)
+      case Prim("S") => virt.Short(0)
+      case Prim("Z") => virt.Boolean(false)
+      case _ => virt.Null
     }
   }
 
