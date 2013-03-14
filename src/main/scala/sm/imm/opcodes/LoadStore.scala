@@ -19,7 +19,7 @@ object LoadStore {
     def op = _.frame.stack.push(value)
   }
 
-  case object AConstNull extends PushOpCode(1, "aconst_null", null)
+  case object AConstNull extends PushOpCode(1, "aconst_null", virt.Null)
   case object IConstNull extends PushOpCode(2, "iconst_m1", -1)
 
   case object IConst0 extends PushOpCode(3, "iconst_0", 0)
@@ -137,7 +137,7 @@ object LoadStore {
         }else{
           throwException{
             sm.virt.Obj("java/lang/ArrayIndexOutOfBoundsException",
-              "detailMessage" -> (index+"")
+              "detailMessage" -> (index.v+"")
             )
           }
         }

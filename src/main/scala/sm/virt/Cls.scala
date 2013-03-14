@@ -13,10 +13,10 @@ object Type{
 class Type(val tpe: imm.Type, initMembers: (String, virt.Val)*)
           (implicit vm: VM)
           extends Obj(vm.Classes(imm.Type.Cls("java/lang/Class")), initMembers: _*){
-  def getDeclaredConstructors() = new Array[Object](0)
-  def getDeclaredFields() = new Array[Object](0)
-  def getDeclaredMethods() = new Array[Object](0)
-  def getInterfaces() = new Array[Object](0)
+  def getDeclaredConstructors() = new Array[virt.Obj](0)
+  def getDeclaredFields() = new Array[virt.Obj](0)
+  def getDeclaredMethods() = new Array[virt.Obj](0)
+  def getInterfaces() = new Array[virt.Obj](0)
   override def toString = {
     s"virt.Type(${tpe.unparse})"
   }
@@ -26,7 +26,7 @@ class Cls(override val tpe: imm.Type.Cls)
              extends Type(tpe, "name" -> tpe.name.replace('/', '.')){
   import vm._
   def name = tpe.unparse
-  override def getDeclaredConstructors() = {
+  override def getDeclaredConstructors(): Array[virt.Obj] = {
     tpe.clsData
       .methods
       .filter(_.name == "<init>")
@@ -70,7 +70,7 @@ class Cls(override val tpe: imm.Type.Cls)
       )
     }.toArray
   }
-  override def getInterfaces() = {
+  override def getInterfaces(): Array[virt.Obj] = {
     tpe.clsData.interfaces.map(_.obj).toArray
   }
   override def toString = {

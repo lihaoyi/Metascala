@@ -15,6 +15,7 @@ class ClassesTest extends FreeSpec with Util{
     "innerClass" in tester.run("innerClass")
   }
   "interfaces" - {
+
     val tester = new Tester("sm.features.classes.Interfaces")
     "implement" in tester.run("implement", 10)
     "abstractClass" in tester.run("abstractClass")

@@ -59,7 +59,7 @@ object Misc {
   case class GetField(owner: Type.Cls, name: String, desc: Type) extends BaseOpCode(180, "getfield"){
     def op = vt => vt.pop match {
       case (objectRef: virt.Obj) => vt.push(ext(objectRef(owner, name)))
-      case null =>
+      case virt.Null =>
         import vt._
         vt.throwException(virt.Obj("java/lang/NullPointerException"))
     }
@@ -68,7 +68,7 @@ object Misc {
     def op = vt => (vt.pop, vt.pop) match {
       case (value, objectRef: virt.Obj) =>
         objectRef(owner, name) = value
-      case (value, null) =>
+      case (value, virt.Null) =>
         import vt._
         vt.throwException(virt.Obj("java/lang/NullPointerException"))
     }
@@ -76,7 +76,7 @@ object Misc {
 
   def ensureNonNull(vt: VmThread, x: Any)(thunk: => Unit) = {
     import vt._
-    if (x == null){
+    if (x == virt.Null){
       throwException(virt.Obj("java/lang/NullPointerException"))
     }else {
       thunk
@@ -181,7 +181,7 @@ object Misc {
       import vt._
       import vm._
       val res = vt.pop match{
-        case null => 0
+        case virt.Null => 0
         case x: virt.Obj =>
 
           if(x.cls.checkIsInstanceOf(desc)) 1 else 0
@@ -210,31 +210,33 @@ object Misc {
 
   case class MultiANewArray(desc: Type.Arr, dims: Int) extends BaseOpCode(197, "multianewarray"){
     def op = vt => {
+      println("MultiANewArray " + desc.unparse + " " + dims)
       def rec(dims: List[Int], tpe: Type.Entity): virt.Arr = {
 
         (dims, tpe) match {
           case (size :: Nil, Type.Arr(innerType)) =>
-            virt.Arr(tpe, Array.fill[virt.Val](size)(Type.default(innerType)))
+            virt.Arr(innerType, Array.fill[virt.Val](size)(Type.default(innerType)))
           case (size :: tail, Type.Arr(innerType)) =>
-            virt.Arr(tpe, Array.fill[virt.Val](size)(rec(tail, innerType)))
+            virt.Arr(innerType, Array.fill[virt.Val](size)(rec(tail, innerType)))
         }
       }
       val (dimValues, newStack) = vt.frame.stack.splitAt(dims)
-      val dimArray = dimValues.map(x => x.asInstanceOf[Int]).toList
+      val dimArray = dimValues.map(x => x.asInstanceOf[virt.Int].v).toList
       val array = rec(dimArray, desc)
+      println(array)
       vt.push(array)
     }
   }
 
   case class IfNull(label: Int) extends BaseOpCode(198, "ifnull"){
     def op = vt => {
-      if (vt.pop == null) vt.frame.pc = label
+      if (vt.pop == virt.Null) vt.frame.pc = label
     }
   }
 
   case class IfNonNull(label: Int) extends BaseOpCode(199, "ifnonnull"){
     def op = vt => {
-      if (vt.pop != null) vt.frame.pc = label
+      if (vt.pop != virt.Null) vt.frame.pc = label
     }
   }
 

@@ -171,7 +171,7 @@ object  StackManip {
 
 
       val res = (vt.pop, vt.pop) match{
-        case (null, null) => true
+        case (virt.Null, virt.Null) => true
 
         case (a: virt.Arr, b: virt.Arr) => a == b
 

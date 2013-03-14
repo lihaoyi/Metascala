@@ -10,11 +10,12 @@ import reflect.ClassTag
 
 object Val{
   val primitiveMap = Map[String, Class[_]](
+
     ("int", classOf[scala.Int]),
     ("long", classOf[scala.Long]),
     ("double", classOf[scala.Double]),
     ("float", classOf[scala.Float]),
-    ("bool", classOf[scala.Boolean]),
+    ("boolean", classOf[scala.Boolean]),
     ("char", classOf[scala.Char]),
     ("byte", classOf[scala.Byte]),
     ("short", classOf[scala.Short])
@@ -40,7 +41,7 @@ object Val{
           f.getName -> virtualize(f.get(x))
         }.toSeq: _*
       )
-    case null => null
+    case null => virt.Null
   }
   implicit def virtBoolean(i: scala.Boolean) = Boolean(i)
   implicit def virtByte(i: scala.Byte) = Byte(i)
@@ -70,7 +71,7 @@ object Val{
       case x: virt.Double => x: scala.Double
       case x: virt.Arr =>
         println("Unvirt Array " + x.tpe.unparse)
-        val newArr = java.lang.reflect.Array.newInstance(forName(x.tpe.name), x.backing.length)
+        val newArr = java.lang.reflect.Array.newInstance(forName(x.tpe.name.replace('/', '.')), x.backing.length)
         type SBoolean = scala.Boolean
         type SByte = scala.Byte
         type SChar = scala.Char

@@ -79,7 +79,9 @@ object Util{
     def run(main: String, args: Seq[virt.Val]): Any ={
       val res = invoke(className.replace('.', '/'), main, args)
       println("SCVM " + res)
-      virt.Val.unvirtualize(res)
+      val v = virt.Val.unvirtualize(res)
+      println("SCVM " + v)
+      v
     }
   }
 }
@@ -105,8 +107,8 @@ trait Util extends ShouldMatchers { this: FreeSpec  =>
       val svmRes = svm.run(main, args.map(virt.Val.virtualize))
       val refRes = ref.run(main, args:_*)
       val inString = args.toString
-      println(svmRes)
-      println(refRes)
+      println("svmRes " + svmRes)
+      println("refRes " + refRes)
       try{
         svmRes should be === refRes
       }catch {case ex: TestFailedException =>

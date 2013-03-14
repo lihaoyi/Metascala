@@ -54,6 +54,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     topFrame.pc += 1
 //    try
       node.op(this)
+
   /*catch{ case e: Throwable =>
     throw new UncaughtVmException(
       e.getClass.getCanonicalName,
