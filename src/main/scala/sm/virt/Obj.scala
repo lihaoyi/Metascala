@@ -11,14 +11,14 @@ import reflect.ClassTag
 object Val{
   val primitiveMap = Map[String, Class[_]](
 
-    ("int", classOf[scala.Int]),
-    ("long", classOf[scala.Long]),
-    ("double", classOf[scala.Double]),
-    ("float", classOf[scala.Float]),
-    ("boolean", classOf[scala.Boolean]),
-    ("char", classOf[scala.Char]),
-    ("byte", classOf[scala.Byte]),
-    ("short", classOf[scala.Short])
+    "int" -> classOf[scala.Int],
+    "long" -> classOf[scala.Long],
+    "double" -> classOf[scala.Double],
+    "float" -> classOf[scala.Float],
+    "boolean" -> classOf[scala.Boolean],
+    "char" -> classOf[scala.Char],
+    "byte" -> classOf[scala.Byte],
+    "short" -> classOf[scala.Short]
   
   )
   def virtualize(i: Any)(implicit vm: VM): virt.Val = i match{
@@ -81,7 +81,7 @@ object Val{
         type SLong = scala.Long
         type SDouble = scala.Double
         newArr match{
-          case a: Array[SBoolean] => x.backing.map(_.cast[virt.Boolean].v).copyToArray(a)
+          case a: Array[SBoolean] => x.backing.map(_.cast[virt.Byte].v != 0).copyToArray(a)
           case a: Array[SByte] => x.backing.map(_.cast[virt.Byte].v).copyToArray(a)
           case a: Array[SChar] => x.backing.map(_.cast[virt.Char].v).copyToArray(a)
           case a: Array[SShort] => x.backing.map(_.cast[virt.Short].v).copyToArray(a)
