@@ -9,7 +9,7 @@ import sm.imm.Type.Primitives._
 import scala.::
 import java.util
 
-object  StackManip {
+trait StackManip {
   class PureStackOpCode(val id: Byte, val insnName: String)(transform: PartialFunction[mutable.Stack[virt.Val], virt.Val]) extends OpCode{
     def op = vt => vt.push(transform(vt.frame.stack))
   }

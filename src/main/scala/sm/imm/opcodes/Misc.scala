@@ -6,7 +6,7 @@ import sm.imm.Type
 import sm.{virt, VmThread}
 import sm.virt.Obj
 
-object Misc {
+trait Misc {
   case class Goto(label: Int) extends BaseOpCode(167, "goto"){
     def op = vt => vt.frame.pc = label
   }

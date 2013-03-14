@@ -8,7 +8,7 @@ import sm.imm.{Type, OpCode}
 import collection.mutable
 import sm.virt
 
-object LoadStore {
+trait LoadStore {
   case object Nop extends OpCode{
     def insnName = "nop"
     def id = 0

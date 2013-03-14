@@ -43,6 +43,8 @@ object Method {
                   maxLocals: Int = 0,
                   attrs: List[Attribute] = Nil)
 }
+
+
 case class Method(access: Int,
                   name: String,
                   desc: Type.Desc,

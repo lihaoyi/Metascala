@@ -1,5 +1,6 @@
 package sm.imm
 
+import opcodes.{StackManip, LoadStore, Misc}
 import sm.{VM, VmThread, Frame}
 import collection.mutable
 import org.objectweb.asm
@@ -15,7 +16,7 @@ abstract class OpCode{
   def op: VmThread => Unit
 }
 
-object OpCode {
+object OpCode extends Misc with LoadStore with StackManip{
   implicit def parseTypeCls(x: String) = Type.Cls.read(x)
   implicit def parseTypeDesc(x: String) = Type.Desc.read(x)
   def read(implicit labelMap: Map[Label, Int]): PartialFunction[Any, OpCode] = {
@@ -36,9 +37,7 @@ object OpCode {
 
 
 
-  import opcodes.LoadStore._
-  import opcodes.Misc._
-  import opcodes.StackManip._
+
   def apply(n: Int): Any = all((n + 256) % 256)
   val all = Seq(
     Nop,

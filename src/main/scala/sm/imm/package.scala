@@ -1,5 +1,11 @@
 package sm
 import collection.convert.wrapAsScala._
+
+/**
+ * This package contains the code involved in reading the .class files
+ * (using ASM) and generating an immutable representation of all the data
+ * structures encoded in the class file.
+ */
 package object imm {
   implicit class c[T](val list: java.util.List[T]) extends AnyVal{
     def safeList: List[T] = {

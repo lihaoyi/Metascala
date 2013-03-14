@@ -84,17 +84,3 @@ case class UncaughtVmException(name: String,
                                extends Exception(msg){
 
 }
-
-case class FrameDump(clsName: String,
-                     methodName: String,
-                     fileName: String,
-                     lineNumber: Int,
-                     bytecodes: Seq[String])
-
-class Frame(var pc: Int = 0,
-            val runningClass: sm.Cls,
-            val method: Method,
-            val locals: mutable.Seq[virt.Val] = mutable.Seq.empty,
-            var stack: mutable.Stack[virt.Val] = mutable.Stack.empty[virt.Val])
-
-

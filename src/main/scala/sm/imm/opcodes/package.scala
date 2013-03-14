@@ -2,8 +2,19 @@ package sm.imm
 
 import sm.VmThread
 import sm.virt
-package object opcodes {
-  def ext(x: virt.Val): virt.Val = {
+
+/**
+ * `opcodes` contains the stack manipulating behavior of each individual
+ * opcode. Each opcode is a case class or case object extending the trait
+ * [[sm.imm.OpCode]]. These are split into three separate files to help keep
+ * compile times down.
+ *
+ * A large number of the opcodes are unused (they extend [[sm.imm.opcodes.UnusedOpCode]])
+ * as ASM folds these into other opcodes for us automatically. For example,
+ * `LDC`, `LDC_W` and `LDC_2W` all get folded into `LDC` before being given to us
+ */
+package object opcodes{
+  private[opcodes] def ext(x: virt.Val): virt.Val = {
     x match {
       case b: virt.Boolean => if (b: Boolean) 1 else 0
       case c: virt.Char => c.toInt
@@ -12,7 +23,7 @@ package object opcodes {
       case x => x
     }
   }
-  object Intish{
+  private[opcodes] object Intish{
     def unapply(x: virt.Val): Option[virt.Int] = x match{
       case b: virt.Boolean => Some(if (b) 1 else 0 )
       case c: virt.Char => Some(c.toInt)
@@ -22,7 +33,7 @@ package object opcodes {
       case _ => None
     }
   }
-  object Cat1{
+  private[opcodes] object Cat1{
     def unapply(x: virt.Val): Option[virt.Val] = x match{
       case b: virt.Boolean => Some(b)
       case c: virt.Char => Some(c)
@@ -34,7 +45,7 @@ package object opcodes {
       case o: virt.Obj => Some(o)
     }
   }
-  object Cat2{
+  private[opcodes] object Cat2{
     def unapply(x: virt.Val): Option[virt.Val] = x match{
       case l: virt.Long => Some(l)
       case d: virt.Double => Some(d)
@@ -42,7 +53,7 @@ package object opcodes {
 
     }
   }
-  case class UnusedOpCode(val id: Byte, val insnName: String) extends OpCode{
+  private[opcodes] case class UnusedOpCode(val id: Byte, val insnName: String) extends OpCode{
     def op = ctx => ???
   }
   implicit def intToByte(n: Int) = n.toByte
@@ -50,7 +61,7 @@ package object opcodes {
     def pop = vt.frame.stack.pop()
     def push(x: virt.Val) = vt.frame.stack.push(x)
   }
-  abstract class BaseOpCode(val id: Byte, val insnName: String) extends OpCode{
+  private[opcodes] abstract class BaseOpCode(val id: Byte, val insnName: String) extends OpCode{
     def op: VmThread => Unit
   }
 
