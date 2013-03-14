@@ -99,7 +99,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
         }
       case None =>
         throw new UncaughtVmException(ex.cls.clsData.tpe.unparse,
-                                      virt.Val.unvirtString(ex(imm.Type.Cls("java.lang.Throwable"), "detailMessage").cast[virt.Obj]),
+                                      ex(imm.Type.Cls("java.lang.Throwable"), "detailMessage").cast[virt.Obj],
                                       Nil,
                                       ex.magicMembers("stackData").asInstanceOf[mutable.Seq[FrameDump]])
     }

@@ -34,7 +34,7 @@ class Cls(override val tpe: imm.Type.Cls)
       virt.Obj("java/lang/reflect/Constructor",
         "clazz" -> tpe.obj,
         "slot" -> 0,
-        "parameterTypes" -> virt.Val.virtArray(m.desc.args.map(_.obj).toArray),
+        "parameterTypes" -> virt.virtArray(m.desc.args.map(_.obj).toArray),
         "exceptionTypes" -> new Array[virt.Cls](0),
         "modifiers" -> m.access
       )
@@ -64,7 +64,7 @@ class Cls(override val tpe: imm.Type.Cls)
 
         "modifiers" -> m.access,
         "returnType" -> m.desc.ret.obj,
-        "parameterTypes" -> virt.Val.virtArray(m.desc.args.map(_.obj).toArray),
+        "parameterTypes" -> virt.virtArray(m.desc.args.map(_.obj).toArray),
         "exceptionTypes" -> new Array[virt.Cls](0)
 
       )

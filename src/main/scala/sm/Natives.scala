@@ -163,17 +163,17 @@ trait DefaultNatives extends Natives{
               import vt.vm
               s.tpe.unparse.replace("/", "."): virt.Val
             },
-            "forName0(L//String;)L//Class;" x1 {vt => (s: Obj) =>
+            "forName0(L//String;)L//Class;" x1 {vt => (s: virt.Obj) =>
               import vt._
-              Type.Cls(virt.Val.unvirtString(s)).obj
+              Type.Cls(s).obj
             },
             "forName0(L//String;ZL//ClassLoader;)L//Class;" x3 {vt => (s: virt.Obj, w: Any, y: Any) =>
               import vt._
-              Type.Cls(virt.Val.unvirtString(s)).obj
+              Type.Cls(s).obj
             },
-            "getPrimitiveClass(L//String;)L//Class;" x1 {vt => (s: Obj) =>
+            "getPrimitiveClass(L//String;)L//Class;" x1 {vt => (s: virt.Obj) =>
               import vt._
-              Type.Cls(Type.primitiveMap(virt.Val.unvirtString(s))).obj
+              Type.Cls(Type.primitiveMap(s)).obj
             },
             "getClassLoader0()L//ClassLoader;" x1 value1(virt.Null),
             "getDeclaringClass()L//Class;" x value(virt.Null),
@@ -190,11 +190,11 @@ trait DefaultNatives extends Natives{
             "getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;" x2 {
               vt => (cls: virt.Cls, b: Int) => cls.getDeclaredConstructors()
             },
-            "getDeclaredFields0(Z)[L//reflect/Field;" x2 { vt => (cls: virt.Type, b: Int) =>
-              virt.Val.virtualize(cls.getDeclaredFields())(vt.vm)
+            "getDeclaredFields0(Z)[L//reflect/Field;" x2 { vt => (cls: virt.Type, b: virt.Int) =>
+              virt.virtualize(cls.getDeclaredFields())(vt.vm)
             },
-            "getDeclaredMethods0(Z)[L//reflect/Method;" x2 { vt => (cls: virt.Type, b: Int) =>
-              virt.Val.virtualize(cls.getDeclaredMethods())(vt.vm)
+            "getDeclaredMethods0(Z)[L//reflect/Method;" x2 { vt => (cls: virt.Type, b: virt.Int) =>
+              virt.virtualize(cls.getDeclaredMethods())(vt.vm)
             },
             "getEnclosingMethod0()[L//Object;" x value(virt.Null),
             "getModifiers()I" x1 { vt => (x: virt.Cls) => import vt.vm._; Type.Cls(x.name).clsData.access_flags },
@@ -220,7 +220,7 @@ trait DefaultNatives extends Natives{
             },
             "getResourceAsStream(Ljava/lang/String;)Ljava/io/InputStream;" x2 { vt => (cl: virt.Obj, s: virt.Obj) =>
               import vt.vm
-              val str = virt.Val.unvirtString(s)
+              val str: String = s
 
               fileLoader(str) match{
                 case None => virt.Null
@@ -236,7 +236,7 @@ trait DefaultNatives extends Natives{
             "getSystemResourceAsStream(Ljava/lang/String;)Ljava/io/InputStream;" x1 { vt => (s: virt.Obj) =>
 
               import vt.vm
-              val str = virt.Val.unvirtString(s)
+              val str: String = s
 
               fileLoader(str) match{
                 case None => virt.Null
@@ -290,7 +290,7 @@ trait DefaultNatives extends Natives{
             "getProperty(L//String;)L//String;" x1 {
               vt => (s: Obj) =>
                 import vt.vm
-                properties.get(virt.Val.unvirtString(s))
+                properties.get(s)
                           .map(x => x: virt.Val)
                           .getOrElse(virt.Null)
 
@@ -298,7 +298,7 @@ trait DefaultNatives extends Natives{
             "getProperty(L//String;L//String;)L//String;" x2 {
               vt => (s: Obj, dflt: Obj) =>
                 import vt.vm
-                properties.get(virt.Val.unvirtString(s))
+                properties.get(s)
                           .map(x => x: virt.Val)
                           .getOrElse(dflt)
             },
@@ -321,7 +321,7 @@ trait DefaultNatives extends Natives{
               import vt.vm;
               import vm._
               throwable.members(0)("stackTrace") =
-                virt.Val.virtArray(
+                virt.virtArray(
                   vt.getStackTrace.map { f =>
                     virt.Obj("java/lang/StackTraceElement",
                       "declaringClass" -> f.getClassName,
@@ -354,10 +354,10 @@ trait DefaultNatives extends Natives{
       "scala"/(
         "Predef$"/(
           "println(Ljava/lang/String;)V" x2 {
-            vt => (x: virt.Obj, y: virt.Obj) => vt.vm.log("VIRTUAL " + virt.Val.unvirtString(y))
+            vt => (x: virt.Obj, y: virt.Obj) => vt.vm.log("VIRTUAL " + virt.unvirtString(y))
           },
           "println(Ljava/lang/Object;)V" x2 {
-            vt => (x: virt.Obj, y: virt.Obj) => vt.vm.log("VIRTUAL " + virt.Val.unvirtString(y))
+            vt => (x: virt.Obj, y: virt.Obj) => vt.vm.log("VIRTUAL " + virt.unvirtString(y))
           }
 
         )
@@ -412,7 +412,7 @@ trait DefaultNatives extends Natives{
             "getSavedProperty(Ljava/lang/String;)Ljava/lang/String;" x1 {
               vt => (s: Obj) =>
                 import vt.vm
-                properties.get(virt.Val.unvirtString(s))
+                properties.get(s)
                           .map(x => x: virt.Val)
                           .getOrElse(virt.Null)
             }

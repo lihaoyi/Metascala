@@ -33,7 +33,7 @@ class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) 
   private[this] implicit val vm = this
 
   object InternedStrings extends Cache[virt.Obj, virt.Obj]{
-    override def pre(x: virt.Obj) = virt.Val.unvirtString(x)
+    override def pre(x: virt.Obj) = virt.unvirtString(x)
     def calc(x: virt.Obj) = x
   }
 
