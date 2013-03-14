@@ -78,10 +78,8 @@ object Util{
 
     def run(main: String, args: Seq[virt.Val]): Any ={
       val res = invoke(className.replace('.', '/'), main, args)
-      println("SCVM " + res)
-      val v = virt.unvirtualize(res)
-      println("SCVM " + v)
-      v
+
+      virt.unvirtualize(res)
     }
   }
 }
@@ -95,7 +93,7 @@ trait Util extends ShouldMatchers { this: FreeSpec  =>
         .find(_.getName == main)
         .get
 
-      println("Invoking Method " + method.getName + " with " + method.getParameterTypes.length + " " + args.length)
+
 
       method.invoke(null, args.map(x => x.asInstanceOf[AnyRef]):_*)
     }

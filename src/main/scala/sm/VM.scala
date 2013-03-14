@@ -69,7 +69,7 @@ class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) 
         .getOrElse(throw new IllegalArgumentException("Can't find method: " + mainMethod)),
       args
     )
-    println("VMInvoked " + res)
+
     res
   }
 }

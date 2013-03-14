@@ -5,7 +5,7 @@ import sm.virt
 package object opcodes {
   def ext(x: virt.Val): virt.Val = {
     x match {
-      case b: virt.Boolean => if (b) 1 else 0
+      case b: virt.Boolean => if (b: Boolean) 1 else 0
       case c: virt.Char => c.toInt
       case b: virt.Byte => b.toInt
       case s: virt.Short => s.toInt

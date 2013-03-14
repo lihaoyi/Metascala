@@ -49,7 +49,7 @@ class Obj(val cls: sm.Cls, initMembers: (String, virt.Val)*)
   }
   def update(owner: imm.Type.Cls, name: String, value: virt.Val) = {
     val start = cls.ancestry.indexWhere(_.tpe == owner)
-    println("Updating " + name )
+
     members.drop(start)
       .find(_.contains(name))
       .get(name) = value

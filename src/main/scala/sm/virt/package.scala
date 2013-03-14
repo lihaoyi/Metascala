@@ -33,7 +33,7 @@ package object virt {
     case x: scala.Double => x
     case x: Array[_] => virt.Arr(imm.Type.read(x.getClass.getComponentType.getName).cast[imm.Type.Entity], x.map(x => virtualize(x)))
     case x: AnyRef =>
-      println("Virtualizing " + x.getClass.getName.replace('.', '/'))
+
       virt.Obj(x.getClass.getName.replace('.', '/'),
         x.getClass.getDeclaredFields
           .filter(f => !java.lang.reflect.Modifier.isStatic(f.getModifiers))
@@ -60,7 +60,7 @@ package object virt {
     primitiveMap.get(s).getOrElse[Class[_]](Class.forName(s))
 
   def unvirtualize(i: virt.Val): Any = {
-    println("Unvirtualize " + i)
+
     i match{
       case x: virt.Boolean => x: scala.Boolean
       case x: virt.Byte => x: scala.Byte

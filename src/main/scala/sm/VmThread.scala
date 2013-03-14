@@ -17,7 +17,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
   def getFramesDump = {
 
     threadStack.map{ f =>
-      println(f.method.code.attachments)
+
       FrameDump(
         f.runningClass.name,
         f.method.name,
@@ -77,7 +77,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     )
 
   @tailrec final def throwException(ex: virt.Obj, print: Boolean = true): Unit = {
-    println("Throwing")
+
     ex.magicMembers.get("stackData").getOrElse(
       ex.withMagic("stackData", getFramesDump)
     )
@@ -115,7 +115,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
     (vm.natives.trapped.get(tpe.name + "/" + methodName, desc), tpe) match{
       case (Some(trap), _) =>
-        println("NATIVE: " + tpe.name + "/" + methodName + desc)
+
         val result = trap(this)(args)
         if (result != ()) threadStack.head.stack.push(result)
 
@@ -180,7 +180,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     while(threadStack.head != dummyFrame) step()
 
     val x = threadStack.pop().stack.headOption.getOrElse(virt.Unit)
-    println("Thread Invoke " + x)
+
     x
   }
 }
