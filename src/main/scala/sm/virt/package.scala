@@ -5,6 +5,11 @@ import reflect.ClassTag
 
 package object virt {
 
+  val unsafe = {
+    val field = Class.forName("sun.misc.Unsafe").getDeclaredField("theUnsafe")
+    field.setAccessible(true)
+    field.get(null).asInstanceOf[sun.misc.Unsafe]
+  }
   val primitiveMap = Map[String, Class[_]](
 
     "int" -> classOf[scala.Int],
@@ -93,9 +98,7 @@ package object virt {
         newArr
       case x: virt.Obj =>
         val cls = Class.forName(x.cls.name.replace('/', '.'))
-        val field = Class.forName("sun.misc.Unsafe").getDeclaredField("theUnsafe")
-        field.setAccessible(true)
-        val obj = field.get(null).asInstanceOf[sun.misc.Unsafe].allocateInstance(cls)
+        val obj = unsafe.allocateInstance(cls)
         x.members(0).foreach{ case (k, v) =>
           val field = cls.getDeclaredField(k)
           field.setAccessible(true)
@@ -105,16 +108,16 @@ package object virt {
       case Null => null
     }
   }
-  implicit def unvirtBoolean(i: Boolean) = i.v
-  implicit def unvirtByte(i: Byte) = i.v
-  implicit def unvirtChar(i: Char) = i.v
-  implicit def unvirtShort(i: Short) = i.v
-  implicit def unvirtInt(i: Int) = i.v
-  implicit def unvirtFloat(i: Float) = i.v
-  implicit def unvirtLong(i: Long) = i.v
-  implicit def unvirtDouble(i: Double) = i.v
-  implicit def unvirtNull(i: Null) = null
-  implicit def unvirtUnit(i: Unit) = ()
+  implicit def unvirtBoolean(i: virt.Boolean) = i.v
+  implicit def unvirtByte(i: virt.Byte) = i.v
+  implicit def unvirtChar(i: virt.Char) = i.v
+  implicit def unvirtShort(i: virt.Short) = i.v
+  implicit def unvirtInt(i: virt.Int) = i.v
+  implicit def unvirtFloat(i: virt.Float) = i.v
+  implicit def unvirtLong(i: virt.Long) = i.v
+  implicit def unvirtDouble(i: virt.Double) = i.v
+  implicit def unvirtNull(i: virt.Null.type) = null
+  implicit def unvirtUnit(i: virt.Unit.type) = ()
   implicit def unvirtArray[T](i: Arr)(implicit ct: ClassTag[T], f: Val => T) = {
     i.backing.map(x => x: T)
   }

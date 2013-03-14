@@ -74,15 +74,22 @@ object Arr{
 case class Arr(tpe: imm.Type.Entity, backing: Array[virt.Val]) extends Val{
   override def toString = s"virt.Arr(${tpe.unparse}: ${backing.fold("")(_+", "+_)})"
 }
-case class Boolean(v: scala.Boolean) extends Val
-case class Byte(v: scala.Byte) extends Val
-case class Char(v: scala.Char) extends Val
-case class Short(v: scala.Short) extends Val
-case class Int(v: scala.Int) extends Val
-case class Float(v: scala.Float) extends Val
-case class Long(v: scala.Long) extends Val
-case class Double(v: scala.Double) extends Val
-case object Null extends Val
-case object Unit extends Val
+trait WrapVal[T] extends Val{
+  def v: T
+}
+case class Boolean(v: scala.Boolean) extends WrapVal[scala.Boolean]
+case class Byte(v: scala.Byte) extends WrapVal[scala.Byte]
+case class Char(v: scala.Char) extends WrapVal[scala.Char]
+case class Short(v: scala.Short) extends WrapVal[scala.Short]
+case class Int(v: scala.Int) extends WrapVal[scala.Int]
+case class Float(v: scala.Float) extends WrapVal[scala.Float]
+case class Long(v: scala.Long) extends WrapVal[scala.Long]
+case class Double(v: scala.Double) extends WrapVal[scala.Double]
+case object Null extends WrapVal[scala.Null]{
+  def v = null
+}
+case object Unit extends WrapVal[scala.Unit]{
+  def v = ()
+}
 
 
