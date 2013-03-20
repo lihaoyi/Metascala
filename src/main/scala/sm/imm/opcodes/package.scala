@@ -15,23 +15,6 @@ import sm.virt
  */
 package object opcodes{
 
-  private[opcodes] object Cat1{
-    def unapply(x: virt.StackVal): Option[virt.StackVal] = x match{
-
-      case i: virt.Int => Some(i)
-      case f: virt.Float => Some(f)
-      case a: virt.Arr => Some(a)
-      case o: virt.Obj => Some(o)
-    }
-  }
-  private[opcodes] object Cat2{
-    def unapply(x: virt.StackVal): Option[virt.StackVal] = x match{
-      case l: virt.Long => Some(l)
-      case d: virt.Double => Some(d)
-      case _ => None
-
-    }
-  }
   private[opcodes] case class UnusedOpCode(val id: Byte, val insnName: String) extends OpCode{
     def op = ctx => ???
   }

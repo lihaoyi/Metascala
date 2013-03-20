@@ -47,7 +47,15 @@ object LoadStore {
   case class SiPush(value: Int) extends PushValOpCode(17,"sipush", value)
 
 
-
+  def anyValToStackVal(x: Any) = x match {
+    case x: scala.Byte => virt.Int(x).toStackVal
+    case x: scala.Char => virt.Int(x).toStackVal
+    case x: scala.Short => virt.Int(x).toStackVal
+    case x: scala.Int => x
+    case x: scala.Float => x
+    case x: scala.Long => x
+    case x: scala.Double => x
+  }
   case class Ldc(const: Any) extends BaseOpCode(18, "ldc"){
     def op = implicit vt => {
       import vt.vm

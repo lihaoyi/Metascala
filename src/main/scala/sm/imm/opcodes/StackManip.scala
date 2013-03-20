@@ -8,6 +8,7 @@ import sm.imm.Type.Primitives._
 
 import scala.::
 import java.util
+import virt.{Cat1, Cat2}
 
 object StackManip {
   class PureStackOpCode(val id: Byte, val insnName: String)(transform: PartialFunction[mutable.Stack[virt.StackVal], virt.StackVal]) extends OpCode{
@@ -29,28 +30,28 @@ object StackManip {
   }
   case object Pop extends ManipOpCode(87, "pop")({ case _ :: s => s })
   case object Pop2 extends ManipOpCode(88, "pop2")({
-    case Cat1(_) :: Cat1(_) :: s => s
-    case Cat2(_) :: s => s
+    case (_: Cat1) :: (_: Cat1) :: s => s
+    case (_: Cat2) :: s => s
   })
   case object Dup extends ManipOpCode(89, "dup")({ case top :: s => top :: top :: s })
   case object DupX1 extends ManipOpCode(90, "dup_x1")({ case top :: x :: s => top :: x :: top :: s })
   case object DupX2 extends ManipOpCode(91, "dup_x2")({
-    case Cat1(top) :: Cat1(y) :: Cat1(x) :: s => top :: y :: x :: top :: s
-    case Cat1(top) :: Cat2(x) :: s => top :: x :: top :: s
+    case (top: Cat1) :: (y: Cat1) :: (x: Cat1) :: s => top :: y :: x :: top :: s
+    case (top: Cat1) :: (x: Cat2) :: s => top :: x :: top :: s
   })
   case object Dup2 extends ManipOpCode(92, "dup2")({
-    case Cat1(y) :: Cat1(x) :: s => y :: x :: y :: x :: s
-    case Cat2(x) :: s => x :: x :: s
+    case (y: Cat1) :: (x: Cat1) :: s => y :: x :: y :: x :: s
+    case (x: Cat2) :: s => x :: x :: s
   })
   case object Dup2X1 extends ManipOpCode(93, "dup2_x1")({
-    case Cat1(a) :: Cat1(b) :: Cat1(x) :: s => a :: b :: x :: a :: b :: s
-    case Cat2(a) :: Cat1(x) :: s => a :: a :: x :: a :: s
+    case (a: Cat1) :: (b: Cat1) :: (x: Cat1) :: s => a :: b :: x :: a :: b :: s
+    case (a: Cat2) :: (x: Cat1) :: s => a :: a :: x :: a :: s
   })
   case object Dup2X2 extends ManipOpCode(94, "dup2_x2")({
-    case Cat1(a) :: Cat1(b) :: Cat1(x) :: Cat1(y) :: s => a :: b :: x :: y :: a :: b :: s
-    case Cat2(a) :: Cat1(b) :: Cat1(x) :: s => a :: b :: x :: a :: s
-    case Cat1(a) :: Cat1(b) :: Cat2(x) :: s => a :: b :: x :: a :: b :: s
-    case Cat2(a) :: Cat2(b) :: s => a :: b :: a :: s
+    case (a: Cat1) :: (b: Cat1) :: (x: Cat1) :: (y: Cat1) :: s => a :: b :: x :: y :: a :: b :: s
+    case (a: Cat2) :: (b: Cat1) :: (x: Cat1) :: s => a :: b :: x :: a :: s
+    case (a: Cat1) :: (b: Cat1) :: (x: Cat2) :: s => a :: b :: x :: a :: b :: s
+    case (a: Cat2) :: (b: Cat2) :: s => a :: b :: a :: s
   })
   case object Swap extends ManipOpCode(95, "swap")({ case x :: y :: s=> y :: x :: s })
 
