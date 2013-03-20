@@ -1,5 +1,6 @@
 package sm
 
+import imm.Type.CharClass
 import imm.{Access, Type}
 import virt.Obj
 import java.io.{DataInputStream}
@@ -173,7 +174,7 @@ trait DefaultNatives extends Natives{
             },
             "getPrimitiveClass(L//String;)L//Class;" x1 {vt => (s: virt.Obj) =>
               import vt._
-              Type.Cls(Type.primitiveMap(s)).obj
+              Type.Cls(CharClass.all.find(_.name == (s: String)).get.boxName).obj
             },
             "getClassLoader0()L//ClassLoader;" x1 value1(virt.Null),
             "getDeclaringClass()L//Class;" x value(virt.Null),

@@ -14,7 +14,7 @@ class Cls(val clsData: imm.Cls,
   lazy val obj = new virt.Cls(Type.Cls(name))
 
   clsData.fields.map{f =>
-    statics(f.name) = imm.Type.default(f.desc)
+    statics(f.name) = imm.Type.CharClass.default(f.desc)
   }
 
   def method(name: String, desc: Type.Desc): Option[imm.Method] = {

@@ -1,5 +1,6 @@
 package sm
 
+import imm.Type.CharClass
 import reflect.ClassTag
 
 /**

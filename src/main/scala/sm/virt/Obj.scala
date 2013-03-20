@@ -30,7 +30,7 @@ object Obj{
   def initMembers(cls: imm.Cls, filter: Field => scala.Boolean)(implicit vm: VM): List[Map[String, virt.Val]] = {
     import vm._
     cls.fields.filter(filter).map{f =>
-      f.name -> imm.Type.default(f.desc)
+      f.name -> imm.Type.CharClass.default(f.desc)
     }.toMap :: cls.superType.toList.flatMap(x => initMembers(x.clsData, filter))
   }
 
@@ -87,7 +87,7 @@ object ObjArr{
   class TypeX[T](val t: imm.Type)
 
   def apply(t: imm.Type.Entity, n: scala.Int) = {
-    new ObjArr(t, Array.fill[virt.Val](n)(imm.Type.default(t)))
+    new ObjArr(t, Array.fill[virt.Val](n)(imm.Type.CharClass.default(t)))
   }
 }
 class ObjArr(val tpe: imm.Type.Entity, val backing: Array[virt.Val]) extends Arr{

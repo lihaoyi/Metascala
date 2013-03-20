@@ -5,19 +5,27 @@ import reflect.ClassTag
 
 object Type{
 
-  class CharClass[T: ClassTag](val x: imm.Type.Prim){
+
+
+
+  class CharClass[T: ClassTag](val tpe: imm.Type.Prim,
+                               val name: String,
+                               val boxName: String,
+                               val default: virt.Val){
+
     val realCls: Class[_] = implicitly[ClassTag[T]].getClass
+
   }
   object CharClass{
-    implicit val ZC = new CharClass[Boolean](imm.Type.Prim('Z'))
-    implicit val BC = new CharClass[Byte](imm.Type.Prim('B'))
-    implicit val CC = new CharClass[Char](imm.Type.Prim('C'))
-    implicit val SC = new CharClass[Short](imm.Type.Prim('S'))
-    implicit val IC = new CharClass[Int](imm.Type.Prim('I'))
-    implicit val FC = new CharClass[Float](imm.Type.Prim('F'))
-    implicit val JC = new CharClass[Long](imm.Type.Prim('J'))
-    implicit val DC = new CharClass[Double](imm.Type.Prim('D'))
-    val all = Seq(
+    implicit val ZC = new CharClass[Boolean](imm.Type.Prim('Z'), "boolean", "java/lang/Boolean", virt.Boolean(false))
+    implicit val BC = new CharClass[Byte](imm.Type.Prim('B'), "byte", "java/lang/Byte", virt.Byte(0))
+    implicit val CC = new CharClass[Char](imm.Type.Prim('C'), "char", "java/lang/Character",virt.Char(0))
+    implicit val SC = new CharClass[Short](imm.Type.Prim('S'), "short", "java/lang/Short", virt.Short(0))
+    implicit val IC = new CharClass[Int](imm.Type.Prim('I'), "int", "java/lang/Integer", virt.Int(0))
+    implicit val FC = new CharClass[Float](imm.Type.Prim('F'), "float", "java/lang/Float", virt.Float(0))
+    implicit val JC = new CharClass[Long](imm.Type.Prim('J'), "long", "java/lang/Long", virt.Long(0))
+    implicit val DC = new CharClass[Double](imm.Type.Prim('D'), "double", "java/lang/Double", virt.Double(0))
+    val all: Seq[CharClass[_]] = Seq(
       ZC,
       BC,
       CC,
@@ -27,45 +35,13 @@ object Type{
       JC,
       DC
     )
-    def apply[T: CharClass]() = implicitly[CharClass[T]].x
-  }
-  def default(desc: imm.Type): virt.Val = {
-
-    desc match{
-      case Prim('B') => virt.Byte(0)
-      case Prim('C') => virt.Char(0)
-      case Prim('I') => virt.Int(0)
-      case Prim('J') => virt.Long(0)
-      case Prim('F') => virt.Float(0)
-      case Prim('D') => virt.Double(0)
-      case Prim('S') => virt.Short(0)
-      case Prim('Z') => virt.Boolean(false)
+    val charMap = all.map(x => x.tpe.char -> x).toMap[Char, CharClass[_]]
+    def default(desc: imm.Type) = desc match{
+      case Prim(c) => charMap(c).default
       case _ => virt.Null
     }
+    def apply[T: CharClass]() = implicitly[CharClass[T]].tpe
   }
-
-  val primitiveMap = Map(
-    "boolean" -> "java/lang/Boolean",
-    "byte" -> "java/lang/Byte",
-    "char" -> "java/lang/Character",
-    "short" -> "java/lang/Short",
-    "int" -> "java/lang/Integer",
-    "long" -> "java/lang/Long",
-    "float" -> "java/lang/Float",
-    "double" -> "java/lang/Double",
-    "void" -> "java/lang/Void"
-  )
-  val shortMap = Seq(
-    'Z' -> "boolean",
-    'B' -> "byte",
-    'C' -> "char",
-    'S' -> "short",
-    'I' -> "int",
-    'J' -> "long",
-    'F' -> "float",
-    'D' -> "double",
-    'V' -> "void"
-  )
 
   def read(s: String): Type = {
     s match{
@@ -101,9 +77,9 @@ object Type{
   }
   case class Prim(char: Char) extends Entity{
     def unparse = ""+char
-    def name = shortMap.toMap.apply(char)
+    def name = CharClass.charMap(char).name
 
-    def realCls = CharClass.all.find(_.x.char == name(0)).get.realCls
+    def realCls = CharClass.charMap(name(0)).realCls
 
     def parent(implicit vm: VM) = ???
   }

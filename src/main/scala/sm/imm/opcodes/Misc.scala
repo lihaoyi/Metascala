@@ -225,7 +225,7 @@ object Misc {
               case 'D' => virt.PrimArr[Double](size)
             }
           case (size :: Nil, Type.Arr(innerType)) =>
-            new virt.ObjArr(innerType, Array.fill[virt.Val](size)(Type.default(innerType)))
+            new virt.ObjArr(innerType, Array.fill[virt.Val](size)(Type.CharClass.default(innerType)))
           case (size :: tail, Type.Arr(innerType)) =>
             new virt.ObjArr(innerType, Array.fill[virt.Val](size)(rec(tail, innerType)))
         }
