@@ -5,15 +5,15 @@ import sm._
 import sm.imm.Field
 import sm.imm.Access
 import sm.imm
-import scala.Some
+
 import reflect.ClassTag
 import sm.imm.Type.CharClass
 
 
 
 object Obj{
-
-  def initMembers(cls: imm.Cls, filter: Field => scala.Boolean)(implicit vm: VM): List[Map[String, virt.Val]] = {
+  import scala.Boolean
+  def initMembers(cls: imm.Cls, filter: Field => Boolean)(implicit vm: VM): List[Map[String, virt.Val]] = {
     import vm._
     cls.fields.filter(filter).map{f =>
       f.name -> imm.Type.CharClass.default(f.desc)
@@ -72,7 +72,7 @@ trait Arr extends StackVal with Cat1{
 object ObjArr{
   class TypeX[T](val t: imm.Type)
 
-  def apply(t: imm.Type.Entity, n: scala.Int) = {
+  def apply(t: imm.Type.Entity, n: Int) = {
     new ObjArr(t, Array.fill[virt.Val](n)(imm.Type.CharClass.default(t)))
   }
 }
@@ -80,7 +80,7 @@ class ObjArr(val tpe: imm.Type.Entity, val backing: Array[virt.Val]) extends Arr
   override def toString = s"virt.ObjArr(${tpe.unparse}: ${backing.fold("")(_+", "+_)})"
 }
 object PrimArr{
-  def apply[T: ClassTag: CharClass](n: scala.Int) = {
+  def apply[T: ClassTag: CharClass](n: Int) = {
     new PrimArr(new Array[T](n))
   }
   def unapply(s: virt.Val) = s match{

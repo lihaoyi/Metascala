@@ -7,7 +7,7 @@ import reflect.ClassTag
  * This package contains virtual representations of the data within the java
  * virtual machine, as well as implicit conversions back and forth. Even for
  * data for which the wrappers are simple boxes (e.g. for primitive types) this
- * allows us to keep the "real" data types (which subclass scala.Any) neatly
+ * allows us to keep the "real" data types (which subclass Any) neatly
  * separated from the virtual data types (which subclass virt.Val).
  *
  * This lets us use implicit conversions to neatly enforce that the proper
@@ -15,50 +15,43 @@ import reflect.ClassTag
  * world into the virtual world.
  */
 package object virt {
-
+  import scala._
   private[this] val unsafe = {
     val field = Class.forName("sun.misc.Unsafe").getDeclaredField("theUnsafe")
     field.setAccessible(true)
     field.get(null).asInstanceOf[sun.misc.Unsafe]
   }
 
-  implicit def virtBoolean(i: scala.Boolean)  = Boolean(i)
-  implicit def virtByte(i: scala.Byte)        = Byte(i)
-  implicit def virtChar(i: scala.Char)        = Char(i)
-  implicit def virtShort(i: scala.Short)      = Short(i)
-  implicit def virtInt(i: scala.Int)          = Int(i)
-  implicit def virtFloat(i: scala.Float)      = Float(i)
-  implicit def virtLong(i: scala.Long)        = Long(i)
-  implicit def virtDouble(i: scala.Double)    = Double(i)
-  implicit def virtNull(i: scala.Null)        = Null
-  implicit def virtUnit(i: scala.Unit)        = Unit
+  implicit def virtBoolean(i: Boolean)  = virt.Boolean(i)
+  implicit def virtByte(i: Byte)        = virt.Byte(i)
+  implicit def virtChar(i: Char)        = virt.Char(i)
+  implicit def virtShort(i: Short)      = virt.Short(i)
+  implicit def virtInt(i: Int)          = virt.Int(i)
+  implicit def virtFloat(i: Float)      = virt.Float(i)
+  implicit def virtLong(i: Long)        = virt.Long(i)
+  implicit def virtDouble(i: Double)    = virt.Double(i)
+  implicit def virtNull(i: Null)        = virt.Null
+  implicit def virtUnit(i: Unit)        = virt.Unit
 
   def virtualize(i: Any)(implicit vm: VM): virt.Val = {
-    type SBoolean = scala.Boolean
-    type SByte = scala.Byte
-    type SChar = scala.Char
-    type SShort = scala.Short
-    type SInt = scala.Int
-    type SFloat = scala.Float
-    type SLong = scala.Long
-    type SDouble = scala.Double
+
     i match{
-      case x: scala.Boolean => x
-      case x: scala.Byte => x
-      case x: scala.Char => x
-      case x: scala.Short => x
-      case x: scala.Int => x
-      case x: scala.Float => x
-      case x: scala.Long => x
-      case x: scala.Double => x
-      case x: scala.Array[SBoolean] => new virt.PrimArr(x.clone)
-      case x: scala.Array[SByte] => new virt.PrimArr(x.clone)
-      case x: scala.Array[SChar] => new virt.PrimArr(x.clone)
-      case x: scala.Array[SShort] => new virt.PrimArr(x.clone)
-      case x: scala.Array[SInt] => new virt.PrimArr(x.clone)
-      case x: scala.Array[SFloat] => new virt.PrimArr(x.clone)
-      case x: scala.Array[SLong] => new virt.PrimArr(x.clone)
-      case x: scala.Array[SDouble] => new virt.PrimArr(x.clone)
+      case x: Boolean => x
+      case x: Byte => x
+      case x: Char => x
+      case x: Short => x
+      case x: Int => x
+      case x: Float => x
+      case x: Long => x
+      case x: Double => x
+      case x: Array[Boolean] => new virt.PrimArr(x.clone)
+      case x: Array[Byte] => new virt.PrimArr(x.clone)
+      case x: Array[Char] => new virt.PrimArr(x.clone)
+      case x: Array[Short] => new virt.PrimArr(x.clone)
+      case x: Array[Int] => new virt.PrimArr(x.clone)
+      case x: Array[Float] => new virt.PrimArr(x.clone)
+      case x: Array[Long] => new virt.PrimArr(x.clone)
+      case x: Array[Double] => new virt.PrimArr(x.clone)
       new virt.ObjArr(
         imm.Type.read(x.getClass.getComponentType.getName).cast[imm.Type.Entity],
         x.map(x => virtualize(x))
@@ -106,14 +99,14 @@ package object virt {
   def unvirtualize(i: virt.Val): Any = {
 
     i match{
-      case x: virt.Boolean => x: scala.Boolean
-      case x: virt.Byte => x: scala.Byte
-      case x: virt.Char => x: scala.Char
-      case x: virt.Short => x: scala.Short
-      case x: virt.Int => x: scala.Int
-      case x: virt.Float => x: scala.Float
-      case x: virt.Long => x: scala.Long
-      case x: virt.Double => x: scala.Double
+      case x: virt.Boolean => x: Boolean
+      case x: virt.Byte => x: Byte
+      case x: virt.Char => x: Char
+      case x: virt.Short => x: Short
+      case x: virt.Int => x: Int
+      case x: virt.Float => x: Float
+      case x: virt.Long => x: Long
+      case x: virt.Double => x: Double
       case x: virt.ObjArr => x.backing.cast[Array[virt.Val]].map(unvirtualize)
       case virt.PrimArr(backing) => backing.clone()
       case x: virt.Obj =>
@@ -130,14 +123,14 @@ package object virt {
   }
 
 
-  implicit def unvirtBooleanArray(i: virt.PrimArr[scala.Boolean]) = i.backing.clone()
-  implicit def unvirtByteArray(i: virt.PrimArr[scala.Byte]) = i.backing.clone()
-  implicit def unvirtCharArray(i: virt.PrimArr[scala.Char]) = i.backing.clone()
-  implicit def unvirtShortArray(i: virt.PrimArr[scala.Short]) = i.backing.clone()
-  implicit def unvirtIntArray(i: virt.PrimArr[scala.Int]) = i.backing.clone()
-  implicit def unvirtFloatArray(i: virt.PrimArr[scala.Float]) = i.backing.clone()
-  implicit def unvirtLongArray(i: virt.PrimArr[scala.Long]) = i.backing.clone()
-  implicit def unvirtDoubleArray(i: virt.PrimArr[scala.Double]) = i.backing.clone()
+  implicit def unvirtBooleanArray(i: virt.PrimArr[Boolean]) = i.backing.clone()
+  implicit def unvirtByteArray(i: virt.PrimArr[Byte]) = i.backing.clone()
+  implicit def unvirtCharArray(i: virt.PrimArr[Char]) = i.backing.clone()
+  implicit def unvirtShortArray(i: virt.PrimArr[Short]) = i.backing.clone()
+  implicit def unvirtIntArray(i: virt.PrimArr[Int]) = i.backing.clone()
+  implicit def unvirtFloatArray(i: virt.PrimArr[Float]) = i.backing.clone()
+  implicit def unvirtLongArray(i: virt.PrimArr[Long]) = i.backing.clone()
+  implicit def unvirtDoubleArray(i: virt.PrimArr[Double]) = i.backing.clone()
 
   implicit def unvirtArray[T](i: virt.ObjArr)(implicit ct: ClassTag[T], f: Val => T) = {
     i.backing.map(x => x: T)
@@ -149,7 +142,7 @@ package object virt {
     )
   }
   implicit def unvirtString(i: virt.Obj) = {
-    new String(i.members(0)("value").cast[virt.Arr].backing.map{case x: scala.Char => x})
+    new String(i.members(0)("value").cast[virt.Arr].backing.map{case x: Char => x})
   }
 }
 

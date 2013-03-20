@@ -3,7 +3,6 @@ package sm.virt
 trait WrapVal[T]{
   def v: T
 }
-
 case class Boolean(v: scala.Boolean) extends WrapVal[scala.Boolean] with Val
 case class Byte(v: scala.Byte) extends WrapVal[scala.Byte] with Val
 case class Char(v: scala.Char) extends WrapVal[scala.Char] with Val
