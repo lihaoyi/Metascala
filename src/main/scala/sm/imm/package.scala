@@ -2,12 +2,12 @@ package sm
 import collection.convert.wrapAsScala._
 
 /**
- * This package contains the code involved in reading the .class files
+ * This vrt contains the code involved in reading the .class files
  * (using ASM) and generating an immutable representation of all the data
  * structures encoded in the class file.
  *
- * There should be no mutable state in this package; any operations on mutable
- * state defined in this package should have their mutable variables injected
+ * There should be no mutable state in this vrt; any operations on mutable
+ * state defined in this vrt should have their mutable variables injected
  * in as method parameters.
  */
 package object imm {

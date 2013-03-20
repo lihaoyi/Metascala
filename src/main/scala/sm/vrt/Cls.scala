@@ -1,7 +1,7 @@
-package sm.virt
+package sm.vrt
 
 import sm.imm
-import sm.{virt, VM}
+import sm.{vrt, VM}
 
 
 object Type{
@@ -10,15 +10,15 @@ object Type{
     case tpe => new Type(tpe)
   }
 }
-class Type(val tpe: imm.Type, initMembers: (String, virt.Val)*)
+class Type(val tpe: imm.Type, initMembers: (String, vrt.Val)*)
           (implicit vm: VM)
           extends Obj(vm.Classes(imm.Type.Cls("java/lang/Class")), initMembers: _*){
-  def getDeclaredConstructors() = new Array[virt.Obj](0)
-  def getDeclaredFields() = new Array[virt.Obj](0)
-  def getDeclaredMethods() = new Array[virt.Obj](0)
-  def getInterfaces() = new Array[virt.Obj](0)
+  def getDeclaredConstructors() = new Array[vrt.Obj](0)
+  def getDeclaredFields() = new Array[vrt.Obj](0)
+  def getDeclaredMethods() = new Array[vrt.Obj](0)
+  def getInterfaces() = new Array[vrt.Obj](0)
   override def toString = {
-    s"virt.Type(${tpe.unparse})"
+    s"vrt.Type(${tpe.unparse})"
   }
 }
 class Cls(override val tpe: imm.Type.Cls)
@@ -26,16 +26,16 @@ class Cls(override val tpe: imm.Type.Cls)
              extends Type(tpe, "name" -> tpe.name.replace('/', '.')){
   import vm._
   def name = tpe.unparse
-  override def getDeclaredConstructors(): Array[virt.Obj] = {
+  override def getDeclaredConstructors(): Array[vrt.Obj] = {
     tpe.clsData
       .methods
       .filter(_.name == "<init>")
       .map{m =>
-      virt.Obj("java/lang/reflect/Constructor",
+      vrt.Obj("java/lang/reflect/Constructor",
         "clazz" -> tpe.obj,
         "slot" -> 0,
-        "parameterTypes" -> new virt.ObjArr(imm.Type.Cls("java/lang/reflect/Type"), m.desc.args.map(_.obj).toArray),
-        "exceptionTypes" -> new Array[virt.Cls](0),
+        "parameterTypes" -> new vrt.ObjArr(imm.Type.Cls("java/lang/reflect/Type"), m.desc.args.map(_.obj).toArray),
+        "exceptionTypes" -> new Array[vrt.Cls](0),
         "modifiers" -> m.access
       )
     }.toArray
@@ -44,7 +44,7 @@ class Cls(override val tpe: imm.Type.Cls)
   override def getDeclaredFields() = {
       tpe.clsData.fields.map {f =>
 
-        virt.Obj("java/lang/reflect/Field",
+        vrt.Obj("java/lang/reflect/Field",
           "clazz" -> this,
           "slot" -> f.name.hashCode,
           "name" -> vm.InternedStrings(f.name),
@@ -58,23 +58,23 @@ class Cls(override val tpe: imm.Type.Cls)
   override def getDeclaredMethods() = {
 
     tpe.clsData.methods.map {m =>
-      virt.Obj("java/lang/reflect/Method",
+      vrt.Obj("java/lang/reflect/Method",
         "clazz" -> this,
         "slot" -> m.name.hashCode,
         "name" -> vm.InternedStrings(m.name),
 
         "modifiers" -> m.access,
         "returnType" -> m.desc.ret.obj,
-        "parameterTypes" -> new virt.ObjArr(imm.Type.Cls("java/lang/reflect/Type"), m.desc.args.map(_.obj).toArray),
-        "exceptionTypes" -> new Array[virt.Cls](0)
+        "parameterTypes" -> new vrt.ObjArr(imm.Type.Cls("java/lang/reflect/Type"), m.desc.args.map(_.obj).toArray),
+        "exceptionTypes" -> new Array[vrt.Cls](0)
 
       )
     }.toArray
   }
-  override def getInterfaces(): Array[virt.Obj] = {
+  override def getInterfaces(): Array[vrt.Obj] = {
     tpe.clsData.interfaces.map(_.obj).toArray
   }
   override def toString = {
-    s"virt.Cls(${tpe.unparse}})"
+    s"vrt.Cls(${tpe.unparse}})"
   }
 }

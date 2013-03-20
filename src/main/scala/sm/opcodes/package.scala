@@ -1,7 +1,7 @@
 package sm.imm
 
 import sm.VmThread
-import sm.virt
+import sm.vrt
 
 /**
  * `opcodes` contains the stack manipulating behavior of each individual
@@ -15,15 +15,15 @@ import sm.virt
  */
 package object opcodes{
 
-  type B = virt.Byte
-  type C = virt.Char
-  type I = virt.Int
-  type J = virt.Long
-  type F = virt.Float
-  type D = virt.Double
-  type S = virt.Short
-  type Z = virt.Boolean
-  type L = virt.Obj
+  type B = vrt.Byte
+  type C = vrt.Char
+  type I = vrt.Int
+  type J = vrt.Long
+  type F = vrt.Float
+  type D = vrt.Double
+  type S = vrt.Short
+  type Z = vrt.Boolean
+  type L = vrt.Obj
 
   private[opcodes] case class UnusedOpCode(val id: Byte, val insnName: String) extends OpCode{
     def op = ctx => ???
@@ -31,7 +31,7 @@ package object opcodes{
   implicit def intToByte(n: Int) = n.toByte
   implicit class poppable(val vt: VmThread) extends AnyVal{
     def pop = vt.frame.stack.pop()
-    def push(x: virt.StackVal) = vt.frame.stack.push(x)
+    def push(x: vrt.StackVal) = vt.frame.stack.push(x)
   }
   private[opcodes] abstract class BaseOpCode(val id: Byte, val insnName: String) extends OpCode{
     def op: VmThread => Unit

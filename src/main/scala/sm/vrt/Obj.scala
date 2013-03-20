@@ -1,4 +1,4 @@
-package sm.virt
+package sm.vrt
 
 import collection.mutable
 import sm._
@@ -13,7 +13,7 @@ import sm.imm.Type.CharClass
 
 object Obj{
   import scala.Boolean
-  def initMembers(cls: imm.Cls, filter: Field => Boolean)(implicit vm: VM): List[Map[String, virt.Val]] = {
+  def initMembers(cls: imm.Cls, filter: Field => Boolean)(implicit vm: VM): List[Map[String, vrt.Val]] = {
     import vm._
     cls.fields.filter(filter).map{f =>
       f.name -> imm.Type.CharClass.default(f.desc)
@@ -21,7 +21,7 @@ object Obj{
   }
 
 
-  def apply(clsName: String, initMembers: (String, virt.Val)*)(implicit vm: VM) = {
+  def apply(clsName: String, initMembers: (String, vrt.Val)*)(implicit vm: VM) = {
     new Obj(vm.Classes(imm.Type.Cls(clsName)), initMembers: _*)
   }
   def unapply(x: Any) = x match{
@@ -29,7 +29,7 @@ object Obj{
     case _ => None
   }
 }
-class Obj(val cls: sm.Cls, initMembers: (String, virt.Val)*)
+class Obj(val cls: sm.Cls, initMembers: (String, vrt.Val)*)
          (implicit vm: VM) extends StackVal with Cat1{ import vm._
 
   val members =
@@ -40,7 +40,7 @@ class Obj(val cls: sm.Cls, initMembers: (String, virt.Val)*)
     this(imm.Type.Cls.read(cls.name), s) = v
   }
 
-  def apply(owner: imm.Type.Cls, name: String): virt.Val = {
+  def apply(owner: imm.Type.Cls, name: String): vrt.Val = {
     val start = cls.ancestry.indexWhere(_.tpe == owner)
 
     members.drop(start)
@@ -48,7 +48,7 @@ class Obj(val cls: sm.Cls, initMembers: (String, virt.Val)*)
            .get(name)
 
   }
-  def update(owner: imm.Type.Cls, name: String, value: virt.Val) = {
+  def update(owner: imm.Type.Cls, name: String, value: vrt.Val) = {
     val start = cls.ancestry.indexWhere(_.tpe == owner)
 
     members.drop(start)
@@ -61,7 +61,7 @@ class Obj(val cls: sm.Cls, initMembers: (String, virt.Val)*)
     this
   }
   override def toString = {
-    s"virt.Obj(${cls.name})"
+    s"vrt.Obj(${cls.name})"
   }
 }
 
@@ -73,25 +73,25 @@ object ObjArr{
   class TypeX[T](val t: imm.Type)
 
   def apply(t: imm.Type.Entity, n: Int) = {
-    new ObjArr(t, Array.fill[virt.Val](n)(imm.Type.CharClass.default(t)))
+    new ObjArr(t, Array.fill[vrt.Val](n)(imm.Type.CharClass.default(t)))
   }
 }
-class ObjArr(val tpe: imm.Type.Entity, val backing: Array[virt.Val]) extends Arr{
-  override def toString = s"virt.ObjArr(${tpe.unparse}: ${backing.fold("")(_+", "+_)})"
+class ObjArr(val tpe: imm.Type.Entity, val backing: Array[vrt.Val]) extends Arr{
+  override def toString = s"vrt.ObjArr(${tpe.unparse}: ${backing.fold("")(_+", "+_)})"
 }
 object PrimArr{
   def apply[T: ClassTag: CharClass](n: Int) = {
     new PrimArr(new Array[T](n))
   }
-  def unapply(s: virt.Val) = s match{
-    case x: virt.PrimArr[_] => Some(x.backing)
+  def unapply(s: vrt.Val) = s match{
+    case x: vrt.PrimArr[_] => Some(x.backing)
     case _ => None
   }
 
 }
 class PrimArr[T: CharClass](val backing: Array[T]) extends Arr{
   lazy val tpe: imm.Type.Prim = CharClass()
-  override def toString = s"virt.PrimArr(${tpe.unparse}: ${backing.fold("")(_+", "+_)})"
+  override def toString = s"vrt.PrimArr(${tpe.unparse}: ${backing.fold("")(_+", "+_)})"
 }
 
 

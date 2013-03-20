@@ -32,15 +32,15 @@ class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) 
 
   private[this] implicit val vm = this
 
-  object InternedStrings extends Cache[virt.Obj, virt.Obj]{
-    override def pre(x: virt.Obj) = virt.unvirtString(x)
-    def calc(x: virt.Obj) = x
+  object InternedStrings extends Cache[vrt.Obj, vrt.Obj]{
+    override def pre(x: vrt.Obj) = vrt.unvirtString(x)
+    def calc(x: vrt.Obj) = x
   }
 
-  implicit object Types extends Cache[imm.Type, virt.Type]{
+  implicit object Types extends Cache[imm.Type, vrt.Type]{
     def calc(t: imm.Type) = t match{
-      case t: imm.Type.Cls => new virt.Cls(t)
-      case _ => new virt.Type(t)
+      case t: imm.Type.Cls => new vrt.Cls(t)
+      case _ => new vrt.Type(t)
     }
   }
 
@@ -57,7 +57,7 @@ class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) 
 
   lazy val threads = List(new VmThread())
 
-  def invoke(bootClass: String, mainMethod: String, args: Seq[virt.Val]): virt.Val = {
+  def invoke(bootClass: String, mainMethod: String, args: Seq[vrt.Val]): vrt.Val = {
     val res = threads(0).invoke(
       imm.Type.Cls(bootClass),
       mainMethod,

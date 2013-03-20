@@ -7,20 +7,20 @@ import scala.collection.mutable
 
 import scala.::
 import java.util
-import virt.{Cat1, Cat2}
+import vrt.{Cat1, Cat2}
 
 object StackManip {
-  class PureStackOpCode(val id: Byte, val insnName: String)(transform: PartialFunction[mutable.Stack[virt.StackVal], virt.StackVal]) extends OpCode{
+  class PureStackOpCode(val id: Byte, val insnName: String)(transform: PartialFunction[mutable.Stack[vrt.StackVal], vrt.StackVal]) extends OpCode{
     def op = vt => vt.push(transform(vt.frame.stack))
   }
   object S2{
-    def unapply(x: mutable.Stack[virt.StackVal]) = Some((x.pop, x.pop))
+    def unapply(x: mutable.Stack[vrt.StackVal]) = Some((x.pop, x.pop))
   }
   object S1{
-    def unapply(x: mutable.Stack[virt.StackVal]) = Some((x.pop))
+    def unapply(x: mutable.Stack[vrt.StackVal]) = Some((x.pop))
   }
 
-  class ManipOpCode(val id: Byte, val insnName: String)(transform: List[virt.StackVal] => List[virt.StackVal]) extends OpCode{
+  class ManipOpCode(val id: Byte, val insnName: String)(transform: List[vrt.StackVal] => List[vrt.StackVal]) extends OpCode{
     def op = vt => {
       val in = List.fill(vt.frame.stack.length min 4)(vt.pop)
       val out = transform(in)
@@ -105,7 +105,7 @@ object StackManip {
   case class IInc(varId: Int, amount: Int) extends OpCode{
     def id = 132
     def insnName = "iinc"
-    def op = vt => vt.frame.locals(varId) = (vt.frame.locals(varId).asInstanceOf[virt.Int].v) + amount
+    def op = vt => vt.frame.locals(varId) = (vt.frame.locals(varId).asInstanceOf[vrt.Int].v) + amount
   }
 
   case object I2L extends PureStackOpCode(133, "i2l")({ case S1(x: I)  => x.toLong })
@@ -138,7 +138,7 @@ object StackManip {
   abstract class UnaryBranch(val id: Byte, val insnName: String)(pred: Int => Boolean) extends OpCode{
     def label: Int
     def op = vt => {
-      val virt.Int(top) = vt.pop
+      val vrt.Int(top) = vt.pop
       if(pred(top)) vt.frame.pc = label
     }
   }
@@ -153,7 +153,7 @@ object StackManip {
   abstract class BinaryBranch(val id: Byte, val insnName: String)(pred: (Int, Int) => Boolean) extends OpCode{
     def label: Int
     def op = vt => {
-      val (virt.Int(top), virt.Int(next)) = (vt.pop, vt.pop)
+      val (vrt.Int(top), vrt.Int(next)) = (vt.pop, vt.pop)
       if(pred(next, top)) vt.frame.pc = label
 
     }
@@ -171,11 +171,11 @@ object StackManip {
 
 
       val res = (vt.pop, vt.pop) match{
-        case (virt.Null, virt.Null) => true
+        case (vrt.Null, vrt.Null) => true
 
-        case (a: virt.Arr, b: virt.Arr) => a == b
+        case (a: vrt.Arr, b: vrt.Arr) => a == b
 
-        case (a: virt.Obj, b: virt.Obj) =>
+        case (a: vrt.Obj, b: vrt.Obj) =>
 
           a == b
         case _ =>

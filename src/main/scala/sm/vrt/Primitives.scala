@@ -1,4 +1,4 @@
-package sm.virt
+package sm.vrt
 
 trait WrapVal[T]{
   def v: T
