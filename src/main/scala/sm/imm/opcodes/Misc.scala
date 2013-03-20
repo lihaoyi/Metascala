@@ -213,17 +213,9 @@ object Misc {
       def rec(dims: List[Int], tpe: Type.Entity): virt.Arr = {
 
         (dims, tpe) match {
-          case (size :: Nil, Type.Arr(innerType @ Type.Prim(c))) =>
-            c match {
-              case 'Z' => virt.PrimArr[Boolean](size)
-              case 'B' => virt.PrimArr[Byte](size)
-              case 'C' => virt.PrimArr[Char](size)
-              case 'S' => virt.PrimArr[Short](size)
-              case 'I' => virt.PrimArr[Int](size)
-              case 'F' => virt.PrimArr[Float](size)
-              case 'J' => virt.PrimArr[Long](size)
-              case 'D' => virt.PrimArr[Double](size)
-            }
+          case (size :: Nil, Type.Arr(Type.Prim(c))) =>
+            Type.CharClass.charMap(c).newPrimArray(size)
+
           case (size :: Nil, Type.Arr(innerType)) =>
             new virt.ObjArr(innerType, Array.fill[virt.Val](size)(Type.CharClass.default(innerType)))
           case (size :: tail, Type.Arr(innerType)) =>

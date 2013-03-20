@@ -94,7 +94,7 @@ class ObjArr(val tpe: imm.Type.Entity, val backing: Array[virt.Val]) extends Arr
   override def toString = s"virt.ObjArr(${tpe.unparse}: ${backing.fold("")(_+", "+_)})"
 }
 object PrimArr{
-  def apply[T <: AnyVal : ClassTag: CharClass](n: scala.Int) = {
+  def apply[T: ClassTag: CharClass](n: scala.Int) = {
     new PrimArr(new Array[T](n))
   }
   def unapply(s: virt.Val) = s match{
@@ -103,7 +103,7 @@ object PrimArr{
   }
 
 }
-class PrimArr[T <: AnyVal: CharClass](val backing: Array[T]) extends Arr{
+class PrimArr[T: CharClass](val backing: Array[T]) extends Arr{
   lazy val tpe: imm.Type.Prim = CharClass()
   override def toString = s"virt.PrimArr(${tpe.unparse}: ${backing.fold("")(_+", "+_)})"
 }

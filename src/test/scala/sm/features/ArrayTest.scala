@@ -35,8 +35,16 @@ class ArrayTest extends FreeSpec with Util{
     ))
   }
   "multi dim arrays" - {
-    val tester = new Tester("sm.features.arrays.MultiDimArrays")
-    "make2D" in chk(tester.run("make2D", _: Int, _: Int))(Seq(0, 1, 2), Seq(0, 1, 2))
+    val buffer = new BufferLog(4000)
+    val tester = new Tester("sm.features.arrays.MultiDimArrays", buffer)
+    "make2D" in {
+      try
+      chk(tester.run("make2D", _: Int, _: Int))(Seq(0, 1, 2), Seq(0, 1, 2))
+      catch {case x =>
+        buffer.lines.foreach(println)
+        throw x
+      }
+    }
     "make3D" in chk(tester.run("make3D", _: Int, _: Int, _ : Int))(Seq(0, 1, 2), Seq(0, 1, 2), Seq(0, 1, 2))
     "getAndSet" in tester.run("getAndSet")
   }

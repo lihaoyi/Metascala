@@ -14,28 +14,22 @@ object Type{
                                val default: virt.Val){
 
     val realCls: Class[_] = implicitly[ClassTag[T]].getClass
+    def newArray(n: Int): Array[T] = new Array[T](n)
+    def newPrimArray(n: Int): virt.PrimArr[T] = new virt.PrimArr(new Array[T](n))(this)
 
   }
   object CharClass{
-    implicit val ZC = new CharClass[Boolean](imm.Type.Prim('Z'), "boolean", "java/lang/Boolean", virt.Boolean(false))
-    implicit val BC = new CharClass[Byte](imm.Type.Prim('B'), "byte", "java/lang/Byte", virt.Byte(0))
-    implicit val CC = new CharClass[Char](imm.Type.Prim('C'), "char", "java/lang/Character",virt.Char(0))
-    implicit val SC = new CharClass[Short](imm.Type.Prim('S'), "short", "java/lang/Short", virt.Short(0))
-    implicit val IC = new CharClass[Int](imm.Type.Prim('I'), "int", "java/lang/Integer", virt.Int(0))
-    implicit val FC = new CharClass[Float](imm.Type.Prim('F'), "float", "java/lang/Float", virt.Float(0))
-    implicit val JC = new CharClass[Long](imm.Type.Prim('J'), "long", "java/lang/Long", virt.Long(0))
-    implicit val DC = new CharClass[Double](imm.Type.Prim('D'), "double", "java/lang/Double", virt.Double(0))
-    val all: Seq[CharClass[_]] = Seq(
-      ZC,
-      BC,
-      CC,
-      SC,
-      IC,
-      FC,
-      JC,
-      DC
-    )
-    val charMap = all.map(x => x.tpe.char -> x).toMap[Char, CharClass[_]]
+    private[this] implicit def char2Type(c: Char) = imm.Type.Prim(c)
+    implicit val ZC = new CharClass[Boolean]( 'Z', "boolean", "java/lang/Boolean",  virt.Boolean(false))
+    implicit val BC = new CharClass[Byte](    'B', "byte",    "java/lang/Byte",     virt.Byte(0))
+    implicit val CC = new CharClass[Char](    'C', "char",    "java/lang/Character",virt.Char(0))
+    implicit val SC = new CharClass[Short](   'S', "short",   "java/lang/Short",    virt.Short(0))
+    implicit val IC = new CharClass[Int](     'I', "int",     "java/lang/Integer",  virt.Int(0))
+    implicit val FC = new CharClass[Float](   'F', "float",   "java/lang/Float",    virt.Float(0))
+    implicit val JC = new CharClass[Long](    'J', "long",    "java/lang/Long",     virt.Long(0))
+    implicit val DC = new CharClass[Double](  'D', "double",  "java/lang/Double",   virt.Double(0))
+    val all: Seq[CharClass[_]] = Seq(ZC, BC, CC, SC, IC, FC, JC, DC)
+    val charMap = all.map(x => x.tpe.char -> (x: CharClass[_])).toMap[Char, CharClass[_]]
     def default(desc: imm.Type) = desc match{
       case Prim(c) => charMap(c).default
       case _ => virt.Null
