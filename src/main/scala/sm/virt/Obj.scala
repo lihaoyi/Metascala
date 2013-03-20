@@ -10,6 +10,20 @@ import reflect.ClassTag
 
 
 trait Val
+object Val{
+  implicit class stackable(s: virt.Val){
+    def toStackVal = s match {
+      case Boolean(b) => virt.Int(if (b) 1 else 0)
+      case Char(c) => virt.Int(c)
+      case Byte(b) => virt.Int(b)
+      case Short(s) => virt.Int(s)
+      case x: virt.StackVal => x
+    }
+  }
+}
+
+trait StackVal extends Val
+
 object Obj{
 
   def initMembers(cls: imm.Cls, filter: Field => scala.Boolean)(implicit vm: VM): List[Map[String, virt.Val]] = {
@@ -29,7 +43,7 @@ object Obj{
   }
 }
 class Obj(val cls: sm.Cls, initMembers: (String, virt.Val)*)
-         (implicit vm: VM) extends Val{ import vm._
+         (implicit vm: VM) extends StackVal{ import vm._
 
   val members =
     Obj.initMembers(cls.clsData, x => (x.access & Access.Static) == 0)
@@ -64,7 +78,7 @@ class Obj(val cls: sm.Cls, initMembers: (String, virt.Val)*)
   }
 }
 
-trait Arr extends Val{
+trait Arr extends StackVal{
   val tpe: imm.Type.Entity
   val backing: Array[_]
 }
@@ -91,21 +105,21 @@ object PrimArr{
 class PrimArr[T <: AnyVal](val tpe: imm.Type.Prim, val backing: Array[T]) extends Arr{
   override def toString = s"virt.PrimArr(${tpe.unparse}: ${backing.fold("")(_+", "+_)})"
 }
-trait WrapVal[T] extends Val{
+trait WrapVal[T]{
   def v: T
 }
-case class Boolean(v: scala.Boolean) extends WrapVal[scala.Boolean]
-case class Byte(v: scala.Byte) extends WrapVal[scala.Byte]
-case class Char(v: scala.Char) extends WrapVal[scala.Char]
-case class Short(v: scala.Short) extends WrapVal[scala.Short]
-case class Int(v: scala.Int) extends WrapVal[scala.Int]
-case class Float(v: scala.Float) extends WrapVal[scala.Float]
-case class Long(v: scala.Long) extends WrapVal[scala.Long]
-case class Double(v: scala.Double) extends WrapVal[scala.Double]
-case object Null extends WrapVal[scala.Null]{
+case class Boolean(v: scala.Boolean) extends WrapVal[scala.Boolean] with Val
+case class Byte(v: scala.Byte) extends WrapVal[scala.Byte] with Val
+case class Char(v: scala.Char) extends WrapVal[scala.Char] with Val
+case class Short(v: scala.Short) extends WrapVal[scala.Short] with Val
+case class Int(v: scala.Int) extends WrapVal[scala.Int] with StackVal
+case class Float(v: scala.Float) extends WrapVal[scala.Float] with StackVal
+case class Long(v: scala.Long) extends WrapVal[scala.Long] with StackVal
+case class Double(v: scala.Double) extends WrapVal[scala.Double] with StackVal
+case object Null extends WrapVal[scala.Null] with StackVal{
   def v = null
 }
-case object Unit extends WrapVal[scala.Unit]{
+case object Unit extends WrapVal[scala.Unit] with StackVal{
   def v = ()
 }
 

@@ -66,7 +66,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
     //log(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack.map(x => if (x == null) null else x.getClass))
   }
-  def returnVal(x: Option[virt.Val]) = {
+  def returnVal(x: Option[virt.StackVal]) = {
 //    log(indent + "Primitives from " + threadStack.head.runningClass.name + " " + threadStack.head.method.name)
     threadStack.pop()
     x.foreach(value => threadStack.head.stack.push(value))
@@ -107,7 +107,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
   @tailrec final def prepInvoke(tpe: imm.Type.Entity,
                                 methodName: String,
                                 desc: imm.Type.Desc,
-                                args: Seq[virt.Val])
+                                args: Seq[virt.StackVal])
                                (implicit originalType: imm.Type.Entity = tpe): Unit = {
 
     vm.log(indent + "prepInvoke " + tpe + " " + methodName + desc.unparse)
@@ -117,7 +117,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
       case (Some(trap), _) =>
 
         val result = trap(this)(args)
-        if (result != ()) threadStack.head.stack.push(result)
+        if (result != ()) threadStack.head.stack.push(result.toStackVal)
 
       case (None, tpe: imm.Type.Cls) =>
 
@@ -131,7 +131,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
               case d: virt.Double => Seq(d, d)
               case x => Seq(x)
             }
-            val array = new Array[virt.Val](m.misc.maxLocals)
+            val array = new Array[virt.StackVal](m.misc.maxLocals)
             stretchedArgs.copyToArray(array)
 
             vm.log(indent + "args " + stretchedArgs)
@@ -175,7 +175,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     )
 
     threadStack.push(dummyFrame)
-    prepInvoke(cls, methodName, desc, args)
+    prepInvoke(cls, methodName, desc, args.map(_.toStackVal))
 
     while(threadStack.head != dummyFrame) step()
 
@@ -195,7 +195,7 @@ case class FrameDump(clsName: String,
 class Frame(var pc: Int = 0,
             val runningClass: sm.Cls,
             val method: Method,
-            val locals: mutable.Seq[virt.Val] = mutable.Seq.empty,
-            var stack: mutable.Stack[virt.Val] = mutable.Stack.empty[virt.Val])
+            val locals: mutable.Seq[virt.StackVal] = mutable.Seq.empty,
+            var stack: mutable.Stack[virt.StackVal] = mutable.Stack.empty[virt.StackVal])
 
 

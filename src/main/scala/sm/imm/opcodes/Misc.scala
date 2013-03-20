@@ -19,7 +19,7 @@ object Misc {
 
   case class TableSwitch(min: Int, max: Int, defaultTarget: Int, targets: Seq[Int]) extends BaseOpCode(170, "tableswitch"){
     def op = vt => {
-      val Intish(top) = vt.pop
+      val virt.Int(top) = vt.pop
       val newPc: Int =
         if (targets.isDefinedAt(top - min)) targets(top - min)
         else defaultTarget
@@ -28,7 +28,7 @@ object Misc {
   }
   case class LookupSwitch(defaultTarget: Int, keys: Seq[Int], targets: Seq[Int]) extends BaseOpCode(171, "lookupswitch"){
     def op = vt => {
-      val Intish(top) = vt.pop
+      val virt.Int(top) = vt.pop
       val newPc: Int = keys.zip(targets).toMap.get(top).getOrElse(defaultTarget: Int)
       vt.frame.pc = newPc
     }
@@ -45,7 +45,7 @@ object Misc {
     def op = vt => {
       import vt.vm
       import vm._
-      vt.push(owner.cls.apply(owner, name))
+      vt.push(owner.cls.apply(owner, name).toStackVal)
     }
   }
   case class PutStatic(owner: Type.Cls, name: String, desc: Type) extends BaseOpCode(179, "putstatic"){
@@ -58,7 +58,7 @@ object Misc {
 
   case class GetField(owner: Type.Cls, name: String, desc: Type) extends BaseOpCode(180, "getfield"){
     def op = vt => vt.pop match {
-      case (objectRef: virt.Obj) => vt.push(ext(objectRef(owner, name)))
+      case (objectRef: virt.Obj) => vt.push(objectRef(owner, name).toStackVal)
       case virt.Null =>
         import vt._
         vt.throwException(virt.Obj("java/lang/NullPointerException"))
@@ -134,7 +134,7 @@ object Misc {
   }
   case class NewArray(typeCode: Int) extends BaseOpCode(188, "newarray"){
     def op = vt => {
-      val Intish(count) = vt.pop
+      val virt.Int(count) = vt.pop
 
       val newArray = typeCode match{
         case 4  => virt.PrimArr[Boolean]('Z', count)
@@ -151,7 +151,7 @@ object Misc {
   }
   case class ANewArray(desc: Type.Entity) extends BaseOpCode(189, "anewarray"){
     def op = vt => {
-      val Intish(count) = vt.pop
+      val virt.Int(count) = vt.pop
       vt.push(virt.ObjArr(desc, count))
     }
   }

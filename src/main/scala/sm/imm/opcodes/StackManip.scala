@@ -10,17 +10,17 @@ import scala.::
 import java.util
 
 object StackManip {
-  class PureStackOpCode(val id: Byte, val insnName: String)(transform: PartialFunction[mutable.Stack[virt.Val], virt.Val]) extends OpCode{
+  class PureStackOpCode(val id: Byte, val insnName: String)(transform: PartialFunction[mutable.Stack[virt.StackVal], virt.StackVal]) extends OpCode{
     def op = vt => vt.push(transform(vt.frame.stack))
   }
   object S2{
-    def unapply(x: mutable.Stack[virt.Val]) = Some((x.pop, x.pop))
+    def unapply(x: mutable.Stack[virt.StackVal]) = Some((x.pop, x.pop))
   }
   object S1{
-    def unapply(x: mutable.Stack[virt.Val]) = Some((x.pop))
+    def unapply(x: mutable.Stack[virt.StackVal]) = Some((x.pop))
   }
 
-  class ManipOpCode(val id: Byte, val insnName: String)(transform: List[virt.Val] => List[virt.Val]) extends OpCode{
+  class ManipOpCode(val id: Byte, val insnName: String)(transform: List[virt.StackVal] => List[virt.StackVal]) extends OpCode{
     def op = vt => {
       val in = List.fill(vt.frame.stack.length min 4)(vt.pop)
       val out = transform(in)
@@ -55,32 +55,32 @@ object StackManip {
   case object Swap extends ManipOpCode(95, "swap")({ case x :: y :: s=> y :: x :: s })
 
 
-  case object IAdd extends PureStackOpCode(96, "iadd")({ case S2(Intish(x), Intish(y)) => x.v + y})
+  case object IAdd extends PureStackOpCode(96, "iadd")({ case S2(x: I, y: I) => x.v + y})
   case object LAdd extends PureStackOpCode(97, "ladd")({ case S2(x: J, y: J) => y.v + x})
   case object FAdd extends PureStackOpCode(98, "fadd")({ case S2(x: F, y: F)  => y.v + x})
   case object DAdd extends PureStackOpCode(99, "dadd")({ case S2(x: D, y: D)  => y.v + x})
 
-  case object ISub extends PureStackOpCode(100, "isub")({ case S2(Intish(x), Intish(y))  => (y - x) })
+  case object ISub extends PureStackOpCode(100, "isub")({ case S2(x: I, y: I)  => (y - x) })
   case object LSub extends PureStackOpCode(101, "lsub")({ case S2(x: J, y: J)  => (y - x) })
   case object FSub extends PureStackOpCode(102, "fsub")({ case S2(x: F, y: F)  => (y - x) })
   case object DSub extends PureStackOpCode(103, "dsub")({ case S2(x: D, y: D)  => (y - x) })
 
-  case object IMul extends PureStackOpCode(104, "imul")({ case S2(Intish(x), Intish(y))  => (y * x) })
+  case object IMul extends PureStackOpCode(104, "imul")({ case S2(x: I, y: I)  => (y * x) })
   case object LMul extends PureStackOpCode(105, "lmul")({ case S2(x: J, y: J)  => (y * x) })
   case object FMul extends PureStackOpCode(106, "fmul")({ case S2(x: F, y: F)  => (y * x) })
   case object DMul extends PureStackOpCode(107, "dmul")({ case S2(x: D, y: D)  => (y * x) })
 
-  case object IDiv extends PureStackOpCode(108, "idiv")({ case S2(Intish(x), Intish(y))  => (y / x) })
+  case object IDiv extends PureStackOpCode(108, "idiv")({ case S2(x: I, y: I)  => (y / x) })
   case object LDiv extends PureStackOpCode(109, "ldiv")({ case S2(x: J, y: J)  => (y / x) })
   case object FDiv extends PureStackOpCode(110, "fdiv")({ case S2(x: F, y: F)  => (y / x) })
   case object DDiv extends PureStackOpCode(111, "ddiv")({ case S2(x: D, y: D)  => (y / x) })
 
-  case object IRem extends PureStackOpCode(112, "irem")({ case S2(Intish(x), Intish(y))  => (y % x) })
+  case object IRem extends PureStackOpCode(112, "irem")({ case S2(x: I, y: I)  => (y % x) })
   case object LRem extends PureStackOpCode(113, "lrem")({ case S2(x: J, y: J)  => (y % x) })
   case object FRem extends PureStackOpCode(114, "frem")({ case S2(x: F, y: F)  => (y % x) })
   case object DRem extends PureStackOpCode(115, "drem")({ case S2(x: D, y: D)  => (y % x) })
 
-  case object INeg extends PureStackOpCode(116, "ineg")({ case S1(Intish(x))  => -x  })
+  case object INeg extends PureStackOpCode(116, "ineg")({ case S1(x: I)  => -x  })
   case object LNeg extends PureStackOpCode(117, "lneg")({ case S1(x: J)  => -x  })
   case object FNeg extends PureStackOpCode(118, "fneg")({ case S1(x: F)  => -x  })
   case object DNeg extends PureStackOpCode(119, "dneg")({ case S1(x: D)  => -x  })
@@ -138,7 +138,7 @@ object StackManip {
   abstract class UnaryBranch(val id: Byte, val insnName: String)(pred: Int => Boolean) extends OpCode{
     def label: Int
     def op = vt => {
-      val Intish(top) = vt.pop
+      val virt.Int(top) = vt.pop
       if(pred(top)) vt.frame.pc = label
     }
   }
@@ -153,7 +153,7 @@ object StackManip {
   abstract class BinaryBranch(val id: Byte, val insnName: String)(pred: (Int, Int) => Boolean) extends OpCode{
     def label: Int
     def op = vt => {
-      val (Intish(top), Intish(next)) = (vt.pop, vt.pop)
+      val (virt.Int(top), virt.Int(next)) = (vt.pop, vt.pop)
       if(pred(next, top)) vt.frame.pc = label
 
     }

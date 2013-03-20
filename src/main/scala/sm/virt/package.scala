@@ -152,7 +152,7 @@ package object virt {
     i.backing.map(x => x: T)
   }
 
-  implicit def virtString(i: String)(implicit vm: VM) = {
+  implicit def virtString(i: String)(implicit vm: VM): virt.Obj = {
     virt.Obj("java/lang/String",
       "value" -> new virt.PrimArr(imm.Type.Prim('C'), i.toCharArray)
     )
