@@ -21,18 +21,7 @@ package object virt {
     field.setAccessible(true)
     field.get(null).asInstanceOf[sun.misc.Unsafe]
   }
-  val primitiveMap = Map[String, Class[_]](
 
-    "int" -> classOf[scala.Int],
-    "long" -> classOf[scala.Long],
-    "double" -> classOf[scala.Double],
-    "float" -> classOf[scala.Float],
-    "boolean" -> classOf[scala.Boolean],
-    "char" -> classOf[scala.Char],
-    "byte" -> classOf[scala.Byte],
-    "short" -> classOf[scala.Short]
-
-  )
   implicit def virtBoolean(i: scala.Boolean)  = Boolean(i)
   implicit def virtByte(i: scala.Byte)        = Byte(i)
   implicit def virtChar(i: scala.Char)        = Char(i)
@@ -100,7 +89,7 @@ package object virt {
   implicit def virtObjArray[T <% Val](i: Array[T])      = new ObjArr(imm.Type.Cls(i.getClass.getComponentType.getName), i.map(x => x: Val))
 
   def forName(s: String) =
-    primitiveMap.get(s).getOrElse[Class[_]](Class.forName(s))
+    CharClass.all.find(_.name == s).map(_.realCls).getOrElse[Class[_]](Class.forName(s))
 
 
   implicit def unvirtBoolean(i: virt.Boolean) = i.v
