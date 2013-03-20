@@ -51,14 +51,14 @@ package object virt {
       case x: scala.Float => x
       case x: scala.Long => x
       case x: scala.Double => x
-      case x: scala.Array[SBoolean] => new virt.PrimArr[scala.Boolean](imm.Type.Prim('Z'), x.clone)
-      case x: scala.Array[SByte] => new virt.PrimArr[scala.Byte](imm.Type.Prim('B'), x.clone)
-      case x: scala.Array[SChar] => new virt.PrimArr[scala.Char](imm.Type.Prim('C'), x.clone)
-      case x: scala.Array[SShort] => new virt.PrimArr[scala.Short](imm.Type.Prim('S'), x.clone)
-      case x: scala.Array[SInt] => new virt.PrimArr[scala.Int](imm.Type.Prim('I'), x.clone)
-      case x: scala.Array[SFloat] => new virt.PrimArr[scala.Float](imm.Type.Prim('F'), x.clone)
-      case x: scala.Array[SLong] => new virt.PrimArr[scala.Long](imm.Type.Prim('J'), x.clone)
-      case x: scala.Array[SDouble] => new virt.PrimArr[scala.Double](imm.Type.Prim('D'), x.clone)
+      case x: scala.Array[SBoolean] => new virt.PrimArr[scala.Boolean](x.clone)
+      case x: scala.Array[SByte] => new virt.PrimArr[scala.Byte](x.clone)
+      case x: scala.Array[SChar] => new virt.PrimArr[scala.Char](x.clone)
+      case x: scala.Array[SShort] => new virt.PrimArr[scala.Short](x.clone)
+      case x: scala.Array[SInt] => new virt.PrimArr[scala.Int](x.clone)
+      case x: scala.Array[SFloat] => new virt.PrimArr[scala.Float](x.clone)
+      case x: scala.Array[SLong] => new virt.PrimArr[scala.Long](x.clone)
+      case x: scala.Array[SDouble] => new virt.PrimArr[scala.Double](x.clone)
       new virt.ObjArr(
         imm.Type.read(x.getClass.getComponentType.getName).cast[imm.Type.Entity],
         x.map(x => virtualize(x))
@@ -87,14 +87,14 @@ package object virt {
   implicit def virtNull(i: scala.Null)        = Null
   implicit def virtUnit(i: scala.Unit)        = Unit
 
-  implicit def virtBooleanArray(i: Array[virt.Boolean]) = new PrimArr[scala.Boolean](imm.Type.Prim('Z'), i.map(_.v))
-  implicit def virtByteArray(i: Array[virt.Byte])       = new PrimArr[scala.Byte](imm.Type.Prim('B'), i.map(_.v))
-  implicit def virtCharArray(i: Array[virt.Char])       = new PrimArr[scala.Char](imm.Type.Prim('C'), i.map(_.v))
-  implicit def virtShortArray(i: Array[virt.Short])     = new PrimArr[scala.Short](imm.Type.Prim('S'), i.map(_.v))
-  implicit def virtIntArray(i: Array[virt.Int])         = new PrimArr[scala.Int](imm.Type.Prim('I'), i.map(_.v))
-  implicit def virtFloatArray(i: Array[virt.Float])     = new PrimArr[scala.Float](imm.Type.Prim('F'), i.map(_.v))
-  implicit def virtLongArray(i: Array[virt.Long])       = new PrimArr[scala.Long](imm.Type.Prim('L'), i.map(_.v))
-  implicit def virtDoubleArray(i: Array[virt.Double])   = new PrimArr[scala.Double](imm.Type.Prim('D'), i.map(_.v))
+  implicit def virtBooleanArray(i: Array[virt.Boolean]) = new PrimArr(i.map(_.v))
+  implicit def virtByteArray(i: Array[virt.Byte])       = new PrimArr(i.map(_.v))
+  implicit def virtCharArray(i: Array[virt.Char])       = new PrimArr(i.map(_.v))
+  implicit def virtShortArray(i: Array[virt.Short])     = new PrimArr(i.map(_.v))
+  implicit def virtIntArray(i: Array[virt.Int])         = new PrimArr(i.map(_.v))
+  implicit def virtFloatArray(i: Array[virt.Float])     = new PrimArr(i.map(_.v))
+  implicit def virtLongArray(i: Array[virt.Long])       = new PrimArr(i.map(_.v))
+  implicit def virtDoubleArray(i: Array[virt.Double])   = new PrimArr(i.map(_.v))
   implicit def virtObjArray[T <% Val](i: Array[T])      = new ObjArr(imm.Type.Cls(i.getClass.getComponentType.getName), i.map(x => x: Val))
 
   def forName(s: String) =
@@ -112,10 +112,7 @@ package object virt {
       case x: virt.Long => x: scala.Long
       case x: virt.Double => x: scala.Double
       case x: virt.ObjArr => x.backing.cast[Array[virt.Val]].map(unvirtualize)
-      case virt.PrimArr(t, backing) =>
-        println("DEVIRTUALIZING")
-        println(backing.toSeq)
-        backing.clone()
+      case virt.PrimArr(backing) => backing.clone()
       case x: virt.Obj =>
         val cls = Class.forName(x.cls.name.replace('/', '.'))
         val obj = unsafe.allocateInstance(cls)
@@ -154,7 +151,7 @@ package object virt {
 
   implicit def virtString(i: String)(implicit vm: VM): virt.Obj = {
     virt.Obj("java/lang/String",
-      "value" -> new virt.PrimArr(imm.Type.Prim('C'), i.toCharArray)
+      "value" -> new virt.PrimArr(i.toCharArray)
     )
   }
   implicit def unvirtString(i: virt.Obj) = {

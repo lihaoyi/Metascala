@@ -206,19 +206,12 @@ trait DefaultNatives extends Natives{
                 .map(_.obj)
                 .getOrElse(virt.Null)
             },
-            "getRawAnnotations()[B" x1 value1(new virt.PrimArr(Type.Prim('B'), new Array[Boolean](0))),
-            "isPrimitive()Z" x1 { vt => (x: virt.Type) =>
-              println("isPrimitive!!")
-              println(x.tpe)
-              x.tpe.isInstanceOf[Type.Prim]
+            "getRawAnnotations()[B" x1 value1(new virt.PrimArr(new Array[Boolean](0))),
+            "isPrimitive()Z" x1 { vt => (x: virt.Type) => x.tpe.isInstanceOf[Type.Prim]
             },
             "isInterface()Z" x1 { vt => (x: virt.Cls) => import vt.vm._; ((Type.Cls(x.name.replace(".", "/")).clsData.access_flags & Access.Interface) != 0): virt.Val},
             "isAssignableFrom(L//Class;)Z" x2 { vt => (x: virt.Type, y: virt.Type) => true: virt.Val},
-            "isArray()Z" x1 { vt => (x: virt.Type) =>
-              println("isArray!!")
-              println(x.tpe)
-              println(x.tpe.isInstanceOf[Type.Arr])
-              x.tpe.isInstanceOf[Type.Arr]
+            "isArray()Z" x1 { vt => (x: virt.Type) => x.tpe.isInstanceOf[Type.Arr]
             },
             "desiredAssertionStatus0(L//Class;)Z" x1 value1(0: virt.Val)
           ),
@@ -274,7 +267,7 @@ trait DefaultNatives extends Natives{
             }},
             "registerNatives()V" x noOp,
             "getClass()L//Class;" x1 { vt => (x: virt.Val) =>
-              println("GETTING CLASS " + x)
+
               x match{
               case (x: virt.Obj) => x.cls.obj
               case (x: virt.Arr) => imm.Type.Arr(x.tpe).obj(vt.vm)

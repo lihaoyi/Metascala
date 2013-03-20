@@ -24,7 +24,21 @@ object Type{
       case 'L' => classOf[L]
     }
   }
+  class CharClass[T](val x: imm.Type.Prim)
 
+
+
+  object CharClass{
+    implicit val ZC = new CharClass[Boolean](imm.Type.Prim('Z'))
+    implicit val BC = new CharClass[Byte](imm.Type.Prim('B'))
+    implicit val CC = new CharClass[Char](imm.Type.Prim('C'))
+    implicit val SC = new CharClass[Short](imm.Type.Prim('S'))
+    implicit val IC = new CharClass[Int](imm.Type.Prim('I'))
+    implicit val FC = new CharClass[Float](imm.Type.Prim('F'))
+    implicit val JC = new CharClass[Long](imm.Type.Prim('J'))
+    implicit val DC = new CharClass[Double](imm.Type.Prim('D'))
+    def apply[T: CharClass]() = implicitly[CharClass[T]].x
+  }
   def default(desc: imm.Type): virt.Val = {
 
     desc match{

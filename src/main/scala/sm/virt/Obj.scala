@@ -7,6 +7,7 @@ import sm.imm.Access
 import sm.imm
 import scala.Some
 import reflect.ClassTag
+import sm.imm.Type.CharClass
 
 
 trait Val
@@ -93,16 +94,17 @@ class ObjArr(val tpe: imm.Type.Entity, val backing: Array[virt.Val]) extends Arr
   override def toString = s"virt.ObjArr(${tpe.unparse}: ${backing.fold("")(_+", "+_)})"
 }
 object PrimArr{
-  def apply[T <: AnyVal : ClassTag](t: Char, n: scala.Int) = {
-    new PrimArr(imm.Type.Prim(t), new Array[T](n))
+  def apply[T <: AnyVal : ClassTag: CharClass](n: scala.Int) = {
+    new PrimArr(new Array[T](n))
   }
   def unapply(s: virt.Val) = s match{
-    case x: virt.PrimArr[_] => Some((x.tpe.char, x.backing))
+    case x: virt.PrimArr[_] => Some(x.backing)
     case _ => None
   }
 
 }
-class PrimArr[T <: AnyVal](val tpe: imm.Type.Prim, val backing: Array[T]) extends Arr{
+class PrimArr[T <: AnyVal: CharClass](val backing: Array[T]) extends Arr{
+  lazy val tpe: imm.Type.Prim = CharClass()
   override def toString = s"virt.PrimArr(${tpe.unparse}: ${backing.fold("")(_+", "+_)})"
 }
 trait WrapVal[T]{

@@ -47,7 +47,7 @@ object LoadStore {
   case class SiPush(value: Int) extends PushValOpCode(17,"sipush", value)
 
 
-  def anyValToStackVal(x: Any) = x match {
+  def anyValToStackVal(x: Any): virt.StackVal = x match {
     case x: scala.Byte => virt.Int(x).toStackVal
     case x: scala.Char => virt.Int(x).toStackVal
     case x: scala.Short => virt.Int(x).toStackVal
@@ -67,13 +67,7 @@ object LoadStore {
         case t: asm.Type =>
           Type.Cls(t.getClassName).obj
 
-        case x: scala.Byte => virt.Int(x).toStackVal
-        case x: scala.Char => virt.Int(x).toStackVal
-        case x: scala.Short => virt.Int(x).toStackVal
-        case x: scala.Int => x
-        case x: scala.Float => x
-        case x: scala.Long => x
-        case x: scala.Double => x
+        case x => anyValToStackVal(x)
       }
 
       vt.push(newConst)
@@ -135,15 +129,8 @@ object LoadStore {
         if (arr.backing.isDefinedAt(index)){
           vt.push(
             arr.backing(index) match{
-              case x: scala.Boolean => (if (x) 1 else 0): virt.StackVal
-              case x: scala.Char => x.toInt: virt.StackVal
-              case x: scala.Byte => x.toInt: virt.StackVal
-              case x: scala.Short => x.toInt: virt.StackVal
-              case x: scala.Int => x: virt.StackVal
-              case x: scala.Float => x: virt.StackVal
-              case x: scala.Long => x: virt.StackVal
-              case x: scala.Double => x: virt.StackVal
               case x: virt.Val => x.toStackVal
+              case x => anyValToStackVal(x)
             }
           )
         }else{
@@ -207,15 +194,15 @@ object LoadStore {
     def op = vt => (vt.pop, vt.pop, vt.pop) match {
       case (value, virt.Int(index), arr: virt.ObjArr) =>  arr.backing(index) = value
 
-      case (virt.Int(value), virt.Int(index), virt.PrimArr('Z', backing: Array[Boolean])) => backing(index) = value != 0
-      case (virt.Int(value), virt.Int(index), virt.PrimArr('B', backing: Array[Byte])) =>  backing(index) = value.toByte
-      case (virt.Int(value), virt.Int(index), virt.PrimArr('C', backing: Array[Char])) =>  backing(index) = value.toChar
-      case (virt.Int(value), virt.Int(index), virt.PrimArr('S', backing: Array[Short])) =>  backing(index) = value.toShort
+      case (virt.Int(value), virt.Int(index), virt.PrimArr(backing: Array[Boolean])) => backing(index) = value != 0
+      case (virt.Int(value), virt.Int(index), virt.PrimArr(backing: Array[Byte])) =>  backing(index) = value.toByte
+      case (virt.Int(value), virt.Int(index), virt.PrimArr(backing: Array[Char])) =>  backing(index) = value.toChar
+      case (virt.Int(value), virt.Int(index), virt.PrimArr(backing: Array[Short])) =>  backing(index) = value.toShort
 
-      case (virt.Int(value), virt.Int(index), virt.PrimArr('I', backing: Array[Int])) =>  backing(index) = value
-      case (virt.Float(value), virt.Int(index), virt.PrimArr('F', backing: Array[Float])) =>  backing(index) = value
-      case (virt.Long(value), virt.Int(index), virt.PrimArr('J', backing: Array[Long])) =>  backing(index) = value
-      case (virt.Double(value), virt.Int(index), virt.PrimArr('D', backing: Array[Double])) =>  backing(index) = value
+      case (virt.Int(value), virt.Int(index), virt.PrimArr(backing: Array[Int])) =>  backing(index) = value
+      case (virt.Float(value), virt.Int(index), virt.PrimArr( backing: Array[Float])) =>  backing(index) = value
+      case (virt.Long(value), virt.Int(index), virt.PrimArr(backing: Array[Long])) =>  backing(index) = value
+      case (virt.Double(value), virt.Int(index), virt.PrimArr(backing: Array[Double])) =>  backing(index) = value
     }
   }
 

@@ -137,14 +137,14 @@ object Misc {
       val virt.Int(count) = vt.pop
 
       val newArray = typeCode match{
-        case 4  => virt.PrimArr[Boolean]('Z', count)
-        case 5  => virt.PrimArr[Char]('C', count)
-        case 6  => virt.PrimArr[Float]('F', count)
-        case 7  => virt.PrimArr[Double]('D', count)
-        case 8  => virt.PrimArr[Boolean]('B', count)
-        case 9  => virt.PrimArr[Short]('S', count)
-        case 10 => virt.PrimArr[Int]('I', count)
-        case 11 => virt.PrimArr[Long]('J', count)
+        case 4  => virt.PrimArr[Boolean](count)
+        case 5  => virt.PrimArr[Char](count)
+        case 6  => virt.PrimArr[Float](count)
+        case 7  => virt.PrimArr[Double](count)
+        case 8  => virt.PrimArr[Boolean](count)
+        case 9  => virt.PrimArr[Short](count)
+        case 10 => virt.PrimArr[Int](count)
+        case 11 => virt.PrimArr[Long](count)
       }
       vt.push(newArray)
     }
@@ -210,20 +210,19 @@ object Misc {
 
   case class MultiANewArray(desc: Type.Arr, dims: Int) extends BaseOpCode(197, "multianewarray"){
     def op = vt => {
-      println("MultiANewArray " + desc.unparse + " " + dims)
       def rec(dims: List[Int], tpe: Type.Entity): virt.Arr = {
 
         (dims, tpe) match {
           case (size :: Nil, Type.Arr(innerType @ Type.Prim(c))) =>
             c match {
-              case 'Z' => virt.PrimArr[Boolean](c, size)
-              case 'B' => virt.PrimArr[Byte](c, size)
-              case 'C' => virt.PrimArr[Char](c, size)
-              case 'S' => virt.PrimArr[Short](c, size)
-              case 'I' => virt.PrimArr[Int](c, size)
-              case 'F' => virt.PrimArr[Float](c, size)
-              case 'J' => virt.PrimArr[Long](c, size)
-              case 'D' => virt.PrimArr[Double](c, size)
+              case 'Z' => virt.PrimArr[Boolean](size)
+              case 'B' => virt.PrimArr[Byte](size)
+              case 'C' => virt.PrimArr[Char](size)
+              case 'S' => virt.PrimArr[Short](size)
+              case 'I' => virt.PrimArr[Int](size)
+              case 'F' => virt.PrimArr[Float](size)
+              case 'J' => virt.PrimArr[Long](size)
+              case 'D' => virt.PrimArr[Double](size)
             }
           case (size :: Nil, Type.Arr(innerType)) =>
             new virt.ObjArr(innerType, Array.fill[virt.Val](size)(Type.default(innerType)))
@@ -234,7 +233,6 @@ object Misc {
       val (dimValues, newStack) = vt.frame.stack.splitAt(dims)
       val dimArray = dimValues.map(x => x.asInstanceOf[virt.Int].v).toList
       val array = rec(dimArray, desc)
-      println(array)
       vt.push(array)
     }
   }
