@@ -2,7 +2,6 @@ package sm
 package imm
 package opcodes
 import scala.collection.mutable
-import sm.imm.Type.Primitives._
 
 
 

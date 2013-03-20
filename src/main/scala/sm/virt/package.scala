@@ -32,6 +32,16 @@ package object virt {
     "short" -> classOf[scala.Short]
 
   )
+  implicit def virtBoolean(i: scala.Boolean)  = Boolean(i)
+  implicit def virtByte(i: scala.Byte)        = Byte(i)
+  implicit def virtChar(i: scala.Char)        = Char(i)
+  implicit def virtShort(i: scala.Short)      = Short(i)
+  implicit def virtInt(i: scala.Int)          = Int(i)
+  implicit def virtFloat(i: scala.Float)      = Float(i)
+  implicit def virtLong(i: scala.Long)        = Long(i)
+  implicit def virtDouble(i: scala.Double)    = Double(i)
+  implicit def virtNull(i: scala.Null)        = Null
+  implicit def virtUnit(i: scala.Unit)        = Unit
 
   def virtualize(i: Any)(implicit vm: VM): virt.Val = {
     type SBoolean = scala.Boolean
@@ -76,16 +86,7 @@ package object virt {
       case null => virt.Null
     }
   }
-  implicit def virtBoolean(i: scala.Boolean)  = Boolean(i)
-  implicit def virtByte(i: scala.Byte)        = Byte(i)
-  implicit def virtChar(i: scala.Char)        = Char(i)
-  implicit def virtShort(i: scala.Short)      = Short(i)
-  implicit def virtInt(i: scala.Int)          = Int(i)
-  implicit def virtFloat(i: scala.Float)      = Float(i)
-  implicit def virtLong(i: scala.Long)        = Long(i)
-  implicit def virtDouble(i: scala.Double)    = Double(i)
-  implicit def virtNull(i: scala.Null)        = Null
-  implicit def virtUnit(i: scala.Unit)        = Unit
+
 
   implicit def virtBooleanArray(i: Array[virt.Boolean]) = new PrimArr(i.map(_.v))
   implicit def virtByteArray(i: Array[virt.Byte])       = new PrimArr(i.map(_.v))
@@ -99,6 +100,18 @@ package object virt {
 
   def forName(s: String) =
     primitiveMap.get(s).getOrElse[Class[_]](Class.forName(s))
+
+
+  implicit def unvirtBoolean(i: virt.Boolean) = i.v
+  implicit def unvirtByte(i: virt.Byte) = i.v
+  implicit def unvirtChar(i: virt.Char) = i.v
+  implicit def unvirtShort(i: virt.Short) = i.v
+  implicit def unvirtInt(i: virt.Int) = i.v
+  implicit def unvirtFloat(i: virt.Float) = i.v
+  implicit def unvirtLong(i: virt.Long) = i.v
+  implicit def unvirtDouble(i: virt.Double) = i.v
+  implicit def unvirtNull(i: virt.Null.type) = null
+  implicit def unvirtUnit(i: virt.Unit.type) = ()
 
   def unvirtualize(i: virt.Val): Any = {
 
@@ -125,16 +138,7 @@ package object virt {
       case Null => null
     }
   }
-  implicit def unvirtBoolean(i: virt.Boolean) = i.v
-  implicit def unvirtByte(i: virt.Byte) = i.v
-  implicit def unvirtChar(i: virt.Char) = i.v
-  implicit def unvirtShort(i: virt.Short) = i.v
-  implicit def unvirtInt(i: virt.Int) = i.v
-  implicit def unvirtFloat(i: virt.Float) = i.v
-  implicit def unvirtLong(i: virt.Long) = i.v
-  implicit def unvirtDouble(i: virt.Double) = i.v
-  implicit def unvirtNull(i: virt.Null.type) = null
-  implicit def unvirtUnit(i: virt.Unit.type) = ()
+
 
   implicit def unvirtBooleanArray(i: virt.PrimArr[scala.Boolean]) = i.backing.clone()
   implicit def unvirtByteArray(i: virt.PrimArr[scala.Byte]) = i.backing.clone()

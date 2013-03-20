@@ -1,33 +1,13 @@
 package sm
 package imm
 
+import reflect.ClassTag
+
 object Type{
-  object Primitives{
-    type B = virt.Byte
-    type C = virt.Char
-    type I = virt.Int
-    type J = virt.Long
-    type F = virt.Float
-    type D = virt.Double
-    type S = virt.Short
-    type Z = virt.Boolean
-    type L = virt.Obj
-    def fromChar(c: scala.Char) = c match{
-      case 'B' => classOf[B]
-      case 'C' => classOf[C]
-      case 'I' => classOf[I]
-      case 'J' => classOf[J]
-      case 'F' => classOf[F]
-      case 'D' => classOf[D]
-      case 'S' => classOf[S]
-      case 'Z' => classOf[Z]
-      case 'L' => classOf[L]
-    }
+
+  class CharClass[T: ClassTag](val x: imm.Type.Prim){
+    val realCls: Class[_] = implicitly[ClassTag[T]].getClass
   }
-  class CharClass[T](val x: imm.Type.Prim)
-
-
-
   object CharClass{
     implicit val ZC = new CharClass[Boolean](imm.Type.Prim('Z'))
     implicit val BC = new CharClass[Byte](imm.Type.Prim('B'))
@@ -37,6 +17,16 @@ object Type{
     implicit val FC = new CharClass[Float](imm.Type.Prim('F'))
     implicit val JC = new CharClass[Long](imm.Type.Prim('J'))
     implicit val DC = new CharClass[Double](imm.Type.Prim('D'))
+    val all = Seq(
+      ZC,
+      BC,
+      CC,
+      SC,
+      IC,
+      FC,
+      JC,
+      DC
+    )
     def apply[T: CharClass]() = implicitly[CharClass[T]].x
   }
   def default(desc: imm.Type): virt.Val = {
@@ -113,7 +103,7 @@ object Type{
     def unparse = ""+char
     def name = shortMap.toMap.apply(char)
 
-    def realCls = Primitives.fromChar(name(0))
+    def realCls = CharClass.all.find(_.x.char == name(0)).get.realCls
 
     def parent(implicit vm: VM) = ???
   }

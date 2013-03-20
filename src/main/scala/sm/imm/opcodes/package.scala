@@ -15,6 +15,16 @@ import sm.virt
  */
 package object opcodes{
 
+  type B = virt.Byte
+  type C = virt.Char
+  type I = virt.Int
+  type J = virt.Long
+  type F = virt.Float
+  type D = virt.Double
+  type S = virt.Short
+  type Z = virt.Boolean
+  type L = virt.Obj
+
   private[opcodes] case class UnusedOpCode(val id: Byte, val insnName: String) extends OpCode{
     def op = ctx => ???
   }
