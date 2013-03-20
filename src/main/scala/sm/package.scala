@@ -6,7 +6,7 @@
  * To change this template use File | Settings | File Templates.
  */
 package object sm {
-  implicit class castable(x: Any){
+  private[sm] implicit class castable(x: Any){
     def cast[T] = x.asInstanceOf[T]
   }
 }

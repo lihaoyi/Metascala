@@ -5,19 +5,23 @@ import collection.convert.wrapAsScala._
  * This package contains the code involved in reading the .class files
  * (using ASM) and generating an immutable representation of all the data
  * structures encoded in the class file.
+ *
+ * There should be no mutable state in this package; any operations on mutable
+ * state defined in this package should have their mutable variables injected
+ * in as method parameters.
  */
 package object imm {
-  implicit class c[T](val list: java.util.List[T]) extends AnyVal{
+  private[imm] implicit class nullSafeList[T](val list: java.util.List[T]) extends AnyVal{
     def safeList: List[T] = {
       Option(list).toList.flatten
     }
   }
-  implicit class a[T](val list: Array[T]) extends AnyVal{
+  private[imm] implicit class nullSafeArray[T](val list: Array[T]) extends AnyVal{
     def safeList: List[T] = {
       Option(list).toList.flatten
     }
   }
-  implicit class o[T](val a: T) extends AnyVal{
+  private[imm] implicit class nullSafeValue[T](val a: T) extends AnyVal{
     def safeOpt: Option[T] = Option(a)
   }
 

@@ -16,7 +16,7 @@ abstract class OpCode{
   def op: VmThread => Unit
 }
 
-object OpCode extends Misc with LoadStore with StackManip{
+object OpCode {
   implicit def parseTypeCls(x: String) = Type.Cls.read(x)
   implicit def parseTypeDesc(x: String) = Type.Desc.read(x)
   def read(implicit labelMap: Map[Label, Int]): PartialFunction[Any, OpCode] = {
@@ -39,6 +39,10 @@ object OpCode extends Misc with LoadStore with StackManip{
 
 
   def apply(n: Int): Any = all((n + 256) % 256)
+  import Misc._
+  import LoadStore._
+  import StackManip._
+
   val all = Seq(
     Nop,
     AConstNull,

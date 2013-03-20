@@ -76,7 +76,7 @@ object Util{
 
   class SingleClassVM(className: String, log: (=>String) => Unit) extends VM(log = log){
 
-    def run(main: String, args: Seq[virt.Val]): Any ={
+    def run(main: String, args: virt.Val*): Any ={
       val res = invoke(className.replace('.', '/'), main, args)
 
       virt.unvirtualize(res)
@@ -99,10 +99,12 @@ trait Util extends ShouldMatchers { this: FreeSpec  =>
     }
   }
   class Tester(className: String, log: (=>String) => Unit = x => ()){
+
     implicit val svm = new Util.SingleClassVM(className, log)
     val ref = new ReflectiveRunner(className)
     def run(main: String, args: Any*) = {
-      val svmRes = svm.run(main, args.map(virt.virtualize))
+
+      val svmRes = svm.run(main, args.map(virt.virtualize):_*)
       val refRes = ref.run(main, args:_*)
       val inString = args.toString
       println("svmRes " + svmRes)
@@ -117,7 +119,7 @@ trait Util extends ShouldMatchers { this: FreeSpec  =>
       }
     }
     def runC(main: String, args: => Seq[Any] = Nil) = {
-      val svmRes = svm.run(main, args.map(virt.virtualize))
+      val svmRes = svm.run(main, args.map(virt.virtualize):_*)
       val refRes = ref.run(main, args:_*)
       println(svmRes)
       println(refRes)

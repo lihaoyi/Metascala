@@ -8,7 +8,7 @@ import sm.imm.{Type, OpCode}
 import collection.mutable
 import sm.virt
 
-trait LoadStore {
+object LoadStore {
   case object Nop extends OpCode{
     def insnName = "nop"
     def id = 0
@@ -127,11 +127,15 @@ trait LoadStore {
         if (arr.backing.isDefinedAt(index)){
           vt.push(
             arr.backing(index) match{
-              case x: virt.Boolean => if (x) 1 else 0
-              case x: virt.Char => x.toInt
-              case x: virt.Byte => x.toInt
-              case x: virt.Short => x.toInt
-              case x => x
+              case x: scala.Boolean => if (x) 1: virt.Val else 0: virt.Val
+              case x: scala.Char => x.toInt: virt.Val
+              case x: scala.Byte => x.toInt: virt.Val
+              case x: scala.Short => x.toInt: virt.Val
+              case x: scala.Int => x: virt.Val
+              case x: scala.Float => x: virt.Val
+              case x: scala.Long => x: virt.Val
+              case x: scala.Double => x: virt.Val
+              case x: virt.Val => x: virt.Val
             }
           )
         }else{
@@ -192,27 +196,27 @@ trait LoadStore {
   val AStore3 = UnusedOpCode(78, "astore_3")
   //===============================================================
   class StoreArray(val id: Byte, val insnName: String) extends OpCode{
-    def op = vt => {
-      val (value, Intish(index), arr: virt.Arr) = (vt.pop, vt.pop, vt.pop)
-        arr.backing(index) = value
-    }
-  }
-
-
-  class StoreArrayInt[T <% virt.Val](val id: Byte, val insnName: String)(x: Int => T) extends OpCode{
     def op = vt => (vt.pop, vt.pop, vt.pop) match {
+      case (value, Intish(index), arr: virt.ObjArr) =>  arr.backing(index) = value
 
-      case (Intish(value), Intish(index), arr: virt.Arr) =>
-        arr.backing(index) = x(value)
+      case (Intish(value), Intish(index), virt.PrimArr('Z', backing: Array[Boolean])) => backing(index) = value.v != 0
+      case (Intish(value), Intish(index), virt.PrimArr('B', backing: Array[Byte])) =>  backing(index) = value.toByte
+      case (Intish(value), Intish(index), virt.PrimArr('C', backing: Array[Char])) =>  backing(index) = value.toChar
+      case (Intish(value), Intish(index), virt.PrimArr('S', backing: Array[Short])) =>  backing(index) = value.toShort
+
+      case (virt.Int(value), Intish(index), virt.PrimArr('I', backing: Array[Int])) =>  backing(index) = value
+      case (virt.Float(value), Intish(index), virt.PrimArr('F', backing: Array[Float])) =>  backing(index) = value
+      case (virt.Long(value), Intish(index), virt.PrimArr('J', backing: Array[Long])) =>  backing(index) = value
+      case (virt.Double(value), Intish(index), virt.PrimArr('D', backing: Array[Double])) =>  backing(index) = value
     }
-
   }
+
   case object IAStore extends StoreArray(79, "iastore")
   case object LAStore extends StoreArray(80, "lastore")
   case object FAStore extends StoreArray(81, "fastore")
   case object DAStore extends StoreArray(82, "dastore")
   case object AAStore extends StoreArray(83, "aastore")
-  case object BAStore extends StoreArrayInt[Byte](84, "bastore")(_.toByte)
-  case object CAStore extends StoreArrayInt[Char](85, "castore")(_.toChar)
-  case object SAStore extends StoreArrayInt[Short](86, "sastore")(_.toShort)
+  case object BAStore extends StoreArray(84, "bastore")
+  case object CAStore extends StoreArray(85, "castore")
+  case object SAStore extends StoreArray(86, "sastore")
 }

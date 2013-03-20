@@ -119,7 +119,7 @@ trait DefaultNatives extends Natives{
         } yield m(k)).head
 
       case r: virt.Arr =>
-        r.backing(i.toInt)
+        r.backing(i.toInt).asInstanceOf[virt.Val]
     }
   }
   def putObject(x: virt.Val, i: Long, b: virt.Val): Unit = {
@@ -129,8 +129,8 @@ trait DefaultNatives extends Natives{
           m <- o.members
           k <- m.keys.find(_.hashCode == i)
         } yield m(k) = b
-      case r: virt.Arr =>
-        r.backing(i.toInt) = b
+      case r: virt.ObjArr =>
+        r.backing(i.toInt) = b.asInstanceOf[virt.Val]
     }
   }
 
@@ -206,11 +206,20 @@ trait DefaultNatives extends Natives{
                 .map(_.obj)
                 .getOrElse(virt.Null)
             },
-            "getRawAnnotations()[B" x1 value1(virt.Arr(Type.Arr(Type.Prim("B")), 0)),
-            "isPrimitive()Z" x1 value1(false: virt.Val),
+            "getRawAnnotations()[B" x1 value1(new virt.PrimArr(Type.Prim('B'), new Array[Boolean](0))),
+            "isPrimitive()Z" x1 { vt => (x: virt.Type) =>
+              println("isPrimitive!!")
+              println(x.tpe)
+              x.tpe.isInstanceOf[Type.Prim]
+            },
             "isInterface()Z" x1 { vt => (x: virt.Cls) => import vt.vm._; ((Type.Cls(x.name.replace(".", "/")).clsData.access_flags & Access.Interface) != 0): virt.Val},
             "isAssignableFrom(L//Class;)Z" x2 { vt => (x: virt.Type, y: virt.Type) => true: virt.Val},
-            "isArray()Z" x1 ( vt => (_: virt.Type).tpe.isInstanceOf[Type.Arr]),
+            "isArray()Z" x1 { vt => (x: virt.Type) =>
+              println("isArray!!")
+              println(x.tpe)
+              println(x.tpe.isInstanceOf[Type.Arr])
+              x.tpe.isInstanceOf[Type.Arr]
+            },
             "desiredAssertionStatus0(L//Class;)Z" x1 value1(0: virt.Val)
           ),
           "ClassLoader"/(
@@ -321,7 +330,8 @@ trait DefaultNatives extends Natives{
               import vt.vm;
               import vm._
               throwable.members(0)("stackTrace") =
-                virt.virtArray(
+                new virt.ObjArr(
+                  imm.Type.Cls("java/lang/StackTraceElement"),
                   vt.getStackTrace.map { f =>
                     virt.Obj("java/lang/StackTraceElement",
                       "declaringClass" -> f.getClassName,
@@ -373,7 +383,7 @@ trait DefaultNatives extends Natives{
             "addressSize()I" x1 value1(4),
             "compareAndSwapInt(Ljava/lang/Object;JII)Z" x5 { vt => (unsafe: Any, a: virt.Obj, i: virt.Long, b: virt.Int, c: virt.Int) =>
               if (getObject(a, i) == b) {
-                putObject(a, i, b)
+                //putObject(a, i, b)
                 true
               }else{
                 false

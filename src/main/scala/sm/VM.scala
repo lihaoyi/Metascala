@@ -84,3 +84,12 @@ case class UncaughtVmException(name: String,
                                extends Exception(msg){
 
 }
+class BufferLog(n: Int) extends ((=> String) => Unit){
+  val buffer = new Array[String](n)
+  var index = 0
+  def apply(s: =>String) = {
+    buffer(index) = s
+    index = (index + 1) % n
+  }
+  def lines = buffer.drop(index) ++ buffer.take(index)
+}

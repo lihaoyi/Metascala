@@ -43,16 +43,16 @@ class Obj(val cls: sm.Cls, initMembers: (String, virt.Val)*)
     val start = cls.ancestry.indexWhere(_.tpe == owner)
 
     members.drop(start)
-      .find(_.contains(name))
-      .get(name)
+           .find(_.contains(name))
+           .get(name)
 
   }
   def update(owner: imm.Type.Cls, name: String, value: virt.Val) = {
     val start = cls.ancestry.indexWhere(_.tpe == owner)
 
     members.drop(start)
-      .find(_.contains(name))
-      .get(name) = value
+           .find(_.contains(name))
+           .get(name) = value
   }
 
   def withMagic(x: String, a: Any) = {
@@ -64,15 +64,32 @@ class Obj(val cls: sm.Cls, initMembers: (String, virt.Val)*)
   }
 }
 
-object Arr{
+trait Arr extends Val{
+  val tpe: imm.Type.Entity
+  val backing: Array[_]
+}
+object ObjArr{
   class TypeX[T](val t: imm.Type)
 
   def apply(t: imm.Type.Entity, n: scala.Int) = {
-    new Arr(t, Array.fill[virt.Val](n)(imm.Type.default(t)))
+    new ObjArr(t, Array.fill[virt.Val](n)(imm.Type.default(t)))
   }
 }
-case class Arr(tpe: imm.Type.Entity, backing: Array[virt.Val]) extends Val{
-  override def toString = s"virt.Arr(${tpe.unparse}: ${backing.fold("")(_+", "+_)})"
+class ObjArr(val tpe: imm.Type.Entity, val backing: Array[virt.Val]) extends Arr{
+  override def toString = s"virt.ObjArr(${tpe.unparse}: ${backing.fold("")(_+", "+_)})"
+}
+object PrimArr{
+  def apply[T <: AnyVal : ClassTag](t: Char, n: scala.Int) = {
+    new PrimArr(imm.Type.Prim(t), new Array[T](n))
+  }
+  def unapply(s: virt.Val) = s match{
+    case x: virt.PrimArr[_] => Some((x.tpe.char, x.backing))
+    case _ => None
+  }
+
+}
+class PrimArr[T <: AnyVal](val tpe: imm.Type.Prim, val backing: Array[T]) extends Arr{
+  override def toString = s"virt.PrimArr(${tpe.unparse}: ${backing.fold("")(_+", "+_)})"
 }
 trait WrapVal[T] extends Val{
   def v: T

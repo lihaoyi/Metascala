@@ -28,14 +28,14 @@ object Type{
   def default(desc: imm.Type): virt.Val = {
 
     desc match{
-      case Prim("B") => virt.Byte(0)
-      case Prim("C") => virt.Char(0)
-      case Prim("I") => virt.Int(0)
-      case Prim("J") => virt.Long(0)
-      case Prim("F") => virt.Float(0)
-      case Prim("D") => virt.Double(0)
-      case Prim("S") => virt.Short(0)
-      case Prim("Z") => virt.Boolean(false)
+      case Prim('B') => virt.Byte(0)
+      case Prim('C') => virt.Char(0)
+      case Prim('I') => virt.Int(0)
+      case Prim('J') => virt.Long(0)
+      case Prim('F') => virt.Float(0)
+      case Prim('D') => virt.Double(0)
+      case Prim('S') => virt.Short(0)
+      case Prim('Z') => virt.Boolean(false)
       case _ => virt.Null
     }
   }
@@ -52,15 +52,15 @@ object Type{
     "void" -> "java/lang/Void"
   )
   val shortMap = Seq(
-    "Z" -> "boolean",
-    "B" -> "byte",
-    "C" -> "char",
-    "S" -> "short",
-    "I" -> "int",
-    "J" -> "long",
-    "F" -> "float",
-    "D" -> "double",
-    "V" -> "void"
+    'Z' -> "boolean",
+    'B' -> "byte",
+    'C' -> "char",
+    'S' -> "short",
+    'I' -> "int",
+    'J' -> "long",
+    'F' -> "float",
+    'D' -> "double",
+    'V' -> "void"
   )
 
   def read(s: String): Type = {
@@ -93,10 +93,10 @@ object Type{
   }
 
   object Prim{
-    def read(s: String) = Prim(s)
+    def read(s: String) = Prim(s(0))
   }
-  case class Prim(char: String) extends Entity{
-    def unparse = char
+  case class Prim(char: Char) extends Entity{
+    def unparse = ""+char
     def name = shortMap.toMap.apply(char)
 
     def realCls = Primitives.fromChar(name(0))

@@ -18,7 +18,8 @@ class Cls(val clsData: imm.Cls,
   }
 
   def method(name: String, desc: Type.Desc): Option[imm.Method] = {
-    ancestry.flatMap(_.methods).find(m => m.name == name && m.desc == desc)
+    ancestry.flatMap(_.methods)
+            .find(m => m.name == name && m.desc == desc)
   }
 
   def apply(owner: Type.Cls, name: String) = {
@@ -29,8 +30,8 @@ class Cls(val clsData: imm.Cls,
 
   def update(owner: Type.Cls, name: String, value: virt.Val) = {
     this.ancestry.dropWhile(_.tpe != owner)
-      .find(_.fields.exists(_.name == name))
-      .get.tpe.statics(name) = value
+                 .find(_.fields.exists(_.name == name))
+                 .get.tpe.statics(name) = value
   }
 
   def name = clsData.tpe.name
@@ -52,8 +53,8 @@ class Cls(val clsData: imm.Cls,
       clsData.tpe == desc ||
       clsData.interfaces.exists(_.checkIsInstanceOf(desc)) ||
       clsData.superType
-          .map(l => l.checkIsInstanceOf(desc))
-          .getOrElse(false)
+             .map(l => l.checkIsInstanceOf(desc))
+             .getOrElse(false)
 
     res
   }

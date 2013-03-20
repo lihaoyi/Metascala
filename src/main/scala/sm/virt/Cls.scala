@@ -34,12 +34,13 @@ class Cls(override val tpe: imm.Type.Cls)
       virt.Obj("java/lang/reflect/Constructor",
         "clazz" -> tpe.obj,
         "slot" -> 0,
-        "parameterTypes" -> virt.virtArray(m.desc.args.map(_.obj).toArray),
+        "parameterTypes" -> new virt.ObjArr(imm.Type.Cls("java/lang/reflect/Type"), m.desc.args.map(_.obj).toArray),
         "exceptionTypes" -> new Array[virt.Cls](0),
         "modifiers" -> m.access
       )
     }.toArray
   }
+
   override def getDeclaredFields() = {
       tpe.clsData.fields.map {f =>
 
@@ -64,7 +65,7 @@ class Cls(override val tpe: imm.Type.Cls)
 
         "modifiers" -> m.access,
         "returnType" -> m.desc.ret.obj,
-        "parameterTypes" -> virt.virtArray(m.desc.args.map(_.obj).toArray),
+        "parameterTypes" -> new virt.ObjArr(imm.Type.Cls("java/lang/reflect/Type"), m.desc.args.map(_.obj).toArray),
         "exceptionTypes" -> new Array[virt.Cls](0)
 
       )

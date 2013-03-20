@@ -11,10 +11,16 @@ class ArrayTest extends FreeSpec with Util{
 
 
   "array stuff" - {
-    val tester = new Tester("sm.features.arrays.ArrayStuff")
+    val buffer = new BufferLog(4000)
+    val tester = new Tester("sm.features.arrays.ArrayStuff", buffer)
     "makeIntArray" in chk(tester.run("makeIntArray", _: Int))(Seq(0, 1, 2, 3, 4, 5, 6, 7, 8, 9))
     "makeFloatArray" in tester.run("makeFloatArray")
-    "makeStringArray" in tester.run("makeStringArray")
+    "makeStringArray" in {
+      try tester.run("makeStringArray") catch {case x =>
+        buffer.lines.foreach(println)
+        throw x
+      }
+    }
     "arrayLength" in tester.run("arrayLength")
     "arraySet" in tester.run("arraySet")
     "arrayGet" in tester.run("arrayGet")
