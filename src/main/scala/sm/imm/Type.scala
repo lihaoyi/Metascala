@@ -4,12 +4,6 @@ package imm
 import reflect.ClassTag
 
 object Type{
-
-
-
-
-
-
   def read(s: String): Type = {
     s match{
       case "Z" | "B" | "C" | "S" | "I" | "J" | "F" | "D" | "V" => Prim.read(s)

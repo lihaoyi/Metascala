@@ -197,8 +197,7 @@ object LoadStore {
   case object LAStore extends StoreArray(80, "lastore")({case (vrt.Long(value), i, backing: Array[Long]) => backing(i) = value})
   case object FAStore extends StoreArray(81, "fastore")({case (vrt.Float(value), i, backing: Array[Float]) => backing(i) = value})
   case object DAStore extends StoreArray(82, "dastore")({case (vrt.Double(value), i, backing: Array[Double]) => backing(i) = value})
-  type VVal = vrt.Val
-  case object AAStore extends StoreArray(83, "aastore")({case (value, i, backing: Array[VVal]) => backing(i) = value})
+  case object AAStore extends StoreArray(83, "aastore")({case (value, i, backing: Array[Any]) => backing(i) = value})
   case object BAStore extends StoreArray(84, "bastore")({
     case (vrt.Int(value), i, backing: Array[Byte]) => backing(i) = value.toByte
     case (vrt.Int(value), i, backing: Array[Boolean]) => backing(i) = value.toByte != 0
