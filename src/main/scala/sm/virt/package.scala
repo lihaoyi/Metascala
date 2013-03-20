@@ -51,14 +51,14 @@ package object virt {
       case x: scala.Float => x
       case x: scala.Long => x
       case x: scala.Double => x
-      case x: scala.Array[SBoolean] => new virt.PrimArr[scala.Boolean](x.clone)
-      case x: scala.Array[SByte] => new virt.PrimArr[scala.Byte](x.clone)
-      case x: scala.Array[SChar] => new virt.PrimArr[scala.Char](x.clone)
-      case x: scala.Array[SShort] => new virt.PrimArr[scala.Short](x.clone)
-      case x: scala.Array[SInt] => new virt.PrimArr[scala.Int](x.clone)
-      case x: scala.Array[SFloat] => new virt.PrimArr[scala.Float](x.clone)
-      case x: scala.Array[SLong] => new virt.PrimArr[scala.Long](x.clone)
-      case x: scala.Array[SDouble] => new virt.PrimArr[scala.Double](x.clone)
+      case x: scala.Array[SBoolean] => new virt.PrimArr(x.clone)
+      case x: scala.Array[SByte] => new virt.PrimArr(x.clone)
+      case x: scala.Array[SChar] => new virt.PrimArr(x.clone)
+      case x: scala.Array[SShort] => new virt.PrimArr(x.clone)
+      case x: scala.Array[SInt] => new virt.PrimArr(x.clone)
+      case x: scala.Array[SFloat] => new virt.PrimArr(x.clone)
+      case x: scala.Array[SLong] => new virt.PrimArr(x.clone)
+      case x: scala.Array[SDouble] => new virt.PrimArr(x.clone)
       new virt.ObjArr(
         imm.Type.read(x.getClass.getComponentType.getName).cast[imm.Type.Entity],
         x.map(x => virtualize(x))
