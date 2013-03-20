@@ -11,23 +11,25 @@ object Type{
   class CharClass[T: ClassTag](val tpe: imm.Type.Prim,
                                val name: String,
                                val boxName: String,
-                               val default: vrt.Val){
+                               defaultV: T,
+                               val constructor: T => vrt.Val){
 
+    val default = constructor(defaultV)
     val realCls: Class[_] = implicitly[ClassTag[T]].getClass
     def newArray(n: Int): Array[T] = new Array[T](n)
-    def newPrimArray(n: Int): vrt.PrimArr[T] = new vrt.PrimArr(new Array[T](n))(this)
+    def newPrimArray(n: Int): vrt.Arr.Prim[T] = new vrt.Arr.Prim(new Array[T](n))(this)
 
   }
   object CharClass{
     private[this] implicit def char2Type(c: Char) = imm.Type.Prim(c)
-    implicit val ZC = new CharClass[Boolean]( 'Z', "boolean", "java/lang/Boolean",  vrt.Boolean(false))
-    implicit val BC = new CharClass[Byte](    'B', "byte",    "java/lang/Byte",     vrt.Byte(0))
-    implicit val CC = new CharClass[Char](    'C', "char",    "java/lang/Character",vrt.Char(0))
-    implicit val SC = new CharClass[Short](   'S', "short",   "java/lang/Short",    vrt.Short(0))
-    implicit val IC = new CharClass[Int](     'I', "int",     "java/lang/Integer",  vrt.Int(0))
-    implicit val FC = new CharClass[Float](   'F', "float",   "java/lang/Float",    vrt.Float(0))
-    implicit val JC = new CharClass[Long](    'J', "long",    "java/lang/Long",     vrt.Long(0))
-    implicit val DC = new CharClass[Double](  'D', "double",  "java/lang/Double",   vrt.Double(0))
+    implicit val ZC = new CharClass[Boolean]( 'Z', "boolean", "java/lang/Boolean",  false,  vrt.Boolean)
+    implicit val BC = new CharClass[Byte](    'B', "byte",    "java/lang/Byte",     0,      vrt.Byte)
+    implicit val CC = new CharClass[Char](    'C', "char",    "java/lang/Character",0,      vrt.Char)
+    implicit val SC = new CharClass[Short](   'S', "short",   "java/lang/Short",    0,      vrt.Short)
+    implicit val IC = new CharClass[Int](     'I', "int",     "java/lang/Integer",  0,      vrt.Int)
+    implicit val FC = new CharClass[Float](   'F', "float",   "java/lang/Float",    0,      vrt.Float)
+    implicit val JC = new CharClass[Long](    'J', "long",    "java/lang/Long",     0,      vrt.Long)
+    implicit val DC = new CharClass[Double](  'D', "double",  "java/lang/Double",   0,      vrt.Double)
     val all: Seq[CharClass[_]] = Seq(ZC, BC, CC, SC, IC, FC, JC, DC)
     val charMap = all.map(x => x.tpe.char -> (x: CharClass[_])).toMap[Char, CharClass[_]]
     def default(desc: imm.Type) = desc match{

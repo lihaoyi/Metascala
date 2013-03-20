@@ -56,6 +56,7 @@ object LoadStore {
     case x: scala.Long => x
     case x: scala.Double => x
   }
+
   case class Ldc(const: Any) extends BaseOpCode(18, "ldc"){
     def op = implicit vt => {
       import vt.vm
@@ -127,12 +128,7 @@ object LoadStore {
       case (vrt.Int(index), arr: vrt.Arr)=>
         import vt._
         if (arr.backing.isDefinedAt(index)){
-          vt.push(
-            arr.backing(index) match{
-              case x: vrt.Val => x.toStackVal
-              case x => anyValToStackVal(x)
-            }
-          )
+          vt.push(arr(index).toStackVal)
         }else{
           throwException{
             sm.vrt.Obj("java/lang/ArrayIndexOutOfBoundsException",

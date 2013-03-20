@@ -130,7 +130,7 @@ trait DefaultNatives extends Natives{
           m <- o.members
           k <- m.keys.find(_.hashCode == i)
         } yield m(k) = b
-      case r: vrt.ObjArr =>
+      case r: vrt.Arr.Obj =>
         r.backing(i.toInt) = b.asInstanceOf[vrt.Val]
     }
   }
@@ -207,7 +207,7 @@ trait DefaultNatives extends Natives{
                 .map(_.obj)
                 .getOrElse(vrt.Null)
             },
-            "getRawAnnotations()[B" x1 value1(new vrt.PrimArr(new Array[Boolean](0))),
+            "getRawAnnotations()[B" x1 value1(new vrt.Arr.Prim(new Array[Boolean](0))),
             "isPrimitive()Z" x1 { vt => (x: vrt.Type) => x.tpe.isInstanceOf[Type.Prim]
             },
             "isInterface()Z" x1 { vt => (x: vrt.Cls) => import vt.vm._; ((Type.Cls(x.name.replace(".", "/")).clsData.access_flags & Access.Interface) != 0): vrt.Val},
@@ -324,7 +324,7 @@ trait DefaultNatives extends Natives{
               import vt.vm;
               import vm._
               throwable.members(0)("stackTrace") =
-                new vrt.ObjArr(
+                new vrt.Arr.Obj(
                   imm.Type.Cls("java/lang/StackTraceElement"),
                   vt.getStackTrace.map { f =>
                     vrt.Obj("java/lang/StackTraceElement",

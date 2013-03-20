@@ -137,14 +137,14 @@ object Misc {
       val vrt.Int(count) = vt.pop
 
       val newArray = typeCode match{
-        case 4  => vrt.PrimArr[Boolean](count)
-        case 5  => vrt.PrimArr[Char](count)
-        case 6  => vrt.PrimArr[Float](count)
-        case 7  => vrt.PrimArr[Double](count)
-        case 8  => vrt.PrimArr[Boolean](count)
-        case 9  => vrt.PrimArr[Short](count)
-        case 10 => vrt.PrimArr[Int](count)
-        case 11 => vrt.PrimArr[Long](count)
+        case 4  => vrt.Arr.Prim[Boolean](count)
+        case 5  => vrt.Arr.Prim[Char](count)
+        case 6  => vrt.Arr.Prim[Float](count)
+        case 7  => vrt.Arr.Prim[Double](count)
+        case 8  => vrt.Arr.Prim[Boolean](count)
+        case 9  => vrt.Arr.Prim[Short](count)
+        case 10 => vrt.Arr.Prim[Int](count)
+        case 11 => vrt.Arr.Prim[Long](count)
       }
       vt.push(newArray)
     }
@@ -152,7 +152,7 @@ object Misc {
   case class ANewArray(desc: Type.Entity) extends BaseOpCode(189, "anewarray"){
     def op = vt => {
       val vrt.Int(count) = vt.pop
-      vt.push(vrt.ObjArr(desc, count))
+      vt.push(vrt.Arr.Obj(desc, count))
     }
   }
 
@@ -217,9 +217,9 @@ object Misc {
             Type.CharClass.charMap(c).newPrimArray(size)
 
           case (size :: Nil, Type.Arr(innerType)) =>
-            new vrt.ObjArr(innerType, Array.fill[vrt.Val](size)(Type.CharClass.default(innerType)))
+            new vrt.Arr.Obj(innerType, Array.fill[vrt.Val](size)(Type.CharClass.default(innerType)))
           case (size :: tail, Type.Arr(innerType)) =>
-            new vrt.ObjArr(innerType, Array.fill[vrt.Val](size)(rec(tail, innerType)))
+            new vrt.Arr.Obj(innerType, Array.fill[vrt.Val](size)(rec(tail, innerType)))
         }
       }
       val (dimValues, newStack) = vt.frame.stack.splitAt(dims)

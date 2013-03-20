@@ -44,15 +44,15 @@ package object vrt {
       case x: Float => x
       case x: Long => x
       case x: Double => x
-      case x: Array[Boolean] => new vrt.PrimArr(x.clone)
-      case x: Array[Byte] => new vrt.PrimArr(x.clone)
-      case x: Array[Char] => new vrt.PrimArr(x.clone)
-      case x: Array[Short] => new vrt.PrimArr(x.clone)
-      case x: Array[Int] => new vrt.PrimArr(x.clone)
-      case x: Array[Float] => new vrt.PrimArr(x.clone)
-      case x: Array[Long] => new vrt.PrimArr(x.clone)
-      case x: Array[Double] => new vrt.PrimArr(x.clone)
-      new vrt.ObjArr(
+      case x: Array[Boolean] => new vrt.Arr.Prim(x.clone)
+      case x: Array[Byte] => new vrt.Arr.Prim(x.clone)
+      case x: Array[Char] => new vrt.Arr.Prim(x.clone)
+      case x: Array[Short] => new vrt.Arr.Prim(x.clone)
+      case x: Array[Int] => new vrt.Arr.Prim(x.clone)
+      case x: Array[Float] => new vrt.Arr.Prim(x.clone)
+      case x: Array[Long] => new vrt.Arr.Prim(x.clone)
+      case x: Array[Double] => new vrt.Arr.Prim(x.clone)
+      new vrt.Arr.Obj(
         imm.Type.read(x.getClass.getComponentType.getName).cast[imm.Type.Entity],
         x.map(x => virtualize(x))
       )
@@ -71,15 +71,15 @@ package object vrt {
   }
 
 
-  implicit def virtBooleanArray(i: Array[vrt.Boolean]) = new PrimArr(i.map(_.v))
-  implicit def virtByteArray(i: Array[vrt.Byte])       = new PrimArr(i.map(_.v))
-  implicit def virtCharArray(i: Array[vrt.Char])       = new PrimArr(i.map(_.v))
-  implicit def virtShortArray(i: Array[vrt.Short])     = new PrimArr(i.map(_.v))
-  implicit def virtIntArray(i: Array[vrt.Int])         = new PrimArr(i.map(_.v))
-  implicit def virtFloatArray(i: Array[vrt.Float])     = new PrimArr(i.map(_.v))
-  implicit def virtLongArray(i: Array[vrt.Long])       = new PrimArr(i.map(_.v))
-  implicit def virtDoubleArray(i: Array[vrt.Double])   = new PrimArr(i.map(_.v))
-  implicit def virtObjArray[T <% Val](i: Array[T])      = new ObjArr(imm.Type.Cls(i.getClass.getComponentType.getName), i.map(x => x: Val))
+  implicit def virtBooleanArray(i: Array[vrt.Boolean]) = new Arr.Prim(i.map(_.v))
+  implicit def virtByteArray(i: Array[vrt.Byte])       = new Arr.Prim(i.map(_.v))
+  implicit def virtCharArray(i: Array[vrt.Char])       = new Arr.Prim(i.map(_.v))
+  implicit def virtShortArray(i: Array[vrt.Short])     = new Arr.Prim(i.map(_.v))
+  implicit def virtIntArray(i: Array[vrt.Int])         = new Arr.Prim(i.map(_.v))
+  implicit def virtFloatArray(i: Array[vrt.Float])     = new Arr.Prim(i.map(_.v))
+  implicit def virtLongArray(i: Array[vrt.Long])       = new Arr.Prim(i.map(_.v))
+  implicit def virtDoubleArray(i: Array[vrt.Double])   = new Arr.Prim(i.map(_.v))
+  implicit def virtObjArray[T <% Val](i: Array[T])      = new Arr.Obj(imm.Type.Cls(i.getClass.getComponentType.getName), i.map(x => x: Val))
 
   def forName(s: String) =
     CharClass.all.find(_.name == s).map(_.realCls).getOrElse[Class[_]](Class.forName(s))
@@ -107,8 +107,8 @@ package object vrt {
       case x: vrt.Float => x: Float
       case x: vrt.Long => x: Long
       case x: vrt.Double => x: Double
-      case x: vrt.ObjArr => x.backing.cast[Array[vrt.Val]].map(unvirtualize)
-      case vrt.PrimArr(backing) => backing.clone()
+      case x: vrt.Arr.Obj => x.backing.cast[Array[vrt.Val]].map(unvirtualize)
+      case vrt.Arr.Prim(backing) => backing.clone()
       case x: vrt.Obj =>
         val cls = Class.forName(x.cls.name.replace('/', '.'))
         val obj = unsafe.allocateInstance(cls)
@@ -123,22 +123,22 @@ package object vrt {
   }
 
 
-  implicit def unvirtBooleanArray(i: vrt.PrimArr[Boolean]) = i.backing.clone()
-  implicit def unvirtByteArray(i: vrt.PrimArr[Byte]) = i.backing.clone()
-  implicit def unvirtCharArray(i: vrt.PrimArr[Char]) = i.backing.clone()
-  implicit def unvirtShortArray(i: vrt.PrimArr[Short]) = i.backing.clone()
-  implicit def unvirtIntArray(i: vrt.PrimArr[Int]) = i.backing.clone()
-  implicit def unvirtFloatArray(i: vrt.PrimArr[Float]) = i.backing.clone()
-  implicit def unvirtLongArray(i: vrt.PrimArr[Long]) = i.backing.clone()
-  implicit def unvirtDoubleArray(i: vrt.PrimArr[Double]) = i.backing.clone()
+  implicit def unvirtBooleanArray(i: vrt.Arr.Prim[Boolean]) = i.backing.clone()
+  implicit def unvirtByteArray(i: vrt.Arr.Prim[Byte]) = i.backing.clone()
+  implicit def unvirtCharArray(i: vrt.Arr.Prim[Char]) = i.backing.clone()
+  implicit def unvirtShortArray(i: vrt.Arr.Prim[Short]) = i.backing.clone()
+  implicit def unvirtIntArray(i: vrt.Arr.Prim[Int]) = i.backing.clone()
+  implicit def unvirtFloatArray(i: vrt.Arr.Prim[Float]) = i.backing.clone()
+  implicit def unvirtLongArray(i: vrt.Arr.Prim[Long]) = i.backing.clone()
+  implicit def unvirtDoubleArray(i: vrt.Arr.Prim[Double]) = i.backing.clone()
 
-  implicit def unvirtArray[T](i: vrt.ObjArr)(implicit ct: ClassTag[T], f: Val => T) = {
+  implicit def unvirtArray[T](i: vrt.Arr.Obj)(implicit ct: ClassTag[T], f: Val => T) = {
     i.backing.map(x => x: T)
   }
 
   implicit def virtString(i: String)(implicit vm: VM): vrt.Obj = {
     vrt.Obj("java/lang/String",
-      "value" -> new vrt.PrimArr(i.toCharArray)
+      "value" -> new vrt.Arr.Prim(i.toCharArray)
     )
   }
   implicit def unvirtString(i: vrt.Obj) = {

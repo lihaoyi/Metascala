@@ -34,7 +34,7 @@ class Cls(override val tpe: imm.Type.Cls)
       vrt.Obj("java/lang/reflect/Constructor",
         "clazz" -> tpe.obj,
         "slot" -> 0,
-        "parameterTypes" -> new vrt.ObjArr(imm.Type.Cls("java/lang/reflect/Type"), m.desc.args.map(_.obj).toArray),
+        "parameterTypes" -> new vrt.Arr.Obj(imm.Type.Cls("java/lang/reflect/Type"), m.desc.args.map(_.obj).toArray),
         "exceptionTypes" -> new Array[vrt.Cls](0),
         "modifiers" -> m.access
       )
@@ -65,7 +65,7 @@ class Cls(override val tpe: imm.Type.Cls)
 
         "modifiers" -> m.access,
         "returnType" -> m.desc.ret.obj,
-        "parameterTypes" -> new vrt.ObjArr(imm.Type.Cls("java/lang/reflect/Type"), m.desc.args.map(_.obj).toArray),
+        "parameterTypes" -> new vrt.Arr.Obj(imm.Type.Cls("java/lang/reflect/Type"), m.desc.args.map(_.obj).toArray),
         "exceptionTypes" -> new Array[vrt.Cls](0)
 
       )

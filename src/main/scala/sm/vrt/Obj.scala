@@ -68,31 +68,38 @@ class Obj(val cls: sm.Cls, initMembers: (String, vrt.Val)*)
 trait Arr extends StackVal with Cat1{
   val tpe: imm.Type.Entity
   val backing: Array[_]
+  def apply(index: Int): vrt.Val
 }
-object ObjArr{
-  class TypeX[T](val t: imm.Type)
+object Arr{
+  object Obj{
+    class TypeX[T](val t: imm.Type)
 
-  def apply(t: imm.Type.Entity, n: Int) = {
-    new ObjArr(t, Array.fill[vrt.Val](n)(imm.Type.CharClass.default(t)))
+    def apply(t: imm.Type.Entity, n: Int) = {
+      new Arr.Obj(t, Array.fill[vrt.Val](n)(imm.Type.CharClass.default(t)))
+    }
   }
-}
-class ObjArr(val tpe: imm.Type.Entity, val backing: Array[vrt.Val]) extends Arr{
-  override def toString = s"vrt.ObjArr(${tpe.unparse}: ${backing.fold("")(_+", "+_)})"
-}
-object PrimArr{
-  def apply[T: ClassTag: CharClass](n: Int) = {
-    new PrimArr(new Array[T](n))
+  class Obj(val tpe: imm.Type.Entity, val backing: Array[vrt.Val]) extends Arr{
+    def apply(index: Int) = backing(index)
+    override def toString = s"vrt.Arr.Obj(${tpe.unparse}: ${backing.fold("")(_+", "+_)})"
   }
-  def unapply(s: vrt.Val) = s match{
-    case x: vrt.PrimArr[_] => Some(x.backing)
-    case _ => None
-  }
+  object Prim{
+    def apply[T: ClassTag: CharClass](n: Int) = {
+      new Arr.Prim(new Array[T](n))
+    }
+    def unapply(s: vrt.Val) = s match{
+      case x: vrt.Arr.Prim[_] => Some(x.backing)
+      case _ => None
+    }
 
+  }
+  class Prim[T: CharClass](val backing: Array[T]) extends Arr{
+    lazy val tpe: imm.Type.Prim = CharClass()
+    def charClass = implicitly[CharClass[T]]
+    def apply(index: Int) = charClass.constructor(backing(index))
+    override def toString = s"vrt.PrimArr(${tpe.unparse}: ${backing.fold("")(_+", "+_)})"
+  }
 }
-class PrimArr[T: CharClass](val backing: Array[T]) extends Arr{
-  lazy val tpe: imm.Type.Prim = CharClass()
-  override def toString = s"vrt.PrimArr(${tpe.unparse}: ${backing.fold("")(_+", "+_)})"
-}
+
 
 
 
