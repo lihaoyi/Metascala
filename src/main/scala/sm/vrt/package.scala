@@ -1,6 +1,6 @@
 package sm
 
-import imm.Type.CharClass
+import imm.Type.Prim.Info
 import reflect.ClassTag
 
 /**
@@ -82,7 +82,7 @@ package object vrt {
   implicit def virtObjArray[T <% Val](i: Array[T])      = new Arr.Obj(imm.Type.Cls(i.getClass.getComponentType.getName), i.map(x => x: Val))
 
   def forName(s: String) =
-    CharClass.all.find(_.name == s).map(_.realCls).getOrElse[Class[_]](Class.forName(s))
+    imm.Type.Prim.Info.all.find(_.name == s).map(_.realCls).getOrElse[Class[_]](Class.forName(s))
 
 
   implicit def unvirtBoolean(i: vrt.Boolean) = i.v

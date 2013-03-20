@@ -1,4 +1,5 @@
-package sm.imm
+package sm
+package imm
 
 import org.objectweb.asm.tree._
 
@@ -44,7 +45,7 @@ object Field {
     Field(
       fn.access,
       fn.name,
-      sm.imm.Type.read(fn.desc),
+      imm.Type.read(fn.desc).cast[imm.Type.Entity],
       fn.signature.safeOpt,
       fn.value,
       fn.visibleAnnotations.safeList.map(Annotation.read),
@@ -57,7 +58,7 @@ object Field {
 
 case class Field(access: Int,
                  name: String,
-                 desc: sm.imm.Type,
+                 desc: sm.imm.Type.Entity,
                  signature: Option[String],
                  value: Any,
                  visibleAnnotations: List[Annotation],

@@ -7,7 +7,7 @@ import sm.imm.Access
 import sm.imm
 
 import reflect.ClassTag
-import sm.imm.Type.CharClass
+import sm.imm.Type.Prim.Info
 
 
 
@@ -16,7 +16,7 @@ object Obj{
   def initMembers(cls: imm.Cls, filter: Field => Boolean)(implicit vm: VM): List[Map[String, vrt.Val]] = {
     import vm._
     cls.fields.filter(filter).map{f =>
-      f.name -> imm.Type.CharClass.default(f.desc)
+      f.name -> f.desc.default
     }.toMap :: cls.superType.toList.flatMap(x => initMembers(x.clsData, filter))
   }
 
@@ -75,7 +75,7 @@ object Arr{
     class TypeX[T](val t: imm.Type)
 
     def apply(t: imm.Type.Entity, n: Int) = {
-      new Arr.Obj(t, Array.fill[vrt.Val](n)(imm.Type.CharClass.default(t)))
+      new Arr.Obj(t, Array.fill[vrt.Val](n)(t.default))
     }
   }
   class Obj(val tpe: imm.Type.Entity, val backing: Array[vrt.Val]) extends Arr{
@@ -83,7 +83,7 @@ object Arr{
     override def toString = s"vrt.Arr.Obj(${tpe.unparse}: ${backing.fold("")(_+", "+_)})"
   }
   object Prim{
-    def apply[T: ClassTag: CharClass](n: Int) = {
+    def apply[T: ClassTag: imm.Type.Prim.Info](n: Int) = {
       new Arr.Prim(new Array[T](n))
     }
     def unapply(s: vrt.Val) = s match{
@@ -92,9 +92,9 @@ object Arr{
     }
 
   }
-  class Prim[T: CharClass](val backing: Array[T]) extends Arr{
-    lazy val tpe: imm.Type.Prim = CharClass()
-    def charClass = implicitly[CharClass[T]]
+  class Prim[T: imm.Type.Prim.Info](val backing: Array[T]) extends Arr{
+    lazy val tpe: imm.Type.Prim = imm.Type.Prim.Info()
+    def charClass = implicitly[imm.Type.Prim.Info[T]]
     def apply(index: Int) = charClass.constructor(backing(index))
     override def toString = s"vrt.PrimArr(${tpe.unparse}: ${backing.fold("")(_+", "+_)})"
   }

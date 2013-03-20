@@ -214,10 +214,10 @@ object Misc {
 
         (dims, tpe) match {
           case (size :: Nil, Type.Arr(Type.Prim(c))) =>
-            Type.CharClass.charMap(c).newPrimArray(size)
+            imm.Type.Prim.Info.charMap(c).newVirtArray(size)
 
           case (size :: Nil, Type.Arr(innerType)) =>
-            new vrt.Arr.Obj(innerType, Array.fill[vrt.Val](size)(Type.CharClass.default(innerType)))
+            new vrt.Arr.Obj(innerType, Array.fill[vrt.Val](size)(innerType.default))
           case (size :: tail, Type.Arr(innerType)) =>
             new vrt.Arr.Obj(innerType, Array.fill[vrt.Val](size)(rec(tail, innerType)))
         }

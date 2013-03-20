@@ -8,36 +8,7 @@ object Type{
 
 
 
-  class CharClass[T: ClassTag](val tpe: imm.Type.Prim,
-                               val name: String,
-                               val boxName: String,
-                               defaultV: T,
-                               val constructor: T => vrt.Val){
 
-    val default = constructor(defaultV)
-    val realCls: Class[_] = implicitly[ClassTag[T]].getClass
-    def newArray(n: Int): Array[T] = new Array[T](n)
-    def newPrimArray(n: Int): vrt.Arr.Prim[T] = new vrt.Arr.Prim(new Array[T](n))(this)
-
-  }
-  object CharClass{
-    private[this] implicit def char2Type(c: Char) = imm.Type.Prim(c)
-    implicit val ZC = new CharClass[Boolean]( 'Z', "boolean", "java/lang/Boolean",  false,  vrt.Boolean)
-    implicit val BC = new CharClass[Byte](    'B', "byte",    "java/lang/Byte",     0,      vrt.Byte)
-    implicit val CC = new CharClass[Char](    'C', "char",    "java/lang/Character",0,      vrt.Char)
-    implicit val SC = new CharClass[Short](   'S', "short",   "java/lang/Short",    0,      vrt.Short)
-    implicit val IC = new CharClass[Int](     'I', "int",     "java/lang/Integer",  0,      vrt.Int)
-    implicit val FC = new CharClass[Float](   'F', "float",   "java/lang/Float",    0,      vrt.Float)
-    implicit val JC = new CharClass[Long](    'J', "long",    "java/lang/Long",     0,      vrt.Long)
-    implicit val DC = new CharClass[Double](  'D', "double",  "java/lang/Double",   0,      vrt.Double)
-    val all: Seq[CharClass[_]] = Seq(ZC, BC, CC, SC, IC, FC, JC, DC)
-    val charMap = all.map(x => x.tpe.char -> (x: CharClass[_])).toMap[Char, CharClass[_]]
-    def default(desc: imm.Type) = desc match{
-      case Prim(c) => charMap(c).default
-      case _ => vrt.Null
-    }
-    def apply[T: CharClass]() = implicitly[CharClass[T]].tpe
-  }
 
   def read(s: String): Type = {
     s match{
@@ -48,14 +19,17 @@ object Type{
       case s => Cls.read(s)
     }
   }
+
   object Arr{
     def read(s: String) = Arr(Type.read(s.drop(1)).asInstanceOf[Entity])
   }
+
   case class Arr(innerType: Type.Entity) extends Entity{
     def unparse = "[" + innerType.unparse
     def name = "[" + innerType.unparse
     def parent(implicit vm: VM) = Some(imm.Type.Cls("java/lang/Object"))
     def realCls = innerType.realCls
+    def default = vrt.Null
   }
   object Cls{
     def read(s: String) = Cls(s)
@@ -66,18 +40,48 @@ object Type{
     def parent(implicit vm: VM) = this.cls.clsData.superType
     override def obj(implicit vm: VM): vrt.Type = vm.Types(this)
     def realCls = classOf[Object]
+    def default = vrt.Null
   }
 
   object Prim{
     def read(s: String) = Prim(s(0))
+    class Info[T: ClassTag](val tpe: imm.Type.Prim,
+                                 val name: String,
+                                 val boxName: String,
+                                 defaultV: T,
+                                 val constructor: T => vrt.Val){
+
+      val default = constructor(defaultV)
+      val realCls: Class[_] = implicitly[ClassTag[T]].getClass
+      def newArray(n: Int): Array[T] = new Array[T](n)
+      def newVirtArray(n: Int): vrt.Arr.Prim[T] = new vrt.Arr.Prim(new Array[T](n))(this)
+
+    }
+    object Info{
+      private[this] implicit def char2Type(c: Char) = imm.Type.Prim(c)
+      implicit val ZC = new Info[Boolean]( 'Z', "boolean", "java/lang/Boolean",  false,  vrt.Boolean)
+      implicit val BC = new Info[Byte](    'B', "byte",    "java/lang/Byte",     0,      vrt.Byte)
+      implicit val CC = new Info[Char](    'C', "char",    "java/lang/Character",0,      vrt.Char)
+      implicit val SC = new Info[Short](   'S', "short",   "java/lang/Short",    0,      vrt.Short)
+      implicit val IC = new Info[Int](     'I', "int",     "java/lang/Integer",  0,      vrt.Int)
+      implicit val FC = new Info[Float](   'F', "float",   "java/lang/Float",    0,      vrt.Float)
+      implicit val JC = new Info[Long](    'J', "long",    "java/lang/Long",     0,      vrt.Long)
+      implicit val DC = new Info[Double](  'D', "double",  "java/lang/Double",   0,      vrt.Double)
+      val all: Seq[Info[_]] = Seq(ZC, BC, CC, SC, IC, FC, JC, DC)
+      val charMap = all.map(x => x.tpe.char -> (x: Info[_])).toMap[Char, Info[_]]
+
+      def apply[T: Info]() = implicitly[Info[T]].tpe
+    }
   }
   case class Prim(char: Char) extends Entity{
     def unparse = ""+char
-    def name = CharClass.charMap(char).name
+    def name = imm.Type.Prim.Info.charMap(char).name
 
-    def realCls = CharClass.charMap(name(0)).realCls
+    def realCls = imm.Type.Prim.Info.charMap(name(0)).realCls
 
     def parent(implicit vm: VM) = ???
+
+    def default = Prim.Info.charMap(char).default
   }
 
   object Desc{
@@ -102,7 +106,6 @@ object Type{
         case t: Type.Cls => "L" + t.unparse + ";"
         case t: Type.Arr => "[" + unparse(t.innerType)
         case x => x.unparse
-
       }
     }
   }
@@ -114,6 +117,7 @@ object Type{
     def realCls: Class[_]
     // byte char int long java/lang/String
     def name: String
+    def default: vrt.Val
 
   }
 }
