@@ -65,7 +65,7 @@ object LoadStore {
           val v: virt.Obj = s
           vt.vm.InternedStrings(v)
         case t: asm.Type =>
-          Type.Cls(t.getClassName).obj
+          Type.Cls(t.getInternalName).obj
 
         case x => anyValToStackVal(x)
       }
