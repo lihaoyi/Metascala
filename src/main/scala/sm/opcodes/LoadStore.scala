@@ -190,28 +190,23 @@ object LoadStore {
   val AStore2 = UnusedOpCode(77, "astore_2")
   val AStore3 = UnusedOpCode(78, "astore_3")
   //===============================================================
-  class StoreArray(val id: Byte, val insnName: String) extends OpCode{
+
+  class StoreArray(val id: Byte, val insnName: String)(store: PartialFunction[(vrt.StackVal, Int, Array[_]), Unit]) extends OpCode{
     def op = vt => (vt.pop, vt.pop, vt.pop) match {
-      case (value, vrt.Int(index), arr: vrt.ObjArr) =>  arr.backing(index) = value
-
-      case (vrt.Int(value), vrt.Int(index), vrt.PrimArr(backing: Array[Boolean])) => backing(index) = value != 0
-      case (vrt.Int(value), vrt.Int(index), vrt.PrimArr(backing: Array[Byte])) =>  backing(index) = value.toByte
-      case (vrt.Int(value), vrt.Int(index), vrt.PrimArr(backing: Array[Char])) =>  backing(index) = value.toChar
-      case (vrt.Int(value), vrt.Int(index), vrt.PrimArr(backing: Array[Short])) =>  backing(index) = value.toShort
-
-      case (vrt.Int(value), vrt.Int(index), vrt.PrimArr(backing: Array[Int])) =>  backing(index) = value
-      case (vrt.Float(value), vrt.Int(index), vrt.PrimArr( backing: Array[Float])) =>  backing(index) = value
-      case (vrt.Long(value), vrt.Int(index), vrt.PrimArr(backing: Array[Long])) =>  backing(index) = value
-      case (vrt.Double(value), vrt.Int(index), vrt.PrimArr(backing: Array[Double])) =>  backing(index) = value
+      case (value, vrt.Int(index), arr: vrt.Arr) =>  store(value, index, arr.backing)
     }
   }
 
-  case object IAStore extends StoreArray(79, "iastore")
-  case object LAStore extends StoreArray(80, "lastore")
-  case object FAStore extends StoreArray(81, "fastore")
-  case object DAStore extends StoreArray(82, "dastore")
-  case object AAStore extends StoreArray(83, "aastore")
-  case object BAStore extends StoreArray(84, "bastore")
-  case object CAStore extends StoreArray(85, "castore")
-  case object SAStore extends StoreArray(86, "sastore")
+  case object IAStore extends StoreArray(79, "iastore")({case (vrt.Int(value), i, backing: Array[Int]) => backing(i) = value})
+  case object LAStore extends StoreArray(80, "lastore")({case (vrt.Long(value), i, backing: Array[Long]) => backing(i) = value})
+  case object FAStore extends StoreArray(81, "fastore")({case (vrt.Float(value), i, backing: Array[Float]) => backing(i) = value})
+  case object DAStore extends StoreArray(82, "dastore")({case (vrt.Double(value), i, backing: Array[Double]) => backing(i) = value})
+  type VVal = vrt.Val
+  case object AAStore extends StoreArray(83, "aastore")({case (value, i, backing: Array[VVal]) => backing(i) = value})
+  case object BAStore extends StoreArray(84, "bastore")({
+    case (vrt.Int(value), i, backing: Array[Byte]) => backing(i) = value.toByte
+    case (vrt.Int(value), i, backing: Array[Boolean]) => backing(i) = value.toByte != 0
+  })
+  case object CAStore extends StoreArray(85, "castore")({case (vrt.Int(value), i, backing: Array[Char]) => backing(i) = value.toChar})
+  case object SAStore extends StoreArray(86, "sastore")({case (vrt.Int(value), i, backing: Array[Short]) => backing(i) = value.toShort})
 }
