@@ -10,20 +10,6 @@ import reflect.ClassTag
 import sm.imm.Type.CharClass
 
 
-trait Val
-object Val{
-  implicit class stackable(s: virt.Val){
-    def toStackVal = s match {
-      case Boolean(b) => virt.Int(if (b) 1 else 0)
-      case Char(c) => virt.Int(c)
-      case Byte(b) => virt.Int(b)
-      case Short(s) => virt.Int(s)
-      case x: virt.StackVal => x
-    }
-  }
-}
-
-trait StackVal extends Val
 
 object Obj{
 
@@ -107,24 +93,8 @@ class PrimArr[T: CharClass](val backing: Array[T]) extends Arr{
   lazy val tpe: imm.Type.Prim = CharClass()
   override def toString = s"virt.PrimArr(${tpe.unparse}: ${backing.fold("")(_+", "+_)})"
 }
-trait WrapVal[T]{
-  def v: T
-}
-trait Cat1{this: StackVal => }
-trait Cat2{this: StackVal => }
-case class Boolean(v: scala.Boolean) extends WrapVal[scala.Boolean] with Val
-case class Byte(v: scala.Byte) extends WrapVal[scala.Byte] with Val
-case class Char(v: scala.Char) extends WrapVal[scala.Char] with Val
-case class Short(v: scala.Short) extends WrapVal[scala.Short] with Val
-case class Int(v: scala.Int) extends WrapVal[scala.Int] with StackVal with Cat1
-case class Float(v: scala.Float) extends WrapVal[scala.Float] with StackVal with Cat1
-case class Long(v: scala.Long) extends WrapVal[scala.Long] with StackVal with Cat2
-case class Double(v: scala.Double) extends WrapVal[scala.Double] with StackVal with Cat2
-case object Null extends WrapVal[scala.Null] with StackVal with Cat1{
-  def v = null
-}
-case object Unit extends WrapVal[scala.Unit] with StackVal with Cat1{
-  def v = ()
-}
+
+
+
 
 
