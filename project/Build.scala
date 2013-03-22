@@ -15,10 +15,6 @@ object Build extends sbt.Build{
       version       := "0.1",
       scalaVersion  := "2.10.0",
 
-      addCompilerPlugin("org.scala-lang.plugins" % "continuations" % "2.10.0"),
-
-      scalacOptions += "-P:continuations:enable",
-
       test in assembly := {},
 
       resolvers ++= Seq(

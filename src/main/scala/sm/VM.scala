@@ -29,7 +29,6 @@ object VM{
   def triggerGo() = ()
 }
 class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) {
-
   private[this] implicit val vm = this
 
   object InternedStrings extends Cache[vrt.Obj, vrt.Obj]{
@@ -46,12 +45,17 @@ class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) 
 
   implicit object Classes extends Cache[imm.Type.Cls, sm.Cls]{
     def calc(t: imm.Type.Cls): sm.Cls = {
+      if (t.name.contains("sm/imm")) {
+        threads(0).dumpStack.foreach(println)
+        throw new Exception("WTF")
+      }
       new sm.Cls(imm.Cls.parse(natives.fileLoader(t.name.replace(".", "/") + ".class").get))
     }
     override def post(cls: sm.Cls) = {
-      cls.method("<clinit>", imm.Type.Desc.read("()V")).foreach( m =>
-        threads(0).invoke(imm.Type.Cls(cls.name), "<clinit>", imm.Type.Desc.read("()V"), Nil)
-      )
+      cls.clsData
+         .methods
+         .find(m => m.name == "<clinit>" && m.desc == imm.Type.Desc.read("()V"))
+         .foreach( m => threads(0).invoke(imm.Type.Cls(cls.name), "<clinit>", imm.Type.Desc.read("()V"), Nil))
     }
   }
 

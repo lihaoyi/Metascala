@@ -43,6 +43,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
   def indent = "\t" * threadStack.filter(_.method.name != "Dummy").length
 
+  var i = 0
   def step() = {
 
 
@@ -52,17 +53,13 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     vm.log(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack)
     vm.log(indent + "---------------------- " + topFrame.pc + "\t" + node )
     topFrame.pc += 1
-//    try
+    i += 1
+    try{
       node.op(this)
-
-  /*catch{ case e: Throwable =>
-    throw new UncaughtVmException(
-      e.getClass.getCanonicalName,
-      e.getMessage,
-      Nil,
-      getFramesDump
-    )
-  }*/
+    }catch{ case e: Throwable =>
+      this.dumpStack.foreach(x => vm log x)
+      throw e
+    }
 
     //log(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack.map(x => if (x == null) null else x.getClass))
   }
@@ -109,9 +106,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
                                 desc: imm.Type.Desc,
                                 args: Seq[vrt.StackVal])
                                (implicit originalType: imm.Type.Entity = tpe): Unit = {
-
-    vm.log(indent + "prepInvoke " + tpe + " " + methodName + desc.unparse)
-    vm.log(indent + "args " + args)
+    vm.log(indent + tpe.name + " " + methodName + desc.unparse)
 
     (vm.natives.trapped.get(tpe.name + "/" + methodName, desc), tpe) match{
       case (Some(trap), _) =>
@@ -125,7 +120,9 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
         tpe.cls.clsData.methods.find(x => x.name == methodName && x.desc == desc) match {
           case Some(m) if m.code.insns != Nil=>
-
+            m.code.insns.zipWithIndex.foreach{ case (b, i) =>
+              vm.log(indent + i + "\t" + b)
+            }
             val stretchedArgs = args.flatMap {
               case l: vrt.Long => Seq(l, l)
               case d: vrt.Double => Seq(d, d)

@@ -141,7 +141,7 @@ object Misc {
         case 5  => vrt.Arr.Prim[Char](count)
         case 6  => vrt.Arr.Prim[Float](count)
         case 7  => vrt.Arr.Prim[Double](count)
-        case 8  => vrt.Arr.Prim[Boolean](count)
+        case 8  => vrt.Arr.Prim[Byte](count)
         case 9  => vrt.Arr.Prim[Short](count)
         case 10 => vrt.Arr.Prim[Int](count)
         case 11 => vrt.Arr.Prim[Long](count)
@@ -149,7 +149,7 @@ object Misc {
       vt.push(newArray)
     }
   }
-  case class ANewArray(desc: Type.Entity) extends BaseOpCode(189, "anewarray"){
+  case class ANewArray(desc: imm.Type.ObjEntity) extends BaseOpCode(189, "anewarray"){
     def op = vt => {
       val vrt.Int(count) = vt.pop
       vt.push(vrt.Arr.Obj(desc, count))
@@ -217,9 +217,9 @@ object Misc {
             imm.Type.Prim.Info.charMap(c).newVirtArray(size)
 
           case (size :: Nil, Type.Arr(innerType)) =>
-            new vrt.Arr.Obj(innerType, Array.fill[vrt.Val](size)(innerType.default))
+            new vrt.Arr.Obj(innerType.cast[imm.Type.ObjEntity], Array.fill[vrt.Val](size)(innerType.default))
           case (size :: tail, Type.Arr(innerType)) =>
-            new vrt.Arr.Obj(innerType, Array.fill[vrt.Val](size)(rec(tail, innerType)))
+            new vrt.Arr.Obj(innerType.cast[imm.Type.ObjEntity], Array.fill[vrt.Val](size)(rec(tail, innerType)))
         }
       }
       val (dimValues, newStack) = vt.frame.stack.splitAt(dims)

@@ -192,10 +192,10 @@ trait DefaultNatives extends Natives{
               vt => (cls: vrt.Cls, b: Int) => cls.getDeclaredConstructors()
             },
             "getDeclaredFields0(Z)[L//reflect/Field;" x2 { vt => (cls: vrt.Type, b: vrt.Int) =>
-              vrt.virtualize(cls.getDeclaredFields())(vt.vm)
+              cls.getDeclaredFields()
             },
             "getDeclaredMethods0(Z)[L//reflect/Method;" x2 { vt => (cls: vrt.Type, b: vrt.Int) =>
-              vrt.virtualize(cls.getDeclaredMethods())(vt.vm)
+              cls.getDeclaredMethods()
             },
             "getEnclosingMethod0()[L//Object;" x value(vrt.Null),
             "getModifiers()I" x1 { vt => (x: vrt.Cls) => import vt.vm._; Type.Cls(x.name).clsData.access_flags },
@@ -224,33 +224,35 @@ trait DefaultNatives extends Natives{
             "getResourceAsStream(Ljava/lang/String;)Ljava/io/InputStream;" x2 { vt => (cl: vrt.Obj, s: vrt.Obj) =>
               import vt.vm
               val str: String = s
-
-              fileLoader(str) match{
-                case None => vrt.Null
-                case Some(bytes) =>
-                  vrt.Obj("java.io.ByteArrayInputStream",
-                    "buf" -> bytes,
-                    "pos" -> 0,
-                    "mark" -> 0,
-                    "count" -> bytes.length
-                  )
-              }
+              if (!str.endsWith(".properties"))
+                fileLoader(str) match{
+                  case None => vrt.Null
+                  case Some(bytes) =>
+                    vrt.Obj("java.io.ByteArrayInputStream",
+                      "buf" -> new vrt.Arr.Prim(bytes),
+                      "pos" -> 0,
+                      "mark" -> 0,
+                      "count" -> bytes.length
+                    )
+                }
+              else vrt.Null
             },
             "getSystemResourceAsStream(Ljava/lang/String;)Ljava/io/InputStream;" x1 { vt => (s: vrt.Obj) =>
 
               import vt.vm
               val str: String = s
-
-              fileLoader(str) match{
-                case None => vrt.Null
-                case Some(bytes) =>
-                  vrt.Obj("java.io.ByteArrayInputStream",
-                    "buf" -> bytes,
-                    "pos" -> 0,
-                    "mark" -> 0,
-                    "count" -> bytes.length
-                  )
-              }
+              if (!str.endsWith(".properties"))
+                fileLoader(str) match{
+                  case None => vrt.Null
+                  case Some(bytes) =>
+                    vrt.Obj("java.io.ByteArrayInputStream",
+                      "buf" -> new vrt.Arr.Prim(bytes),
+                      "pos" -> 0,
+                      "mark" -> 0,
+                      "count" -> bytes.length
+                    )
+                }
+              else vrt.Null
             }
 
           ),
@@ -351,6 +353,7 @@ trait DefaultNatives extends Natives{
                 vt.prepInvoke(pa.cls.clsData.tpe, "run", pa.cls.clsData.methods.find(_.name == "run").get.desc, Seq(pa))
             },
             "getStackAccessControlContext()L//AccessControlContext;" x { vt => vrt.Obj("java/security/AccessControlContext")(vt.vm)},
+            "getAccessControlContext()L//AccessControlContext;" x { vt => vrt.Obj("java/security/AccessControlContext")(vt.vm)},
             "getInheritedAccessControlContext()L//AccessControlContext;" x { vt => vrt.Obj("java/security/AccessControlContext")(vt.vm)}
             )
           )
@@ -358,10 +361,12 @@ trait DefaultNatives extends Natives{
       "scala"/(
         "Predef$"/(
           "println(Ljava/lang/String;)V" x2 {
-            vt => (x: vrt.Obj, y: vrt.Obj) => vt.vm.log("VIRTUAL " + vrt.unvirtString(y))
+            vt => (x: vrt.Obj, y: vrt.Obj) =>
+              vt.vm.log("VIRTUAL " + vrt.unvirtString(y))
           },
           "println(Ljava/lang/Object;)V" x2 {
-            vt => (x: vrt.Obj, y: vrt.Obj) => vt.vm.log("VIRTUAL " + vrt.unvirtString(y))
+            vt => (x: vrt.Obj, y: vrt.Obj) =>
+              vt.vm.log("VIRTUAL " + vrt.unvirtString(y))
           }
 
         )
@@ -407,7 +412,7 @@ trait DefaultNatives extends Natives{
                 }
             },
             "objectFieldOffset(Ljava/lang/reflect/Field;)J" x2 { vt => (unsafe: Any, x: Obj) =>
-              x(Type.Cls("java/lang/reflect/Field"), "slot").asInstanceOf[Int].toLong
+              x(Type.Cls("java/lang/reflect/Field"), "slot").asInstanceOf[vrt.Int].toLong
             }
           ),
           "VM"/(

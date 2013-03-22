@@ -34,7 +34,7 @@ package object vrt {
   implicit def virtUnit(i: Unit)        = vrt.Unit
 
   def virtualize(i: Any)(implicit vm: VM): vrt.Val = {
-
+    println("Virtualizing " + i)
     i match{
       case x: Boolean => x
       case x: Byte => x
@@ -44,20 +44,22 @@ package object vrt {
       case x: Float => x
       case x: Long => x
       case x: Double => x
-      case x: Array[Boolean] => new vrt.Arr.Prim(x.clone)
-      case x: Array[Byte] => new vrt.Arr.Prim(x.clone)
-      case x: Array[Char] => new vrt.Arr.Prim(x.clone)
-      case x: Array[Short] => new vrt.Arr.Prim(x.clone)
-      case x: Array[Int] => new vrt.Arr.Prim(x.clone)
-      case x: Array[Float] => new vrt.Arr.Prim(x.clone)
-      case x: Array[Long] => new vrt.Arr.Prim(x.clone)
-      case x: Array[Double] => new vrt.Arr.Prim(x.clone)
-      new vrt.Arr.Obj(
-        imm.Type.read(x.getClass.getComponentType.getName).cast[imm.Type.Entity],
-        x.map(x => virtualize(x))
-      )
+      case x: Array[Boolean] => println("A");new vrt.Arr.Prim(x.clone)
+      case x: Array[Byte] => println("B");new vrt.Arr.Prim(x.clone)
+      case x: Array[Char] => println("C");new vrt.Arr.Prim(x.clone)
+      case x: Array[Short] => println("D");new vrt.Arr.Prim(x.clone)
+      case x: Array[Int] => println("E");new vrt.Arr.Prim(x.clone)
+      case x: Array[Float] => println("F");new vrt.Arr.Prim(x.clone)
+      case x: Array[Long] => println("G");new vrt.Arr.Prim(x.clone)
+      case x: Array[Double] => println("H");new vrt.Arr.Prim(x.clone)
+      case x: Array[Any] =>
+        println("I");
+        new vrt.Arr.Obj(
+          imm.Type.read(x.getClass.getComponentType.getName).cast[imm.Type.ObjEntity],
+          x.map(x => virtualize(x))
+        )
       case x: Any =>
-
+        println("J");
         vrt.Obj(x.getClass.getName.replace('.', '/'),
           x.getClass.getDeclaredFields
             .filter(f => !java.lang.reflect.Modifier.isStatic(f.getModifiers))
@@ -66,7 +68,7 @@ package object vrt {
             f.getName -> virtualize(f.get(x))
           }.toSeq: _*
         )
-      case null => vrt.Null
+      case null => println("K");vrt.Null
     }
   }
 
@@ -79,7 +81,7 @@ package object vrt {
   implicit def virtFloatArray(i: Array[vrt.Float])     = new Arr.Prim(i.map(_.v))
   implicit def virtLongArray(i: Array[vrt.Long])       = new Arr.Prim(i.map(_.v))
   implicit def virtDoubleArray(i: Array[vrt.Double])   = new Arr.Prim(i.map(_.v))
-  implicit def virtObjArray[T <% Val](i: Array[T])      = new Arr.Obj(imm.Type.Cls(i.getClass.getComponentType.getName), i.map(x => x: Val))
+  implicit def virtObjArray[T <% Val](i: Array[T])      = new Arr.Obj(imm.Type.Cls(i.getClass.getComponentType.getName).asInstanceOf[imm.Type.ObjEntity], i.map(x => x: Val))
 
   def forName(s: String) =
     imm.Type.Prim.Info.all.find(_.name == s).map(_.realCls).getOrElse[Class[_]](Class.forName(s))
@@ -118,7 +120,8 @@ package object vrt {
           field.set(obj, unvirtualize(v))
         }
         obj
-      case Null => null
+      case vrt.Null => null
+      case vrt.Unit => null
     }
   }
 

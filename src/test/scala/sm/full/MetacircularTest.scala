@@ -8,14 +8,16 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import collection.GenSeq
 
 object MetacircularTest{
-  def sqrtFinder = {
+  /*def sqrtFinder = {
     val x = new sm.Util.SingleClassVM("sm.features.controlflow.Loops", s => ())
     x.run("sqrtFinder", 5.0)
   }
 
   def helloWorld = {
-    val x = new sm.Util.SingleClassVM("sm.features.methods.Statics", s => ())
-    x.run("helloWorld", 1)
+    println("Hello World Starts!")
+    /*val x = new sm.Util.SingleClassVM("sm.features.methods.Statics", x => println(x))
+    println("VM Initialized!!")
+    x.run("helloWorld", 1)*/
   }
   def fibonacci = {
     val x = new sm.Util.SingleClassVM("sm.features.methods.Statics", s => ())
@@ -30,6 +32,9 @@ object MetacircularTest{
   def bubbleSort = {
     val x = new sm.Util.SingleClassVM("sm.features.arrays.ArrayStuff", s => ())
     x.run("makeIntArray", 10)
+  }*/
+  def omg = {
+    println("OMG")
   }
 
 }
@@ -37,17 +42,21 @@ object MetacircularTest{
 
 class MetacircularTest extends FreeSpec with Util{
 
-
-  /*val tester = new Tester("sm.full.MetacircularTest", x => {
-    buffer(index) = x
-    index = (index + 1) % n
-  })*/
+  val buffer = new BufferLog(4000)
+  var count = 0
+  val tester = new Tester("sm.full.MetacircularTest", buffer)
   /*"sqrtFinder" in {
     tester.run("sqrtFinder")
   }*/
-  /*"helloWorld" in {
-    tester.run("helloWorld")
-  }*//*
+  "helloWorld" in {try
+    tester.run("omg")
+    catch{case e =>
+      buffer.lines.foreach(println)
+      throw e
+    }
+  }
+
+  /*
   "fibonacci" in {
     tester.run("fibonacci")
   }

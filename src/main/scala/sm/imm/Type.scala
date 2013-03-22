@@ -17,8 +17,8 @@ object Type{
   object Arr{
     def read(s: String) = Arr(Type.read(s.drop(1)).asInstanceOf[Entity])
   }
-
-  case class Arr(innerType: Type.Entity) extends Entity{
+  trait ObjEntity extends Entity
+  case class Arr(innerType: Type.Entity) extends ObjEntity{
     def unparse = "[" + innerType.unparse
     def name = "[" + innerType.unparse
     def parent(implicit vm: VM) = Some(imm.Type.Cls("java/lang/Object"))
@@ -28,7 +28,7 @@ object Type{
   object Cls{
     def read(s: String) = Cls(s)
   }
-  case class Cls(name: String) extends Entity{
+  case class Cls(name: String) extends ObjEntity{
     def unparse = name
     def cls(implicit vm: VM) = vm.Classes(this)
     def parent(implicit vm: VM) = this.cls.clsData.superType

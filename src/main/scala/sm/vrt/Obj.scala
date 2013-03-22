@@ -30,7 +30,8 @@ object Obj{
   }
 }
 class Obj(val cls: sm.Cls, initMembers: (String, vrt.Val)*)
-         (implicit vm: VM) extends StackVal with Cat1{ import vm._
+         (implicit vm: VM) extends StackVal with Cat1 {
+  import vm._
 
   val members =
     Obj.initMembers(cls.clsData, x => (x.access & Access.Static) == 0)
@@ -74,13 +75,14 @@ object Arr{
   object Obj{
     class TypeX[T](val t: imm.Type)
 
-    def apply(t: imm.Type.Entity, n: Int) = {
+    def apply(t: imm.Type.ObjEntity, n: Int) = {
       new Arr.Obj(t, Array.fill[vrt.Val](n)(t.default))
     }
   }
-  class Obj(val tpe: imm.Type.Entity, val backing: Array[vrt.Val]) extends Arr{
+  class Obj(val tpe: imm.Type.ObjEntity, val backing: Array[vrt.Val]) extends Arr{
+    assert(tpe != imm.Type.Cls("byte"))
     def apply(index: Int) = backing(index)
-    override def toString = s"vrt.Arr.Obj(${tpe.unparse}: ${backing.fold("")(_+", "+_)})"
+    override def toString = s"vrt.Arr.Obj(${tpe.getClass} ${tpe.unparse}: ${backing.fold("")(_+", "+_)})"
   }
   object Prim{
     def apply[T: ClassTag: imm.Type.Prim.Info](n: Int) = {
