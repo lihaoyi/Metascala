@@ -56,6 +56,10 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     i += 1
     try{
       node.op(this)
+/*      if (i % 1000 == 0) {
+        this.dumpStack.foreach(println)
+        println()
+      }*/
     }catch{ case e: Throwable =>
       this.dumpStack.foreach(x => vm log x)
       throw e

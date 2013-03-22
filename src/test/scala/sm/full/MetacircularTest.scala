@@ -44,7 +44,7 @@ class MetacircularTest extends FreeSpec with Util{
 
   val buffer = new BufferLog(4000)
   var count = 0
-  val tester = new Tester("sm.full.MetacircularTest", buffer)
+  val tester = new Tester("sm.full.MetacircularTest")
   /*"sqrtFinder" in {
     tester.run("sqrtFinder")
   }*/
