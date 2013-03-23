@@ -29,10 +29,9 @@ object Cls {
   }
 
   def parse(input: Array[Byte]) = {
-    val cr = new ClassReader(input);
-    val classNode = new ClassNode();
-
-    cr.accept(classNode, 0);
+    val cr = new ClassReader(input)
+    val classNode = new ClassNode()
+    cr.accept(classNode, 0)
     read(classNode)
   }
 
@@ -48,9 +47,9 @@ object Cls {
                   innerClasses: List[InnerClass] = Nil)
 }
 case class Cls(access_flags: Int,
-                     tpe: Type.Cls,
-                     superType: Option[Type.Cls] = None,
-                     interfaces: List[Type.Cls] = Nil,
-                     fields: List[Field] = Nil,
-                     methods: List[Method] = Nil,
-                     misc: Cls.Misc = Cls.Misc())
+               tpe: Type.Cls,
+               superType: Option[Type.Cls] = None,
+               interfaces: List[Type.Cls] = Nil,
+               fields: List[Field] = Nil,
+               methods: List[Method] = Nil,
+               misc: Cls.Misc = Cls.Misc())

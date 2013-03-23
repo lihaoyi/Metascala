@@ -15,6 +15,12 @@ trait Val{
 }
 
 
-trait StackVal extends Val
-trait Cat1{this: StackVal => }
-trait Cat2{this: StackVal => }
+trait StackVal extends Val{
+  def size: Int
+}
+trait Cat1 extends StackVal{
+  def size: Int = 1
+}
+trait Cat2 extends StackVal{
+  def size: Int = 2
+}

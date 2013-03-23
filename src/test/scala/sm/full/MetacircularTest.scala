@@ -16,7 +16,7 @@ object MetacircularTest{
 
   def fibonacci = {
     val x = new sm.Util.SingleClassVM("sm.features.methods.Statics", s => ())
-    x.run("fibonacci", 6)
+    x.run("fibonacci", 12)
   }
 
   def innerClass = {
@@ -41,11 +41,7 @@ class MetacircularTest extends FreeSpec with Util{
   var count = 0
   val tester = new Tester("sm.full.MetacircularTest")
   "sqrtFinder" in {
-    try tester.run("sqrtFinder") catch{case e: UncaughtVmException =>
-      buffer.lines.foreach(println)
-      e.stackData.foreach(f => println(f.clsName + "/" + f.methodName + " : " + f.lineNumber))
-      throw e
-    }
+    tester.run("sqrtFinder")
   }
   "helloWorld" in {
     tester.run("omg")
@@ -54,6 +50,7 @@ class MetacircularTest extends FreeSpec with Util{
 
   "fibonacci" in {
     tester.run("fibonacci")
+    println(tester.svm.threads(0).getI)
   }
 
 

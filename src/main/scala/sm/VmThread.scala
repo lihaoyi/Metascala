@@ -3,6 +3,7 @@ import collection.mutable
 import imm.Attached.LineNumber
 import imm.{TryCatchBlock, Method, Code}
 import annotation.tailrec
+import vrt.Cat1
 
 class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit val vm: VM){
   import vm._
@@ -12,6 +13,8 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     "priority" -> 5
   )
 
+  private[this] var i = 0
+  def getI = i
   def frame = threadStack.head
 
   def getFramesDump = {
@@ -43,13 +46,13 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
   def indent = "\t" * threadStack.filter(_.method.name != "Dummy").length
 
-  def step() = {
+  final def step() = {
     val topFrame = threadStack.head
-
     val node = topFrame.method.code.insns(topFrame.pc)
     vm.log(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack)
     vm.log(indent + "---------------------- " + topFrame.pc + "\t" + node )
     topFrame.pc += 1
+    i += 1
     try{
       node.op(this)
     }catch{ case e: Throwable =>
@@ -106,28 +109,28 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
     (vm.natives.trapped.get(tpe.name + "/" + methodName, desc), tpe) match{
       case (Some(trap), _) =>
-
         val result = trap(this)(args)
         if (result != ()) threadStack.head.stack.push(result.toStackVal)
 
       case (None, tpe: imm.Type.Cls) =>
-
-
-
         tpe.cls.clsData.methods.find(x => x.name == methodName && x.desc == desc) match {
           case Some(m) if m.code.insns != Nil=>
-            m.code.insns.zipWithIndex.foreach{ case (b, i) =>
-              vm.log(indent + i + "\t" + b)
-            }
-            val stretchedArgs = args.flatMap {
-              case l: vrt.Long => Seq(l, l)
-              case d: vrt.Double => Seq(d, d)
-              case x => Seq(x)
-            }
-            val array = new Array[vrt.StackVal](m.misc.maxLocals)
-            stretchedArgs.copyToArray(array)
+            vm.log(
+              m.code.insns.zipWithIndex.map{ case (b, i) =>
+                indent + i + "\t" + b
+              }.mkString
+            )
 
-            vm.log(indent + "args " + stretchedArgs)
+            val array = new Array[vrt.StackVal](m.misc.maxLocals)
+            var i = 0
+
+            for (a <- args){
+              array(i) = a
+              i += a.size
+            }
+
+
+            vm.log(indent + "args " + array.toSeq)
             val startFrame = new Frame(
               runningClass = tpe.cls,
               method = m,
