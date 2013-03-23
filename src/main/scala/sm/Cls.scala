@@ -23,15 +23,15 @@ class Cls(val clsData: imm.Cls,
   }
 
   def apply(owner: Type.Cls, name: String) = {
-    this.ancestry.dropWhile(_.tpe != owner)
-                 .find(_.fields.exists(_.name == name))
-                 .get.tpe.statics(name)
+    ancestry.dropWhile(_.tpe != owner)
+            .find(_.fields.exists(_.name == name))
+            .get.tpe.statics(name)
   }
 
   def update(owner: Type.Cls, name: String, value: vrt.Val) = {
-    this.ancestry.dropWhile(_.tpe != owner)
-                 .find(_.fields.exists(_.name == name))
-                 .get.tpe.statics(name) = value
+    ancestry.dropWhile(_.tpe != owner)
+            .find(_.fields.exists(_.name == name))
+            .get.tpe.statics(name) = value
   }
 
   def name = clsData.tpe.name

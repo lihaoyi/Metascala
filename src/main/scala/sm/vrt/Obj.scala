@@ -36,7 +36,9 @@ class Obj(val cls: sm.Cls, initMembers: (String, vrt.Val)*)
   val members =
     Obj.initMembers(cls.clsData, x => (x.access & Access.Static) == 0)
        .map(x => mutable.Map(x.toSeq:_*))
-  val magicMembers = mutable.Map[String, Any]()
+
+  var magicMembers = Map[String, Any]()
+
   for ((s, v) <- initMembers){
     this(imm.Type.Cls.read(cls.name), s) = v
   }
@@ -58,7 +60,7 @@ class Obj(val cls: sm.Cls, initMembers: (String, vrt.Val)*)
   }
 
   def withMagic(x: String, a: Any) = {
-    magicMembers(x) = a
+    magicMembers = magicMembers.updated(x, a)
     this
   }
   override def toString = {
