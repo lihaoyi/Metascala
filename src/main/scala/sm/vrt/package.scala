@@ -37,29 +37,27 @@ package object vrt {
     println("Virtualizing " + i)
     i match{
       case x: Boolean => x
-      case x: Byte => x
-      case x: Char => x
-      case x: Short => x
-      case x: Int => x
-      case x: Float => x
-      case x: Long => x
-      case x: Double => x
-      case x: Array[Boolean] => println("A");new vrt.Arr.Prim(x.clone)
-      case x: Array[Byte] => println("B");new vrt.Arr.Prim(x.clone)
-      case x: Array[Char] => println("C");new vrt.Arr.Prim(x.clone)
-      case x: Array[Short] => println("D");new vrt.Arr.Prim(x.clone)
-      case x: Array[Int] => println("E");new vrt.Arr.Prim(x.clone)
-      case x: Array[Float] => println("F");new vrt.Arr.Prim(x.clone)
-      case x: Array[Long] => println("G");new vrt.Arr.Prim(x.clone)
-      case x: Array[Double] => println("H");new vrt.Arr.Prim(x.clone)
+      case x: Byte =>    x
+      case x: Char =>    x
+      case x: Short =>   x
+      case x: Int =>     x
+      case x: Float =>   x
+      case x: Long =>    x
+      case x: Double =>  x
+      case x: Array[Boolean] => new vrt.Arr.Prim(x.clone)
+      case x: Array[Byte]    => new vrt.Arr.Prim(x.clone)
+      case x: Array[Char]    => new vrt.Arr.Prim(x.clone)
+      case x: Array[Short]   => new vrt.Arr.Prim(x.clone)
+      case x: Array[Int]     => new vrt.Arr.Prim(x.clone)
+      case x: Array[Float]   => new vrt.Arr.Prim(x.clone)
+      case x: Array[Long]    => new vrt.Arr.Prim(x.clone)
+      case x: Array[Double]  => new vrt.Arr.Prim(x.clone)
       case x: Array[Any] =>
-        println("I");
         new vrt.Arr.Obj(
           imm.Type.read(x.getClass.getComponentType.getName).cast[imm.Type.ObjEntity],
           x.map(x => virtualize(x))
         )
       case x: Any =>
-        println("J");
         vrt.Obj(x.getClass.getName.replace('.', '/'),
           x.getClass.getDeclaredFields
             .filter(f => !java.lang.reflect.Modifier.isStatic(f.getModifiers))
@@ -68,7 +66,7 @@ package object vrt {
             f.getName -> virtualize(f.get(x))
           }.toSeq: _*
         )
-      case null => println("K");vrt.Null
+      case null => vrt.Null
     }
   }
 

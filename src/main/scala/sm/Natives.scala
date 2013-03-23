@@ -112,12 +112,13 @@ trait DefaultNatives extends Natives{
   )
 
   def getObject(x: vrt.Val, i: Long): vrt.Val = {
+
     x match{
       case o: vrt.Obj =>
-        (for {
+        val matches = for {
           m <- o.members
           k <- m.keys.find(_.hashCode == i)
-        } yield m(k)).head
+        } yield m(k)
 
       case r: vrt.Arr =>
         r.backing(i.toInt).asInstanceOf[vrt.Val]
@@ -154,7 +155,7 @@ trait DefaultNatives extends Natives{
           "reflect"/(
             "Array"/(
               "newArray(Ljava/lang/Class;I)Ljava/lang/Object;" x2 {
-                vt =>(x: vrt.Cls, n: Int) => new Array[Obj](n): vrt.Val
+                vt =>(x: vrt.Cls, n: vrt.Int) => new Array[Obj](n): vrt.Val
               }
             )
           ),
@@ -174,6 +175,7 @@ trait DefaultNatives extends Natives{
             },
             "getPrimitiveClass(L//String;)L//Class;" x1 {vt => (s: vrt.Obj) =>
               import vt._
+              println(s: String)
               Type.Cls(imm.Type.Prim.Info.all.find(_.name == (s: String)).get.boxName).obj
             },
             "getClassLoader0()L//ClassLoader;" x1 value1(vrt.Null),
@@ -267,6 +269,7 @@ trait DefaultNatives extends Natives{
           "Object"/(
             "clone()L//Object;" x1 {vt => (_: Any ) match{
               case (x: vrt.Obj) => x
+              case (x: vrt.Arr) => x
             }},
             "registerNatives()V" x noOp,
             "getClass()L//Class;" x1 { vt => (x: vrt.Val) =>
@@ -389,6 +392,7 @@ trait DefaultNatives extends Natives{
               }
               true: vrt.Val
             },
+            "ensureClassInitialized(Ljava/lang/Class;)V" x2 noOp2,
             "putOrderedObject(Ljava/lang/Object;JLjava/lang/Object;)V" x4 {
               vt => (unsafe: vrt.Obj, a: vrt.Val, i: vrt.Long, b: vrt.Val) => putObject(a, i, b)
             },
@@ -400,7 +404,7 @@ trait DefaultNatives extends Natives{
             },
             "getUnsafe()Lsun/misc/Unsafe;" x {vt =>
               import vt._
-              vrt.Obj("sun/misc/Unsafe")
+              vm.theUnsafe
             },
             "compareAndSwapObject(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z" x5 {
               vt => (unsafe: Obj, a: vrt.Val, i: vrt.Long, b: vrt.Val, c: vrt.Val) =>
@@ -413,6 +417,13 @@ trait DefaultNatives extends Natives{
             },
             "objectFieldOffset(Ljava/lang/reflect/Field;)J" x2 { vt => (unsafe: Any, x: Obj) =>
               x(Type.Cls("java/lang/reflect/Field"), "slot").asInstanceOf[vrt.Int].toLong
+            },
+            "staticFieldOffset(Ljava/lang/reflect/Field;)J" x2 { vt => (unsafe: Any, x: Obj) =>
+              x(Type.Cls("java/lang/reflect/Field"), "slot").asInstanceOf[vrt.Int].toLong
+            },
+            "staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;" x2 { vt => (unsafe: Any, x: Obj) =>
+              import vt._
+              vm.theUnsafe
             }
           ),
           "VM"/(
@@ -461,3 +472,4 @@ trait DefaultNatives extends Natives{
 
 
 }
+

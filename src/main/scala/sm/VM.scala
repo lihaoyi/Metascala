@@ -42,13 +42,10 @@ class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) 
       case _ => new vrt.Type(t)
     }
   }
-
+  lazy val theUnsafe = vrt.Obj("sun/misc/Unsafe")
   implicit object Classes extends Cache[imm.Type.Cls, sm.Cls]{
     def calc(t: imm.Type.Cls): sm.Cls = {
-      if (t.name.contains("sm/imm")) {
-        threads(0).dumpStack.foreach(println)
-        throw new Exception("WTF")
-      }
+
       new sm.Cls(imm.Cls.parse(natives.fileLoader(t.name.replace(".", "/") + ".class").get))
     }
     override def post(cls: sm.Cls) = {

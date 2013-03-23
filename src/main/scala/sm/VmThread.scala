@@ -43,23 +43,15 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
   def indent = "\t" * threadStack.filter(_.method.name != "Dummy").length
 
-  var i = 0
   def step() = {
-
-
     val topFrame = threadStack.head
 
     val node = topFrame.method.code.insns(topFrame.pc)
     vm.log(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack)
     vm.log(indent + "---------------------- " + topFrame.pc + "\t" + node )
     topFrame.pc += 1
-    i += 1
     try{
       node.op(this)
-/*      if (i % 1000 == 0) {
-        this.dumpStack.foreach(println)
-        println()
-      }*/
     }catch{ case e: Throwable =>
       this.dumpStack.foreach(x => vm log x)
       throw e

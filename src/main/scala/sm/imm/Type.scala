@@ -40,12 +40,12 @@ object Type{
   object Prim{
     def read(s: String) = Prim(s(0))
     class Info[T: ClassTag](val tpe: imm.Type.Prim,
-                                 val name: String,
-                                 val boxName: String,
-                                 defaultV: T,
-                                 val constructor: T => vrt.Val){
+                            val name: String,
+                            val boxName: String,
+                            defaultV: => T,
+                            val constructor: T => vrt.Val){
 
-      val default = constructor(defaultV)
+      lazy val default = constructor(defaultV)
       val realCls: Class[_] = implicitly[ClassTag[T]].getClass
       def newArray(n: Int): Array[T] = new Array[T](n)
       def newVirtArray(n: Int): vrt.Arr.Prim[T] = new vrt.Arr.Prim(new Array[T](n))(this)
@@ -61,7 +61,8 @@ object Type{
       implicit val FC = new Info[Float](   'F', "float",   "java/lang/Float",    0,      vrt.Float)
       implicit val JC = new Info[Long](    'J', "long",    "java/lang/Long",     0,      vrt.Long)
       implicit val DC = new Info[Double](  'D', "double",  "java/lang/Double",   0,      vrt.Double)
-      val all: Seq[Info[_]] = Seq(ZC, BC, CC, SC, IC, FC, JC, DC)
+      implicit val VC = new Info[Void](    'V', "void",    "java/lang/Void",     ???,    x => ???)
+      val all: Seq[Info[_]] = Seq(ZC, BC, CC, SC, IC, FC, JC, DC, VC)
       val charMap = all.map(x => x.tpe.char -> (x: Info[_])).toMap[Char, Info[_]]
 
       def apply[T: Info]() = implicitly[Info[T]].tpe

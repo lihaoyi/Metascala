@@ -43,6 +43,7 @@ object Misc {
 
   case class GetStatic(owner: Type.Cls, name: String, desc: Type) extends BaseOpCode(178, "getstatic"){
     def op = vt => {
+
       import vt.vm
       import vm._
       vt.push(owner.cls.apply(owner, name).toStackVal)
