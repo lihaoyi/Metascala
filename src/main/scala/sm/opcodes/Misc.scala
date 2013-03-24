@@ -179,12 +179,10 @@ object Misc {
       top match{
         case vrt.Null => ()
         case vrt.Unit => ()
-        case (top: vrt.Ref with vrt.StackVal) =>
-
-          assert(check(top.refType, desc)) //vt.throwException(vrt.Obj("java/lang/ClassCastException"))
+        case (top: vrt.Ref with vrt.StackVal) if !check(top.refType, desc) =>
+          vt.throwException(vrt.Obj("java/lang/ClassCastException"))
+        case _ => ()
       }
-
-
     }
   }
   def check(s: imm.Type.Entity, t: imm.Type.Entity)(implicit vm: VM): Boolean = {

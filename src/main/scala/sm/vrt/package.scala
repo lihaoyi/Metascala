@@ -34,8 +34,8 @@ package object vrt {
   implicit def virtUnit(i: Unit)        = vrt.Unit
 
   def virtualize(i: Any)(implicit vm: VM): vrt.Val = {
-    println("Virtualizing " + i)
     i match{
+      case null => vrt.Null
       case x: Boolean => x
       case x: Byte =>    x
       case x: Char =>    x
@@ -66,7 +66,7 @@ package object vrt {
             f.getName -> virtualize(f.get(x))
           }.toSeq: _*
         )
-      case null => vrt.Null
+
     }
   }
 
