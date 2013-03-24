@@ -29,9 +29,10 @@ object Cls {
   }
 
   def parse(input: Array[Byte]) = {
-    val cr = new ClassReader(input)
-    val classNode = new ClassNode()
-    cr.accept(classNode, 0)
+    val cr = new ClassReader(input);
+    val classNode = new ClassNode();
+
+    cr.accept(classNode, 0);
     read(classNode)
   }
 

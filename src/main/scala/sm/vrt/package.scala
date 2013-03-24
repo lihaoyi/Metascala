@@ -54,7 +54,7 @@ package object vrt {
       case x: Array[Double]  => new vrt.Arr.Prim(x.clone)
       case x: Array[Any] =>
         new vrt.Arr.Obj(
-          imm.Type.read(x.getClass.getComponentType.getName).cast[imm.Type.ObjEntity],
+          imm.Type.read(x.getClass.getComponentType.getName).cast[imm.Type.Ref],
           x.map(x => virtualize(x))
         )
       case x: Any =>
@@ -71,15 +71,16 @@ package object vrt {
   }
 
 
-  implicit def virtBooleanArray(i: Array[vrt.Boolean]) = new Arr.Prim(i.map(_.v))
-  implicit def virtByteArray(i: Array[vrt.Byte])       = new Arr.Prim(i.map(_.v))
-  implicit def virtCharArray(i: Array[vrt.Char])       = new Arr.Prim(i.map(_.v))
-  implicit def virtShortArray(i: Array[vrt.Short])     = new Arr.Prim(i.map(_.v))
-  implicit def virtIntArray(i: Array[vrt.Int])         = new Arr.Prim(i.map(_.v))
-  implicit def virtFloatArray(i: Array[vrt.Float])     = new Arr.Prim(i.map(_.v))
-  implicit def virtLongArray(i: Array[vrt.Long])       = new Arr.Prim(i.map(_.v))
-  implicit def virtDoubleArray(i: Array[vrt.Double])   = new Arr.Prim(i.map(_.v))
-  implicit def virtObjArray[T <% Val](i: Array[T])      = new Arr.Obj(imm.Type.Cls(i.getClass.getComponentType.getName).asInstanceOf[imm.Type.ObjEntity], i.map(x => x: Val))
+  implicit def virtBooleanArray(i: Array[scala.Boolean]) = new Arr.Prim(i)
+  implicit def virtByteArray(i: Array[scala.Byte])       = new Arr.Prim(i)
+  implicit def virtCharArray(i: Array[scala.Char])       = new Arr.Prim(i)
+  implicit def virtShortArray(i: Array[scala.Short])     = new Arr.Prim(i)
+  implicit def virtIntArray(i: Array[scala.Int])         = new Arr.Prim(i)
+  implicit def virtFloatArray(i: Array[scala.Float])     = new Arr.Prim(i)
+  implicit def virtLongArray(i: Array[scala.Long])       = new Arr.Prim(i)
+  implicit def virtDoubleArray(i: Array[scala.Double])   = new Arr.Prim(i)
+  implicit def virtObjArray[T <: vrt.Obj with vrt.Ref](i: Array[T])      = new Arr.Obj(imm.Type.Cls(i.getClass.getComponentType.getName).asInstanceOf[imm.Type.Ref], i.map(x => x: Val))
+
 
   def forName(s: String) =
     imm.Type.Prim.Info.all.find(_.name == s).map(_.realCls).getOrElse[Class[_]](Class.forName(s))
@@ -115,7 +116,7 @@ package object vrt {
         x.members(0).foreach{ case (k, v) =>
           val field = cls.getDeclaredField(k)
           field.setAccessible(true)
-          field.set(obj, unvirtualize(v))
+          field.set(obj, unvirtualize(v()))
         }
         obj
       case vrt.Null => null
@@ -143,7 +144,7 @@ package object vrt {
     )
   }
   implicit def unvirtString(i: vrt.Obj) = {
-    new String(i.members(0)("value").cast[vrt.Arr].backing.map{case x: Char => x})
+    new String(i.members(0)("value")().cast[vrt.Arr].backing.map{case x: Char => x})
   }
 }
 

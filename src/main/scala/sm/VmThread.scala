@@ -100,6 +100,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
                                       ex.magicMembers("stackData").asInstanceOf[mutable.Seq[FrameDump]])
     }
   }
+
   @tailrec final def prepInvoke(tpe: imm.Type.Entity,
                                 methodName: String,
                                 desc: imm.Type.Desc,
@@ -118,7 +119,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
             vm.log(
               m.code.insns.zipWithIndex.map{ case (b, i) =>
                 indent + i + "\t" + b
-              }.mkString
+              }.mkString("\n")
             )
 
             val array = new Array[vrt.StackVal](m.misc.maxLocals)

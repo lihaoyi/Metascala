@@ -130,7 +130,7 @@ trait DefaultNatives extends Natives{
         for {
           m <- o.members
           k <- m.keys.find(_.hashCode == i)
-        } yield m(k) = b
+        } yield m(k)() = b
       case r: vrt.Arr.Obj =>
         r.backing(i.toInt) = b.asInstanceOf[vrt.Val]
     }
@@ -328,7 +328,7 @@ trait DefaultNatives extends Natives{
             "fillInStackTrace(I)L//Throwable;" x2 { vt => (throwable: Obj, dummy: vrt.Int) =>
               import vt.vm;
               import vm._
-              throwable.members(0)("stackTrace") =
+              throwable(throwable.refType, "stackTrace") =
                 new vrt.Arr.Obj(
                   imm.Type.Cls("java/lang/StackTraceElement"),
                   vt.getStackTrace.map { f =>

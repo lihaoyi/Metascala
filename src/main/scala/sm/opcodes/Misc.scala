@@ -150,7 +150,7 @@ object Misc {
       vt.push(newArray)
     }
   }
-  case class ANewArray(desc: imm.Type.ObjEntity) extends BaseOpCode(189, "anewarray"){
+  case class ANewArray(desc: imm.Type.Ref) extends BaseOpCode(189, "anewarray"){
     def op = vt => {
       val vrt.Int(count) = vt.pop
       vt.push(vrt.Arr.Obj(desc, count))
@@ -170,28 +170,43 @@ object Misc {
 
     }
   }
-  case class CheckCast(desc: Type) extends BaseOpCode(192, "checkcast"){
+  case class CheckCast(desc: Type.Entity) extends BaseOpCode(192, "checkcast"){
     def op = vt => {
+      import vt._
+
+      val top = vt.pop
+      vt.push(top)
+      top match{
+        case vrt.Null => ()
+        case vrt.Unit => ()
+        case (top: vrt.Ref with vrt.StackVal) =>
+
+          assert(check(top.refType, desc)) //vt.throwException(vrt.Obj("java/lang/ClassCastException"))
+      }
+
 
     }
   }
+  def check(s: imm.Type.Entity, t: imm.Type.Entity)(implicit vm: VM): Boolean = {
+    (s, t) match{
 
-  case class InstanceOf(desc: Type) extends BaseOpCode(193, "instanceof"){
+      case (s: Type.Cls, t) => s.cls.checkIsInstanceOf(t)
+      case (s: Type.Arr, Type.Cls("java/lang/Object")) => true
+      case (s: Type.Arr, Type.Cls("java/lang/Cloneable")) => true
+      case (s: Type.Arr, Type.Cls("java/io/Serializable")) => true
+      case (Type.Arr(Type.Prim(a)), Type.Arr(Type.Prim(b))) => a == b
+      case (Type.Arr(sc: Type.Entity), Type.Arr(tc: Type.Entity)) => check(sc, tc)
+      case _ => false
+    }
+  }
+  case class InstanceOf(desc: Type.Entity) extends BaseOpCode(193, "instanceof"){
     def op = implicit vt => {
 
       import vt._
       import vm._
       val res = vt.pop match{
         case vrt.Null => 0
-        case x: vrt.Obj =>
-
-          if(x.cls.checkIsInstanceOf(desc)) 1 else 0
-        case x: vrt.Arr => desc match {
-          case imm.Type.Cls("java/lang/Object") => 1
-          case imm.Type.Arr(innerType) => 1
-          case _ => 0
-        }
-        case _ => 0
+        case obj: vrt.Ref => if (check(obj.refType, desc)) 1 else 0
       }
 
       vt.push(res)
@@ -218,9 +233,9 @@ object Misc {
             imm.Type.Prim.Info.charMap(c).newVirtArray(size)
 
           case (size :: Nil, Type.Arr(innerType)) =>
-            new vrt.Arr.Obj(innerType.cast[imm.Type.ObjEntity], Array.fill[vrt.Val](size)(innerType.default))
+            new vrt.Arr.Obj(innerType.cast[imm.Type.Ref], Array.fill[vrt.Val](size)(innerType.default))
           case (size :: tail, Type.Arr(innerType)) =>
-            new vrt.Arr.Obj(innerType.cast[imm.Type.ObjEntity], Array.fill[vrt.Val](size)(rec(tail, innerType)))
+            new vrt.Arr.Obj(innerType.cast[imm.Type.Ref], Array.fill[vrt.Val](size)(rec(tail, innerType)))
         }
       }
       val (dimValues, newStack) = vt.frame.stack.splitAt(dims)

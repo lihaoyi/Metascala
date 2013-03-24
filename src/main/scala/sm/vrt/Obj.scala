@@ -1,4 +1,5 @@
-package sm.vrt
+package sm
+package vrt
 
 import collection.mutable
 import sm._
@@ -10,14 +11,16 @@ import reflect.ClassTag
 import sm.imm.Type.Prim.Info
 
 
-
+trait Ref{
+  def refType: imm.Type.Ref
+}
 object Obj{
   import scala.Boolean
-  def initMembers(cls: imm.Cls, filter: Field => Boolean)(implicit vm: VM): List[Map[String, vrt.Val]] = {
+  def initMembers(cls: imm.Cls, filter: Field => Boolean)(implicit vm: VM): List[Seq[(String, Var)]] = {
     import vm._
     cls.fields.filter(filter).map{f =>
-      f.name -> f.desc.default
-    }.toMap :: cls.superType.toList.flatMap(x => initMembers(x.clsData, filter))
+      f.name -> new Var(f.desc.default)
+    } :: cls.superType.toList.flatMap(x => initMembers(x.clsData, filter))
   }
 
 
@@ -30,12 +33,12 @@ object Obj{
   }
 }
 class Obj(val cls: sm.Cls, initMembers: (String, vrt.Val)*)
-         (implicit vm: VM) extends StackVal with Cat1 {
+         (implicit vm: VM) extends StackVal with Cat1 with Ref{
   import vm._
 
   val members =
     Obj.initMembers(cls.clsData, x => (x.access & Access.Static) == 0)
-       .map(x => mutable.Map(x.toSeq:_*))
+       .map(x => Map(x: _*))
 
   var magicMembers = Map[String, Any]()
 
@@ -43,20 +46,23 @@ class Obj(val cls: sm.Cls, initMembers: (String, vrt.Val)*)
     this(imm.Type.Cls.read(cls.name), s) = v
   }
 
-  def apply(owner: imm.Type.Cls, name: String): vrt.Val = {
-    val start = cls.ancestry.indexWhere(_.tpe == owner)
-
-    members.drop(start)
-           .find(_.contains(name))
-           .get(name)
+  def refType = cls.clsData.tpe
+  lazy val staticCache = mutable.Map.empty[(imm.Type.Cls, String), Var]
+  def resolveStatic(owner: imm.Type.Cls, name: String) = {
+    staticCache.getOrElseUpdate((owner, name), {
+      val start = cls.ancestry.indexWhere(_.tpe == owner)
+      members.drop(start)
+        .collectFirst(Function.unlift(_.get(name)))
+        .get
+    })
 
   }
-  def update(owner: imm.Type.Cls, name: String, value: vrt.Val) = {
-    val start = cls.ancestry.indexWhere(_.tpe == owner)
+  def apply(owner: imm.Type.Cls, name: String): vrt.Val = {
+    resolveStatic(owner, name)()
+  }
 
-    members.drop(start)
-           .find(_.contains(name))
-           .get(name) = value
+  def update(owner: imm.Type.Cls, name: String, value: vrt.Val) = {
+    resolveStatic(owner, name)() = value
   }
 
   def withMagic(x: String, a: Any) = {
@@ -68,7 +74,7 @@ class Obj(val cls: sm.Cls, initMembers: (String, vrt.Val)*)
   }
 }
 
-trait Arr extends StackVal with Cat1{
+trait Arr extends StackVal with Cat1 with Ref{
   val tpe: imm.Type.Entity
   val backing: Array[_]
   def apply(index: Int): vrt.Val
@@ -77,12 +83,13 @@ object Arr{
   object Obj{
     class TypeX[T](val t: imm.Type)
 
-    def apply(t: imm.Type.ObjEntity, n: Int) = {
+    def apply(t: imm.Type.Ref, n: Int) = {
       new Arr.Obj(t, Array.fill[vrt.Val](n)(t.default))
     }
   }
-  class Obj(val tpe: imm.Type.ObjEntity, val backing: Array[vrt.Val]) extends Arr{
-    assert(tpe != imm.Type.Cls("byte"))
+  class Obj(val tpe: imm.Type.Ref, val backing: Array[vrt.Val]) extends Arr{
+
+    val refType = imm.Type.Arr(tpe)
     def apply(index: Int) = backing(index)
     override def toString = s"vrt.Arr.Obj(${tpe.getClass} ${tpe.unparse}: ${backing.fold("")(_+", "+_)})"
   }
@@ -98,6 +105,7 @@ object Arr{
   }
   class Prim[T: imm.Type.Prim.Info](val backing: Array[T]) extends Arr{
     lazy val tpe: imm.Type.Prim = imm.Type.Prim.Info()
+    val refType = imm.Type.Arr(tpe)
     def charClass = implicitly[imm.Type.Prim.Info[T]]
     def apply(index: Int) = charClass.constructor(backing(index))
     override def toString = s"vrt.PrimArr(${tpe.unparse}: ${backing.fold("")(_+", "+_)})"

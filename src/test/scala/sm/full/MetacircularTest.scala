@@ -13,7 +13,6 @@ object MetacircularTest{
     x.run("sqrtFinder", 5.0)
   }
 
-
   def fibonacci = {
     val x = new sm.Util.SingleClassVM("sm.features.methods.Statics", s => ())
     x.run("fibonacci", 12)
@@ -24,9 +23,9 @@ object MetacircularTest{
     x.run("innerClass")
   }
 
-  def bubbleSort = {
+  def bubbleSort: Array[Int] = {
     val x = new sm.Util.SingleClassVM("sm.features.arrays.ArrayStuff", s => ())
-    x.run("makeIntArray", 10)
+    x.run("bubbleSort", Array(6, 5, 2, 7, 3, 4, 9, 1, 8)).cast[Array[Int]]
   }
   def omg = {
     println("Hello Scala!")
@@ -58,7 +57,13 @@ class MetacircularTest extends FreeSpec with Util{
     tester.run("innerClass")
   }
   "bubbleSort" in {
-      tester.run("bubbleSort")
+    try{ tester.run("bubbleSort")
+    }catch {case e =>
+
+      buffer.lines.foreach(println)
+      tester.svm.threads(0).dumpStack.foreach(println)
+      throw e
+    }
   }
 }
 

@@ -73,6 +73,7 @@ class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) 
 
     res
   }
+
 }
 
 
@@ -88,9 +89,14 @@ case class UncaughtVmException(name: String,
 class BufferLog(n: Int) extends ((=> String) => Unit){
   val buffer = new Array[String](n)
   var index = 0
+  var count = 0
   def apply(s: =>String) = {
-    buffer(index) = s
-    index = (index + 1) % n
+
+    count += 1
+    if (count > 10000000){
+      buffer(index) = s
+      index = (index + 1) % n
+    }
   }
   def lines = buffer.drop(index) ++ buffer.take(index)
 }

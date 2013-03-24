@@ -4,34 +4,44 @@ import collection.mutable
 
 
 import imm.Type
-class Cls(val clsData: imm.Cls,
-          val statics: mutable.Map[String, vrt.Val] = mutable.Map.empty)
-         (implicit vm: VM){
+class Var(var x: vrt.Val){
+  def apply() = x
+  def update(y: vrt.Val){
+    x = y
+  }
+}
+
+class Cls(val clsData: imm.Cls)(implicit vm: VM){
 
   import vm._
 
   clsData.superType.map(vm.Classes)
   lazy val obj = new vrt.Cls(Type.Cls(name))
-
-  clsData.fields.map{f =>
-    statics(f.name) = f.desc.default
-  }
+  val statics =
+    clsData.fields.map{f =>
+      f.name -> new Var(f.desc.default)
+    }.toMap
 
   def method(name: String, desc: Type.Desc): Option[imm.Method] = {
     ancestry.flatMap(_.methods)
             .find(m => m.name == name && m.desc == desc)
   }
 
+  val staticCache = mutable.Map.empty[(Type.Cls, String), Var]
+  def resolveStatic(owner: Type.Cls, name: String) = {
+    staticCache.getOrElseUpdate((owner, name),
+      ancestry.dropWhile(_.tpe != owner)
+        .find(_.fields.exists(_.name == name))
+        .get.tpe.statics(name)
+    )
+
+  }
   def apply(owner: Type.Cls, name: String) = {
-    ancestry.dropWhile(_.tpe != owner)
-            .find(_.fields.exists(_.name == name))
-            .get.tpe.statics(name)
+    resolveStatic(owner: Type.Cls, name: String)()
   }
 
   def update(owner: Type.Cls, name: String, value: vrt.Val) = {
-    ancestry.dropWhile(_.tpe != owner)
-            .find(_.fields.exists(_.name == name))
-            .get.tpe.statics(name) = value
+    resolveStatic(owner: Type.Cls, name: String)() = value
   }
 
   def name = clsData.tpe.name
