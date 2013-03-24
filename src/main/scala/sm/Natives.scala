@@ -175,7 +175,6 @@ trait DefaultNatives extends Natives{
             },
             "getPrimitiveClass(L//String;)L//Class;" x1 {vt => (s: vrt.Obj) =>
               import vt._
-              println(s: String)
               Type.Cls(imm.Type.Prim.Info.all.find(_.name == (s: String)).get.boxName).obj
             },
             "getClassLoader0()L//ClassLoader;" x1 value1(vrt.Null),

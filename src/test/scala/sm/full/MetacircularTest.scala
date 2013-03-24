@@ -23,11 +23,19 @@ object MetacircularTest{
     x.run("innerClass")
   }
 
-  def bubbleSort: Array[Int] = {
+  def bubbleSort = {
     val x = new sm.Util.SingleClassVM("sm.features.arrays.ArrayStuff", s => ())
     x.run("bubbleSort", Array(6, 5, 2, 7, 3, 4, 9, 1, 8)).cast[Array[Int]]
   }
-  def omg = {
+  def getAndSet = {
+    val x = new sm.Util.SingleClassVM("sm.features.arrays.MultiDimArrays", s => ())
+    x.run("getAndSet")
+  }
+  def arrayIndexOutOfBounds = {
+    val x = new sm.Util.SingleClassVM("sm.features.exceptions.Exceptions", s => ())
+    x.run("arrayIndexOutOfBounds", -1)
+  }
+  def helloWorld = {
     println("Hello Scala!")
   }
 
@@ -38,14 +46,14 @@ class MetacircularTest extends FreeSpec with Util{
 
   val buffer = new BufferLog(4000)
   var count = 0
+
   val tester = new Tester("sm.full.MetacircularTest")
   "sqrtFinder" in {
     tester.run("sqrtFinder")
   }
   "helloWorld" in {
-    tester.run("omg")
+    tester.run("helloWorld")
   }
-
 
   "fibonacci" in {
     tester.run("fibonacci")
@@ -57,13 +65,17 @@ class MetacircularTest extends FreeSpec with Util{
     tester.run("innerClass")
   }
   "bubbleSort" in {
-    try{ tester.run("bubbleSort")
-    }catch {case e =>
+    tester.run("bubbleSort")
 
-      buffer.lines.foreach(println)
-      tester.svm.threads(0).dumpStack.foreach(println)
-      throw e
-    }
+  }
+  "getAndSet" in {
+    tester.run("getAndSet")
+    println(tester.svm.threads(0).getI)
+  }
+
+  "arrayIndexOutOfBounds" in {
+    tester.run("arrayIndexOutOfBounds")
+
   }
 }
 

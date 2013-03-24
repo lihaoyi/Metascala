@@ -165,9 +165,7 @@ object Misc {
 
   case object AThrow extends BaseOpCode(191, "athrow"){
     def op = vt => {
-
       vt.throwException(vt.pop.asInstanceOf[vrt.Obj])
-
     }
   }
   case class CheckCast(desc: Type.Entity) extends BaseOpCode(192, "checkcast"){
@@ -180,7 +178,11 @@ object Misc {
         case vrt.Null => ()
         case vrt.Unit => ()
         case (top: vrt.Ref with vrt.StackVal) if !check(top.refType, desc) =>
-          vt.throwException(vrt.Obj("java/lang/ClassCastException"))
+          vt.throwException(
+            vrt.Obj("java/lang/ClassCastException",
+              "detailMessage" -> s"${top.refType.unparse} cannot be converted to ${desc.unparse}"
+            )
+          )
         case _ => ()
       }
     }

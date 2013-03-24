@@ -2,7 +2,7 @@ package sm.imm
 
 import org.objectweb.asm.tree._
 import org.objectweb.asm.Label
-
+import collection.mutable
 
 object Method {
   def read(mn: MethodNode) = {
@@ -73,26 +73,28 @@ object Code{
   def read(nodesList: InsnList)(implicit labelMap: Map[Label, Int]) = {
 
     val nodes = nodesList.toArray
-    var instructions: List[OpCode] = Nil
-    var allAttached: List[List[Attached]] = Nil
+    val instructions = mutable.ArrayBuffer.empty[OpCode]
+    val allAttached = mutable.ArrayBuffer.empty[List[Attached]]
     var attached: List[Attached] = Nil
 
+    val f = OpCode.read.andThen{o =>
+      instructions += o
+      allAttached += attached
+
+      attached = Nil
+    } orElse Attached.read.andThen{ a =>
+      attached ::= a
+    }
     for(node <- nodes){
-      OpCode.read.andThen{o =>
-        instructions ::= o
-        allAttached ::= attached
-        attached = Nil
-      } orElse Attached.read.andThen{ a =>
-        attached ::= a
-      } lift(node)
+      f.lift(node)
     }
 
-    Code(instructions.reverse, allAttached.reverse)
+    Code(instructions, allAttached)
   }
 }
 
-case class Code(insns: List[OpCode] = Nil,
-                attachments: List[List[Attached]] = Nil)
+case class Code(insns: Seq[OpCode] = Nil,
+                attachments: Seq[Seq[Attached]] = Nil)
 
 trait Attached
 object Attached{
