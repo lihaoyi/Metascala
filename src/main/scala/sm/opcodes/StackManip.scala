@@ -10,14 +10,14 @@ import java.util
 import vrt.{Cat1, Cat2}
 
 object StackManip {
-  class PureStackOpCode(val id: Byte, val insnName: String)(transform: PartialFunction[mutable.Stack[vrt.StackVal], vrt.StackVal]) extends OpCode{
+  class PureStackOpCode(val id: Byte, val insnName: String)(transform: PartialFunction[mutable.ArrayStack[vrt.StackVal], vrt.StackVal]) extends OpCode{
     def op = vt => vt.push(transform(vt.frame.stack))
   }
   object S2{
-    def unapply(x: mutable.Stack[vrt.StackVal]) = Some((x.pop, x.pop))
+    def unapply(x: mutable.ArrayStack[vrt.StackVal]) = Some((x.pop, x.pop))
   }
   object S1{
-    def unapply(x: mutable.Stack[vrt.StackVal]) = Some((x.pop))
+    def unapply(x: mutable.ArrayStack[vrt.StackVal]) = Some((x.pop))
   }
 
   class ManipOpCode(val id: Byte, val insnName: String)(transform: List[vrt.StackVal] => List[vrt.StackVal]) extends OpCode{

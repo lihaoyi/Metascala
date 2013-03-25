@@ -193,6 +193,6 @@ class Frame(var pc: Int = 0,
             val runningClass: sm.Cls,
             val method: Method,
             val locals: mutable.Seq[vrt.StackVal] = mutable.Seq.empty,
-            var stack: mutable.Stack[vrt.StackVal] = mutable.Stack.empty[vrt.StackVal])
+            var stack: mutable.ArrayStack[vrt.StackVal] = mutable.ArrayStack.empty[vrt.StackVal])
 
 
