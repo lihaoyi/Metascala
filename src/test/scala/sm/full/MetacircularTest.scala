@@ -31,9 +31,9 @@ object MetacircularTest{
     val x = new sm.Util.SingleClassVM("sm.features.arrays.MultiDimArrays", s => ())
     x.run("getAndSet")
   }
-  def arrayIndexOutOfBounds = {
+  def throwCatch = {
     val x = new sm.Util.SingleClassVM("sm.features.exceptions.Exceptions", s => ())
-    x.run("arrayIndexOutOfBounds", -1)
+    x.run("throwCatch")
   }
   def helloWorld = {
     println("Hello Scala!")
@@ -73,9 +73,9 @@ class MetacircularTest extends FreeSpec with Util{
     println(tester.svm.threads(0).getI)
   }
 
-  "arrayIndexOutOfBounds" in {
-    tester.run("arrayIndexOutOfBounds")
-
+  "throwCatch" in {
+    tester.run("throwCatch")
+    println(tester.svm.threads(0).getI)
   }
 }
 
