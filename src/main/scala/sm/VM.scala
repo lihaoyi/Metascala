@@ -45,9 +45,9 @@ class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) 
   lazy val theUnsafe = vrt.Obj("sun/misc/Unsafe")
   implicit object Classes extends Cache[imm.Type.Cls, sm.Cls]{
     def calc(t: imm.Type.Cls): sm.Cls = {
-
       new sm.Cls(imm.Cls.parse(natives.fileLoader(t.name.replace(".", "/") + ".class").get))
     }
+    var startTime = System.currentTimeMillis()
     override def post(cls: sm.Cls) = {
       cls.clsData
          .methods

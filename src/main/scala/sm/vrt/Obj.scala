@@ -52,8 +52,8 @@ class Obj(val cls: sm.Cls, initMembers: (String, vrt.Val)*)
     staticCache.getOrElseUpdate((owner, name), {
       val start = cls.ancestry.indexWhere(_.tpe == owner)
       members.drop(start)
-        .collectFirst(Function.unlift(_.get(name)))
-        .get
+        .collect(Function.unlift(_.get(name)))
+        .head
     })
 
   }

@@ -28,15 +28,15 @@ public class Exceptions {
 
                     }
                 }catch(ArrayIndexOutOfBoundsException e){
-                    return 0;
+                    return 1;
 
                 }
             }catch(NullPointerException e){
-                return 0;
+                return 2;
 
             }
         }catch(Exception e){
-            return 0;
+            return 3;
 
         }
     }

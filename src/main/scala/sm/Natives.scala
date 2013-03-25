@@ -364,11 +364,11 @@ trait DefaultNatives extends Natives{
         "Predef$"/(
           "println(Ljava/lang/String;)V" x2 {
             vt => (x: vrt.Obj, y: vrt.Obj) =>
-              vt.vm.log("VIRTUAL " + vrt.unvirtString(y))
+              println("VIRTUAL " + vrt.unvirtString(y))
           },
           "println(Ljava/lang/Object;)V" x2 {
             vt => (x: vrt.Obj, y: vrt.Obj) =>
-              vt.vm.log("VIRTUAL " + vrt.unvirtString(y))
+              println("VIRTUAL " + vrt.unvirtString(y))
           }
 
         )

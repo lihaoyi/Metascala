@@ -20,15 +20,11 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
   def getFramesDump = {
 
     threadStack.map{ f =>
-
       FrameDump(
         f.runningClass.name,
         f.method.name,
         f.runningClass.clsData.misc.sourceFile.getOrElse(""),
-        f.method.code.attachments.take(f.pc).flatten.collect{ case LineNumber(i, _) => i }.lastOption.getOrElse(0),
-        f.method.code.insns.take(f.pc)
-                           .zipWithIndex
-                           .map(t => t._2 + "\t" + t._1)
+        f.method.code.attachments.take(f.pc).flatten.collect{ case LineNumber(i, _) => i }.lastOption.getOrElse(0)
       )
     }
   }
@@ -38,9 +34,9 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
         f.runningClass.name,
         if (f.method.code != Code()) f.method.name + f.method.desc.unparse + " " + f.method.code.insns(f.pc) else "",
         f.runningClass.clsData.misc.sourceFile.getOrElse("[no source]"),
-        f.method.code.attachments.flatten.reverse.collectFirst{
+        f.method.code.attachments.flatten.reverse.collect{
           case LineNumber(line, startPc) if startPc < f.pc => line
-        }.getOrElse(-1)
+        }.headOption.getOrElse(-1)
       )
     }.toList
 
@@ -73,27 +69,32 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     )
 
   @tailrec final def throwException(ex: vrt.Obj, print: Boolean = true): Unit = {
-
-    ex.magicMembers.get("stackData").getOrElse(
+    println("throwException " + ex.cls.name)
+    getFramesDump.map(f => println(f.clsName + "/" + f.methodName))
+    if(!ex.magicMembers.contains("stackData")){
       ex.withMagic("stackData", getFramesDump)
-    )
+    }
+
     threadStack.headOption match{
       case Some(frame)=>
+        println("A")
         val handler =
           frame.method.misc.tryCatchBlocks
-            .filter(x => x.start <= frame.pc && x.end >= frame.pc)
-            .filter(x => !x.blockType.isDefined || ex.cls.checkIsInstanceOf(x.blockType.get))
-            .headOption
+               .filter{x => x.start <= frame.pc && x.end >= frame.pc && !x.blockType.isDefined || ex.cls.checkIsInstanceOf(x.blockType.get)}
+               .headOption
 
         handler match{
           case None =>
+            println("AA")
             threadStack.pop()
             throwException(ex, false)
           case Some(TryCatchBlock(start, end, handler, blockType)) =>
+            println("AB")
             frame.pc = handler
             frame.stack.push(ex)
         }
       case None =>
+        println("B")
         throw new UncaughtVmException(ex.cls.clsData.tpe.unparse,
                                       ex(imm.Type.Cls("java.lang.Throwable"), "detailMessage").cast[vrt.Obj],
                                       Nil,
@@ -185,8 +186,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 case class FrameDump(clsName: String,
                      methodName: String,
                      fileName: String,
-                     lineNumber: Int,
-                     bytecodes: Seq[String])
+                     lineNumber: Int)
 
 
 class Frame(var pc: Int = 0,
