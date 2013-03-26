@@ -17,9 +17,9 @@ trait Natives{
   val fileLoader: String => Option[Array[Byte]]
 }
 object NativeUtils{
-  def value(x: vrt.Val) = (vm: VmThread) => x
-  def value1(x: vrt.Val) = (vm: VmThread) => (a: vrt.Val) => x
-  def value2(x: vrt.Val) = (vm: VmThread) => (a: vrt.Val, b: vrt.Val) => x
+  def value(x: => vrt.Val) = (vm: VmThread) => x
+  def value1(x: => vrt.Val) = (vm: VmThread) => (a: vrt.Val) => x
+  def value2(x: => vrt.Val) = (vm: VmThread) => (a: vrt.Val, b: vrt.Val) => x
   val noOp = value(vrt.Unit)
   val noOp1 = value1(vrt.Unit)
   val noOp2 = value2(vrt.Unit)

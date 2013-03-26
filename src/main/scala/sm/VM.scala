@@ -49,6 +49,8 @@ class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) 
     }
     var startTime = System.currentTimeMillis()
     override def post(cls: sm.Cls) = {
+      println("Initializing " + cls.clsData.tpe.unparse)
+      println("" + ((System.currentTimeMillis() - startTime) / 1000))
       cls.clsData
          .methods
          .find(m => m.name == "<clinit>" && m.desc == imm.Type.Desc.read("()V"))

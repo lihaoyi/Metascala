@@ -35,6 +35,15 @@ object MetacircularTest{
     val x = new sm.Util.SingleClassVM("sm.features.exceptions.Exceptions", s => ())
     x.run("multiCatch", 2)
   }
+
+  def doubleMetaOne = {
+    val x = new sm.Util.SingleClassVM("sm.full.MetacircularTest", s => ())
+    x.run("doubleMetaTwo")
+  }
+  def doubleMetaTwo = {
+    val x = new sm.Util.SingleClassVM("sm.full.MetacircularTest", s => ())
+    x.run("helloWorld")
+  }
   def helloWorld = {
     println("Hello Scala!")
   }
@@ -75,6 +84,10 @@ class MetacircularTest extends FreeSpec with Util{
 
   "multiCatch" in {
     tester.run("multiCatch")
+    println(tester.svm.threads(0).getI)
+  }
+  "doubleMetaOne" in {
+    tester.run("doubleMetaOne")
     println(tester.svm.threads(0).getI)
   }
 }

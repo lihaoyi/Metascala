@@ -49,6 +49,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     vm.log(indent + "---------------------- " + topFrame.pc + "\t" + node )
     topFrame.pc += 1
     i += 1
+    //if(i % 10000 == 0) println("i: " + i)
     try{
       node.op(this)
     }catch{ case e: Throwable =>
