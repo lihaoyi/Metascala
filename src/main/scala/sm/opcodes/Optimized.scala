@@ -11,5 +11,10 @@ object Optimized {
     }
   }
 
-
+  case class InvokeStatic(thunk: Seq[vrt.StackVal] => Unit, argCount: Int) extends OpCode{
+    def op = vt => {
+      val args = for(i <- 0 until argCount) yield vt.frame.stack.pop()
+      thunk(args.toSeq.reverse)
+    }
+  }
 }

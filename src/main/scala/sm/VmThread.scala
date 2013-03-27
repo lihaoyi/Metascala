@@ -47,14 +47,15 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     val topFrame = threadStack.head
     val insnsList = topFrame.runningClass.insns(topFrame.methodIndex)
     val node = insnsList(topFrame.pc)
-    insnsList(topFrame.pc) = node.opt(vm)
+    val optimized = node.opt(vm)
+    insnsList(topFrame.pc) = optimized
     vm.log(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack)
     vm.log(indent + "---------------------- " + topFrame.pc + "\t" + node )
     topFrame.pc += 1
     i += 1
     //if(i % 10000 == 0) println("i: " + i)
     try{
-      node.op(this)
+      optimized.op(this)
 
     }catch{ case e: Throwable =>
       this.dumpStack.foreach(x => vm log x)
@@ -169,14 +170,13 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     }
   }
   final def prepInvoke(tpe: imm.Type.Entity,
-                                methodName: String,
-                                desc: imm.Type.Desc,
-                                args: Seq[vrt.StackVal])
-                                : Unit = {
-
+                       methodName: String,
+                       desc: imm.Type.Desc,
+                       args: Seq[vrt.StackVal])
+                       : Unit = {
     resolve(tpe, methodName, desc)(args)
-
   }
+
   def invoke(cls: imm.Type.Cls, methodName: String, desc: imm.Type.Desc, args: Seq[vrt.Val]): vrt.Val = {
     val dummyFrame = new Frame(
       runningClass = cls,

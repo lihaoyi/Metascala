@@ -42,7 +42,6 @@ object Misc {
 
   case class GetStatic(owner: Type.Cls, name: String, desc: Type) extends OpCode{
     def op = vt => {
-
       import vt.vm
       import vm._
       vt.push(owner.cls.apply(owner, name).toStackVal)
@@ -117,10 +116,14 @@ object Misc {
       vt.frame.stack = rest
       vt.prepInvoke(owner, name, desc, args.reverse)
     }
+    override def opt(vm: VM) = {
+      Optimized.InvokeStatic(vm.threads(0).resolve(owner, name, desc), desc.args.length)
+    }
   }
 
   case class InvokeInterface(owner: Type.Cls, name: String, desc: Type.Desc) extends OpCode{
     def op = InvokeVirtual(owner, name, desc).op
+    override def opt(vm: VM) = InvokeVirtual(owner, name, desc).opt(vm)
   }
 
   case class InvokeDynamic(name: String, desc: String, bsm: Object, args: Object) extends OpCode{ def op = ??? }
@@ -130,9 +133,9 @@ object Misc {
       import vt.vm._
       vt.push(new vrt.Obj(desc)(vt.vm))
     }
-    override def opt(vm: VM) = vm.Classes.clsIndex.indexWhere(_.clsData.tpe == desc) match {
-      case -1 => this
-      case i => Optimized.New(i)
+    override def opt(vm: VM) = {
+      vm.Classes(desc)
+      Optimized.New(vm.Classes.clsIndex.indexWhere(_.clsData.tpe == desc))
     }
   }
   case class NewArray(typeCode: Int) extends OpCode{
