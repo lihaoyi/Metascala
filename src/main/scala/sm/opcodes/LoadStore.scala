@@ -1,9 +1,8 @@
 package sm
-package imm
 package opcodes
 
 import org.objectweb.asm
-import sm.imm.{Type, OpCode}
+import sm.imm.{Type}
 
 import collection.mutable
 import sm.vrt

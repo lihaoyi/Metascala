@@ -1,5 +1,4 @@
 package sm
-package imm
 package opcodes
 
 import sm.imm.Type
@@ -112,7 +111,6 @@ object Misc {
     }
   }
   case class InvokeStatic(owner: Type.Cls, name: String, desc: Type.Desc) extends OpCode{
-
     def op = vt => {
       val argCount = desc.args.length
       val (args, rest) = vt.frame.stack.splitAt(argCount)
@@ -120,6 +118,7 @@ object Misc {
       vt.prepInvoke(owner, name, desc, args.reverse)
     }
   }
+
   case class InvokeInterface(owner: Type.Cls, name: String, desc: Type.Desc) extends OpCode{
     def op = InvokeVirtual(owner, name, desc).op
   }
@@ -127,10 +126,13 @@ object Misc {
   case class InvokeDynamic(name: String, desc: String, bsm: Object, args: Object) extends OpCode{ def op = ??? }
 
   case class New(desc: Type.Cls) extends OpCode{
-    def op = implicit vt => desc match {
-      case _ =>
-        import vt.vm._
-        vt.push(new vrt.Obj(desc)(vt.vm))
+    def op = implicit vt => {
+      import vt.vm._
+      vt.push(new vrt.Obj(desc)(vt.vm))
+    }
+    override def opt(vm: VM) = vm.Classes.clsIndex.indexWhere(_.clsData.tpe == desc) match {
+      case -1 => this
+      case i => Optimized.New(i)
     }
   }
   case class NewArray(typeCode: Int) extends OpCode{

@@ -1,6 +1,7 @@
 package sm.imm
 
 import org.scalatest.FreeSpec
+import sm.opcodes.OpCode
 
 class OpCodesTest extends FreeSpec{
 

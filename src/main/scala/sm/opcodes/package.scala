@@ -1,12 +1,13 @@
-package sm.imm
+package sm
 
+import opcodes.OpCode
 import sm.VmThread
 import sm.vrt
 
 /**
  * `opcodes` contains the stack manipulating behavior of each individual
  * opcode. Each opcode is a case class or case object extending the trait
- * [[sm.imm.OpCode]]. These are split into three separate files to help keep
+ * [[OpCode]]. These are split into three separate files to help keep
  * compile times down.
  *
  * A large number of the opcodes are unused (they extend [[sm.imm.opcodes.UnusedOpCode]])

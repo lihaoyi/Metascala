@@ -1,5 +1,4 @@
 package sm
-package imm
 package opcodes
 import scala.collection.mutable
 

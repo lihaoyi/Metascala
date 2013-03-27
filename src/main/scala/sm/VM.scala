@@ -45,11 +45,13 @@ class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) 
   }
   lazy val theUnsafe = vrt.Obj("sun/misc/Unsafe")
   implicit object Classes extends Cache[imm.Type.Cls, rt.Cls]{
+    val clsIndex = mutable.ArrayBuffer.empty[rt.Cls]
     def calc(t: imm.Type.Cls): rt.Cls = {
       new rt.Cls(imm.Cls.parse(natives.fileLoader(t.name.replace(".", "/") + ".class").get))
     }
     var startTime = System.currentTimeMillis()
     override def post(cls: rt.Cls) = {
+      clsIndex.append(cls)
       println("Initializing " + cls.clsData.tpe.unparse)
       println("" + ((System.currentTimeMillis() - startTime) / 1000))
       cls.clsData

@@ -3,6 +3,7 @@ package sm.imm
 import org.objectweb.asm.tree._
 import org.objectweb.asm.Label
 import collection.mutable
+import sm.opcodes.OpCode
 
 object Method {
   def read(mn: MethodNode) = {

@@ -45,7 +45,9 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
   final def step() = {
     val topFrame = threadStack.head
-    val node = topFrame.method.code.insns(topFrame.pc)
+    val insnsList = topFrame.runningClass.insns(topFrame.methodIndex)
+    val node = insnsList(topFrame.pc)
+    insnsList(topFrame.pc) = node.opt(vm)
     vm.log(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack)
     vm.log(indent + "---------------------- " + topFrame.pc + "\t" + node )
     topFrame.pc += 1
@@ -53,6 +55,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     //if(i % 10000 == 0) println("i: " + i)
     try{
       node.op(this)
+
     }catch{ case e: Throwable =>
       this.dumpStack.foreach(x => vm log x)
       throw e
@@ -135,6 +138,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
             val startFrame = new Frame(
               runningClass = tpe.cls,
               method = m,
+              methodIndex = tpe.cls.clsData.methods.indexOf(m),
               locals = array
             )
 
@@ -177,6 +181,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     val dummyFrame = new Frame(
       runningClass = cls,
       method = Method(0, "Dummy", imm.Type.Desc.read("()V")),
+      methodIndex = 0,
       locals = mutable.Seq.empty
     )
 
@@ -200,6 +205,7 @@ case class FrameDump(clsName: String,
 class Frame(var pc: Int = 0,
             val runningClass: Cls,
             val method: Method,
+            val methodIndex: Int,
             val locals: mutable.Seq[vrt.StackVal] = mutable.Seq.empty,
             var stack: mutable.ArrayStack[vrt.StackVal] = mutable.ArrayStack.empty[vrt.StackVal])
 

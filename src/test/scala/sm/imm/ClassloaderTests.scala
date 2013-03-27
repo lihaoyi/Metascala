@@ -1,4 +1,5 @@
-package sm.imm
+package sm
+package imm
 
 import org.scalatest.FreeSpec
 
