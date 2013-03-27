@@ -10,41 +10,39 @@ import sm.vrt
 
 object LoadStore {
   case object Nop extends OpCode{
-    def insnName = "nop"
-    def id = 0
     def op = _ => ()
   }
 
-  class PushOpCode(val id: Byte, val insnName: String, value: vrt.StackVal) extends OpCode{
+  class PushOpCode(value: vrt.StackVal) extends OpCode{
     def op = _.frame.stack.push(value)
   }
 
-  case object AConstNull extends PushOpCode(1, "aconst_null", vrt.Null)
-  case object IConstNull extends PushOpCode(2, "iconst_m1", -1)
+  case object AConstNull extends PushOpCode(vrt.Null)
+  case object IConstNull extends PushOpCode(-1)
 
-  case object IConst0 extends PushOpCode(3, "iconst_0", 0)
-  case object IConst1 extends PushOpCode(4, "iconst_1", 1)
-  case object IConst2 extends PushOpCode(5, "iconst_2", 2)
-  case object IConst3 extends PushOpCode(6, "iconst_3", 3)
-  case object IConst4 extends PushOpCode(7, "iconst_4", 4)
-  case object IConst5 extends PushOpCode(8, "iconst_5", 5)
+  case object IConst0 extends PushOpCode(0)
+  case object IConst1 extends PushOpCode(1)
+  case object IConst2 extends PushOpCode(2)
+  case object IConst3 extends PushOpCode(3)
+  case object IConst4 extends PushOpCode(4)
+  case object IConst5 extends PushOpCode(5)
 
-  case object LConst0 extends PushOpCode(9, "lconst_0", 0L)
-  case object LConst1 extends PushOpCode(10, "lconst_1", 1L)
+  case object LConst0 extends PushOpCode(0L)
+  case object LConst1 extends PushOpCode(1L)
 
-  case object FConst0 extends PushOpCode(11, "fconst_0", 0f)
-  case object FConst1 extends PushOpCode(12, "fconst_1", 1f)
-  case object FConst2 extends PushOpCode(13, "fconst_2", 2f)
+  case object FConst0 extends PushOpCode(0f)
+  case object FConst1 extends PushOpCode(1f)
+  case object FConst2 extends PushOpCode(2f)
 
-  case object DConst0 extends PushOpCode(14, "dconst_0", 0d)
-  case object DConst1 extends PushOpCode(15, "dconst_1", 1d)
+  case object DConst0 extends PushOpCode(0d)
+  case object DConst1 extends PushOpCode(1d)
 
-  class PushValOpCode(val id: Byte, val insnName: String, value: vrt.Int) extends OpCode{
+  class PushValOpCode(value: vrt.Int) extends OpCode{
     def op = _.frame.stack.push(value)
   }
 
-  case class BiPush(value: Int) extends PushValOpCode(16, "bipush", value)
-  case class SiPush(value: Int) extends PushValOpCode(17,"sipush", value)
+  case class BiPush(value: Int) extends PushValOpCode(value)
+  case class SiPush(value: Int) extends PushValOpCode(value)
 
 
   def anyValToStackVal(x: Any): vrt.StackVal = x match {
@@ -57,7 +55,7 @@ object LoadStore {
     case x: scala.Double => x
   }
 
-  case class Ldc(const: Any) extends BaseOpCode(18, "ldc"){
+  case class Ldc(const: Any) extends OpCode{
     def op = implicit vt => {
       import vt.vm
       import vm._
@@ -81,16 +79,16 @@ object LoadStore {
   val Ldc2W = UnusedOpCode(20, "ldc2_w")
   //===============================================================
 
-  abstract class PushLocalIndexed(val id: Byte, val insnName: String) extends OpCode{
+  abstract class PushLocalIndexed() extends OpCode{
     def op = (ctx => ctx.frame.stack.push(ctx.frame.locals(index)))
     def index: Int
   }
 
-  case class ILoad(index: Int) extends PushLocalIndexed(21, "iLoad")
-  case class LLoad(index: Int) extends PushLocalIndexed(22, "lLoad")
-  case class FLoad(index: Int) extends PushLocalIndexed(23, "fLoad")
-  case class DLoad(index: Int) extends PushLocalIndexed(24, "dLoad")
-  case class ALoad(index: Int) extends PushLocalIndexed(25, "aLoad")
+  case class ILoad(index: Int) extends PushLocalIndexed()
+  case class LLoad(index: Int) extends PushLocalIndexed()
+  case class FLoad(index: Int) extends PushLocalIndexed()
+  case class DLoad(index: Int) extends PushLocalIndexed()
+  case class ALoad(index: Int) extends PushLocalIndexed()
 
 
 
@@ -123,7 +121,7 @@ object LoadStore {
   //===============================================================
 
 
-  class PushFromArray(val id: Byte, val insnName: String) extends OpCode{
+  class PushFromArray() extends OpCode{
     def op = implicit vt => (vt.pop, vt.pop) match {
       case (vrt.Int(index), arr: vrt.Arr)=>
         import vt._
@@ -139,25 +137,25 @@ object LoadStore {
     }
   }
 
-  case object IALoad extends PushFromArray(46, "iaLoad")
-  case object LALoad extends PushFromArray(47, "laLoad")
-  case object FALoad extends PushFromArray(48, "faLoad")
-  case object DALoad extends PushFromArray(49, "daLoad")
-  case object AALoad extends PushFromArray(50, "aaLoad")
-  case object BALoad extends PushFromArray(51, "baLoad")
-  case object CALoad extends PushFromArray(52, "caLoad")
-  case object SALoad extends PushFromArray(53, "saLoad")
+  case object IALoad extends PushFromArray()
+  case object LALoad extends PushFromArray()
+  case object FALoad extends PushFromArray()
+  case object DALoad extends PushFromArray()
+  case object AALoad extends PushFromArray()
+  case object BALoad extends PushFromArray()
+  case object CALoad extends PushFromArray()
+  case object SALoad extends PushFromArray()
 
-  abstract class StoreLocal(val id: Byte, val insnName: String) extends OpCode{
+  abstract class StoreLocal() extends OpCode{
     def varId: Int
     def op = vt => vt.frame.locals(varId) = vt.pop
 
   }
-  case class IStore(varId: Int) extends StoreLocal(54, "istore")
-  case class LStore(varId: Int) extends StoreLocal(55, "lstore")
-  case class FStore(varId: Int) extends StoreLocal(56, "fstore")
-  case class DStore(varId: Int) extends StoreLocal(57, "dstore")
-  case class AStore(varId: Int) extends StoreLocal(58, "astore")
+  case class IStore(varId: Int) extends StoreLocal()
+  case class LStore(varId: Int) extends StoreLocal()
+  case class FStore(varId: Int) extends StoreLocal()
+  case class DStore(varId: Int) extends StoreLocal()
+  case class AStore(varId: Int) extends StoreLocal()
 
   // Not used, because ASM converts these to raw XStore(index: Int)s
   //===============================================================
@@ -187,21 +185,21 @@ object LoadStore {
   val AStore3 = UnusedOpCode(78, "astore_3")
   //===============================================================
 
-  class StoreArray(val id: Byte, val insnName: String)(store: PartialFunction[(vrt.StackVal, Int, Array[_]), Unit]) extends OpCode{
+  class StoreArray(store: PartialFunction[(vrt.StackVal, Int, Array[_]), Unit]) extends OpCode{
     def op = vt => (vt.pop, vt.pop, vt.pop) match {
       case (value, vrt.Int(index), arr: vrt.Arr) =>  store(value, index, arr.backing)
     }
   }
 
-  case object IAStore extends StoreArray(79, "iastore")({case (vrt.Int(value), i, backing: Array[Int]) => backing(i) = value})
-  case object LAStore extends StoreArray(80, "lastore")({case (vrt.Long(value), i, backing: Array[Long]) => backing(i) = value})
-  case object FAStore extends StoreArray(81, "fastore")({case (vrt.Float(value), i, backing: Array[Float]) => backing(i) = value})
-  case object DAStore extends StoreArray(82, "dastore")({case (vrt.Double(value), i, backing: Array[Double]) => backing(i) = value})
-  case object AAStore extends StoreArray(83, "aastore")({case (value, i, backing: Array[Any]) => backing(i) = value})
-  case object BAStore extends StoreArray(84, "bastore")({
+  case object IAStore extends StoreArray({case (vrt.Int(value), i, backing: Array[Int]) => backing(i) = value})
+  case object LAStore extends StoreArray({case (vrt.Long(value), i, backing: Array[Long]) => backing(i) = value})
+  case object FAStore extends StoreArray({case (vrt.Float(value), i, backing: Array[Float]) => backing(i) = value})
+  case object DAStore extends StoreArray({case (vrt.Double(value), i, backing: Array[Double]) => backing(i) = value})
+  case object AAStore extends StoreArray({case (value, i, backing: Array[Any]) => backing(i) = value})
+  case object BAStore extends StoreArray({
     case (vrt.Int(value), i, backing: Array[Byte]) => backing(i) = value.toByte
     case (vrt.Int(value), i, backing: Array[Boolean]) => backing(i) = value.toByte != 0
   })
-  case object CAStore extends StoreArray(85, "castore")({case (vrt.Int(value), i, backing: Array[Char]) => backing(i) = value.toChar})
-  case object SAStore extends StoreArray(86, "sastore")({case (vrt.Int(value), i, backing: Array[Short]) => backing(i) = value.toShort})
+  case object CAStore extends StoreArray({case (vrt.Int(value), i, backing: Array[Char]) => backing(i) = value.toChar})
+  case object SAStore extends StoreArray({case (vrt.Int(value), i, backing: Array[Short]) => backing(i) = value.toShort})
 }

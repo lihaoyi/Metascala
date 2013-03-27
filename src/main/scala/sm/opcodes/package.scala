@@ -33,8 +33,6 @@ package object opcodes{
     def pop = vt.frame.stack.pop()
     def push(x: vrt.StackVal) = vt.frame.stack.push(x)
   }
-  private[opcodes] abstract class BaseOpCode(val id: Byte, val insnName: String) extends OpCode{
-    def op: VmThread => Unit
-  }
+
 
 }

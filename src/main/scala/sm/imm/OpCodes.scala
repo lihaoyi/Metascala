@@ -11,8 +11,6 @@ import org.objectweb.asm.tree._
 
 
 abstract class OpCode{
-  def insnName: String
-  def id: Byte
   def op: VmThread => Unit
 }
 
