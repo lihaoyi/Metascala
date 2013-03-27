@@ -2,6 +2,7 @@ package sm
 
 import imm.Type.Prim.Info
 import imm.{Access, Type}
+import rt.Cls
 import vrt.Obj
 import java.io.{DataInputStream}
 
@@ -9,11 +10,12 @@ import java.io.{DataInputStream}
 object Natives{
   val default = new DefaultNatives {}
   type NativeMap = Map[(String, Type.Desc), VmThread => Seq[vrt.Val] => vrt.Val]
+  type NativeIndex = Seq[VmThread => Seq[vrt.Val] => vrt.Val]
   type NativeSeq = Seq[((String, Type.Desc), VmThread => Seq[vrt.Val] => vrt.Val)]
 }
 trait Natives{
-  val properties: Map[String, String]
   val trapped: Natives.NativeMap
+  val trappedIndex: Natives.NativeIndex
   val fileLoader: String => Option[Array[Byte]]
 }
 object NativeUtils{
@@ -136,7 +138,7 @@ trait DefaultNatives extends Natives{
     }
   }
 
-  val trapped: Natives.NativeMap = {
+  val trappedRoute = {
     Seq(
       "java"/(
         "io"/(
@@ -444,7 +446,7 @@ trait DefaultNatives extends Natives{
             "newInstance0(Ljava/lang/reflect/Constructor;[Ljava/lang/Object;)Ljava/lang/Object;" x2 {
               vt => (constr: Obj, args: Array[Obj]) =>
                 import vt.vm; import vm._
-                val cls: sm.Cls = imm.Type.Cls(constr.members(0)("clazz").asInstanceOf[vrt.Cls].name)
+                val cls: Cls = imm.Type.Cls(constr.members(0)("clazz").asInstanceOf[vrt.Cls].name)
                 val newObj = new Obj(cls)
                 vt.invoke(cls.clsData.tpe, "<init>", Type.Desc.read("()V"), Seq(newObj))
                 newObj
@@ -463,10 +465,11 @@ trait DefaultNatives extends Natives{
           )
         )
       )
-    ).toRoute().toMap
+    ).toRoute()
   }
 
-
+  val trapped = trappedRoute.toMap
+  val trappedIndex = trappedRoute.map(_._2)
 
 
 

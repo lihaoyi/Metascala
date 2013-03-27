@@ -3,12 +3,16 @@ package vrt
 
 import collection.mutable
 import sm._
+import rt.Var
 import sm.imm.Field
 import sm.imm.Access
-import sm.imm
 
 import reflect.ClassTag
 import sm.imm.Type.Prim.Info
+import scala.Some
+import vrt.Boolean
+import vrt.Int
+import sm.imm
 
 
 trait Ref{
@@ -32,7 +36,7 @@ object Obj{
     case _ => None
   }
 }
-class Obj(val cls: sm.Cls, initMembers: (String, vrt.Val)*)
+class Obj(val cls: rt.Cls, initMembers: (String, vrt.Val)*)
          (implicit vm: VM) extends StackVal with Cat1 with Ref{
   import vm._
 

@@ -3,6 +3,7 @@ import collection.mutable
 import imm.Attached.LineNumber
 import imm.{TryCatchBlock, Method, Code}
 import annotation.tailrec
+import rt.Cls
 import vrt.Cat1
 
 class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit val vm: VM){
@@ -103,21 +104,18 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     }
   }
 
-  @tailrec final def prepInvoke(tpe: imm.Type.Entity,
-                                methodName: String,
-                                desc: imm.Type.Desc,
-                                args: Seq[vrt.StackVal])
-                               (implicit originalType: imm.Type.Entity = tpe): Unit = {
-    vm.log(indent + tpe.name + " " + methodName + desc.unparse)
-
+  @tailrec final def resolve(tpe: imm.Type.Entity,
+                             methodName: String,
+                             desc: imm.Type.Desc)
+                             : Seq[vrt.StackVal] => Unit = {
     (vm.natives.trapped.get(tpe.name + "/" + methodName, desc), tpe) match{
-      case (Some(trap), _) =>
+      case (Some(trap), _) => (args: Seq[vrt.StackVal]) => {
         val result = trap(this)(args)
         if (result != ()) threadStack.head.stack.push(result.toStackVal)
-
+      }
       case (None, tpe: imm.Type.Cls) =>
         tpe.cls.clsData.methods.find(x => x.name == methodName && x.desc == desc) match {
-          case Some(m) if m.code.insns != Nil=>
+          case Some(m) if m.code.insns != Nil => (args: Seq[vrt.StackVal]) => {
             vm.log(
               m.code.insns.zipWithIndex.map{ case (b, i) =>
                 indent + i + "\t" + b
@@ -142,28 +140,37 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
             //log(indent + "locals " + startFrame.locals)
             threadStack.push(startFrame)
+          }
           case _ =>
             tpe.parent match{
-              case Some(x) => prepInvoke(x, methodName, desc, args)
-              case None => throwException(
+              case Some(x) => resolve(x, methodName, desc)
+              case None => args => throwException(
                 vrt.Obj("java/lang/RuntimeException",
-                  "detailMessage" -> s"A Can't find method $originalType $methodName ${desc.unparse}"
+                  "detailMessage" -> s"A Can't find method $methodName ${desc.unparse}"
                 )
               )
-            }
+          }
 
         }
+
       case _ =>
         tpe.parent match{
-          case Some(x) => prepInvoke(x, methodName, desc, args)
-          case None => throwException(
+          case Some(x) => resolve(x, methodName, desc)
+          case None => args => throwException(
             vrt.Obj("java/lang/RuntimeException",
-              "detailMessage" -> s"B Can't find method $originalType $methodName ${desc.unparse}"
+              "detailMessage" -> s"B Can't find method $methodName ${desc.unparse}"
             )
           )
         }
     }
+  }
+  final def prepInvoke(tpe: imm.Type.Entity,
+                                methodName: String,
+                                desc: imm.Type.Desc,
+                                args: Seq[vrt.StackVal])
+                                : Unit = {
 
+    resolve(tpe, methodName, desc)(args)
 
   }
   def invoke(cls: imm.Type.Cls, methodName: String, desc: imm.Type.Desc, args: Seq[vrt.Val]): vrt.Val = {
@@ -191,7 +198,7 @@ case class FrameDump(clsName: String,
 
 
 class Frame(var pc: Int = 0,
-            val runningClass: sm.Cls,
+            val runningClass: Cls,
             val method: Method,
             val locals: mutable.Seq[vrt.StackVal] = mutable.Seq.empty,
             var stack: mutable.ArrayStack[vrt.StackVal] = mutable.ArrayStack.empty[vrt.StackVal])

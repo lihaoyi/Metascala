@@ -4,6 +4,7 @@ import collection.{GenSeq, mutable}
 import imm._
 import imm.Attached.LineNumber
 import annotation.tailrec
+import sm.rt
 
 
 trait Cache[In, Out] extends (In => Out){
@@ -43,12 +44,12 @@ class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) 
     }
   }
   lazy val theUnsafe = vrt.Obj("sun/misc/Unsafe")
-  implicit object Classes extends Cache[imm.Type.Cls, sm.Cls]{
-    def calc(t: imm.Type.Cls): sm.Cls = {
-      new sm.Cls(imm.Cls.parse(natives.fileLoader(t.name.replace(".", "/") + ".class").get))
+  implicit object Classes extends Cache[imm.Type.Cls, rt.Cls]{
+    def calc(t: imm.Type.Cls): rt.Cls = {
+      new rt.Cls(imm.Cls.parse(natives.fileLoader(t.name.replace(".", "/") + ".class").get))
     }
     var startTime = System.currentTimeMillis()
-    override def post(cls: sm.Cls) = {
+    override def post(cls: rt.Cls) = {
       println("Initializing " + cls.clsData.tpe.unparse)
       println("" + ((System.currentTimeMillis() - startTime) / 1000))
       cls.clsData

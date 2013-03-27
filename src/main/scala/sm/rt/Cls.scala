@@ -1,9 +1,11 @@
-package sm
+package sm.rt
 
 import collection.mutable
 
 
-import imm.Type
+import sm.{vrt, VM, imm}
+import sm.imm.Type
+
 class Var(var x: vrt.Val){
   def apply() = x
   def update(y: vrt.Val){
@@ -16,6 +18,8 @@ class Cls(val clsData: imm.Cls)(implicit vm: VM){
   import vm._
 
   clsData.superType.map(vm.Classes)
+
+  val insns = clsData.methods.map(x => mutable.Seq(x.code.insns:_*))
   lazy val obj = new vrt.Cls(Type.Cls(name))
   val statics =
     clsData.fields.map{f =>
