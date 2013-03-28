@@ -1,13 +1,10 @@
 package sm
 package opcodes
-
 import sm.imm.Type
-import sm.{vrt, VmThread}
-import sm.vrt.Obj
 
 object Misc {
   case class Goto(label: Int) extends OpCode{
-    def op = vt => vt.frame.pc = label
+    def op(vt: sm.VmThread) = vt.frame.pc = label
   }
 
   // These guys are meant to be deprecated in java 6 and 7
@@ -17,7 +14,7 @@ object Misc {
   //===============================================================
 
   case class TableSwitch(min: Int, max: Int, defaultTarget: Int, targets: Seq[Int]) extends OpCode{
-    def op = vt => {
+    def op(vt: VmThread) =  {
       val vrt.Int(top) = vt.pop
       val newPc: Int =
         if (targets.isDefinedAt(top - min)) targets(top - min)
@@ -26,29 +23,29 @@ object Misc {
     }
   }
   case class LookupSwitch(defaultTarget: Int, keys: Seq[Int], targets: Seq[Int]) extends OpCode{
-    def op = vt => {
+    def op(vt: VmThread) =  {
       val vrt.Int(top) = vt.pop
       val newPc: Int = keys.zip(targets).toMap.get(top).getOrElse(defaultTarget: Int)
       vt.frame.pc = newPc
     }
   }
 
-  case object IReturn extends OpCode{ def op = vt => vt.returnVal(Some(vt.frame.stack.head)) }
-  case object LReturn extends OpCode{ def op = vt => vt.returnVal(Some(vt.frame.stack.head)) }
-  case object FReturn extends OpCode{ def op = vt => vt.returnVal(Some(vt.frame.stack.head)) }
-  case object DReturn extends OpCode{ def op = vt => vt.returnVal(Some(vt.frame.stack.head)) }
-  case object AReturn extends OpCode{ def op = vt => vt.returnVal(Some(vt.frame.stack.head)) }
-  case object Return extends OpCode{ def op = vt => vt.returnVal(None) }
+  case object IReturn extends OpCode{ def op(vt: VmThread) =  vt.returnVal(Some(vt.frame.stack.head)) }
+  case object LReturn extends OpCode{ def op(vt: VmThread) =  vt.returnVal(Some(vt.frame.stack.head)) }
+  case object FReturn extends OpCode{ def op(vt: VmThread) =  vt.returnVal(Some(vt.frame.stack.head)) }
+  case object DReturn extends OpCode{ def op(vt: VmThread) =  vt.returnVal(Some(vt.frame.stack.head)) }
+  case object AReturn extends OpCode{ def op(vt: VmThread) =  vt.returnVal(Some(vt.frame.stack.head)) }
+  case object Return extends OpCode{ def op(vt: VmThread) =  vt.returnVal(None) }
 
   case class GetStatic(owner: Type.Cls, name: String, desc: Type) extends OpCode{
-    def op = vt => {
+    def op(vt: VmThread) =  {
       import vt.vm
       import vm._
       vt.push(owner.cls.apply(owner, name).toStackVal)
     }
   }
   case class PutStatic(owner: Type.Cls, name: String, desc: Type) extends OpCode{
-    def op = vt => {
+    def op(vt: VmThread) =  {
       import vt.vm
       import vm._
       owner.cls.update(owner, name, vt.pop)
@@ -56,7 +53,7 @@ object Misc {
   }
 
   case class GetField(owner: Type.Cls, name: String, desc: Type) extends OpCode{
-    def op = vt => vt.pop match {
+    def op(vt: VmThread) =  vt.pop match {
       case (objectRef: vrt.Obj) => vt.push(objectRef(owner, name).toStackVal)
       case vrt.Null =>
         import vt._
@@ -64,7 +61,7 @@ object Misc {
     }
   }
   case class PutField(owner: Type.Cls, name: String, desc: Type) extends OpCode{
-    def op = vt => (vt.pop, vt.pop) match {
+    def op(vt: VmThread) =  (vt.pop, vt.pop) match {
       case (value, objectRef: vrt.Obj) =>
         objectRef(owner, name) = value
       case (value, vrt.Null) =>
@@ -83,7 +80,7 @@ object Misc {
   }
 
   case class InvokeVirtual(owner: Type.Entity, name: String, desc: Type.Desc) extends OpCode{
-    def op = vt => {
+    def op(vt: VmThread) =  {
       import vt.vm
       val argCount = desc.args.length
       val (args, rest) = vt.frame.stack.splitAt(argCount+1)
@@ -102,7 +99,7 @@ object Misc {
     }
   }
   case class InvokeSpecial(owner: Type.Cls, name: String, desc: Type.Desc) extends OpCode{
-    def op = implicit vt => {
+    def op(vt: VmThread) = {
       val argCount = desc.args.length
       val (args, rest) = vt.frame.stack.splitAt(argCount+1)
       vt.frame.stack = rest
@@ -110,7 +107,7 @@ object Misc {
     }
   }
   case class InvokeStatic(owner: Type.Cls, name: String, desc: Type.Desc) extends OpCode{
-    def op = vt => {
+    def op(vt: VmThread) =  {
       val argCount = desc.args.length
       val (args, rest) = vt.frame.stack.splitAt(argCount)
       vt.frame.stack = rest
@@ -122,14 +119,14 @@ object Misc {
   }
 
   case class InvokeInterface(owner: Type.Cls, name: String, desc: Type.Desc) extends OpCode{
-    def op = InvokeVirtual(owner, name, desc).op
+    def op(vt: VmThread) = InvokeVirtual(owner, name, desc).op(vt)
     override def opt(vm: VM) = InvokeVirtual(owner, name, desc).opt(vm)
   }
 
-  case class InvokeDynamic(name: String, desc: String, bsm: Object, args: Object) extends OpCode{ def op = ??? }
+  case class InvokeDynamic(name: String, desc: String, bsm: Object, args: Object) extends OpCode{ def op(vt: VmThread) = ??? }
 
   case class New(desc: Type.Cls) extends OpCode{
-    def op = implicit vt => {
+    def op(vt: VmThread) = {
       import vt.vm._
       vt.push(new vrt.Obj(desc)(vt.vm))
     }
@@ -139,7 +136,7 @@ object Misc {
     }
   }
   case class NewArray(typeCode: Int) extends OpCode{
-    def op = vt => {
+    def op(vt: VmThread) =  {
       val vrt.Int(count) = vt.pop
 
       val newArray = typeCode match{
@@ -156,25 +153,25 @@ object Misc {
     }
   }
   case class ANewArray(desc: imm.Type.Ref) extends OpCode{
-    def op = vt => {
+    def op(vt: VmThread) =  {
       val vrt.Int(count) = vt.pop
       vt.push(vrt.Arr.Obj(desc, count))
     }
   }
 
   case object ArrayLength extends OpCode{
-    def op = vt => {
+    def op(vt: VmThread) =  {
       vt.push(vt.pop.asInstanceOf[vrt.Arr].backing.length)
     }
   }
 
   case object AThrow extends OpCode{
-    def op = vt => {
+    def op(vt: VmThread) =  {
       vt.throwException(vt.pop.asInstanceOf[vrt.Obj])
     }
   }
   case class CheckCast(desc: Type.Entity) extends OpCode{
-    def op = vt => {
+    def op(vt: VmThread) =  {
       import vt._
 
       val top = vt.pop
@@ -205,7 +202,7 @@ object Misc {
     }
   }
   case class InstanceOf(desc: Type.Entity) extends OpCode{
-    def op = implicit vt => {
+    def op(vt: VmThread) = {
 
       import vt._
       import vm._
@@ -218,10 +215,10 @@ object Misc {
     }
   }
   case object MonitorEnter extends OpCode{
-    def op = _.pop
+    def op(vt: VmThread) = vt.pop
   }
   case object MonitorExit extends OpCode{
-    def op = _.pop
+    def op(vt: VmThread) = vt.pop
   }
 
   // Not used, because ASM folds these into the following bytecode for us
@@ -230,7 +227,7 @@ object Misc {
   //===============================================================
 
   case class MultiANewArray(desc: Type.Arr, dims: Int) extends OpCode{
-    def op = vt => {
+    def op(vt: VmThread) =  {
       def rec(dims: List[Int], tpe: Type.Entity): vrt.Arr = {
 
         (dims, tpe) match {
@@ -251,13 +248,13 @@ object Misc {
   }
 
   case class IfNull(label: Int) extends OpCode{
-    def op = vt => {
+    def op(vt: VmThread) =  {
       if (vt.pop == vrt.Null) vt.frame.pc = label
     }
   }
 
   case class IfNonNull(label: Int) extends OpCode{
-    def op = vt => {
+    def op(vt: VmThread) =  {
       if (vt.pop != vrt.Null) vt.frame.pc = label
     }
   }

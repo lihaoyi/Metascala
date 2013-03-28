@@ -1,10 +1,6 @@
 package sm
 
-import collection.{GenSeq, mutable}
-import imm._
-import imm.Attached.LineNumber
-import annotation.tailrec
-import sm.rt
+import collection.mutable
 
 
 trait Cache[In, Out] extends (In => Out){

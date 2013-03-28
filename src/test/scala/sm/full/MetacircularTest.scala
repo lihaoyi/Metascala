@@ -57,7 +57,7 @@ class MetacircularTest extends FreeSpec with Util{
   var count = 0
 
   val tester = new Tester("sm.full.MetacircularTest")
-  "sqrtFinder" in {
+  /*"sqrtFinder" in {
     tester.run("sqrtFinder")
   }
   "helloWorld" in {
@@ -76,11 +76,11 @@ class MetacircularTest extends FreeSpec with Util{
   "bubbleSort" in {
     tester.run("bubbleSort")
 
-  }
+  }*/
   "getAndSet" in {
     tester.run("getAndSet")
     println(tester.svm.threads(0).getI)
-  }
+  }/*
 
   "multiCatch" in {
     tester.run("multiCatch")
@@ -89,6 +89,6 @@ class MetacircularTest extends FreeSpec with Util{
   "doubleMetaOne" in {
     tester.run("doubleMetaOne")
     println(tester.svm.threads(0).getI)
-  }
+  }*/
 }
 

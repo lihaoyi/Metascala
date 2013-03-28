@@ -10,7 +10,7 @@ import vrt.{Cat1, Cat2}
 
 object StackManip {
   class PureStackOpCode(transform: PartialFunction[mutable.ArrayStack[vrt.StackVal], vrt.StackVal]) extends OpCode{
-    def op = vt => vt.push(transform(vt.frame.stack))
+    def op(vt: VmThread) =  vt.push(transform(vt.frame.stack))
   }
   object S2{
     def unapply(x: mutable.ArrayStack[vrt.StackVal]) = Some((x.pop, x.pop))
@@ -20,7 +20,7 @@ object StackManip {
   }
 
   class ManipOpCode(transform: List[vrt.StackVal] => List[vrt.StackVal]) extends OpCode{
-    def op = vt => {
+    def op(vt: VmThread) =  {
       val in = List.fill(vt.frame.stack.length min 4)(vt.pop)
       val out = transform(in)
       out.reverseMap(vt.push)
@@ -104,7 +104,7 @@ object StackManip {
   case class IInc(varId: Int, amount: Int) extends OpCode{
     def id = 132
     def insnName = "iinc"
-    def op = vt => vt.frame.locals(varId) = (vt.frame.locals(varId).asInstanceOf[vrt.Int].v) + amount
+    def op(vt: VmThread) =  vt.frame.locals(varId) = (vt.frame.locals(varId).asInstanceOf[vrt.Int].v) + amount
   }
 
   case object I2L extends PureStackOpCode({ case S1(x: I)  => x.toLong })
@@ -136,7 +136,7 @@ object StackManip {
 
   abstract class UnaryBranch(pred: Int => Boolean) extends OpCode{
     def label: Int
-    def op = vt => {
+    def op(vt: VmThread) =  {
       val vrt.Int(top) = vt.pop
       if(pred(top)) vt.frame.pc = label
     }
@@ -151,7 +151,7 @@ object StackManip {
 
   abstract class BinaryBranch(pred: (Int, Int) => Boolean) extends OpCode{
     def label: Int
-    def op = vt => {
+    def op(vt: VmThread) =  {
       val (vrt.Int(top), vrt.Int(next)) = (vt.pop, vt.pop)
       if(pred(next, top)) vt.frame.pc = label
 
@@ -166,7 +166,7 @@ object StackManip {
   case class IfICmpLe(label: Int) extends BinaryBranch(_ <= _)
   abstract class BinaryBranchObj(pred: Boolean => Boolean) extends OpCode{
     def label: Int
-    def op = vt => {
+    def op(vt: VmThread) = {
 
 
       val res = (vt.pop, vt.pop) match{

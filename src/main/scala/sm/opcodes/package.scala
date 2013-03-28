@@ -1,8 +1,7 @@
 package sm
 
 import opcodes.OpCode
-import sm.VmThread
-import sm.vrt
+
 
 /**
  * `opcodes` contains the stack manipulating behavior of each individual
@@ -27,7 +26,7 @@ package object opcodes{
   type L = vrt.Obj
 
   private[opcodes] case class UnusedOpCode(val id: Byte, val insnName: String) extends OpCode{
-    def op = ctx => ???
+    def op(vt: VmThread)  = ???
   }
   implicit def intToByte(n: Int) = n.toByte
   implicit class poppable(val vt: VmThread) extends AnyVal{

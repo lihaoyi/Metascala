@@ -8,10 +8,8 @@ import sm.imm.Field
 import sm.imm.Access
 
 import reflect.ClassTag
-import sm.imm.Type.Prim.Info
 import scala.Some
-import vrt.Boolean
-import vrt.Int
+
 import sm.imm
 
 
