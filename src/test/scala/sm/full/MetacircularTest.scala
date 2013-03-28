@@ -76,11 +76,11 @@ class MetacircularTest extends FreeSpec with Util{
   "bubbleSort" in {
     tester.run("bubbleSort")
 
-  }*/
+  }
   "getAndSet" in {
     tester.run("getAndSet")
     println(tester.svm.threads(0).getI)
-  }/*
+  }
 
   "multiCatch" in {
     tester.run("multiCatch")

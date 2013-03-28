@@ -83,7 +83,7 @@ object Misc {
     def op(vt: VmThread) =  {
       import vt.vm
       val argCount = desc.args.length
-      val (args, rest) = vt.frame.stack.splitAt(argCount+1)
+      val args = for(i <- 0 until (argCount + 1)) yield vt.frame.stack.pop()
       ensureNonNull(vt, args.last){
         val objType =
           args.last match{
@@ -91,9 +91,6 @@ object Misc {
             case _ => owner
           }
 
-
-
-        vt.frame.stack = rest
         vt.prepInvoke(objType, name, desc, args.reverse)
       }
     }
@@ -101,16 +98,14 @@ object Misc {
   case class InvokeSpecial(owner: Type.Cls, name: String, desc: Type.Desc) extends OpCode{
     def op(vt: VmThread) = {
       val argCount = desc.args.length
-      val (args, rest) = vt.frame.stack.splitAt(argCount+1)
-      vt.frame.stack = rest
+      val args = for(i <- 0 until (argCount + 1)) yield vt.frame.stack.pop()
       vt.prepInvoke(owner, name, desc, args.reverse)
     }
   }
   case class InvokeStatic(owner: Type.Cls, name: String, desc: Type.Desc) extends OpCode{
     def op(vt: VmThread) =  {
       val argCount = desc.args.length
-      val (args, rest) = vt.frame.stack.splitAt(argCount)
-      vt.frame.stack = rest
+      val args = for(i <- 0 until argCount) yield vt.frame.stack.pop()
       vt.prepInvoke(owner, name, desc, args.reverse)
     }
     override def opt(vm: VM) = {
