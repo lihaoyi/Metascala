@@ -17,8 +17,8 @@ abstract class OpCode{
 
 object OpCode {
   private[this] implicit class nullSafeList[T](val list: java.util.List[T]) extends AnyVal{
-    def safeList: List[T] = {
-      Option(list).toList.flatten
+    def safeList: Seq[T] = {
+      Option(list).toVector.flatten
     }
   }
   implicit def parseTypeCls(x: String) = imm.Type.Cls.read(x)

@@ -10,9 +10,9 @@ object Cls {
       cn.access,
       Type.Cls.read(cn.name),
       cn.superName.safeOpt.map(Type.Cls.read),
-      cn.interfaces.safeList.map(Type.Cls.read),
-      cn.fields.safeList.map(Field.read),
-      cn.methods.safeList.map(Method.read),
+      cn.interfaces.safeSeq.map(Type.Cls.read),
+      cn.fields.safeSeq.map(Field.read),
+      cn.methods.safeSeq.map(Method.read),
       Misc(
         cn.signature.safeOpt,
         cn.sourceFile.safeOpt,
@@ -20,10 +20,10 @@ object Cls {
         cn.outerClass.safeOpt,
         cn.outerMethod.safeOpt,
         cn.outerMethodDesc.safeOpt,
-        cn.visibleAnnotations.safeList.map(Annotation.read),
-        cn.invisibleAnnotations.safeList.map(Annotation.read),
-        cn.attrs.safeList.map(Attribute.read),
-        cn.innerClasses.safeList.map(InnerClass.read)
+        cn.visibleAnnotations.safeSeq.map(Annotation.read),
+        cn.invisibleAnnotations.safeSeq.map(Annotation.read),
+        cn.attrs.safeSeq.map(Attribute.read),
+        cn.innerClasses.safeSeq.map(InnerClass.read)
       )
     )
   }
@@ -42,15 +42,15 @@ object Cls {
                   outerClass: Option[String] = None,
                   outerMethod: Option[String] = None,
                   outerMethodDesc: Option[String] = None,
-                  visibleAnnotations: List[Annotation] = Nil,
-                  invisibleAnnotations: List[Annotation] = Nil,
-                  attrs: List[Attribute] = Nil,
-                  innerClasses: List[InnerClass] = Nil)
+                  visibleAnnotations: Seq[Annotation] = Nil,
+                  invisibleAnnotations: Seq[Annotation] = Nil,
+                  attrs: Seq[Attribute] = Nil,
+                  innerClasses: Seq[InnerClass] = Nil)
 }
 case class Cls(access_flags: Int,
                tpe: Type.Cls,
                superType: Option[Type.Cls] = None,
-               interfaces: List[Type.Cls] = Nil,
-               fields: List[Field] = Nil,
-               methods: List[Method] = Nil,
+               interfaces: Seq[Type.Cls] = Nil,
+               fields: Seq[Field] = Nil,
+               methods: Seq[Method] = Nil,
                misc: Cls.Misc = Cls.Misc())

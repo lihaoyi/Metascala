@@ -1,5 +1,6 @@
 package sm
 import collection.convert.wrapAsScala._
+import reflect.ClassTag
 
 /**
  * This vrt contains the code involved in reading the .class files
@@ -12,13 +13,13 @@ import collection.convert.wrapAsScala._
  */
 package object imm {
   private[imm] implicit class nullSafeList[T](val list: java.util.List[T]) extends AnyVal{
-    def safeList: List[T] = {
-      Option(list).toList.flatten
+    def safeSeq: Seq[T] = {
+      Option(list).toVector.flatten
     }
   }
   private[imm] implicit class nullSafeArray[T](val list: Array[T]) extends AnyVal{
-    def safeList: List[T] = {
-      Option(list).toList.flatten
+    def safeSeq: Seq[T] = {
+      Option(list).toVector.flatten
     }
   }
   private[imm] implicit class nullSafeValue[T](val a: T) extends AnyVal{

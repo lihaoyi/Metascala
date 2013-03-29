@@ -19,8 +19,6 @@ trait Ref{
 object Obj{
   import scala.Boolean
 
-
-
   def apply(clsName: String, initMembers: (String, vrt.Val)*)(implicit vm: VM) = {
     new Obj(vm.Classes(imm.Type.Cls(clsName)), initMembers: _*)
   }
@@ -43,17 +41,12 @@ class Obj(val cls: rt.Cls, initMembers: (String, vrt.Val)*)
 
   def refType = cls.clsData.tpe
 
-
   def apply(owner: imm.Type.Cls, name: String): vrt.Val = {
-
-    val x = members(owner.resolveField(owner, name))._2()
-    x
+    members(owner.resolveField(owner, name))._2()
   }
 
   def update(owner: imm.Type.Cls, name: String, value: vrt.Val) = {
-
-    val x = members(owner.resolveField(owner, name))._2() = value
-    x
+    members(owner.resolveField(owner, name))._2() = value
   }
 
   def withMagic(x: String, a: Any) = {

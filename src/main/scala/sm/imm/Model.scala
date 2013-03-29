@@ -48,9 +48,9 @@ object Field {
       imm.Type.read(fn.desc).cast[imm.Type.Entity],
       fn.signature.safeOpt,
       fn.value,
-      fn.visibleAnnotations.safeList.map(Annotation.read),
-      fn.invisibleAnnotations.safeList.map(Annotation.read),
-      fn.attrs.safeList.map(Attribute.read)
+      fn.visibleAnnotations.safeSeq.map(Annotation.read),
+      fn.invisibleAnnotations.safeSeq.map(Annotation.read),
+      fn.attrs.safeSeq.map(Attribute.read)
     )
   }
 
@@ -61,9 +61,9 @@ case class Field(access: Int,
                  desc: sm.imm.Type.Entity,
                  signature: Option[String],
                  value: Any,
-                 visibleAnnotations: List[Annotation],
-                 invisibleAnnotations: List[Annotation],
-                 attrs: List[Attribute])
+                 visibleAnnotations: Seq[Annotation],
+                 invisibleAnnotations: Seq[Annotation],
+                 attrs: Seq[Attribute])
 
 
 
@@ -91,12 +91,12 @@ case class Attribute(atype: String)
 object Annotation {
   def read(an: AnnotationNode) = Annotation(
     an.desc,
-    an.values.safeList
+    an.values.safeSeq
   )
 }
 
 case class Annotation(desc: String,
-                      values: List[Any])
+                      values: Seq[Any])
 
 
 

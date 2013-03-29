@@ -12,44 +12,44 @@ object Method {
       mn.access,
       mn.name,
       Type.Desc.read(mn.desc),
-      mn.exceptions.safeList,
+      mn.exceptions.safeSeq,
       Code.read(mn.instructions),
       Misc(
         mn.signature.safeOpt,
-        mn.tryCatchBlocks.safeList.map(TryCatchBlock.read),
-        mn.localVariables.safeList.map(LocalVariable.read),
+        mn.tryCatchBlocks.safeSeq.map(TryCatchBlock.read),
+        mn.localVariables.safeSeq.map(LocalVariable.read),
         mn.maxStack,
         mn.maxLocals,
-        mn.attrs.safeList.map(Attribute.read)
+        mn.attrs.safeSeq.map(Attribute.read)
       ),
       Annotations(
-        mn.visibleAnnotations.safeList.map(Annotation.read),
-        mn.invisibleAnnotations.safeList.map(Annotation.read),
+        mn.visibleAnnotations.safeSeq.map(Annotation.read),
+        mn.invisibleAnnotations.safeSeq.map(Annotation.read),
         mn.annotationDefault.safeOpt,
-        mn.visibleParameterAnnotations.safeList.map(_.safeList.map(Annotation.read)),
-        mn.invisibleParameterAnnotations.safeList.map(_.safeList.map(Annotation.read))
+        mn.visibleParameterAnnotations.safeSeq.map(_.safeSeq.map(Annotation.read)),
+        mn.invisibleParameterAnnotations.safeSeq.map(_.safeSeq.map(Annotation.read))
       )
     )
   }
 
-  case class Annotations(visibleAnnotations: List[Annotation] = Nil,
-                         invisibleAnnotations: List[Annotation] = Nil,
+  case class Annotations(visibleAnnotations: Seq[Annotation] = Nil,
+                         invisibleAnnotations: Seq[Annotation] = Nil,
                          annotationDefault: Any = null,
-                         visibleParameterAnnotations: List[List[Annotation]] = Nil,
-                         invisibleParameterAnnotations: List[List[Annotation]] = Nil)
+                         visibleParameterAnnotations: Seq[Seq[Annotation]] = Nil,
+                         invisibleParameterAnnotations: Seq[Seq[Annotation]] = Nil)
   case class Misc(signature: Option[String] = None,
-                  tryCatchBlocks: List[TryCatchBlock] = Nil,
-                  localVariables: List[LocalVariable] = Nil,
+                  tryCatchBlocks: Seq[TryCatchBlock] = Nil,
+                  localVariables: Seq[LocalVariable] = Nil,
                   maxStack: Int = 0,
                   maxLocals: Int = 0,
-                  attrs: List[Attribute] = Nil)
+                  attrs: Seq[Attribute] = Nil)
 }
 
 
 case class Method(access: Int,
                   name: String,
                   desc: Type.Desc,
-                  exceptions: List[String] = Nil,
+                  exceptions: Seq[String] = Nil,
                   code: Code = Code(),
                   misc: Method.Misc = Method.Misc(),
                   annotations: Method.Annotations = Method.Annotations())
@@ -101,8 +101,8 @@ case class Code(insns: Seq[OpCode] = Nil,
 trait Attached
 object Attached{
   case class Frame(frameType: Int,
-                   local: List[Any],
-                   stack: List[Any]) extends Attached
+                   local: Seq[Any],
+                   stack: Seq[Any]) extends Attached
 
   case class LineNumber(line: Int,
                         start: Int) extends Attached
@@ -110,7 +110,7 @@ object Attached{
 
 
   def read(implicit labelMap: Map[Label, Int]): PartialFunction[Any, Attached] = {
-    case x: FrameNode       => Frame(x.`type`, x.local.safeList, x.stack.safeList)
+    case x: FrameNode       => Frame(x.`type`, x.local.safeSeq, x.stack.safeSeq)
     case x: LineNumberNode  => LineNumber(x.line, x.start.getLabel)
   }
 }

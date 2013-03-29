@@ -83,8 +83,6 @@ object Misc {
     }
   }
 
-
-
   case class InvokeVirtual(owner: Type.Entity, name: String, desc: Type.Desc) extends OpCode{
     def op(vt: VmThread) =  {
       import vt.vm

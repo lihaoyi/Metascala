@@ -47,7 +47,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     val topFrame = threadStack.head
     val insnsList = topFrame.runningClass.insns(topFrame.methodIndex)
     val node = insnsList(topFrame.pc)
-    val optimized = node.opt(vm)
+    val optimized = node//.opt(vm)
     insnsList(topFrame.pc) = optimized
     vm.log(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack)
     vm.log(indent + "---------------------- " + topFrame.pc + "\t" + node )

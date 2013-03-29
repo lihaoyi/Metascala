@@ -47,9 +47,7 @@ object MetacircularTest{
   def helloWorld = {
     println("Hello Scala!")
   }
-
 }
-
 
 class MetacircularTest extends FreeSpec with Util{
 
@@ -57,8 +55,9 @@ class MetacircularTest extends FreeSpec with Util{
   var count = 0
 
   val tester = new Tester("sm.full.MetacircularTest")
-  /*"sqrtFinder" in {
+  "sqrtFinder" in {
     tester.run("sqrtFinder")
+    println(tester.svm.threads(0).getI)
   }
   "helloWorld" in {
     tester.run("helloWorld")
@@ -89,6 +88,6 @@ class MetacircularTest extends FreeSpec with Util{
   "doubleMetaOne" in {
     tester.run("doubleMetaOne")
     println(tester.svm.threads(0).getI)
-  }*/
+  }
 }
 
