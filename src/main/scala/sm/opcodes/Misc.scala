@@ -43,12 +43,19 @@ object Misc {
       import vm._
       vt.push(owner.cls.apply(owner, name).toStackVal)
     }
+    override def opt(vm: VM) = {
+
+      Optimized.GetStatic(owner.cls(vm).resolveStatic(owner, name))
+    }
   }
   case class PutStatic(owner: Type.Cls, name: String, desc: Type) extends OpCode{
     def op(vt: VmThread) =  {
       import vt.vm
       import vm._
       owner.cls.update(owner, name, vt.pop)
+    }
+    override def opt(vm: VM) = {
+      Optimized.PutStatic(owner.cls(vm).resolveStatic(owner, name))
     }
   }
 

@@ -18,4 +18,11 @@ object Optimized {
       thunk(args.toSeq.reverse)
     }
   }
+
+  case class GetStatic(field: rt.Var) extends OpCode{
+    def op(vt: VmThread) = vt.push(field().toStackVal)
+  }
+  case class PutStatic(field: rt.Var) extends OpCode{
+    def op(vt: VmThread) = field() = vt.pop
+  }
 }

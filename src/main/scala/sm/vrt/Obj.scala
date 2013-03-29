@@ -18,7 +18,8 @@ trait Ref{
 }
 object Obj{
   import scala.Boolean
-  def initMembers(cls: imm.Cls, filter: Field => Boolean)(implicit vm: VM): List[Seq[(String, Var)]] = {
+  def initMembers(cls: imm.Cls, filter: Field => Boolean)
+                 (implicit vm: VM): List[Seq[(String, Var)]] = {
     import vm._
     cls.fields.filter(filter).map{f =>
       f.name -> new Var(f.desc.default)
@@ -49,22 +50,21 @@ class Obj(val cls: rt.Cls, initMembers: (String, vrt.Val)*)
   }
 
   def refType = cls.clsData.tpe
-  lazy val staticCache = mutable.Map.empty[(imm.Type.Cls, String), Var]
-  def resolveStatic(owner: imm.Type.Cls, name: String) = {
-    staticCache.getOrElseUpdate((owner, name), {
-      val start = cls.ancestry.indexWhere(_.tpe == owner)
-      members.drop(start)
-        .collect(Function.unlift(_.get(name)))
-        .head
-    })
+
+  def resolveField(owner: imm.Type.Cls, name: String) = {
+    val start = cls.ancestry.indexWhere(_.tpe == owner)
+    members.drop(start)
+           .collect(Function.unlift(_.get(name)))
+           .head
+
 
   }
   def apply(owner: imm.Type.Cls, name: String): vrt.Val = {
-    resolveStatic(owner, name)()
+    resolveField(owner, name)()
   }
 
   def update(owner: imm.Type.Cls, name: String, value: vrt.Val) = {
-    resolveStatic(owner, name)() = value
+    resolveField(owner, name)() = value
   }
 
   def withMagic(x: String, a: Any) = {

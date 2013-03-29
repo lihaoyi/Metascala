@@ -168,17 +168,11 @@ object StackManip {
     def label: Int
     def op(vt: VmThread) = {
 
-
       val res = (vt.pop, vt.pop) match{
         case (vrt.Null, vrt.Null) => true
-
         case (a: vrt.Arr, b: vrt.Arr) => a == b
-
-        case (a: vrt.Obj, b: vrt.Obj) =>
-
-          a == b
-        case _ =>
-          false
+        case (a: vrt.Obj, b: vrt.Obj) => a == b
+        case _ => false
       }
       if(pred(res)) vt.frame.pc = label
     }

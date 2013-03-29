@@ -4,7 +4,7 @@ package imm
 import org.scalatest.FreeSpec
 
 class ClassloaderTests extends FreeSpec{
-
+/*
 
   "loading class files" - {
     "hello world" in {
@@ -75,5 +75,5 @@ class ClassloaderTests extends FreeSpec{
         Cls("java/lang/Object")
       ) = Desc.read("(IDLjava/lang/Thread;)Ljava/lang/Object;")
     }
-  }
+  }*/
 }
