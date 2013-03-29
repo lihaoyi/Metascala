@@ -60,31 +60,30 @@ object Misc {
   }
 
   case class GetField(owner: Type.Cls, name: String, desc: Type) extends OpCode{
-    def op(vt: VmThread) =  vt.pop match {
-      case (objectRef: vrt.Obj) => vt.push(objectRef(owner, name).toStackVal)
-      case vrt.Null =>
-        import vt._
-        vt.throwException(vrt.Obj("java/lang/NullPointerException"))
+    def op(vt: VmThread) = {
+      val obj = vt.pop.cast[vrt.Obj]
+      ensureNonNull(vt, obj){
+        vt.push(obj(owner, name).toStackVal)
+      }
+    }
+    override def opt(vm: VM) = {
+      Optimized.GetField(owner.cls(vm).resolveField(owner, name))
     }
   }
   case class PutField(owner: Type.Cls, name: String, desc: Type) extends OpCode{
-    def op(vt: VmThread) =  (vt.pop, vt.pop) match {
-      case (value, objectRef: vrt.Obj) =>
-        objectRef(owner, name) = value
-      case (value, vrt.Null) =>
-        import vt._
-        vt.throwException(vrt.Obj("java/lang/NullPointerException"))
+    def op(vt: VmThread) = {
+      val (value, obj) = (vt.pop, vt.pop.cast[vrt.Obj])
+      ensureNonNull(vt, obj){
+        obj(owner, name) = value
+      }
+
+    }
+    override def opt(vm: VM) = {
+      Optimized.PutField(owner.cls(vm).resolveField(owner, name))
     }
   }
 
-  def ensureNonNull(vt: VmThread, x: Any)(thunk: => Unit) = {
-    import vt._
-    if (x == vrt.Null){
-      throwException(vrt.Obj("java/lang/NullPointerException"))
-    }else {
-      thunk
-    }
-  }
+
 
   case class InvokeVirtual(owner: Type.Entity, name: String, desc: Type.Desc) extends OpCode{
     def op(vt: VmThread) =  {

@@ -25,4 +25,20 @@ object Optimized {
   case class PutStatic(field: rt.Var) extends OpCode{
     def op(vt: VmThread) = field() = vt.pop
   }
+  case class GetField(index: Int) extends OpCode{
+    def op(vt: VmThread) = {
+      val obj = vt.pop.cast[vrt.Obj]
+      ensureNonNull(vt, obj){
+        vt.push(obj.members(index)._2().toStackVal)
+      }
+    }
+  }
+  case class PutField(index: Int) extends OpCode{
+    def op(vt: VmThread) ={
+      val (value, obj) = (vt.pop, vt.pop.cast[vrt.Obj])
+      ensureNonNull(vt, obj){
+        obj.members(index)._2() = value
+      }
+    }
+  }
 }
