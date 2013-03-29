@@ -12,10 +12,10 @@ object Optimized {
     }
   }
 
-  case class InvokeStatic(thunk: Seq[vrt.StackVal] => Unit, argCount: Int) extends OpCode{
+  case class InvokeStatic(clsIndex: Int, methodIndex: Int, argCount: Int) extends OpCode{
     def op(vt: VmThread) = {
       val args = for(i <- 0 until argCount) yield vt.frame.stack.pop()
-      thunk(args.toSeq.reverse)
+      vt.prepInvoke(clsIndex, methodIndex, args.toSeq.reverse)
     }
   }
 

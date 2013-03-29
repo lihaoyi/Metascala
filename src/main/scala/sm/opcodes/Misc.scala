@@ -113,7 +113,13 @@ object Misc {
       vt.prepInvoke(owner, name, desc, args.reverse)
     }
     override def opt(vm: VM) = {
-      Optimized.InvokeStatic(vm.threads(0).resolve(owner, name, desc), desc.args.length)
+      vm.Classes(owner)
+      vm.resolve(owner, name, desc) match {
+        case Some((clsId, methodId)) => Optimized.InvokeStatic(clsId, methodId, desc.args.length)
+        case None => LoadStore.Nop
+      }
+
+
     }
   }
 

@@ -10,12 +10,11 @@ import java.io.{DataInputStream}
 object Natives{
   val default = new DefaultNatives {}
   type NativeMap = Map[(String, Type.Desc), VmThread => Seq[vrt.Val] => vrt.Val]
-  type NativeIndex = Seq[VmThread => Seq[vrt.Val] => vrt.Val]
   type NativeSeq = Seq[((String, Type.Desc), VmThread => Seq[vrt.Val] => vrt.Val)]
 }
 trait Natives{
   val trapped: Natives.NativeMap
-  val trappedIndex: Natives.NativeIndex
+  val trappedIndex: Natives.NativeSeq
   val fileLoader: String => Option[Array[Byte]]
 }
 object NativeUtils{
@@ -138,7 +137,7 @@ trait DefaultNatives extends Natives{
     }
   }
 
-  val trappedRoute = {
+  val trappedIndex = {
     Seq(
       "java"/(
         "io"/(
@@ -173,7 +172,7 @@ trait DefaultNatives extends Natives{
             },
             "forName0(L//String;ZL//ClassLoader;)L//Class;" x3 {vt => (s: vrt.Obj, w: Any, y: Any) =>
               import vt._
-              Type.Cls(s).obj
+              Type.Cls(s.replace('.', '/')).obj
             },
             "getPrimitiveClass(L//String;)L//Class;" x1 {vt => (s: vrt.Obj) =>
               import vt._
@@ -468,8 +467,8 @@ trait DefaultNatives extends Natives{
     ).toRoute()
   }
 
-  val trapped = trappedRoute.toMap
-  val trappedIndex = trappedRoute.map(_._2)
+  val trapped = trappedIndex.toMap
+
 
 
 

@@ -1,6 +1,8 @@
 package sm
 
 import collection.mutable
+import annotation.tailrec
+import imm.Code
 
 
 trait Cache[In, Out] extends (In => Out){
@@ -48,8 +50,8 @@ class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) 
     var startTime = System.currentTimeMillis()
     override def post(cls: rt.Cls) = {
       clsIndex.append(cls)
-      println("Initializing " + cls.clsData.tpe.unparse)
-      println("" + ((System.currentTimeMillis() - startTime) / 1000))
+//      println("Initializing " + cls.clsData.tpe.unparse)
+//      println("" + ((System.currentTimeMillis() - startTime) / 1000))
       cls.clsData
          .methods
          .find(m => m.name == "<clinit>" && m.desc == imm.Type.Desc.read("()V"))
@@ -75,10 +77,39 @@ class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) 
     res
   }
 
+  @tailrec final def resolve(tpe: imm.Type.Entity,
+                             methodName: String,
+                             desc: imm.Type.Desc)
+                            : Option[(Int, Int)] = {
+
+    val nIndex = vm.natives.trappedIndex.indexWhere{case ((name, idesc), func) =>
+      (name == tpe.name + "/" + methodName) && (idesc == desc)
+    }
+
+
+    (nIndex, tpe) match{
+      case (x, _) if x != -1 => Some((-1, x))
+      case (_, tpe: imm.Type.Cls) =>
+        val mId = tpe.cls.clsData.methods.indexWhere(x => x.name == methodName && x.desc == desc)
+        mId match {
+          case mIndex if mIndex != -1 && tpe.cls.clsData.methods(mIndex).code != Code() =>
+            Some((vm.Classes.clsIndex.indexWhere(_.clsData.tpe == tpe), mIndex))
+          case _ =>
+            tpe.parent match{
+              case Some(x) => resolve(x, methodName, desc)
+              case None => None
+            }
+
+        }
+
+      case _ =>
+        tpe.parent match{
+          case Some(x) => resolve(x, methodName, desc)
+          case None => None
+        }
+    }
+  }
 }
-
-
-
 
 case class UncaughtVmException(name: String,
                                msg: String,

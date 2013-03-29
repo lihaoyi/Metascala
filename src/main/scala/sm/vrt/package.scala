@@ -54,7 +54,7 @@ package object vrt {
       case x: Array[Double]  => new vrt.Arr.Prim(x.clone)
       case x: Array[Any] =>
         new vrt.Arr.Obj(
-          imm.Type.read(x.getClass.getComponentType.getName).cast[imm.Type.Ref],
+          imm.Type.read(x.getClass.getComponentType.getName.replace('.', '/')).cast[imm.Type.Ref],
           x.map(x => virtualize(x))
         )
       case x: Any =>

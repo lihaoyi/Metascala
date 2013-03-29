@@ -32,15 +32,13 @@ class Cls(val clsData: imm.Cls)(implicit vm: VM){
             .find(m => m.name == name && m.desc == desc)
   }
 
-  val staticCache = mutable.Map.empty[(Type.Cls, String), Var]
-  def resolveStatic(owner: Type.Cls, name: String) = {
-    staticCache.getOrElseUpdate((owner, name),
-      ancestry.dropWhile(_.tpe != owner)
-        .find(_.fields.exists(_.name == name))
-        .get.tpe.statics(name)
-    )
 
+  def resolveStatic(owner: Type.Cls, name: String) = {
+    ancestry.dropWhile(_.tpe != owner)
+      .find(_.fields.exists(_.name == name))
+      .get.tpe.statics(name)
   }
+
   def apply(owner: Type.Cls, name: String) = {
     resolveStatic(owner: Type.Cls, name: String)()
   }

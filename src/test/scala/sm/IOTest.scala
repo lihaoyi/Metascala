@@ -31,7 +31,7 @@ class IOTest extends FreeSpec with Util{
   "exceptions" -{
     val tester = new Tester("sm.io.Exceptions")
     "runtime" in {
-      val x = Try(tester.svm.invoke("sm.io.Exceptions", "runtime", Nil))
+      val x = Try(tester.svm.invoke("sm/io/Exceptions", "runtime", Nil))
 
       val Failure(UncaughtVmException(_, _, _, _)) = x
     }
