@@ -113,10 +113,10 @@ package object vrt {
       case x: vrt.Obj =>
         val cls = Class.forName(x.cls.name.replace('/', '.'))
         val obj = unsafe.allocateInstance(cls)
-        x.members(0).foreach{ case (k, v) =>
-          val field = cls.getDeclaredField(k)
+        x.members.foreach{ case (f, m) =>
+          val field = cls.getDeclaredField(f.name)
           field.setAccessible(true)
-          field.set(obj, unvirtualize(v()))
+          field.set(obj, unvirtualize(m()))
         }
         obj
       case vrt.Null => null
@@ -144,7 +144,7 @@ package object vrt {
     )
   }
   implicit def unvirtString(i: vrt.Obj) = {
-    new String(i.members(0)("value")().cast[vrt.Arr].backing.map{case x: Char => x})
+    new String(i.members.find(_._1.name == "value").get._2().cast[vrt.Arr].backing.map{case x: Char => x})
   }
 }
 

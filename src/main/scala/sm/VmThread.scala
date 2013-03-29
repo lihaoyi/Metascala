@@ -75,15 +75,12 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     )
 
   @tailrec final def throwException(ex: vrt.Obj, print: Boolean = true): Unit = {
-    println("throwException " + ex.cls.name)
-    getFramesDump.map(f => println(f.clsName + "/" + f.methodName))
     if(!ex.magicMembers.contains("stackData")){
       ex.withMagic("stackData", getFramesDump)
     }
 
     threadStack.headOption match{
       case Some(frame)=>
-        println("A")
         val handler =
           frame.method.misc.tryCatchBlocks
                .filter{x => x.start <= frame.pc && x.end >= frame.pc && !x.blockType.isDefined || ex.cls.checkIsInstanceOf(x.blockType.get)}
@@ -91,16 +88,13 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
         handler match{
           case None =>
-            println("AA")
             threadStack.pop()
             throwException(ex, false)
           case Some(TryCatchBlock(start, end, handler, blockType)) =>
-            println("AB")
             frame.pc = handler
             frame.stack.push(ex)
         }
       case None =>
-        println("B")
         throw new UncaughtVmException(ex.cls.clsData.tpe.unparse,
                                       ex(imm.Type.Cls("java.lang.Throwable"), "detailMessage").cast[vrt.Obj],
                                       Nil,

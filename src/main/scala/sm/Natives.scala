@@ -118,9 +118,9 @@ trait DefaultNatives extends Natives{
     x match{
       case o: vrt.Obj =>
         val matches = for {
-          m <- o.members
-          k <- m.keys.find(_.hashCode == i)
-        } yield m(k)
+          (f, m) <- o.members
+          if m.hashCode == i
+        } yield m
 
       case r: vrt.Arr =>
         r.backing(i.toInt).asInstanceOf[vrt.Val]
@@ -130,9 +130,9 @@ trait DefaultNatives extends Natives{
     x match{
       case o: vrt.Obj =>
         for {
-          m <- o.members
-          k <- m.keys.find(_.hashCode == i)
-        } yield m(k)() = b
+          (f, m) <- o.members
+          if m.hashCode == i
+        } yield m() = b
       case r: vrt.Arr.Obj =>
         r.backing(i.toInt) = b.asInstanceOf[vrt.Val]
     }
@@ -446,7 +446,7 @@ trait DefaultNatives extends Natives{
             "newInstance0(Ljava/lang/reflect/Constructor;[Ljava/lang/Object;)Ljava/lang/Object;" x2 {
               vt => (constr: Obj, args: Array[Obj]) =>
                 import vt.vm; import vm._
-                val cls: Cls = imm.Type.Cls(constr.members(0)("clazz").asInstanceOf[vrt.Cls].name)
+                val cls: Cls = imm.Type.Cls(constr.members.find(_._1.name == "clazz").get._2.asInstanceOf[vrt.Cls].name)
                 val newObj = new Obj(cls)
                 vt.invoke(cls.clsData.tpe, "<init>", Type.Desc.read("()V"), Seq(newObj))
                 newObj

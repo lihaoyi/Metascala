@@ -18,13 +18,7 @@ trait Ref{
 }
 object Obj{
   import scala.Boolean
-  def initMembers(cls: imm.Cls, filter: Field => Boolean)
-                 (implicit vm: VM): List[Seq[(String, Var)]] = {
-    import vm._
-    cls.fields.filter(filter).map{f =>
-      f.name -> new Var(f.desc.default)
-    } :: cls.superType.toList.flatMap(x => initMembers(x.clsData, filter))
-  }
+
 
 
   def apply(clsName: String, initMembers: (String, vrt.Val)*)(implicit vm: VM) = {
@@ -39,9 +33,7 @@ class Obj(val cls: rt.Cls, initMembers: (String, vrt.Val)*)
          (implicit vm: VM) extends StackVal with Cat1 with Ref{
   import vm._
 
-  val members =
-    Obj.initMembers(cls.clsData, x => (x.access & Access.Static) == 0)
-       .map(x => Map(x: _*))
+  val members = cls.fieldList.map(x => (x, new Var(x.desc.default)))
 
   var magicMembers = Map[String, Any]()
 
@@ -51,20 +43,17 @@ class Obj(val cls: rt.Cls, initMembers: (String, vrt.Val)*)
 
   def refType = cls.clsData.tpe
 
-  def resolveField(owner: imm.Type.Cls, name: String) = {
-    val start = cls.ancestry.indexWhere(_.tpe == owner)
-    members.drop(start)
-           .collect(Function.unlift(_.get(name)))
-           .head
 
-
-  }
   def apply(owner: imm.Type.Cls, name: String): vrt.Val = {
-    resolveField(owner, name)()
+
+    val x = members(owner.resolveField(owner, name))._2()
+    x
   }
 
   def update(owner: imm.Type.Cls, name: String, value: vrt.Val) = {
-    resolveField(owner, name)() = value
+
+    val x = members(owner.resolveField(owner, name))._2() = value
+    x
   }
 
   def withMagic(x: String, a: Any) = {

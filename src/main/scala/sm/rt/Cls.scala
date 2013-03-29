@@ -3,8 +3,8 @@ package sm.rt
 import collection.mutable
 
 
-import sm.{vrt, VM, imm}
-import sm.imm.Type
+import  sm.{vrt, VM, imm}
+import sm.imm.{Access, Type}
 
 class Var(var x: vrt.Val){
   def apply() = x
@@ -25,6 +25,7 @@ class Cls(val clsData: imm.Cls)(implicit vm: VM){
     clsData.fields.map{f =>
       f.name -> new Var(f.desc.default)
     }.toMap
+
 
   def method(name: String, desc: Type.Desc): Option[imm.Method] = {
     ancestry.flatMap(_.methods)
@@ -60,6 +61,13 @@ class Cls(val clsData: imm.Cls)(implicit vm: VM){
     rec(clsData)
   }
 
+  val fieldList: Seq[imm.Field] = {
+    clsData.superType.toSeq.flatMap(_.fieldList) ++ clsData.fields.filter(_.access.&(Access.Static) == 0)
+  }
+  def resolveField(owner: imm.Type.Cls, name: String) = {
+    fieldList.lastIndexWhere(_.name == name)
+  }
+
   def checkIsInstanceOf(desc: Type)(implicit vm: VM): Boolean = {
     import vm._
 
@@ -69,7 +77,6 @@ class Cls(val clsData: imm.Cls)(implicit vm: VM){
       clsData.superType
              .map(l => l.checkIsInstanceOf(desc))
              .getOrElse(false)
-
     res
   }
 }
