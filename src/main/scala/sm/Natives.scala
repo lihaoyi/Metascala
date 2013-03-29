@@ -54,7 +54,7 @@ object NativeUtils{
               case f: (V => V) => f(args(0))
               case f: V => f
             }
-            Seq((name, desc) -> newFunc)
+            Vector((name, desc) -> newFunc)
         }
       }
     }
@@ -247,7 +247,7 @@ trait DefaultNatives extends Natives{
                 fileLoader(str) match{
                   case None => vrt.Null
                   case Some(bytes) =>
-                    vrt.Obj("java.io.ByteArrayInputStream",
+                    vrt.Obj("java/io/ByteArrayInputStream",
                       "buf" -> new vrt.Arr.Prim(bytes),
                       "pos" -> 0,
                       "mark" -> 0,

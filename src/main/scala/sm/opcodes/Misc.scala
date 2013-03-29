@@ -108,6 +108,7 @@ object Misc {
   }
   case class InvokeStatic(owner: Type.Cls, name: String, desc: Type.Desc) extends OpCode{
     def op(vt: VmThread) =  {
+      println("SlowStatic")
       val argCount = desc.args.length
       val args = for(i <- 0 until argCount) yield vt.frame.stack.pop()
       vt.prepInvoke(owner, name, desc, args.reverse)

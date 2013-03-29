@@ -50,8 +50,8 @@ class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) 
     var startTime = System.currentTimeMillis()
     override def post(cls: rt.Cls) = {
       clsIndex.append(cls)
-//      println("Initializing " + cls.clsData.tpe.unparse)
-//      println("" + ((System.currentTimeMillis() - startTime) / 1000))
+      println("Initializing " + cls.clsData.tpe.unparse)
+      println("" + ((System.currentTimeMillis() - startTime) / 1000))
       cls.clsData
          .methods
          .find(m => m.name == "<clinit>" && m.desc == imm.Type.Desc.read("()V"))
@@ -85,7 +85,6 @@ class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) 
     val nIndex = vm.natives.trappedIndex.indexWhere{case ((name, idesc), func) =>
       (name == tpe.name + "/" + methodName) && (idesc == desc)
     }
-
 
     (nIndex, tpe) match{
       case (x, _) if x != -1 => Some((-1, x))

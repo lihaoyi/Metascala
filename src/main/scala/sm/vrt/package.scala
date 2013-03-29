@@ -79,7 +79,7 @@ package object vrt {
   implicit def virtFloatArray(i: Array[scala.Float])     = new Arr.Prim(i)
   implicit def virtLongArray(i: Array[scala.Long])       = new Arr.Prim(i)
   implicit def virtDoubleArray(i: Array[scala.Double])   = new Arr.Prim(i)
-  implicit def virtObjArray[T <: vrt.Obj with vrt.Ref](i: Array[T])      = new Arr.Obj(imm.Type.Cls(i.getClass.getComponentType.getName).asInstanceOf[imm.Type.Ref], i.map(x => x: Val))
+  implicit def virtObjArray[T <: vrt.Obj with vrt.Ref](i: Array[T])      = new Arr.Obj(imm.Type.Cls(i.getClass.getComponentType.getName.replace('.', '/')).asInstanceOf[imm.Type.Ref], i.map(x => x: Val))
 
 
   def forName(s: String) =

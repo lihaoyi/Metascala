@@ -111,7 +111,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
       case -1 =>
 
         val result = vm.natives.trappedIndex(methodIndex)._2(this)(args)
-        if (result != vrt.Unit) threadStack.head.stack.push(result.toStackVal)
+        if (result != ()) threadStack.head.stack.push(result.toStackVal)
       case n =>
         val cls = vm.Classes.clsIndex(tpeIndex)
         val method = cls.clsData.methods(methodIndex)
