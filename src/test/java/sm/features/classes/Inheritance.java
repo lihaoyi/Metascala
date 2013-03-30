@@ -1,6 +1,6 @@
 package sm.features.classes;
 
-public class Interfaces {
+public class Inheritance {
     public static String implement(int n){
         Baas b = new Sheep();
         return b.baa(n);
@@ -22,6 +22,10 @@ public class Interfaces {
         ((Honda)honda).cc++;
         return honda.vroom();
     }
+
+    public static String superMethod(){
+        return new Toyota().superVStart();
+    }
 }
 class Sheep implements Baas{
     public String baa(int n){
@@ -40,6 +44,9 @@ class Toyota extends Car{
 
     public String vStart(){
         return "vr";
+    }
+    public String superVStart(){
+        return super.vStart();
     }
 }
 class Honda extends Car{

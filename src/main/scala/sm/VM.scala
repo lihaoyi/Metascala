@@ -45,7 +45,9 @@ class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) 
   implicit object Classes extends Cache[imm.Type.Cls, rt.Cls]{
     val clsIndex = mutable.ArrayBuffer.empty[rt.Cls]
     def calc(t: imm.Type.Cls): rt.Cls = {
-      new rt.Cls(imm.Cls.parse(natives.fileLoader(t.name.replace(".", "/") + ".class").get))
+      val clsData = imm.Cls.parse(natives.fileLoader(t.name.replace(".", "/") + ".class").get)
+      clsData.superType.map(vm.Classes)
+      new rt.Cls(clsData, clsIndex.length)
     }
     var startTime = System.currentTimeMillis()
     override def post(cls: rt.Cls) = {

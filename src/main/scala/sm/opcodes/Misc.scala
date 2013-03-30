@@ -67,7 +67,7 @@ object Misc {
       }
     }
     override def opt(vm: VM) = {
-      Optimized.GetField(owner.cls(vm).resolveField(owner, name))
+      Optimized.GetField(owner.cls(vm).fieldList.lastIndexWhere(_.name == name))
     }
   }
   case class PutField(owner: Type.Cls, name: String, desc: Type) extends OpCode{
@@ -79,7 +79,7 @@ object Misc {
 
     }
     override def opt(vm: VM) = {
-      Optimized.PutField(owner.cls(vm).resolveField(owner, name))
+      Optimized.PutField(owner.cls(vm).fieldList.lastIndexWhere(_.name == name))
     }
   }
 
@@ -98,7 +98,50 @@ object Misc {
         vt.prepInvoke(objType, name, desc, args.reverse)
       }
     }
+    override def opt(vm: VM) = {
+      println("Optimizing " + owner.unparse + " " + name + " " + desc)
+      owner.cast[Type.Cls].cls(vm).methodList.foreach{ case (cls, i) =>
+
+        if (cls == null)
+          println("NATIVE " + vm.natives.trappedIndex(i)._1._1)
+        else{
+          val m = cls.clsData.methods(i)
+          println(cls.name + "\t" + m.name + "\t" + m.desc.unparse)
+        }
+      }
+      vm.Classes.clsIndex.map(_.name).foreach(println)
+
+      val Seq((clsIndex,  methodIndex)) =
+        owner.cast[Type.Cls]
+             .cls(vm)
+             .methodList
+             .zipWithIndex
+             .collect{
+          case ((null, methodIndex), in)
+            if vm.natives.trappedIndex.length > methodIndex
+            && {println(vm.natives.trappedIndex(methodIndex)._1._1.reverse.takeWhile(_ != '/').reverse); true}
+            && vm.natives.trappedIndex(methodIndex)._1._2 == desc
+            && vm.natives.trappedIndex(methodIndex)._1._1.reverse.takeWhile(_ != '/').reverse == name =>
+
+            (-1, in)
+
+          case ((cls, methodIndex), in)
+            if cls != null
+            && cls.clsData.methods(methodIndex).name == name
+            && cls.clsData.methods(methodIndex).desc == desc
+            && cls.clsData.methods(methodIndex).code != imm.Code() =>
+            (cls.index, in)
+
+
+          }
+
+
+      val x = Optimized.InvokeVirtual(clsIndex, methodIndex, desc.args.length)
+      println(x)
+      x
+    }
   }
+
   case class InvokeSpecial(owner: Type.Cls, name: String, desc: Type.Desc) extends OpCode{
     def op(vt: VmThread) = {
       val argCount = desc.args.length
@@ -108,7 +151,6 @@ object Misc {
   }
   case class InvokeStatic(owner: Type.Cls, name: String, desc: Type.Desc) extends OpCode{
     def op(vt: VmThread) =  {
-      println("SlowStatic")
       val argCount = desc.args.length
       val args = for(i <- 0 until argCount) yield vt.frame.stack.pop()
       vt.prepInvoke(owner, name, desc, args.reverse)
@@ -117,7 +159,7 @@ object Misc {
       vm.Classes(owner)
       vm.resolve(owner, name, desc) match {
         case Some((clsId, methodId)) => Optimized.InvokeStatic(clsId, methodId, desc.args.length)
-        case None => LoadStore.Nop
+        case None => ???
       }
 
 

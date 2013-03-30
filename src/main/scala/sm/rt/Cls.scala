@@ -1,4 +1,5 @@
-package sm.rt
+package sm
+package rt
 
 import collection.mutable
 
@@ -13,11 +14,9 @@ class Var(var x: vrt.Val){
   }
 }
 
-class Cls(val clsData: imm.Cls)(implicit vm: VM){
+class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
 
   import vm._
-
-  clsData.superType.map(vm.Classes)
 
   val insns = clsData.methods.map(x => mutable.Seq(x.code.insns:_*))
   lazy val obj = new vrt.Cls(Type.Cls(name))
@@ -31,7 +30,6 @@ class Cls(val clsData: imm.Cls)(implicit vm: VM){
     ancestry.flatMap(_.methods)
             .find(m => m.name == name && m.desc == desc)
   }
-
 
   def resolveStatic(owner: Type.Cls, name: String) = {
     ancestry.dropWhile(_.tpe != owner)
@@ -62,9 +60,42 @@ class Cls(val clsData: imm.Cls)(implicit vm: VM){
   val fieldList: Seq[imm.Field] = {
     clsData.superType.toSeq.flatMap(_.fieldList) ++ clsData.fields.filter(_.access.&(Access.Static) == 0)
   }
-  def resolveField(owner: imm.Type.Cls, name: String) = {
-    fieldList.lastIndexWhere(_.name == name)
+
+
+  val methodList: Seq[(rt.Cls, Int)] = {
+
+    val methods =
+      mutable.ArrayBuffer(
+        clsData.superType
+               .toArray
+               .flatMap(_.methodList): _*
+      )
+
+    clsData.methods
+           .filter(_.access.&(Access.Static) == 0)
+           .zipWithIndex.map{ case (m, i) =>
+      val index = methods.indexWhere{ case (cls, mi) =>
+        cls != null &&
+        cls.clsData.methods(mi).name == m.name &&
+        cls.clsData.methods(mi).desc == m.desc
+      }
+
+      val nIndex = vm.natives.trappedIndex.indexWhere{case ((n, idesc), func) =>
+        (n == name + "/" + m.name) && (idesc == m.desc)
+      }
+
+      (nIndex, index) match{
+        case (x, -1) if x != -1 => methods.append((null, x))
+        case (x, n) if x != -1 => methods(n) = (null, x)
+        case (_, -1) => methods.append((this, i))
+        case (_, n) => methods(n) = (this, i)
+      }
+    }
+
+
+    methods
   }
+
 
   def checkIsInstanceOf(desc: Type)(implicit vm: VM): Boolean = {
     import vm._

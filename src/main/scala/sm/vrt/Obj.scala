@@ -42,11 +42,11 @@ class Obj(val cls: rt.Cls, initMembers: (String, vrt.Val)*)
   def refType = cls.clsData.tpe
 
   def apply(owner: imm.Type.Cls, name: String): vrt.Val = {
-    members(owner.resolveField(owner, name))._2()
+    members(owner.fieldList.lastIndexWhere(_.name == name))._2()
   }
 
   def update(owner: imm.Type.Cls, name: String, value: vrt.Val) = {
-    members(owner.resolveField(owner, name))._2() = value
+    members(owner.fieldList.lastIndexWhere(_.name == name))._2() = value
   }
 
   def withMagic(x: String, a: Any) = {

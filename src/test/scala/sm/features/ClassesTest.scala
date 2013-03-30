@@ -14,12 +14,13 @@ class ClassesTest extends FreeSpec with Util{
     "override" in tester.run("override")
     "innerClass" in tester.run("innerClass")
   }
-  "interfaces" - {
+  "inheritance" - {
 
-    val tester = new Tester("sm.features.classes.Interfaces")
+    val tester = new Tester("sm.features.classes.Inheritance")
     "implement" in tester.run("implement", 10)
     "abstractClass" in tester.run("abstractClass")
     "shadowedInheritedGet" in tester.run("shadowedInheritedGet")
     "shadowedInheritedSet" in tester.run("shadowedInheritedSet")
+    "superMethod" in tester.run("superMethod")
   }
 }

@@ -49,8 +49,8 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     val node = insnsList(topFrame.pc)
     val optimized = node.opt(vm)
     insnsList(topFrame.pc) = optimized
-    vm.log(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack)
-    vm.log(indent + "---------------------- " + topFrame.pc + "\t" + node )
+//    println(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack)
+//    println(indent + "---------------------- " + topFrame.pc + "\t" + node )
     topFrame.pc += 1
     i += 1
     //if(i % 10000 == 0) println("i: " + i)
@@ -65,7 +65,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     //log(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack.map(x => if (x == null) null else x.getClass))
   }
   def returnVal(x: Option[vrt.StackVal]) = {
-//    log(indent + "Primitives from " + threadStack.head.runningClass.name + " " + threadStack.head.method.name)
+    println("Returning " + x)
     threadStack.pop()
     x.foreach(value => threadStack.head.stack.push(value))
   }
@@ -107,15 +107,18 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
   final def prepInvoke(tpeIndex: Int,
                        methodIndex: Int,
                        args: Seq[vrt.StackVal]) = {
+    println("PrepInvoke " + tpeIndex + " " + methodIndex)
     tpeIndex match{
       case -1 =>
-
+        println("PrepInvoke Native")
         val result = vm.natives.trappedIndex(methodIndex)._2(this)(args)
         if (result != ()) threadStack.head.stack.push(result.toStackVal)
       case n =>
         val cls = vm.Classes.clsIndex(tpeIndex)
-        val method = cls.clsData.methods(methodIndex)
 
+        //cls.clsData.methods.map(_.name).foreach(println)
+        val method = cls.clsData.methods(methodIndex)
+        println("PrepInvoke " + cls.name + " " + method.name)
         val array = new Array[vrt.StackVal](method.misc.maxLocals)
         var i = 0
         for (a <- args){
