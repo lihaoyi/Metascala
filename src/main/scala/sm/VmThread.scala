@@ -103,18 +103,18 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
   }
 
 
-  final def prepInvoke(tpeIndex: Int,
-                       methodIndex: Int,
+  final def prepInvoke(mRef: rt.MethodRef,
                        args: Seq[vrt.StackVal]) = {
-    tpeIndex match{
-      case -1 =>
-        val result = vm.natives.trappedIndex(methodIndex)._2(this)(args)
+//    println("PrepInvoke " + mRef)
+    mRef match{
+      case rt.MethodRef.Native(index) =>
+        val result = vm.natives.trappedIndex(index)._2(this)(args)
         if (result != ()) threadStack.head.stack.push(result.toStackVal)
-      case n =>
+      case rt.MethodRef.Cls(tpeIndex, methodIndex) =>
         val cls = vm.Classes.clsIndex(tpeIndex)
 
-        //cls.clsData.methods.map(_.name).foreach(println)
         val method = cls.clsData.methods(methodIndex)
+//        println(cls.name + " " + method.name + method.desc.unparse)
         val array = new Array[vrt.StackVal](method.misc.maxLocals)
         var i = 0
         for (a <- args){
@@ -137,16 +137,18 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
                        desc: imm.Type.Desc,
                        args: Seq[vrt.StackVal])
                        : Unit = {
+    //println("Prep Invoking By Name " + vm.Classes(tpe.cast[imm.Type.Cls]).name + " " + methodName + desc.unparse)
+    prepInvoke(
+      rt.MethodRef.Cls(
+        vm.Classes(tpe.cast[imm.Type.Cls]).index,
+        vm.Classes(tpe.cast[imm.Type.Cls])
+           .clsData
+           .methods
+           .indexWhere(m => m.name == methodName && m.desc == desc)
+      ),
+      args
+    )
 
-    vm.resolve(tpe, methodName, desc) match{
-      case Some((cIndex, mIndex)) =>
-        prepInvoke(cIndex, mIndex, args)
-      case None => throwException(
-        vrt.Obj("java/lang/RuntimeException",
-          "detailMessage" -> s"A Can't find method $methodName ${desc.unparse}"
-        )
-      )
-    }
   }
 
   def invoke(cls: imm.Type.Cls, methodName: String, desc: imm.Type.Desc, args: Seq[vrt.Val]): vrt.Val = {

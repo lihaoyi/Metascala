@@ -12,27 +12,33 @@ object Optimized {
     }
   }
 
-  case class InvokeStatic(clsIndex: Int, methodIndex: Int, argCount: Int) extends OpCode{
+  case class InvokeStatic(mRef: rt.MethodRef, argCount: Int) extends OpCode{
     def op(vt: VmThread) = {
       val args = for(i <- 0 until argCount) yield vt.frame.stack.pop()
-      vt.prepInvoke(clsIndex, methodIndex, args.toSeq.reverse)
+      vt.prepInvoke(mRef, args.toSeq.reverse)
     }
   }
 
-  case class InvokeVirtual(clsIndex: Int, methodIndex: Int, argCount: Int) extends OpCode{
+  case class InvokeSpecial(mRef: rt.MethodRef, argCount: Int) extends OpCode{
     def op(vt: VmThread) = {
       val args = for(i <- 0 until (argCount+1)) yield vt.frame.stack.pop()
-      ensureNonNull(vt, args.last){
+      vt.prepInvoke(mRef, args.toSeq.reverse)
+    }
+  }
 
+  case class InvokeVirtual(methodIndex: Int, argCount: Int) extends OpCode{
+    def op(vt: VmThread) = {
+
+      val args = for(i <- 0 until (argCount+1)) yield vt.frame.stack.pop()
+      ensureNonNull(vt, args.last){
         val objCls =
           args.last match{
             case a: vrt.Obj => a.cls
             case _ => vt.vm.Classes(imm.Type.Cls("java/lang/Object"))
           }
-        val (realCls, realIndex) = objCls.methodList(methodIndex)
-        vt.prepInvoke(Option(realCls).map(_.index).getOrElse(-1) , realIndex, args.toSeq.reverse)
+        val mRef = objCls.methodList(methodIndex)
+        vt.prepInvoke(mRef, args.toSeq.reverse)
       }
-
     }
   }
 

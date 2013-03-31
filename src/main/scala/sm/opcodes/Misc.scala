@@ -99,42 +99,17 @@ object Misc {
       }
     }
     override def opt(vm: VM) = {
+      implicit val v = vm
 
-      /*println("Optimizing " + owner.unparse + "/" + name + desc.unparse)
-      owner.cast[Type.Cls]
-        .cls(vm)
-        .methodList
-        .zipWithIndex
-        .foreach{ case ((cls, i), in) =>
-        if(cls != null){
-          println(in + "\t" + cls.name + "\t" + cls.clsData.methods(i).name)
-        }else{
-          println(in + "\t" + "Natives " + "\t" + vm.natives.trappedIndex(i)._1._1 + vm.natives.trappedIndex(i)._1._2.unparse)
-        }
-      }*/
-      val Seq((clsIndex,  methodIndex)) =
+      val index =
         owner.cast[Type.Cls]
              .cls(vm)
              .methodList
-             .zipWithIndex
-             .collect{
-          case ((null, methodIndex), in)
-            if vm.natives.trappedIndex.length > methodIndex
-            && vm.natives.trappedIndex(methodIndex)._1._2 == desc
-            && vm.natives.trappedIndex(methodIndex)._1._1.reverse.takeWhile(_ != '/').reverse == name =>
-
-            (-1, in)
-
-          case ((cls, methodIndex), in)
-            if cls != null
-            && cls.clsData.methods(methodIndex).name == name
-            && cls.clsData.methods(methodIndex).desc == desc =>
-
-            (cls.index, in)
-          }
+             .indexWhere{ m => m.name == name && m.desc == desc }
 
 
-      Optimized.InvokeVirtual(clsIndex, methodIndex, desc.args.length)
+
+      Optimized.InvokeVirtual(index, desc.args.length)
     }
   }
 
@@ -143,6 +118,23 @@ object Misc {
       val argCount = desc.args.length
       val args = for(i <- 0 until (argCount + 1)) yield vt.frame.stack.pop()
       vt.prepInvoke(owner, name, desc, args.reverse)
+    }
+    override def opt(vm: VM) = {
+      vm.Classes(owner)
+      val nativeId = vm.natives
+        .trappedIndex
+        .indexWhere(m => m._1._1.endsWith("/" + name) && m._1._2 == desc)
+
+      val methodId = owner.cls(vm)
+        .clsData
+        .methods
+        .indexWhere(m => m.name == name && m.desc == desc)
+      val mRef =
+        if(nativeId != -1) rt.MethodRef.Native(nativeId)
+        else if (methodId != -1) rt.MethodRef.Cls(owner.cls(vm).index, methodId)
+        else throw new Exception(s"Can't find method ${owner.unparse} $name ${desc.unparse}")
+
+      Optimized.InvokeSpecial(mRef, desc.args.length)
     }
   }
   case class InvokeStatic(owner: Type.Cls, name: String, desc: Type.Desc) extends OpCode{
@@ -153,12 +145,20 @@ object Misc {
     }
     override def opt(vm: VM) = {
       vm.Classes(owner)
-      vm.resolve(owner, name, desc) match {
-        case Some((clsId, methodId)) => Optimized.InvokeStatic(clsId, methodId, desc.args.length)
-        case None => ???
-      }
+      val nativeId = vm.natives
+                       .trappedIndex
+                       .indexWhere(m => m._1._1.endsWith("/" + name) && m._1._2 == desc)
 
+      val methodId = owner.cls(vm)
+                          .clsData
+                          .methods
+                          .indexWhere(m => m.name == name && m.desc == desc)
+      val mRef =
+        if(nativeId != -1) rt.MethodRef.Native(nativeId)
+        else if (methodId != -1) rt.MethodRef.Cls(owner.cls(vm).index, methodId)
+        else throw new Exception(s"Can't find method ${owner.unparse} $name ${desc.unparse}")
 
+      Optimized.InvokeStatic(mRef, desc.args.length)
     }
   }
 

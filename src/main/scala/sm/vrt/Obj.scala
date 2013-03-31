@@ -4,8 +4,6 @@ package vrt
 import collection.mutable
 import sm._
 import rt.Var
-import sm.imm.Field
-import sm.imm.Access
 
 import reflect.ClassTag
 import scala.Some
@@ -17,8 +15,6 @@ trait Ref{
   def refType: imm.Type.Ref
 }
 object Obj{
-  import scala.Boolean
-
   def apply(clsName: String, initMembers: (String, vrt.Val)*)(implicit vm: VM) = {
     new Obj(vm.Classes(imm.Type.Cls(clsName)), initMembers: _*)
   }
