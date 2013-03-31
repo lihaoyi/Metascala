@@ -101,10 +101,6 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
   }
 
   val methodMap: mutable.Map[(String, imm.Type.Desc), MethodRef] = mutable.Map.empty
-
-
-
-
 }
 trait MethodRef{
   def name: String

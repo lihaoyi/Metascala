@@ -21,9 +21,14 @@ object StackManip {
 
   class ManipOpCode(transform: List[vrt.StackVal] => List[vrt.StackVal]) extends OpCode{
     def op(vt: VmThread) =  {
-      val in = List.fill(vt.frame.stack.length min 4)(vt.pop)
-      val out = transform(in)
-      out.reverseMap(vt.push)
+      var i = vt.frame.stack.length min 4
+      var list: List[vrt.StackVal] = Nil
+      while(i > 0){
+        i -= 1
+        list = vt.pop :: list
+      }
+      val out = transform(list.reverse)
+      out.reverse.foreach(vt.push)
     }
   }
   case object Pop extends ManipOpCode({ case _ :: s => s })
