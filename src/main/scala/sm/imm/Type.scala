@@ -13,7 +13,9 @@ object Type{
       case s => Cls.read(s)
     }
   }
-  trait Ref extends Entity
+  trait Ref extends Entity{
+    def methodType: Type.Cls
+  }
   object Arr{
     def read(s: String) = Arr(Type.read(s.drop(1)).asInstanceOf[Entity])
   }
@@ -24,6 +26,7 @@ object Type{
     def parent(implicit vm: VM) = Some(imm.Type.Cls("java/lang/Object"))
     def realCls = innerType.realCls
     def default = vrt.Null
+    def methodType = Type.Cls("java/lang/Object")
   }
   object Cls{
     def read(s: String) = Cls(s)
@@ -36,6 +39,7 @@ object Type{
     override def obj(implicit vm: VM): vrt.Type = vm.Types(this)
     def realCls = classOf[Object]
     def default = vrt.Null
+    def methodType = this
   }
 
   object Prim{

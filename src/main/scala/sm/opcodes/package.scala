@@ -34,7 +34,7 @@ package object opcodes{
     def push(x: vrt.StackVal) = vt.frame.stack.push(x)
   }
 
-  def ensureNonNull(vt: VmThread, x: Any)(thunk: => Unit) = {
+  private[opcodes] final def ensureNonNull(vt: VmThread, x: Any)(thunk: => Unit) = {
     import vt._
     if (x == vrt.Null){
       throwException(vrt.Obj("java/lang/NullPointerException"))

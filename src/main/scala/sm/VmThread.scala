@@ -18,17 +18,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
   def getI = i
   def frame = threadStack.head
 
-  def getFramesDump = {
 
-    threadStack.map{ f =>
-      FrameDump(
-        f.runningClass.name,
-        f.method.name,
-        f.runningClass.clsData.misc.sourceFile.getOrElse(""),
-        f.method.code.attachments.take(f.pc).flatten.collect{ case LineNumber(i, _) => i }.lastOption.getOrElse(0)
-      )
-    }
-  }
   def getStackTrace =
     threadStack.map { f =>
       new StackTraceElement(
@@ -75,9 +65,6 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
   @tailrec final def throwException(ex: vrt.Obj, print: Boolean = true): Unit = {
 
-    if(!ex.magicMembers.contains("stackData")){
-      ex.withMagic("stackData", getFramesDump)
-    }
 
     threadStack.headOption match{
       case Some(frame)=>
@@ -98,7 +85,7 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
         throw new UncaughtVmException(ex.cls.clsData.tpe.unparse,
                                       ex(imm.Type.Cls("java/lang/Throwable"), "detailMessage").cast[vrt.Obj],
                                       Nil,
-                                      ex.magicMembers("stackData").asInstanceOf[mutable.Seq[FrameDump]])
+                                      Nil)
     }
   }
 
@@ -109,12 +96,11 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     mRef match{
       case rt.MethodRef.Native(index) =>
         val result = vm.natives.trappedIndex(index)._2(this)(args)
-        if (result != ()) threadStack.head.stack.push(result.toStackVal)
+        threadStack.head.stack.push(result.toStackVal)
+
       case rt.MethodRef.Cls(tpeIndex, methodIndex) =>
         val cls = vm.Classes.clsIndex(tpeIndex)
-
         val method = cls.clsData.methods(methodIndex)
-//        println(cls.name + " " + method.name + method.desc.unparse)
         val array = new Array[vrt.StackVal](method.misc.maxLocals)
         var i = 0
         for (a <- args){

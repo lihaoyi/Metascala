@@ -185,9 +185,9 @@ object LoadStore {
   val AStore3 = UnusedOpCode(78, "astore_3")
   //===============================================================
 
-  class StoreArray(store: PartialFunction[(vrt.StackVal, Int, Array[_]), Unit]) extends OpCode{
+  class StoreArray(store: Function1[(vrt.StackVal, Int, Array[_]), Unit]) extends OpCode{
     def op(vt: VmThread) = (vt.pop, vt.pop, vt.pop) match {
-      case (value, vrt.Int(index), arr: vrt.Arr) =>  store(value, index, arr.backing)
+      case (value, vrt.Int(index), arr: vrt.Arr) => store(value, index, arr.backing)
     }
   }
 

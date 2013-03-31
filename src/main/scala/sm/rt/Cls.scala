@@ -7,9 +7,9 @@ import collection.mutable
 import  sm.{vrt, VM, imm}
 import sm.imm.{Access, Type}
 
-class Var(var x: vrt.Val){
-  def apply() = x
-  def update(y: vrt.Val){
+final class Var(var x: vrt.Val){
+  final def apply() = x
+  final def update(y: vrt.Val){
     x = y
   }
 }
@@ -37,11 +37,11 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
   }
 
   def apply(owner: Type.Cls, name: String) = {
-    resolveStatic(owner: Type.Cls, name: String)()
+    resolveStatic(owner, name)()
   }
 
   def update(owner: Type.Cls, name: String, value: vrt.Val) = {
-    resolveStatic(owner: Type.Cls, name: String)() = value
+    resolveStatic(owner, name)() = value
   }
 
   def name = clsData.tpe.name

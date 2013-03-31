@@ -29,7 +29,7 @@ class Obj(val cls: rt.Cls, initMembers: (String, vrt.Val)*)
 
   val members = cls.fieldList.map(x => (x, new Var(x.desc.default)))
 
-  var magicMembers = Map[String, Any]()
+
 
   for ((s, v) <- initMembers){
     this(imm.Type.Cls.read(cls.name), s) = v
@@ -45,10 +45,7 @@ class Obj(val cls: rt.Cls, initMembers: (String, vrt.Val)*)
     members(owner.fieldList.lastIndexWhere(_.name == name))._2() = value
   }
 
-  def withMagic(x: String, a: Any) = {
-    magicMembers = magicMembers.updated(x, a)
-    this
-  }
+
   override def toString = {
     s"vrt.Obj(${cls.name})"
   }
