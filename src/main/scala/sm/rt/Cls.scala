@@ -94,7 +94,7 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
         else methods.update(index, _: (rt.Cls, Int))
 
       (m.concrete, nIndex) match {
-        case (false, -1) => () // do nothing
+        case (false, -1) => update((this, i))
         case (true, _) => update((this, i))
         case (_, n) => update((null, n))
 

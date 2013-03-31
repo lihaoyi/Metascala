@@ -100,7 +100,18 @@ object Misc {
     }
     override def opt(vm: VM) = {
 
-
+      /*println("Optimizing " + owner.unparse + "/" + name + desc.unparse)
+      owner.cast[Type.Cls]
+        .cls(vm)
+        .methodList
+        .zipWithIndex
+        .foreach{ case ((cls, i), in) =>
+        if(cls != null){
+          println(in + "\t" + cls.name + "\t" + cls.clsData.methods(i).name)
+        }else{
+          println(in + "\t" + "Natives " + "\t" + vm.natives.trappedIndex(i)._1._1 + vm.natives.trappedIndex(i)._1._2.unparse)
+        }
+      }*/
       val Seq((clsIndex,  methodIndex)) =
         owner.cast[Type.Cls]
              .cls(vm)
