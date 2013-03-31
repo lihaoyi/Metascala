@@ -416,10 +416,12 @@ trait DefaultNatives extends Natives{
                 }
             },
             "objectFieldOffset(Ljava/lang/reflect/Field;)J" x2 { vt => (unsafe: Any, x: Obj) =>
-              x(Type.Cls("java/lang/reflect/Field"), "slot").asInstanceOf[vrt.Int].toLong
+              val cls: Type.Cls = Type.Cls("java/lang/reflect/Field")
+              x(cls, "slot").asInstanceOf[vrt.Int].toLong
             },
             "staticFieldOffset(Ljava/lang/reflect/Field;)J" x2 { vt => (unsafe: Any, x: Obj) =>
-              x(Type.Cls("java/lang/reflect/Field"), "slot").asInstanceOf[vrt.Int].toLong
+              val cls: Type.Cls = Type.Cls("java/lang/reflect/Field")
+              x(cls, "slot").asInstanceOf[vrt.Int].toLong
             },
             "staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;" x2 { vt => (unsafe: Any, x: Obj) =>
               import vt._

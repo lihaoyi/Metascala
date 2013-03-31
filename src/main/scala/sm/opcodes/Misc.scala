@@ -239,10 +239,11 @@ object Misc {
           case (size :: Nil, Type.Arr(Type.Prim(c))) =>
             imm.Type.Prim.Info.charMap(c).newVirtArray(size)
 
-          case (size :: Nil, Type.Arr(innerType)) =>
-            new vrt.Arr.Obj(innerType.cast[imm.Type.Ref], Array.fill[vrt.Val](size)(innerType.default))
-          case (size :: tail, Type.Arr(innerType)) =>
-            new vrt.Arr.Obj(innerType.cast[imm.Type.Ref], Array.fill[vrt.Val](size)(rec(tail, innerType)))
+          case (size :: Nil, Type.Arr(innerType: imm.Type.Ref)) =>
+            new vrt.Arr.Obj(innerType, Array.fill[vrt.Val](size)(innerType.default))
+
+          case (size :: tail, Type.Arr(innerType: imm.Type.Ref)) =>
+            new vrt.Arr.Obj(innerType, Array.fill[vrt.Val](size)(rec(tail, innerType)))
         }
       }
       val (dimValues, newStack) = vt.frame.stack.splitAt(dims)

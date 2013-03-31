@@ -13,14 +13,14 @@ object Type{
       case s => Cls.read(s)
     }
   }
-  trait Ref extends Entity{
+  trait Ref extends Any with Entity{
     def methodType: Type.Cls
   }
   object Arr{
     def read(s: String) = Arr(Type.read(s.drop(1)).asInstanceOf[Entity])
   }
 
-  case class Arr(innerType: Type.Entity) extends Ref{
+  case class Arr(innerType: Type.Entity) extends AnyVal with Ref{
     def unparse = "[" + innerType.unparse
     def name = "[" + innerType.unparse
     def parent(implicit vm: VM) = Some(imm.Type.Cls("java/lang/Object"))
@@ -31,15 +31,15 @@ object Type{
   object Cls{
     def read(s: String) = Cls(s)
   }
-  case class Cls(name: String) extends Ref{
-    assert(!name.contains('.'), "Cls name cannot contain . " + name)
+  case class Cls(name: String) extends AnyVal with Ref {
+    //assert(!name.contains('.'), "Cls name cannot contain . " + name)
     def unparse = name
     def cls(implicit vm: VM) = vm.Classes(this)
     def parent(implicit vm: VM) = this.cls.clsData.superType
     override def obj(implicit vm: VM): vrt.Type = vm.Types(this)
     def realCls = classOf[Object]
     def default = vrt.Null
-    def methodType = this
+    def methodType: Type.Cls = this
   }
 
   object Prim{
@@ -73,7 +73,7 @@ object Type{
       def apply[T: Info]() = implicitly[Info[T]].tpe
     }
   }
-  case class Prim(char: Char) extends Entity{
+  case class Prim(char: Char) extends AnyVal with Entity{
     def unparse = ""+char
     def name = imm.Type.Prim.Info.charMap(char).name
 
@@ -112,7 +112,7 @@ object Type{
   case class Desc(args: Seq[Type], ret: Type) extends Type{
     def unparse = "(" + args.map(Desc.unparse).foldLeft("")(_+_) + ")" + Desc.unparse(ret)
   }
-  trait Entity extends Type{
+  trait Entity extends Any with Type{
     def parent(implicit vm: VM): Option[Entity]
     def realCls: Class[_]
     // byte char int long java/lang/String
@@ -121,7 +121,7 @@ object Type{
 
   }
 }
-trait Type{
+trait Type extends Any{
   //  B C I J Ljava/lang/String;
   def unparse: String
 
