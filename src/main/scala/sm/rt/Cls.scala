@@ -94,6 +94,9 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
     methods
   }
 
+  lazy val methodMap: mutable.Map[(String, imm.Type.Desc), MethodRef] = mutable.Map.empty
+
+
 
   def checkIsInstanceOf(desc: Type)(implicit vm: VM): Boolean = {
     import vm._
@@ -108,19 +111,19 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
   }
 }
 trait MethodRef{
-  def name(implicit vm: VM): String
-  def desc(implicit vm: VM): imm.Type.Desc
+  def name: String
+  def desc: imm.Type.Desc
 }
 object MethodRef{
-  case class Native(index: Int) extends MethodRef{
-    def name(implicit vm: VM) = vm.natives.trappedIndex(index)._1._1.reverse.takeWhile(_ != '/').reverse
-    def desc(implicit vm: VM) = vm.natives.trappedIndex(index)._1._2
+  case class Native(index: Int)(implicit vm: VM) extends MethodRef{
+    lazy val name = vm.natives.trappedIndex(index)._1._1.reverse.takeWhile(_ != '/').reverse
+    lazy val desc = vm.natives.trappedIndex(index)._1._2
   }
-  case class Cls(clsIndex: Int, index: Int) extends MethodRef{
+  case class Cls(clsIndex: Int, index: Int)(implicit vm: VM) extends MethodRef{
     assert(clsIndex >= 0, "clsIndex can't be negative")
     assert(index >= 0, "index can't be negative")
-    def name(implicit vm: VM) = vm.Classes.clsIndex(clsIndex).clsData.methods(index).name
+    lazy val name = vm.Classes.clsIndex(clsIndex).clsData.methods(index).name
 
-    def desc(implicit vm: VM) = vm.Classes.clsIndex(clsIndex).clsData.methods(index).desc
+    lazy val desc = vm.Classes.clsIndex(clsIndex).clsData.methods(index).desc
   }
 }

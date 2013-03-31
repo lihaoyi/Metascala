@@ -1,6 +1,7 @@
 package sm
 package opcodes
 import sm.imm.Type
+import collection.mutable
 
 object Misc {
   case class Goto(label: Int) extends OpCode{
@@ -111,19 +112,20 @@ object Misc {
   }
 
   case class InvokeInterface(owner: Type.Cls, name: String, desc: Type.Desc) extends OpCode{
+
     def op(vt: VmThread) =  {
       import vt.vm
       val argCount = desc.args.length
       val args = for(i <- 0 until (argCount + 1)) yield vt.frame.stack.pop()
       ensureNonNull(vt, args.last){
         val objType = args.last.cast[vrt.Ref].refType.methodType
-        vm.Classes(objType)
-
+        val cls = vm.Classes(objType)
         vt.prepInvoke(
-          vm.Classes(objType.cast[imm.Type.Cls])
-            .methodList
-            .find(m => m.name == name && m.desc == desc)
-            .get
+          cls.methodMap.getOrElseUpdate((name, desc),
+            cls.methodList
+               .find(m => m.name == name && m.desc == desc)
+               .get
+          )
           ,
           args.reverse
         )
