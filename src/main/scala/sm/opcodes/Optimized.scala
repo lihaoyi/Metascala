@@ -27,7 +27,7 @@ object Optimized {
         val objCls =
           args.last match{
             case a: vrt.Obj => a.cls
-            case _ => vt.vm.Classes.clsIndex(clsIndex)
+            case _ => vt.vm.Classes(imm.Type.Cls("java/lang/Object"))
           }
         val (realCls, realIndex) = objCls.methodList(methodIndex)
         vt.prepInvoke(Option(realCls).map(_.index).getOrElse(-1) , realIndex, args.toSeq.reverse)
