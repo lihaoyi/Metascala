@@ -151,6 +151,23 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
   }
 
+  final def prepInvokeD(tpe: imm.Type.Entity,
+                       methodName: String,
+                       desc: imm.Type.Desc,
+                       args: Seq[vrt.StackVal])
+                       : Unit = {
+    //println("Prep Invoking By Name " + vm.Classes(tpe.cast[imm.Type.Cls]).name + " " + methodName + desc.unparse)
+    prepInvoke(
+
+      vm.Classes(tpe.cast[imm.Type.Cls])
+        .methodList
+        .find(m => m.name == methodName && m.desc == desc)
+        .get
+      ,
+      args
+    )
+
+  }
   def invoke(cls: imm.Type.Cls, methodName: String, desc: imm.Type.Desc, args: Seq[vrt.Val]): vrt.Val = {
     val dummyFrame = new Frame(
       runningClass = cls,

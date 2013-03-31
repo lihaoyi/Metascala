@@ -137,8 +137,11 @@ object Misc {
             case a: vrt.Obj => a.cls.clsData.tpe
             case _ => owner
           }
+        vm.Classes(objType)
+        println("InvokeInterface")
+        println(objType + "\t" + name + desc.unparse)
 
-        vt.prepInvoke(objType, name, desc, args.reverse)
+        vt.prepInvokeD(objType, name, desc, args.reverse)
       }
     }
   }

@@ -54,10 +54,12 @@ class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) 
       clsIndex.append(cls)
       println("Initializing " + cls.clsData.tpe.unparse)
       println("" + ((System.currentTimeMillis() - startTime) / 1000))
-      cls.clsData
-         .methods
-         .find(m => m.name == "<clinit>" && m.desc == imm.Type.Desc.read("()V"))
-         .foreach( m => threads(0).invoke(imm.Type.Cls(cls.name), "<clinit>", imm.Type.Desc.read("()V"), Nil))
+      val initMethod = cls.clsData
+                          .methods
+                          .find(m => m.name == "<clinit>" && m.desc == imm.Type.Desc.read("()V"))
+
+      println(initMethod)
+      initMethod.foreach( m => threads(0).invoke(cls.clsData.tpe, "<clinit>", imm.Type.Desc.read("()V"), Nil))
     }
   }
 

@@ -55,14 +55,15 @@ class MetacircularTest extends FreeSpec with Util{
   var count = 0
 
   val tester = new Tester("sm.full.MetacircularTest")
+  "helloWorld" in {
+    tester.run("helloWorld")
+  }
   /*"sqrtFinder" in {
     tester.run("sqrtFinder")
     println(tester.svm.threads(0).getI)
 
   }
-  "helloWorld" in {
-    tester.run("helloWorld")
-  }
+
 
   "fibonacci" in {
     tester.run("fibonacci")

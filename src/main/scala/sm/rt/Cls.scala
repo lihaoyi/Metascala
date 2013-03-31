@@ -117,6 +117,8 @@ object MethodRef{
     def desc(implicit vm: VM) = vm.natives.trappedIndex(index)._1._2
   }
   case class Cls(clsIndex: Int, index: Int) extends MethodRef{
+    assert(clsIndex >= 0, "clsIndex can't be negative")
+    assert(index >= 0, "index can't be negative")
     def name(implicit vm: VM) = vm.Classes.clsIndex(clsIndex).clsData.methods(index).name
 
     def desc(implicit vm: VM) = vm.Classes.clsIndex(clsIndex).clsData.methods(index).desc
