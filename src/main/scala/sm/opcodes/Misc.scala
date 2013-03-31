@@ -84,6 +84,49 @@ object Misc {
   }
 
   case class InvokeVirtual(owner: Type.Entity, name: String, desc: Type.Desc) extends OpCode{
+    def op(vt: VmThread) = ???
+    override def opt(vm: VM) = {
+      implicit val v = vm
+
+      val index =
+        owner.cast[Type.Cls]
+             .cls(vm)
+             .methodList
+             .indexWhere{ m => m.name == name && m.desc == desc }
+
+      Optimized.InvokeVirtual(index, desc.args.length)
+    }
+  }
+
+  def resolveDirectRef(owner: Type.Cls, name: String, desc: Type.Desc)(implicit vm: VM) = {
+    val nativeId = vm.natives
+      .trappedIndex
+      .indexWhere(m => m._1._1.endsWith("/" + name) && m._1._2 == desc)
+
+    val methodId = owner.cls(vm)
+      .clsData
+      .methods
+      .indexWhere(m => m.name == name && m.desc == desc)
+    val mRef =
+      if(nativeId != -1) rt.MethodRef.Native(nativeId)
+      else if (methodId != -1) rt.MethodRef.Cls(owner.cls(vm).index, methodId)
+      else throw new Exception(s"Can't find method ${owner.unparse} $name ${desc.unparse}")
+    mRef
+  }
+  case class InvokeSpecial(owner: Type.Cls, name: String, desc: Type.Desc) extends OpCode{
+    def op(vt: VmThread) = ???
+    override def opt(vm: VM) = {
+      Optimized.InvokeSpecial(resolveDirectRef(owner, name, desc)(vm), desc.args.length)
+    }
+  }
+  case class InvokeStatic(owner: Type.Cls, name: String, desc: Type.Desc) extends OpCode{
+    def op(vt: VmThread) = ???
+    override def opt(vm: VM) = {
+      Optimized.InvokeStatic(resolveDirectRef(owner, name, desc)(vm), desc.args.length)
+    }
+  }
+
+  case class InvokeInterface(owner: Type.Cls, name: String, desc: Type.Desc) extends OpCode{
     def op(vt: VmThread) =  {
       import vt.vm
       val argCount = desc.args.length
@@ -98,72 +141,6 @@ object Misc {
         vt.prepInvoke(objType, name, desc, args.reverse)
       }
     }
-    override def opt(vm: VM) = {
-      implicit val v = vm
-
-      val index =
-        owner.cast[Type.Cls]
-             .cls(vm)
-             .methodList
-             .indexWhere{ m => m.name == name && m.desc == desc }
-
-
-
-      Optimized.InvokeVirtual(index, desc.args.length)
-    }
-  }
-
-  case class InvokeSpecial(owner: Type.Cls, name: String, desc: Type.Desc) extends OpCode{
-    def op(vt: VmThread) = {
-      val argCount = desc.args.length
-      val args = for(i <- 0 until (argCount + 1)) yield vt.frame.stack.pop()
-      vt.prepInvoke(owner, name, desc, args.reverse)
-    }
-    override def opt(vm: VM) = {
-      vm.Classes(owner)
-      val nativeId = vm.natives
-        .trappedIndex
-        .indexWhere(m => m._1._1.endsWith("/" + name) && m._1._2 == desc)
-
-      val methodId = owner.cls(vm)
-        .clsData
-        .methods
-        .indexWhere(m => m.name == name && m.desc == desc)
-      val mRef =
-        if(nativeId != -1) rt.MethodRef.Native(nativeId)
-        else if (methodId != -1) rt.MethodRef.Cls(owner.cls(vm).index, methodId)
-        else throw new Exception(s"Can't find method ${owner.unparse} $name ${desc.unparse}")
-
-      Optimized.InvokeSpecial(mRef, desc.args.length)
-    }
-  }
-  case class InvokeStatic(owner: Type.Cls, name: String, desc: Type.Desc) extends OpCode{
-    def op(vt: VmThread) =  {
-      val argCount = desc.args.length
-      val args = for(i <- 0 until argCount) yield vt.frame.stack.pop()
-      vt.prepInvoke(owner, name, desc, args.reverse)
-    }
-    override def opt(vm: VM) = {
-      vm.Classes(owner)
-      val nativeId = vm.natives
-                       .trappedIndex
-                       .indexWhere(m => m._1._1.endsWith("/" + name) && m._1._2 == desc)
-
-      val methodId = owner.cls(vm)
-                          .clsData
-                          .methods
-                          .indexWhere(m => m.name == name && m.desc == desc)
-      val mRef =
-        if(nativeId != -1) rt.MethodRef.Native(nativeId)
-        else if (methodId != -1) rt.MethodRef.Cls(owner.cls(vm).index, methodId)
-        else throw new Exception(s"Can't find method ${owner.unparse} $name ${desc.unparse}")
-
-      Optimized.InvokeStatic(mRef, desc.args.length)
-    }
-  }
-
-  case class InvokeInterface(owner: Type.Cls, name: String, desc: Type.Desc) extends OpCode{
-    def op(vt: VmThread) = InvokeVirtual(owner, name, desc).op(vt)
   }
 
   case class InvokeDynamic(name: String, desc: String, bsm: Object, args: Object) extends OpCode{ def op(vt: VmThread) = ??? }

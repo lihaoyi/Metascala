@@ -84,13 +84,11 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
         if (index == -1) methods.append(_: MethodRef)
         else methods.update(index, _: MethodRef)
 
-      (m.concrete, nIndex) match {
-        case (false, -1) => update(MethodRef.Cls(this.index, i))
-        case (true, _) => update(MethodRef.Cls(this.index, i))
-        case (_, n) => update(MethodRef.Native(n))
+      nIndex match {
+        case -1 => update(MethodRef.Cls(this.index, i))
+        case n => update(MethodRef.Native(n))
 
       }
-
     }
 
     methods
