@@ -14,30 +14,29 @@ object Optimized {
 
   case class InvokeStatic(mRef: rt.MethodRef, argCount: Int) extends OpCode{
     def op(vt: VmThread) = {
-      val args = for(i <- 0 until argCount) yield vt.frame.stack.pop()
-      vt.prepInvoke(mRef, args.toSeq.reverse)
+
+      vt.prepInvoke(mRef, vt.popArgs(argCount))
     }
   }
 
   case class InvokeSpecial(mRef: rt.MethodRef, argCount: Int) extends OpCode{
     def op(vt: VmThread) = {
-      val args = for(i <- 0 until (argCount+1)) yield vt.frame.stack.pop()
-      vt.prepInvoke(mRef, args.toSeq.reverse)
+
+      vt.prepInvoke(mRef, vt.popArgs(argCount+1))
     }
   }
 
   case class InvokeVirtual(methodIndex: Int, argCount: Int) extends OpCode{
     def op(vt: VmThread) = {
-
-      val args = for(i <- 0 until (argCount+1)) yield vt.frame.stack.pop()
-      ensureNonNull(vt, args.last){
+      val args = vt.popArgs(argCount+1)
+      ensureNonNull(vt, args.head){
         val objCls =
-          args.last match{
+          args.head match{
             case a: vrt.Obj => a.cls
             case _ => vt.vm.Classes(imm.Type.Cls("java/lang/Object"))
           }
         val mRef = objCls.methodList(methodIndex)
-        vt.prepInvoke(mRef, args.toSeq.reverse)
+        vt.prepInvoke(mRef, args)
       }
     }
   }

@@ -32,6 +32,12 @@ package object opcodes{
   implicit class poppable(val vt: VmThread) extends AnyVal{
     def pop = vt.frame.stack.pop()
     def push(x: vrt.StackVal) = vt.frame.stack.push(x)
+    def popArgs(n: Int) = {
+      val args = new Array[vrt.StackVal](n)
+      var i = n-1
+      while(i >= 0) {args(i) = vt.frame.stack.pop(); i-=1}
+      args
+    }
   }
 
   private[opcodes] final def ensureNonNull(vt: VmThread, x: Any)(thunk: => Unit) = {
@@ -42,5 +48,6 @@ package object opcodes{
       thunk
     }
   }
+
 
 }

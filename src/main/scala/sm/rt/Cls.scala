@@ -26,12 +26,12 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
 
 
   def method(name: String, desc: Type.Desc): Option[imm.Method] = {
-    ancestry.flatMap(_.methods)
+    clsAncestry.flatMap(_.methods)
             .find(m => m.name == name && m.desc == desc)
   }
 
   def resolveStatic(owner: Type.Cls, name: String) = {
-    ancestry.dropWhile(_.tpe != owner)
+    clsAncestry.dropWhile(_.tpe != owner)
       .find(_.fields.exists(_.name == name))
       .get.tpe.statics(name)
   }
@@ -46,7 +46,7 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
 
   def name = clsData.tpe.name
 
-  val ancestry = {
+  val clsAncestry = {
     def rec(cd: imm.Cls): List[imm.Cls] = {
       cd.superType match{
         case None => List(cd)
@@ -54,6 +54,12 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
       }
     }
     rec(clsData)
+  }
+
+  lazy val typeAncestry: Set[imm.Type.Cls] = {
+    Set(this.clsData.tpe) ++
+    clsData.superType.toSeq.flatMap(_.cls.typeAncestry) ++
+    clsData.interfaces.flatMap(_.cls.typeAncestry)
   }
 
   val fieldList: Seq[imm.Field] = {
@@ -94,21 +100,11 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
     methods
   }
 
-  lazy val methodMap: mutable.Map[(String, imm.Type.Desc), MethodRef] = mutable.Map.empty
+  val methodMap: mutable.Map[(String, imm.Type.Desc), MethodRef] = mutable.Map.empty
 
 
 
-  def checkIsInstanceOf(desc: Type)(implicit vm: VM): Boolean = {
-    import vm._
 
-    val res =
-      clsData.tpe == desc ||
-      clsData.interfaces.exists(_.checkIsInstanceOf(desc)) ||
-      clsData.superType
-             .map(l => l.checkIsInstanceOf(desc))
-             .getOrElse(false)
-    res
-  }
 }
 trait MethodRef{
   def name: String

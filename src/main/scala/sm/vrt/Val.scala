@@ -16,11 +16,11 @@ trait Val{
 
 
 trait StackVal extends Val{
-  def size: Int
+  def size: scala.Int
 }
 trait Cat1 extends StackVal{
-  def size: Int = 1
+  def size: scala.Int = 1
 }
 trait Cat2 extends StackVal{
-  def size: Int = 2
+  def size: scala.Int = 2
 }

@@ -32,11 +32,11 @@ object Misc {
     }
   }
 
-  case object IReturn extends OpCode{ def op(vt: VmThread) =  vt.returnVal(Some(vt.frame.stack.head)) }
-  case object LReturn extends OpCode{ def op(vt: VmThread) =  vt.returnVal(Some(vt.frame.stack.head)) }
-  case object FReturn extends OpCode{ def op(vt: VmThread) =  vt.returnVal(Some(vt.frame.stack.head)) }
-  case object DReturn extends OpCode{ def op(vt: VmThread) =  vt.returnVal(Some(vt.frame.stack.head)) }
-  case object AReturn extends OpCode{ def op(vt: VmThread) =  vt.returnVal(Some(vt.frame.stack.head)) }
+  case object IReturn extends OpCode{ def op(vt: VmThread) =  vt.returnVal(Some(vt.frame.stack.pop)) }
+  case object LReturn extends OpCode{ def op(vt: VmThread) =  vt.returnVal(Some(vt.frame.stack.pop)) }
+  case object FReturn extends OpCode{ def op(vt: VmThread) =  vt.returnVal(Some(vt.frame.stack.pop)) }
+  case object DReturn extends OpCode{ def op(vt: VmThread) =  vt.returnVal(Some(vt.frame.stack.pop)) }
+  case object AReturn extends OpCode{ def op(vt: VmThread) =  vt.returnVal(Some(vt.frame.stack.pop)) }
   case object Return extends OpCode{ def op(vt: VmThread) =  vt.returnVal(None) }
 
   case class GetStatic(owner: Type.Cls, name: String, desc: Type) extends OpCode{
@@ -64,12 +64,12 @@ object Misc {
 
   }
 
-  case class InvokeVirtual(owner: Type.Entity, name: String, desc: Type.Desc) extends OpCode{
+  case class InvokeVirtual(owner: Type.Ref, name: String, desc: Type.Desc) extends OpCode{
     def op(vt: VmThread) = {
       import vt.vm
 
       val index =
-        owner.cast[Type.Ref]
+        owner
           .methodType
           .cls
           .methodList
@@ -85,24 +85,43 @@ object Misc {
       .trappedIndex
       .indexWhere(m => m._1._1.endsWith("/" + name) && m._1._2 == desc)
 
-    val methodId = owner.cls(vm)
+    val methodId = owner.cls
       .clsData
       .methods
       .indexWhere(m => m.name == name && m.desc == desc)
-    val mRef =
-      if(nativeId != -1) rt.MethodRef.Native(nativeId)
-      else if (methodId != -1) rt.MethodRef.Cls(owner.cls(vm).index, methodId)
-      else throw new Exception(s"Can't find method ${owner.unparse} $name ${desc.unparse}")
-    mRef
+
+    if(nativeId != -1) Some(rt.MethodRef.Native(nativeId))
+    else if (methodId != -1) {
+      if(owner.cls.clsData.methods(methodId).code.insns.length != 1)
+        Some(rt.MethodRef.Cls(owner.cls(vm).index, methodId))
+      else
+        None
+    }else throw new Exception(s"Can't find method ${owner.unparse} $name ${desc.unparse}")
+
   }
 
   case class InvokeSpecial(owner: Type.Cls, name: String, desc: Type.Desc) extends OpCode{
-    def op(vt: VmThread) = vt.optimize(Optimized.InvokeSpecial(resolveDirectRef(owner, name, desc)(vt.vm), desc.args.length))
+    def op(vt: VmThread) = vt.optimize{
+      import vt.vm
+
+      resolveDirectRef(owner, name, desc) match{
+        case None => StackManip.Pop
+        case Some(methodRef) => Optimized.InvokeSpecial(methodRef, desc.args.length)
+      }
+
+    }
 
   }
 
   case class InvokeStatic(owner: Type.Cls, name: String, desc: Type.Desc) extends OpCode{
-    def op(vt: VmThread) = vt.optimize(Optimized.InvokeStatic(resolveDirectRef(owner, name, desc)(vt.vm), desc.args.length))
+    def op(vt: VmThread) = vt.optimize {
+      import vt.vm
+      resolveDirectRef(owner, name, desc) match{
+        case None => StackManip.Pop
+        case Some(methodRef) => Optimized.InvokeStatic(methodRef, desc.args.length)
+      }
+    }
+
   }
 
   case class InvokeInterface(owner: Type.Cls, name: String, desc: Type.Desc) extends OpCode{
@@ -110,9 +129,9 @@ object Misc {
     def op(vt: VmThread) =  {
       import vt.vm
       val argCount = desc.args.length
-      val args = for(i <- 0 until (argCount + 1)) yield vt.frame.stack.pop()
-      ensureNonNull(vt, args.last){
-        val objType = args.last.cast[vrt.Ref].refType.methodType
+      val args = vt.popArgs(argCount + 1)
+      ensureNonNull(vt, args.head){
+        val objType = args.head.cast[vrt.Ref].refType.methodType
         val cls = vm.Classes(objType)
         vt.prepInvoke(
           cls.methodMap.getOrElseUpdate((name, desc),
@@ -121,7 +140,7 @@ object Misc {
                .get
           )
           ,
-          args.reverse
+          args
         )
       }
     }
@@ -195,7 +214,7 @@ object Misc {
   def check(s: imm.Type.Entity, t: imm.Type.Entity)(implicit vm: VM): Boolean = {
     (s, t) match{
 
-      case (s: Type.Cls, t) => s.cls.checkIsInstanceOf(t)
+      case (s: Type.Cls, t: Type.Cls) => s.cls.typeAncestry.contains(t)
       case (s: Type.Arr, Type.Cls("java/lang/Object")) => true
       case (s: Type.Arr, Type.Cls("java/lang/Cloneable")) => true
       case (s: Type.Arr, Type.Cls("java/io/Serializable")) => true

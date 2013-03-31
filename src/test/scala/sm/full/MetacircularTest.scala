@@ -55,14 +55,14 @@ class MetacircularTest extends FreeSpec with Util{
   var count = 0
 
   val tester = new Tester("sm.full.MetacircularTest")
-  /*"helloWorld" in {
+  "helloWorld" in {
     tester.run("helloWorld")
-  }*/
+  }
   "sqrtFinder" in {
     tester.run("sqrtFinder")
     println(tester.svm.threads(0).getI)
 
-  }/*
+  }
 
 
   "fibonacci" in {
@@ -86,7 +86,7 @@ class MetacircularTest extends FreeSpec with Util{
   "multiCatch" in {
     tester.run("multiCatch")
     println(tester.svm.threads(0).getI)
-  }*/
+  }
   /*
   "doubleMetaOne" in {
     tester.run("doubleMetaOne")
