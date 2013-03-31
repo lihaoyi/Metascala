@@ -58,7 +58,7 @@ class MetacircularTest extends FreeSpec with Util{
   "helloWorld" in {
     tester.run("helloWorld")
   }
-  /*"sqrtFinder" in {
+  "sqrtFinder" in {
     tester.run("sqrtFinder")
     println(tester.svm.threads(0).getI)
 
@@ -87,6 +87,7 @@ class MetacircularTest extends FreeSpec with Util{
     tester.run("multiCatch")
     println(tester.svm.threads(0).getI)
   }
+  /*
   "doubleMetaOne" in {
     tester.run("doubleMetaOne")
     println(tester.svm.threads(0).getI)

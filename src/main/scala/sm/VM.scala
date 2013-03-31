@@ -58,7 +58,6 @@ class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) 
                           .methods
                           .find(m => m.name == "<clinit>" && m.desc == imm.Type.Desc.read("()V"))
 
-      println(initMethod)
       initMethod.foreach( m => threads(0).invoke(cls.clsData.tpe, "<clinit>", imm.Type.Desc.read("()V"), Nil))
     }
   }

@@ -87,9 +87,12 @@ object Misc {
     def op(vt: VmThread) = ???
     override def opt(vm: VM) = {
       implicit val v = vm
-
+      val newOwner = owner match{
+        case x: Type.Cls => x
+        case _ => imm.Type.Cls("java/lang/Object")
+      }
       val index =
-        owner.cast[Type.Cls]
+        newOwner
              .cls(vm)
              .methodList
              .indexWhere{ m => m.name == name && m.desc == desc }
@@ -138,10 +141,15 @@ object Misc {
             case _ => owner
           }
         vm.Classes(objType)
-        println("InvokeInterface")
-        println(objType + "\t" + name + desc.unparse)
 
-        vt.prepInvokeD(objType, name, desc, args.reverse)
+        vt.prepInvoke(
+          vm.Classes(objType.cast[imm.Type.Cls])
+            .methodList
+            .find(m => m.name == name && m.desc == desc)
+            .get
+          ,
+          args.reverse
+        )
       }
     }
   }
