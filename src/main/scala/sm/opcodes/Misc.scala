@@ -40,45 +40,44 @@ object Misc {
   case object Return extends OpCode{ def op(vt: VmThread) =  vt.returnVal(None) }
 
   case class GetStatic(owner: Type.Cls, name: String, desc: Type) extends OpCode{
-    def op(vt: VmThread) = ???
-    override def opt(vm: VM) = {
-      Optimized.GetStatic(owner.cls(vm).resolveStatic(owner, name))
-    }
+    def op(vt: VmThread) = vt.optimize(
+      Optimized.GetStatic(owner.cls(vt.vm).resolveStatic(owner, name))
+    )
+
   }
   case class PutStatic(owner: Type.Cls, name: String, desc: Type) extends OpCode{
-    def op(vt: VmThread) = ???
-    override def opt(vm: VM) = {
-      Optimized.PutStatic(owner.cls(vm).resolveStatic(owner, name))
-    }
+    def op(vt: VmThread) = vt.optimize(
+      Optimized.PutStatic(owner.cls(vt.vm).resolveStatic(owner, name))
+    )
+
   }
 
   case class GetField(owner: Type.Cls, name: String, desc: Type) extends OpCode{
-    def op(vt: VmThread) = ???
-    override def opt(vm: VM) = {
-      Optimized.GetField(owner.cls(vm).fieldList.lastIndexWhere(_.name == name))
-    }
+    def op(vt: VmThread) = vt.optimize(
+      Optimized.GetField(owner.cls(vt.vm).fieldList.lastIndexWhere(_.name == name))
+    )
   }
   case class PutField(owner: Type.Cls, name: String, desc: Type) extends OpCode{
-    def op(vt: VmThread) = ???
-    override def opt(vm: VM) = {
-      Optimized.PutField(owner.cls(vm).fieldList.lastIndexWhere(_.name == name))
-    }
+    def op(vt: VmThread) = vt.optimize(
+      Optimized.PutField(owner.cls(vt.vm).fieldList.lastIndexWhere(_.name == name))
+    )
+
   }
 
   case class InvokeVirtual(owner: Type.Entity, name: String, desc: Type.Desc) extends OpCode{
-    def op(vt: VmThread) = ???
-    override def opt(vm: VM) = {
-      implicit val v = vm
+    def op(vt: VmThread) = {
+      import vt.vm
 
       val index =
         owner.cast[Type.Ref]
-             .methodType
-             .cls(vm)
-             .methodList
-             .indexWhere{ m => m.name == name && m.desc == desc }
+          .methodType
+          .cls
+          .methodList
+          .indexWhere{ m => m.name == name && m.desc == desc }
 
-      Optimized.InvokeVirtual(index, desc.args.length)
+      vt.optimize(Optimized.InvokeVirtual(index, desc.args.length))
     }
+
   }
 
   def resolveDirectRef(owner: Type.Cls, name: String, desc: Type.Desc)(implicit vm: VM) = {
@@ -98,17 +97,12 @@ object Misc {
   }
 
   case class InvokeSpecial(owner: Type.Cls, name: String, desc: Type.Desc) extends OpCode{
-    def op(vt: VmThread) = ???
-    override def opt(vm: VM) = {
-      Optimized.InvokeSpecial(resolveDirectRef(owner, name, desc)(vm), desc.args.length)
-    }
+    def op(vt: VmThread) = vt.optimize(Optimized.InvokeSpecial(resolveDirectRef(owner, name, desc)(vt.vm), desc.args.length))
+
   }
 
   case class InvokeStatic(owner: Type.Cls, name: String, desc: Type.Desc) extends OpCode{
-    def op(vt: VmThread) = ???
-    override def opt(vm: VM) = {
-      Optimized.InvokeStatic(resolveDirectRef(owner, name, desc)(vm), desc.args.length)
-    }
+    def op(vt: VmThread) = vt.optimize(Optimized.InvokeStatic(resolveDirectRef(owner, name, desc)(vt.vm), desc.args.length))
   }
 
   case class InvokeInterface(owner: Type.Cls, name: String, desc: Type.Desc) extends OpCode{
@@ -136,11 +130,13 @@ object Misc {
   case class InvokeDynamic(name: String, desc: String, bsm: Object, args: Object) extends OpCode{ def op(vt: VmThread) = ??? }
 
   case class New(desc: Type.Cls) extends OpCode{
-    def op(vt: VmThread) = ???
-    override def opt(vm: VM) = {
-      vm.Classes(desc)
-      Optimized.New(vm.Classes.clsIndex.indexWhere(_.clsData.tpe == desc))
+    def op(vt: VmThread) = {
+      vt.vm.Classes(desc)
+      vt.optimize(
+        Optimized.New(vt.vm.Classes.clsIndex.indexWhere(_.clsData.tpe == desc))
+      )
     }
+
   }
   case class NewArray(typeCode: Int) extends OpCode{
     def op(vt: VmThread) =  {

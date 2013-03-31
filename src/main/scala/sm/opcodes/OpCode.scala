@@ -12,7 +12,6 @@ import collection.convert.wrapAsScala._
 
 abstract class OpCode{
   def op(vt: VmThread): Any
-  def opt(vm: VM): OpCode = this
 }
 
 object OpCode {

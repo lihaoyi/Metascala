@@ -3,6 +3,7 @@ import collection.mutable
 import imm.Attached.LineNumber
 import imm.{TryCatchBlock, Method, Code}
 import annotation.tailrec
+import opcodes.OpCode
 import rt.Cls
 import vrt.Cat1
 
@@ -33,18 +34,23 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
   def indent = "\t" * threadStack.filter(_.method.name != "Dummy").length
 
+  def optimize(opcode: OpCode) = {
+    val topFrame = threadStack.head
+    val insnsList = topFrame.runningClass.insns(topFrame.methodIndex)
+    insnsList(topFrame.pc-1) = opcode
+    opcode.op(this)
+  }
   final def step() = {
     val topFrame = threadStack.head
     val insnsList = topFrame.runningClass.insns(topFrame.methodIndex)
     val node = insnsList(topFrame.pc)
-    val optimized = node.opt(vm)
-    insnsList(topFrame.pc) = optimized
+
 //    println(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack)
 //    println(indent + "---------------------- " + topFrame.pc + "\t" + node )
     topFrame.pc += 1
     i += 1
     try{
-      optimized.op(this)
+      node.op(this)
     }catch{ case e: Throwable =>
       this.dumpStack.foreach(x => vm log x)
       throw e
