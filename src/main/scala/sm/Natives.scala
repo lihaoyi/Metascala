@@ -466,10 +466,7 @@ trait DefaultNatives extends Natives{
       )
     ).toRoute()
   }
-  println("TRAPPED INDEX")
-  trappedIndex.zipWithIndex
-              .map{case (a, b) => b + "\t" + a._1}
-              .foreach(println)
+
   val trapped = trappedIndex.toMap
 
 

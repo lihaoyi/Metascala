@@ -99,17 +99,7 @@ object Misc {
       }
     }
     override def opt(vm: VM) = {
-      println("Optimizing " + owner.unparse + " " + name + " " + desc)
-      owner.cast[Type.Cls].cls(vm).methodList.foreach{ case (cls, i) =>
 
-        if (cls == null)
-          println("NATIVE " + vm.natives.trappedIndex(i)._1._1)
-        else{
-          val m = cls.clsData.methods(i)
-          println(cls.name + "\t" + m.name + "\t" + m.desc.unparse)
-        }
-      }
-      vm.Classes.clsIndex.map(_.name).foreach(println)
 
       val Seq((clsIndex,  methodIndex)) =
         owner.cast[Type.Cls]
@@ -119,7 +109,6 @@ object Misc {
              .collect{
           case ((null, methodIndex), in)
             if vm.natives.trappedIndex.length > methodIndex
-            && {println(vm.natives.trappedIndex(methodIndex)._1._1.reverse.takeWhile(_ != '/').reverse); true}
             && vm.natives.trappedIndex(methodIndex)._1._2 == desc
             && vm.natives.trappedIndex(methodIndex)._1._1.reverse.takeWhile(_ != '/').reverse == name =>
 
@@ -128,17 +117,13 @@ object Misc {
           case ((cls, methodIndex), in)
             if cls != null
             && cls.clsData.methods(methodIndex).name == name
-            && cls.clsData.methods(methodIndex).desc == desc
-            && cls.clsData.methods(methodIndex).code != imm.Code() =>
+            && cls.clsData.methods(methodIndex).desc == desc =>
+
             (cls.index, in)
-
-
           }
 
 
-      val x = Optimized.InvokeVirtual(clsIndex, methodIndex, desc.args.length)
-      println(x)
-      x
+      Optimized.InvokeVirtual(clsIndex, methodIndex, desc.args.length)
     }
   }
 
@@ -168,7 +153,6 @@ object Misc {
 
   case class InvokeInterface(owner: Type.Cls, name: String, desc: Type.Desc) extends OpCode{
     def op(vt: VmThread) = InvokeVirtual(owner, name, desc).op(vt)
-    override def opt(vm: VM) = InvokeVirtual(owner, name, desc).opt(vm)
   }
 
   case class InvokeDynamic(name: String, desc: String, bsm: Object, args: Object) extends OpCode{ def op(vt: VmThread) = ??? }

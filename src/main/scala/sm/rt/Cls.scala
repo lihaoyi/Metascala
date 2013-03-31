@@ -15,7 +15,7 @@ class Var(var x: vrt.Val){
 }
 
 class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
-
+  println("NEw Class " + this.name + " " + index)
   import vm._
 
   val insns = clsData.methods.map(x => mutable.Seq(x.code.insns:_*))
@@ -63,7 +63,6 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
 
 
   val methodList: Seq[(rt.Cls, Int)] = {
-
     val methods =
       mutable.ArrayBuffer(
         clsData.superType
@@ -72,27 +71,36 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
       )
 
     clsData.methods
-           .filter(_.access.&(Access.Static) == 0)
-           .zipWithIndex.map{ case (m, i) =>
+           .zipWithIndex
+           .filter(_._1.access.&(Access.Static) == 0)
+           .map{ case (m, i) =>
+
       val index = methods.indexWhere{ case (cls, mi) =>
-        cls != null &&
-        cls.clsData.methods(mi).name == m.name &&
-        cls.clsData.methods(mi).desc == m.desc
+        if(cls != null){
+          cls.clsData.methods(mi).name == m.name &&
+          cls.clsData.methods(mi).desc == m.desc
+        }else{
+          vm.natives.trappedIndex(mi)._1._1.reverse.takeWhile(_ != '/').reverse == m.name &&
+          vm.natives.trappedIndex(mi)._1._2 == m.desc
+        }
       }
 
       val nIndex = vm.natives.trappedIndex.indexWhere{case ((n, idesc), func) =>
         (n == name + "/" + m.name) && (idesc == m.desc)
       }
 
-      (nIndex, index) match{
-        case (x, -1) if x != -1 => methods.append((null, x))
-        case (x, n) if x != -1 => methods(n) = (null, x)
-        case (_, -1) => methods.append((this, i))
-        case (_, n) => methods(n) = (this, i)
+      val update =
+        if (index == -1) methods.append(_: (rt.Cls, Int))
+        else methods.update(index, _: (rt.Cls, Int))
+
+      (m.concrete, nIndex) match {
+        case (false, -1) => () // do nothing
+        case (true, _) => update((this, i))
+        case (_, n) => update((null, n))
+
       }
+
     }
-
-
     methods
   }
 

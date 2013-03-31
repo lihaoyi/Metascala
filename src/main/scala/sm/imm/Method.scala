@@ -52,7 +52,9 @@ case class Method(access: Int,
                   exceptions: Seq[String] = Nil,
                   code: Code = Code(),
                   misc: Method.Misc = Method.Misc(),
-                  annotations: Method.Annotations = Method.Annotations())
+                  annotations: Method.Annotations = Method.Annotations()){
+  def concrete = code != Code()
+}
 
 object Code{
 

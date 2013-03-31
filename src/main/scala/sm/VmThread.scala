@@ -65,7 +65,6 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
     //log(indent + topFrame.runningClass.name + "/" + topFrame.method.name + ": " + topFrame.stack.map(x => if (x == null) null else x.getClass))
   }
   def returnVal(x: Option[vrt.StackVal]) = {
-    println("Returning " + x)
     threadStack.pop()
     x.foreach(value => threadStack.head.stack.push(value))
   }
@@ -107,10 +106,8 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
   final def prepInvoke(tpeIndex: Int,
                        methodIndex: Int,
                        args: Seq[vrt.StackVal]) = {
-    println("PrepInvoke " + tpeIndex + " " + methodIndex)
     tpeIndex match{
       case -1 =>
-        println("PrepInvoke Native")
         val result = vm.natives.trappedIndex(methodIndex)._2(this)(args)
         if (result != ()) threadStack.head.stack.push(result.toStackVal)
       case n =>
@@ -118,7 +115,6 @@ class VmThread(val threadStack: mutable.Stack[Frame] = mutable.Stack())(implicit
 
         //cls.clsData.methods.map(_.name).foreach(println)
         val method = cls.clsData.methods(methodIndex)
-        println("PrepInvoke " + cls.name + " " + method.name)
         val array = new Array[vrt.StackVal](method.misc.maxLocals)
         var i = 0
         for (a <- args){

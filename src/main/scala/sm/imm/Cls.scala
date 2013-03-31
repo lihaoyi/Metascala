@@ -53,4 +53,8 @@ case class Cls(access_flags: Int,
                interfaces: Seq[Type.Cls] = Nil,
                fields: Seq[Field] = Nil,
                methods: Seq[Method] = Nil,
-               misc: Cls.Misc = Cls.Misc())
+               misc: Cls.Misc = Cls.Misc()){
+
+  def instanceMethods = methods.filter(_.access.&(Access.Static) == 0)
+  def staticMethods = methods.filter(_.access.&(Access.Static) != 0)
+}
