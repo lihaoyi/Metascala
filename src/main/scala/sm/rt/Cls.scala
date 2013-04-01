@@ -89,8 +89,8 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
 
       val index = oldMethods.indexWhere{ mRef => mRef.name == m.name && mRef.desc == m.desc }
 
-      val native = vm.natives.trapped.find{case ((n, idesc), func) =>
-        (n == name + "/" + m.name) && (idesc == m.desc)
+      val native = vm.natives.trapped.find{case rt.Method.Native(clsName, (mName, idesc), func) =>
+        (name == clsName) && (mName == m.name) && (idesc == m.desc)
       }
 
       val update =
@@ -99,7 +99,7 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
 
       native match {
         case None => update(m)
-        case Some(((name, desc), op)) => update(Method.Native((name, desc), op))
+        case Some(native) => update(native)
 
       }
     }

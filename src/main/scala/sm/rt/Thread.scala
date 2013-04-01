@@ -119,7 +119,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
                        args: Seq[vrt.StackVal]) = {
     vm.log("PrepInvoke " + mRef.name)
     mRef match{
-      case rt.Method.Native((name, desc), op) =>
+      case rt.Method.Native(clsName, (name, desc), op) =>
         val result = op(this)(args)
         if(desc.ret != imm.Type.Prim('V'))threadStack.top.stack.push(result.toStackVal)
 
@@ -151,8 +151,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
                        desc: imm.Desc,
                        args: Seq[vrt.StackVal])
                        : Unit = {
-    //println("Prep Invoking By Name " + vm.ClsTable(tpe.cast[imm.Type.Cls]).name + " " + methodName + desc.unparse)
-
 
     prepInvoke(
       vm.ClsTable(tpe.cast[imm.Type.Cls])

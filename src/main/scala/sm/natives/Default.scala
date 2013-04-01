@@ -414,6 +414,5 @@ trait Default extends Bindings{
     ).toRoute()
   }
 
-//  val trapped = trappedIndex.toMap
 }
 

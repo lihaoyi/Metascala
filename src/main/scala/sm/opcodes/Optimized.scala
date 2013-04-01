@@ -48,7 +48,7 @@ object Optimized {
             case Method.Cls(clsIndex, _, method) =>
               val cls = vt.vm.ClsTable.clsIndex(clsIndex)
               cls.name + " " + method.name + method.desc.unparse
-            case Method.Native((name, desc), op) =>
+            case Method.Native(clsName, (name, desc), op) =>
               "Native " + name + desc.unparse
           }.foreach(println)
           throw e

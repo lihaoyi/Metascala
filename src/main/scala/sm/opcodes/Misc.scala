@@ -85,8 +85,7 @@ object Misc {
     val native =
       vm.natives
         .trapped
-        .find(m => m._1._1.endsWith("/" + name) && m._1._2 == desc)
-        .map(n => rt.Method.Native(n._1, n._2))
+        .find{ case rt.Method.Native(clsName, (mName, mDesc), func) => mName == name && mDesc == desc}
 
     val method =
       owner.cls
