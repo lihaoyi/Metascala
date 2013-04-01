@@ -16,7 +16,7 @@ trait Ref{
 }
 object Obj{
   def apply(clsName: String, initMembers: (String, vrt.Val)*)(implicit vm: VM) = {
-    new Obj(vm.Classes(imm.Type.Cls(clsName)), initMembers: _*)
+    new Obj(vm.ClsTable(imm.Type.Cls(clsName)), initMembers: _*)
   }
   def unapply(x: Any) = x match{
     case x: Obj => Some((x.cls.name, x.members))
@@ -52,7 +52,7 @@ class Obj(val cls: rt.Cls, initMembers: (String, vrt.Val)*)
 }
 
 trait Arr extends StackVal with Cat1 with Ref{
-  val tpe: imm.Type.Entity
+  val tpe: imm.Type
 val backing: Array[_]
   def apply(index: Int): vrt.Val
 }

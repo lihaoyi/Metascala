@@ -1,17 +1,21 @@
 package sm
 
 import opcodes.OpCode
+import rt.Thread
 
 
 /**
  * `opcodes` contains the stack manipulating behavior of each individual
  * opcode. Each opcode is a case class or case object extending the trait
- * [[OpCode]]. These are split into three separate files to help keep
+ * [[opcode.OpCode]]. These are split into three separate files to help keep
  * compile times down.
  *
- * A large number of the opcodes are unused (they extend [[sm.imm.opcodes.UnusedOpCode]])
+ * A large number of the opcodes are unused (they extend [[sm.opcodes.UnusedOpCode]])
  * as ASM folds these into other opcodes for us automatically. For example,
- * `LDC`, `LDC_W` and `LDC_2W` all get folded into `LDC` before being given to us
+ * `LDC`, `LDC_W` and `LDC_2W` all get folded into `LDC` by ASM before being
+ * made available to ScalaMachine. Furthermore, some opcodes are immediately
+ * converted into optimized variants living in Optimized.scala, for example with
+ * pre-computed method or field offsets.
  */
 package object opcodes{
 
@@ -26,10 +30,10 @@ package object opcodes{
   type L = vrt.Obj
 
   private[opcodes] case class UnusedOpCode(val id: Byte, val insnName: String) extends OpCode{
-    def op(vt: VmThread)  = ???
+    def op(vt: Thread)  = ???
   }
   implicit def intToByte(n: Int) = n.toByte
-  implicit class poppable(val vt: VmThread) extends AnyVal{
+  implicit class poppable(val vt: Thread) extends AnyVal{
     def pop = vt.frame.stack.pop()
     def push(x: vrt.StackVal) = vt.frame.stack.push(x)
     def popArgs(n: Int) = {
@@ -40,7 +44,7 @@ package object opcodes{
     }
   }
 
-  private[opcodes] final def ensureNonNull(vt: VmThread, x: Any)(thunk: => Unit) = {
+  private[opcodes] final def ensureNonNull(vt: Thread, x: Any)(thunk: => Unit) = {
     import vt._
     if (x == vrt.Null){
       throwException(vrt.Obj("java/lang/NullPointerException"))

@@ -12,7 +12,7 @@ object Type{
 }
 class Type(val tpe: imm.Type, initMembers: (String, vrt.Val)*)
           (implicit vm: VM)
-          extends Obj(vm.Classes(imm.Type.Cls("java/lang/Class")), initMembers: _*){
+          extends Obj(vm.ClsTable(imm.Type.Cls("java/lang/Class")), initMembers: _*){
   def getDeclaredConstructors() = Arr.Obj(imm.Type.Cls("java/lang/reflect/Constructor"), 0)
   def getDeclaredFields() = Arr.Obj(imm.Type.Cls("java/lang/reflect/Field"), 0)
   def getDeclaredMethods() = Arr.Obj(imm.Type.Cls("java/lang/reflect/Method"), 0)

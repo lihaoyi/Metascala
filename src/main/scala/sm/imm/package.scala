@@ -3,15 +3,21 @@ import collection.convert.wrapAsScala._
 import reflect.ClassTag
 
 /**
- * This vrt contains the code involved in reading the .class files
+ * This package contains the code involved in reading .class files
  * (using ASM) and generating an immutable representation of all the data
  * structures encoded in the class file.
  *
- * There should be no mutable state in this vrt; any operations on mutable
- * state defined in this vrt should have their mutable variables injected
- * in as method parameters.
+ * Almost every class in this package will have a read() method, which takes
+ * in some data structure (provided by ASM) and constructs an instance of the
+ * class. read() is generally called recursively to construct the members of
+ * each instance, until the entire instance is constructed.
  */
 package object imm {
+
+  /**
+   * Convenience methods to provide a safe way of converting null Lists, Arrays
+   * or Objects into empty Lists, Arrays or None
+   */
   private[imm] implicit class nullSafeList[T](val list: java.util.List[T]) extends AnyVal{
     def safeSeq: Seq[T] = {
       Option(list).toVector.flatten

@@ -11,7 +11,7 @@ object Method {
     Method(
       mn.access,
       mn.name,
-      Type.Desc.read(mn.desc),
+      Desc.read(mn.desc),
       mn.exceptions.safeSeq,
       Code.read(mn.instructions),
       Misc(
@@ -48,7 +48,7 @@ object Method {
 
 case class Method(access: Int,
                   name: String,
-                  desc: Type.Desc,
+                  desc: Desc,
                   exceptions: Seq[String] = Nil,
                   code: Code = Code(),
                   misc: Method.Misc = Method.Misc(),

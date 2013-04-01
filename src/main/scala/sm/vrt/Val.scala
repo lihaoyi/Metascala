@@ -14,13 +14,24 @@ trait Val{
 
 }
 
-
+/**
+ * Represents a value that can exist on the operand stack of the
+ * ScalaMachine VM: everything except booleans, chars, bytes and shorts
+ * which are all converted into ints
+ */
 trait StackVal extends Val{
   def size: scala.Int
 }
+
+/**
+ * A value of size 1
+ */
 trait Cat1 extends StackVal{
   def size: scala.Int = 1
 }
+/**
+ * A value of size 2
+ */
 trait Cat2 extends StackVal{
   def size: scala.Int = 2
 }

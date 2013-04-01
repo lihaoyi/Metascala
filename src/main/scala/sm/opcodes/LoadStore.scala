@@ -6,14 +6,15 @@ import sm.imm.{Type}
 
 import collection.mutable
 import sm.vrt
+import rt.Thread
 
 object LoadStore {
   case object Nop extends OpCode{
-    def op(vt: VmThread) = ()
+    def op(vt: Thread) = ()
   }
 
   class PushOpCode(value: vrt.StackVal) extends OpCode{
-    def op(vt: VmThread) = vt.frame.stack.push(value)
+    def op(vt: Thread) = vt.frame.stack.push(value)
   }
 
   case object AConstNull extends PushOpCode(vrt.Null)
@@ -37,7 +38,7 @@ object LoadStore {
   case object DConst1 extends PushOpCode(1d)
 
   class PushValOpCode(value: vrt.Int) extends OpCode{
-    def op(vt: VmThread) = vt.frame.stack.push(value)
+    def op(vt: Thread) = vt.frame.stack.push(value)
   }
 
   case class BiPush(value: Int) extends PushValOpCode(value)
@@ -55,7 +56,7 @@ object LoadStore {
   }
 
   case class Ldc(const: Any) extends OpCode{
-    def op(vt: VmThread) = {
+    def op(vt: Thread) = {
 
       import vt.vm
       import vm._
@@ -80,7 +81,7 @@ object LoadStore {
   //===============================================================
 
   abstract class PushLocalIndexed() extends OpCode{
-    def op(vt: VmThread) = vt.frame.stack.push(vt.frame.locals(index))
+    def op(vt: Thread) = vt.frame.stack.push(vt.frame.locals(index))
     def index: Int
   }
 
@@ -122,7 +123,7 @@ object LoadStore {
 
 
   class PushFromArray() extends OpCode{
-    def op(vt: VmThread) = (vt.pop, vt.pop) match {
+    def op(vt: Thread) = (vt.pop, vt.pop) match {
       case (vrt.Int(index), arr: vrt.Arr)=>
         import vt._
         if (arr.backing.isDefinedAt(index)){
@@ -148,7 +149,7 @@ object LoadStore {
 
   abstract class StoreLocal() extends OpCode{
     def varId: Int
-    def op(vt: VmThread) = vt.frame.locals(varId) = vt.pop
+    def op(vt: Thread) = vt.frame.locals(varId) = vt.pop
 
   }
   case class IStore(varId: Int) extends StoreLocal()
@@ -186,7 +187,7 @@ object LoadStore {
   //===============================================================
 
   class StoreArray(store: Function1[(vrt.StackVal, Int, Array[_]), Unit]) extends OpCode{
-    def op(vt: VmThread) = (vt.pop, vt.pop, vt.pop) match {
+    def op(vt: Thread) = (vt.pop, vt.pop, vt.pop) match {
       case (value, vrt.Int(index), arr: vrt.Arr) => store(value, index, arr.backing)
     }
   }

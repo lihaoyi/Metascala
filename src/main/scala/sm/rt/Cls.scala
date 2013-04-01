@@ -7,6 +7,9 @@ import collection.mutable
 import  sm.{vrt, VM, imm}
 import sm.imm.{Access, Type}
 
+/**
+ * A handle to a readable and writable value.
+ */
 final class Var(var x: vrt.Val){
   final def apply() = x
   final def update(y: vrt.Val){
@@ -25,7 +28,7 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
     }.toMap
 
 
-  def method(name: String, desc: Type.Desc): Option[imm.Method] = {
+  def method(name: String, desc: imm.Desc): Option[imm.Method] = {
     clsAncestry.flatMap(_.methods)
                .find(m => m.name == name && m.desc == desc)
   }
@@ -65,7 +68,7 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
   }
 
 
-  lazy val methodList: Seq[MethodRef] = {
+  lazy val methodList: Seq[Method] = {
     val methods =
       mutable.ArrayBuffer(
         clsData.superType
@@ -85,12 +88,12 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
       }
 
       val update =
-        if (index == -1) methods.append(_: MethodRef)
-        else methods.update(index, _: MethodRef)
+        if (index == -1) methods.append(_: Method)
+        else methods.update(index, _: Method)
 
       nIndex match {
-        case -1 => update(MethodRef.Cls(this.index, i))
-        case n => update(MethodRef.Native(n))
+        case -1 => update(Method.Cls(this.index, i))
+        case n => update(Method.Native(n))
 
       }
     }
@@ -98,22 +101,7 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
     methods
   }
 
-  val methodMap: mutable.Map[(String, imm.Type.Desc), MethodRef] = mutable.Map.empty
+  val methodMap: mutable.Map[(String, imm.Desc), Method] = mutable.Map.empty
 }
-trait MethodRef{
-  def name: String
-  def desc: imm.Type.Desc
-}
-object MethodRef{
-  case class Native(index: Int)(implicit vm: VM) extends MethodRef{
-    lazy val name = vm.natives.trappedIndex(index)._1._1.reverse.takeWhile(_ != '/').reverse
-    lazy val desc = vm.natives.trappedIndex(index)._1._2
-  }
-  case class Cls(clsIndex: Int, index: Int)(implicit vm: VM) extends MethodRef{
-    assert(clsIndex >= 0, "clsIndex can't be negative")
-    assert(index >= 0, "index can't be negative")
-    lazy val name = vm.Classes.clsIndex(clsIndex).clsData.methods(index).name
 
-    lazy val desc = vm.Classes.clsIndex(clsIndex).clsData.methods(index).desc
-  }
-}
+

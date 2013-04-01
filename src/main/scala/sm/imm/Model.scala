@@ -45,7 +45,7 @@ object Field {
     Field(
       fn.access,
       fn.name,
-      imm.Type.read(fn.desc).cast[imm.Type.Entity],
+      imm.Type.read(fn.desc),
       fn.signature.safeOpt,
       fn.value,
       fn.visibleAnnotations.safeSeq.map(Annotation.read),
@@ -58,7 +58,7 @@ object Field {
 
 case class Field(access: Int,
                  name: String,
-                 desc: sm.imm.Type.Entity,
+                 desc: sm.imm.Type,
                  signature: Option[String],
                  value: Any,
                  visibleAnnotations: Seq[Annotation],

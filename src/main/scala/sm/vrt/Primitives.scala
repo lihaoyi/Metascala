@@ -9,9 +9,5 @@ case class Int(v: scala.Int) extends Cat1
 case class Float(v: scala.Float)extends Cat1
 case class Long(v: scala.Long) extends Cat2
 case class Double(v: scala.Double) extends Cat2
-case object Null extends Cat1{
-  def v = null
-}
+case object Null extends Cat1
 case object Unit extends Cat1{
-  def v = ()
-}

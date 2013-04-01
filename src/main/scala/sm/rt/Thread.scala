@@ -1,15 +1,21 @@
-package sm
-import collection.mutable
-import imm.Attached.LineNumber
-import imm.{TryCatchBlock, Method, Code}
-import annotation.tailrec
-import opcodes.Misc.Return
-import opcodes.OpCode
-import rt.Cls
-import vrt.Cat1
-import collection.mutable.ArrayBuffer
+package sm.rt
 
-class VmThread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(implicit val vm: VM){
+import collection.mutable
+import annotation.tailrec
+import collection.mutable.ArrayBuffer
+import sm._
+import imm.Attached.LineNumber
+import sm.imm.Attached.LineNumber
+import sm.opcodes.OpCode
+import scala.Some
+import sm.UncaughtVmException
+import sm.vrt
+import sm.imm
+
+/**
+ * A single thread within the ScalaMachine VM.
+ */
+class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(implicit val vm: VM){
   import vm._
   lazy val obj = vrt.Obj("java/lang/Thread",
     "name" -> "MyThread".toCharArray,
@@ -21,12 +27,11 @@ class VmThread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack()
   def getI = i
   def frame = threadStack.top
 
-
   def getStackTrace =
     threadStack.map { f =>
       new StackTraceElement(
         f.runningClass.name,
-        if (f.method.code != Code()) f.method.name + f.method.desc.unparse + " " + f.method.code.insns(f.pc) else "",
+        if (f.method.code != imm.Code()) f.method.name + f.method.desc.unparse + " " + f.method.code.insns(f.pc) else "",
         f.runningClass.clsData.misc.sourceFile.getOrElse("[no source]"),
         f.method.code.attachments.flatten.reverse.collect{
           case LineNumber(line, startPc) if startPc < f.pc => line
@@ -37,7 +42,6 @@ class VmThread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack()
   def indent = "\t" * threadStack.filter(_.method.name != "Dummy").length
 
   def optimize(opcode: OpCode) = {
-    
     val insnsList = frame.runningClass.insns(frame.methodIndex)
     insnsList(frame.pc-1) = opcode
     opcode.op(this)
@@ -90,7 +94,7 @@ class VmThread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack()
           case None =>
             threadStack.pop()
             throwException(ex, false)
-          case Some(TryCatchBlock(start, end, handler, blockType)) =>
+          case Some(imm.TryCatchBlock(start, end, handler, blockType)) =>
             frame.pc = handler
             frame.stack.push(ex)
         }
@@ -103,17 +107,17 @@ class VmThread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack()
   }
 
 
-  final def prepInvoke(mRef: rt.MethodRef,
+  final def prepInvoke(mRef: rt.Method,
                        args: Seq[vrt.StackVal]) = {
 //    println("PrepInvoke " + mRef)
     mRef match{
-      case rt.MethodRef.Native(index) =>
+      case rt.Method.Native(index) =>
         val ((name, desc), op) = vm.natives.trappedIndex(index)
         val result = op(this)(args)
         if(desc.ret != imm.Type.Prim('V'))threadStack.top.stack.push(result.toStackVal)
 
-      case rt.MethodRef.Cls(tpeIndex, methodIndex) =>
-        val cls = vm.Classes.clsIndex(tpeIndex)
+      case rt.Method.Cls(tpeIndex, methodIndex) =>
+        val cls = vm.ClsTable.clsIndex(tpeIndex)
         val method = cls.clsData.methods(methodIndex)
 
         val array = new Array[vrt.StackVal](method.misc.maxLocals)
@@ -137,16 +141,16 @@ class VmThread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack()
         threadStack.push(startFrame)
     }
   }
-  final def prepInvoke(tpe: imm.Type.Entity,
+  final def prepInvoke(tpe: imm.Type,
                        methodName: String,
-                       desc: imm.Type.Desc,
+                       desc: imm.Desc,
                        args: Seq[vrt.StackVal])
                        : Unit = {
-    //println("Prep Invoking By Name " + vm.Classes(tpe.cast[imm.Type.Cls]).name + " " + methodName + desc.unparse)
+    //println("Prep Invoking By Name " + vm.ClsTable(tpe.cast[imm.Type.Cls]).name + " " + methodName + desc.unparse)
     prepInvoke(
-      rt.MethodRef.Cls(
-        vm.Classes(tpe.cast[imm.Type.Cls]).index,
-        vm.Classes(tpe.cast[imm.Type.Cls])
+      rt.Method.Cls(
+        vm.ClsTable(tpe.cast[imm.Type.Cls]).index,
+        vm.ClsTable(tpe.cast[imm.Type.Cls])
            .clsData
            .methods
            .indexWhere(m => m.name == methodName && m.desc == desc)
@@ -155,10 +159,10 @@ class VmThread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack()
     )
   }
 
-  def invoke(cls: imm.Type.Cls, methodName: String, desc: imm.Type.Desc, args: Seq[vrt.Val]): vrt.Val = {
+  def invoke(cls: imm.Type.Cls, methodName: String, desc: imm.Desc, args: Seq[vrt.Val]): vrt.Val = {
     val dummyFrame = new Frame(
       runningClass = cls,
-      method = Method(0, "Dummy", imm.Type.Desc.read("()V")),
+      method = imm.Method(0, "Dummy", imm.Desc.read("()V")),
       methodIndex = 0,
       locals = mutable.Seq.empty
     )
@@ -182,7 +186,7 @@ case class FrameDump(clsName: String,
 
 class Frame(var pc: Int = 0,
             val runningClass: Cls,
-            val method: Method,
+            val method: imm.Method,
             val methodIndex: Int,
             val locals: mutable.Seq[vrt.StackVal] = mutable.Seq.empty,
             val stack: mutable.ArrayStack[vrt.StackVal] = mutable.ArrayStack.empty[vrt.StackVal])

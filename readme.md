@@ -13,11 +13,11 @@ ScalaMachine requires [Scala 2.10]() and is built using [SBT 12](). After checki
 sbt test
 ```
 
-Which will run download the dependencies (currently just [asm]()), compile the code, and run the unit tests in the [test/scala/features]() folder. Compiling ScalaMachine could take up to a minute or two, but running the unit tests should take less than 10 seconds. These tests exercise individual pieces of functionality available on the JVM: math, methods, classes, exceptions, etc., and verify that the result of executing a method via ScalaMachine is identical to the result of executing it directly via reflection.
+Which will run download the dependencies (currently just [asm]()), compile the code, and run the unit tests in the [test/scala/features]() folder. Compiling ScalaMachine could take up to a minute or two, but running the unit tests should take less than 10 seconds. These tests exercise individual pieces of functionality available on the JVM: math, methods, classes, exceptions, etc., and verify that the result of executing a method via ScalaMachine is identical to the result of executing it directly via [reflection]().
 
 Implementation
 --------------
-ScalaMachine is a simple Scala application, and compiles to Java bytecode like any other Scala program. There is no inter-language interop, no runtime code generation (whether java bytecode or x86) or anything of that sort. It is literally a program that loads in a class file, parses it into a nice to use data structure and then has a `while(true)` loop that interprets the bytecodes one by one, following the [JVM Spec]() to change the internal state of the VM, and spits out an answer at the end.
+ScalaMachine is a simple Scala application, and compiles to Java bytecode like any other Scala program. It is literally a program that loads in a class file, parses it into a nice to use data structure and then has a `while(true)` loop that interprets the bytecodes one by one, updating the internal state of the VM following the [JVM Spec]() to and spitting out an answer at the end.
 
 In fact, each ScalaMachine JVM is a single Java object, containing in itself all state relevant to its own computation, and instantiating one and invoking methods using it is simple: 
 
@@ -36,7 +36,7 @@ Apart from the test folder, the main packages of interest in ScalaMachine are:
 
 - [sm/imm](): an immutable model of the data structures that make up a java .class file. These are an almost direct conversion of the data structures provided by the [ASM Tree API](), converted to idiomatic, immutable Scala case classes. These classes should be purely immutable, and should have no dependency on the rest of ScalaMachine.
 - [sm/opcodes](): contains the attributes and behavior of the 200ish java bytecodes. Many of the 200 opcodes are unused (as ASM automatically collapses these into other opcodes during parsing), and there are additional opcodes in [Optimized.scala]() which are versions of the default opcodes optimized for the individual ScalaMachine.
-- [sm/vrt](): virtual versions of the standard JVM data types: objects, arrays, `int`s, `double`s and the rest of the primitive types. Also contains implicit conversions back and forth.
+- [sm/vrt](): virtual versions of the standard JVM data types: objects, arrays, `int`s, `double`s and the rest of the primitive types. These virtual values populate the heap, operand stack, local variable table and anywhere where variables may be stored within the ScalaMachine VM.
 - [sm/rt](): runtime data-structures that make up the JVM: threads, classes, etc. These classes also contain the mutable state associated with these constructs (e.g. static class fields) or ScalaMachine-specific optimizations (e.g. virtual-method vtables) that can't be placed in the [sm/imm]() package.
 
 Many concepts have classes in several of these packages representing them. For example, the abstract idea of a Java "Class" is modelled by:
@@ -50,15 +50,16 @@ These types are always referred to by their qualified names in the source code (
 
 Compatibility
 -------------
-ScalaMachine implements a small subset of the [Java Virtual Machine Specification](). The implementation has been mostly focused on the features that ScalaMachine needs to run. ScalaMachine itself is a medium sized Scala application (almost 3000LOC), making extensive use of the Scala standard library, using the [ASM]() java library for dealing with the `.class` files. However, ScalaMachine does not require (and hence does not implement) several pretty basic things such as:
+ScalaMachine implements a subset of the [Java Virtual Machine Specification](). The implementation has been mostly focused on the features that ScalaMachine needs to run. ScalaMachine itself is a medium sized Scala application (almost 3000LOC), making extensive use of the Scala standard library, using the [ASM]() java library for dealing with the `.class` files. However, ScalaMachine does not require (and hence does not implement) several pretty basic things such as:
 
 - **Multiple Threads**
 - **Custom ClassLoaders**
 - **Enforcement of Access-Control modifiers**
 
-Apart from the specification, there is a large amount of functionality in the JVM which is from  *native* methods. These are required for the JVM to interact with the outside world in any way, and again ScalaMachine only implements those which were necessary to interpret itself, leaving out a lot of other basic things such as 
+Apart from the language specification, there is a large amount of functionality in the JVM which is from  *native* methods. These are required for the JVM to interact with the outside world in any way, and again ScalaMachine only implements those which were necessary to interpret itself, leaving out a lot of other basic things such as 
 
 - **Filesystem Access**
+- **Network Access**
 - **System.out.println** (`scala.Predef.println` works though)
 
 Nonetheless, as we'll see, ScalaMachine is compatible enough to interpret itself: a moderately sized Scala program which makes heavy use of the standard library and a small number of external Java libraries.
@@ -85,7 +86,7 @@ Performance
 -----------
 The performance of ScalaMachine is absolutely abyssmal: it performs basic optimizations (e.g. pre-calculating virtual-dispatch tables and maintaining invoke-interface caches), and I've tried to eliminate most of the micro-bottlenecks using [JProfiler]() but the performance remains extremely low. 
 
-Part of this arises from the fact that it is written in Scala in a mostly immutable, functional style, and that results in some cost in terms of extra allocations and GC-pressure over an imperative, mutable style. The other part is probably a fundamental limitation of it being an interpreter, and any major increase in performance would require pretty fundamental changes to the system.
+Part of this arises from the fact that it is written in Scala in a mostly immutable, functional style, and that results in overhead (lots of extra allocations and method calls) over an imperative, mutable style. The other part is probably a fundamental limitation of it being an interpreter, and any major increase in performance would require pretty fundamental changes to the system.
 
 Future Work
 -----------

@@ -2,15 +2,15 @@ package sm
 
 import imm.Type.Prim.Info
 import imm.{Access, Type}
-import rt.Cls
+import rt.{Thread, Cls}
 import vrt.Obj
 import java.io.{DataInputStream}
 
 
 object Natives{
   val default = new DefaultNatives {}
-  type NativeMap = Map[(String, Type.Desc), VmThread => Seq[vrt.Val] => vrt.Val]
-  type NativeSeq = Seq[((String, Type.Desc), VmThread => Seq[vrt.Val] => vrt.Val)]
+  type NativeMap = Map[(String, imm.Desc), Thread => Seq[vrt.Val] => vrt.Val]
+  type NativeSeq = Seq[((String, imm.Desc), Thread => Seq[vrt.Val] => vrt.Val)]
 }
 trait Natives{
   val trapped: Natives.NativeMap
@@ -18,9 +18,9 @@ trait Natives{
   val fileLoader: String => Option[Array[Byte]]
 }
 object NativeUtils{
-  def value(x: => vrt.Val) = (vm: VmThread) => x
-  def value1(x: => vrt.Val) = (vm: VmThread) => (a: vrt.Val) => x
-  def value2(x: => vrt.Val) = (vm: VmThread) => (a: vrt.Val, b: vrt.Val) => x
+  def value(x: => vrt.Val) = (vm: Thread) => x
+  def value1(x: => vrt.Val) = (vm: Thread) => (a: vrt.Val) => x
+  def value2(x: => vrt.Val) = (vm: Thread) => (a: vrt.Val, b: vrt.Val) => x
   val noOp = value(vrt.Unit)
   val noOp1 = value1(vrt.Unit)
   val noOp2 = value2(vrt.Unit)
@@ -34,7 +34,7 @@ object NativeUtils{
               case ((path, desc), func) => ((k + "/" + path, desc), func)
             }
 
-          case func: (VmThread => Any) =>
+          case func: (Thread => Any) =>
             val (name, descString) = k.splitAt(k.indexOf('('))
             val p = parts.reverse
 
@@ -43,10 +43,10 @@ object NativeUtils{
                 .replaceAllLiterally("L//", s"L${p(0)}/${p(1)}/")
                 .replaceAllLiterally("L/", s"L${p(0)}/")
 
-            val desc = Type.Desc.read(fullDescString)
+            val desc = imm.Desc.read(fullDescString)
 
             type V = vrt.Val
-            val newFunc = (vt: VmThread) => (args: Seq[vrt.Val]) => func(vt) match{
+            val newFunc = (vt: Thread) => (args: Seq[vrt.Val]) => func(vt) match{
               case f: ((V, V, V, V, V) => V) => f(args(0), args(1), args(2), args(3), args(4))
               case f: ((V, V, V, V) => V) => f(args(0), args(1), args(2), args(3))
               case f: ((V, V, V) => V) => f(args(0), args(1), args(2))
@@ -61,13 +61,13 @@ object NativeUtils{
   }
   implicit class pimpedMap(val s: String) extends AnyVal{
     def /(a: (String, Any)*) = s -> a
-    def x(a: VmThread => vrt.Val) = s -> a
-    def x1(a: VmThread => Nothing => vrt.Val) = s -> a
-    def x2(a: VmThread => (Nothing, Nothing) => vrt.Val) = s -> a
-    def x3(a: VmThread => (Nothing, Nothing, Nothing) => vrt.Val) = s -> a
-    def x4(a: VmThread => (Nothing, Nothing, Nothing, Nothing) => vrt.Val) = s -> a
-    def x5(a: VmThread => (Nothing, Nothing, Nothing, Nothing, Nothing) => vrt.Val) = s -> a
-    def x6(a: VmThread => (Nothing, Nothing, Nothing, Nothing, Nothing, Nothing) => vrt.Val) = s -> a
+    def x(a: Thread => vrt.Val) = s -> a
+    def x1(a: Thread => Nothing => vrt.Val) = s -> a
+    def x2(a: Thread => (Nothing, Nothing) => vrt.Val) = s -> a
+    def x3(a: Thread => (Nothing, Nothing, Nothing) => vrt.Val) = s -> a
+    def x4(a: Thread => (Nothing, Nothing, Nothing, Nothing) => vrt.Val) = s -> a
+    def x5(a: Thread => (Nothing, Nothing, Nothing, Nothing, Nothing) => vrt.Val) = s -> a
+    def x6(a: Thread => (Nothing, Nothing, Nothing, Nothing, Nothing, Nothing) => vrt.Val) = s -> a
   }
 }
 trait DefaultNatives extends Natives{
@@ -449,7 +449,7 @@ trait DefaultNatives extends Natives{
                 import vt.vm; import vm._
                 val cls: Cls = imm.Type.Cls(constr.members.find(_._1.name == "clazz").get._2.asInstanceOf[vrt.Cls].name)
                 val newObj = new Obj(cls)
-                vt.invoke(cls.clsData.tpe, "<init>", Type.Desc.read("()V"), Seq(newObj))
+                vt.invoke(cls.clsData.tpe, "<init>", imm.Desc.read("()V"), Seq(newObj))
                 newObj
             }
             ),

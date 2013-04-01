@@ -3,50 +3,47 @@ package sm
 import collection.mutable
 import annotation.tailrec
 import imm.Code
+import rt.{FrameDump, Thread}
 
 
-trait Cache[In, Out] extends (In => Out){
-  val cache = mutable.Map.empty[Any, Out]
-  def pre(x: In): Any = x
-  def calc(x: In): Out
-  def post(y: Out): Unit = ()
-  def apply(x: In) = {
-    val newX = pre(x)
-    cache.get(newX) match{
-      case Some(y) => y
-      case None =>
-        val newY = calc(x)
-        cache(newX) = newY
-        post(newY)
-        newY
-    }
-  }
-}
-
-object VM{
-  var go = false
-  def triggerGo() = ()
-}
+/**
+ * A ScalaMachine VM. Call invoke() on it with a class, method name and arguments
+ * to have it interpret some Java bytecode for you.
+ */
 class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit) = s => ()) {
   private[this] implicit val vm = this
 
+  /**
+   * Cache to keep track of interned vrt.Obj(java/lang/String)
+   */
   object InternedStrings extends Cache[vrt.Obj, vrt.Obj]{
     override def pre(x: vrt.Obj) = vrt.unvirtString(x)
     def calc(x: vrt.Obj) = x
   }
 
-  implicit object Types extends Cache[imm.Type, vrt.Type]{
+  /**
+   * Cache to keep track of vrt.Obj(java/lang/Class)
+   */
+  implicit object VirtualClassObjects extends Cache[imm.Type, vrt.Type]{
     def calc(t: imm.Type) = t match{
       case t: imm.Type.Cls => new vrt.Cls(t)
       case _ => new vrt.Type(t)
     }
   }
+
+  /**
+   * Globally shared sun.misc.Unsafe object.
+   */
   lazy val theUnsafe = vrt.Obj("sun/misc/Unsafe")
-  implicit object Classes extends Cache[imm.Type.Cls, rt.Cls]{
+
+  /**
+   * Cache of all the classes loaded so far within the ScalaMachine VM.
+   */
+  implicit object ClsTable extends Cache[imm.Type.Cls, rt.Cls]{
     val clsIndex = mutable.ArrayBuffer.empty[rt.Cls]
     def calc(t: imm.Type.Cls): rt.Cls = {
       val clsData = imm.Cls.parse(natives.fileLoader(t.name.replace(".", "/") + ".class").get)
-      clsData.superType.map(vm.Classes)
+      clsData.superType.map(vm.ClsTable)
       new rt.Cls(clsData, clsIndex.length)
     }
     var startTime = System.currentTimeMillis()
@@ -56,13 +53,13 @@ class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit) =
       println("" + ((System.currentTimeMillis() - startTime) / 1000))
       val initMethod = cls.clsData
                           .methods
-                          .find(m => m.name == "<clinit>" && m.desc == imm.Type.Desc.read("()V"))
+                          .find(m => m.name == "<clinit>" && m.desc == imm.Desc.read("()V"))
 
-      initMethod.foreach( m => threads(0).invoke(cls.clsData.tpe, "<clinit>", imm.Type.Desc.read("()V"), Nil))
+      initMethod.foreach( m => threads(0).invoke(cls.clsData.tpe, "<clinit>", imm.Desc.read("()V"), Nil))
     }
   }
 
-  lazy val threads = List(new VmThread())
+  lazy val threads = List(new Thread())
 
   def invoke(bootClass: String, mainMethod: String, args: Seq[vrt.Val] = Nil): Any = {
     val res = threads(0).invoke(
@@ -90,17 +87,24 @@ case class UncaughtVmException(name: String,
                                extends Exception(msg){
 
 }
-class BufferLog(n: Int) extends ((=> String) => Unit){
-  val buffer = new Array[String](n)
-  var index = 0
-  var count = 0
-  def apply(s: =>String) = {
 
-    count += 1
-    if (count > 0){
-      buffer(index) = s
-      index = (index + 1) % n
+/**
+ * A generic cache, which provides pre-processing of keys and post processing of values.
+ */
+trait Cache[In, Out] extends (In => Out){
+  val cache = mutable.Map.empty[Any, Out]
+  def pre(x: In): Any = x
+  def calc(x: In): Out
+  def post(y: Out): Unit = ()
+  def apply(x: In) = {
+    val newX = pre(x)
+    cache.get(newX) match{
+      case Some(y) => y
+      case None =>
+        val newY = calc(x)
+        cache(newX) = newY
+        post(newY)
+        newY
     }
   }
-  def lines = buffer.drop(index) ++ buffer.take(index)
 }
