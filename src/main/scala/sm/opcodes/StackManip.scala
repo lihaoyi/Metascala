@@ -44,17 +44,17 @@ object StackManip {
   })
   case object Dup2 extends ManipOpCode({
     case (y: Cat1) :: (x: Cat1) :: s => y :: x :: y :: x :: s
-    case (x: Cat2) :: s => x :: x :: s
+    case (x: Cat2) :: s              => x :: x :: s
   })
   case object Dup2X1 extends ManipOpCode({
     case (a: Cat1) :: (b: Cat1) :: (x: Cat1) :: s => a :: b :: x :: a :: b :: s
-    case (a: Cat2) :: (x: Cat1) :: s => a :: a :: x :: a :: s
+    case (a: Cat2) :: (x: Cat1) :: s              => a :: a :: x :: a :: s
   })
   case object Dup2X2 extends ManipOpCode({
     case (a: Cat1) :: (b: Cat1) :: (x: Cat1) :: (y: Cat1) :: s => a :: b :: x :: y :: a :: b :: s
-    case (a: Cat2) :: (b: Cat1) :: (x: Cat1) :: s => a :: b :: x :: a :: s
-    case (a: Cat1) :: (b: Cat1) :: (x: Cat2) :: s => a :: b :: x :: a :: b :: s
-    case (a: Cat2) :: (b: Cat2) :: s => a :: b :: a :: s
+    case (a: Cat2) :: (b: Cat1) :: (x: Cat1) :: s              => a :: b :: x :: a :: s
+    case (a: Cat1) :: (b: Cat1) :: (x: Cat2) :: s              => a :: b :: x :: a :: b :: s
+    case (a: Cat2) :: (b: Cat2) :: s                           => a :: b :: a :: s
   })
   case object Swap extends ManipOpCode({ case x :: y :: s=> y :: x :: s })
 

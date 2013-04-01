@@ -9,40 +9,40 @@ import collection.GenSeq
 
 object MetacircularTest{
   def sqrtFinder = {
-    val x = new sm.Util.SingleClassVM("sm.features.controlflow.Loops", s => ())
-    x.run("sqrtFinder", 5.0)
+    val x = new sm.VM()
+    x.invoke("sm.features.controlflow.Loops", "sqrtFinder", Seq(5.0))
   }
 
   def fibonacci = {
-    val x = new sm.Util.SingleClassVM("sm.features.methods.Statics", s => ())
-    x.run("fibonacci", 12)
+    val x = new sm.VM()
+    x.invoke("sm.features.methods.Statics", "fibonacci", Seq(12))
   }
 
   def innerClass = {
-    val x = new sm.Util.SingleClassVM("sm.features.classes.ClassStuff", s => ())
-    x.run("innerClass")
+    val x = new sm.VM()
+    x.invoke("sm.features.classes.ClassStuff", "innerClass")
   }
 
   def bubbleSort = {
-    val x = new sm.Util.SingleClassVM("sm.features.arrays.ArrayStuff", s => ())
-    x.run("bubbleSort", Array(6, 5, 2, 7, 3, 4, 9, 1, 8)).cast[Array[Int]]
+    val x = new sm.VM()
+    x.invoke("sm.features.arrays.ArrayStuff", "bubbleSort", Seq(Array(6, 5, 2, 7, 3, 4, 9, 1, 8)))
   }
   def getAndSet = {
-    val x = new sm.Util.SingleClassVM("sm.features.arrays.MultiDimArrays", s => ())
-    x.run("getAndSet")
+    val x = new sm.VM()
+    x.invoke("sm.features.arrays.MultiDimArrays", "getAndSet")
   }
   def multiCatch = {
-    val x = new sm.Util.SingleClassVM("sm.features.exceptions.Exceptions", s => ())
-    x.run("multiCatch", 2)
+    val x = new sm.VM()
+    x.invoke("sm.features.exceptions.Exceptions", "multiCatch", Seq(2))
   }
 
   def doubleMetaOne = {
-    val x = new sm.Util.SingleClassVM("sm.full.MetacircularTest", s => ())
-    x.run("doubleMetaTwo")
+    val x = new sm.VM()
+    x.invoke("sm.full.MetacircularTest", "doubleMetaTwo")
   }
   def doubleMetaTwo = {
-    val x = new sm.Util.SingleClassVM("sm.full.MetacircularTest", s => ())
-    x.run("helloWorld")
+    val x = new sm.VM()
+    x.invoke("sm.full.MetacircularTest", "helloWorld")
   }
   def helloWorld = {
     println("Hello Scala!")
@@ -59,11 +59,15 @@ class MetacircularTest extends FreeSpec with Util{
     tester.run("helloWorld")
   }
   "sqrtFinder" in {
+    try{
     tester.run("sqrtFinder")
     println(tester.svm.threads(0).getI)
+    }catch {case e =>
+      buffer.lines.foreach(println)
+      throw e
+    }
 
   }
-
 
   "fibonacci" in {
     tester.run("fibonacci")
@@ -87,8 +91,8 @@ class MetacircularTest extends FreeSpec with Util{
     tester.run("multiCatch")
     println(tester.svm.threads(0).getI)
   }
-  /*
-  "doubleMetaOne" in {
+
+  /*"doubleMetaOne" in {
     tester.run("doubleMetaOne")
     println(tester.svm.threads(0).getI)
   }*/

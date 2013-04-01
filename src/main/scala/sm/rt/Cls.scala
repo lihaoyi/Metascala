@@ -27,7 +27,7 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
 
   def method(name: String, desc: Type.Desc): Option[imm.Method] = {
     clsAncestry.flatMap(_.methods)
-            .find(m => m.name == name && m.desc == desc)
+               .find(m => m.name == name && m.desc == desc)
   }
 
   def resolveStatic(owner: Type.Cls, name: String) = {
@@ -46,14 +46,11 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
 
   def name = clsData.tpe.name
 
-  val clsAncestry = {
-    def rec(cd: imm.Cls): List[imm.Cls] = {
-      cd.superType match{
-        case None => List(cd)
-        case Some(x) => cd :: rec(x.clsData)
-      }
+  lazy val clsAncestry: List[imm.Cls] = {
+    clsData.superType match{
+      case None => List(clsData)
+      case Some(tpe) => clsData :: tpe.cls.clsAncestry
     }
-    rec(clsData)
   }
 
   lazy val typeAncestry: Set[imm.Type.Cls] = {
@@ -63,7 +60,8 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
   }
 
   val fieldList: Seq[imm.Field] = {
-    clsData.superType.toSeq.flatMap(_.fieldList) ++ clsData.fields.filter(_.access.&(Access.Static) == 0)
+    clsData.superType.toSeq.flatMap(_.fieldList) ++
+    clsData.fields.filter(_.access.&(Access.Static) == 0)
   }
 
 

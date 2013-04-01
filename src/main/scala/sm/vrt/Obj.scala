@@ -53,7 +53,7 @@ class Obj(val cls: rt.Cls, initMembers: (String, vrt.Val)*)
 
 trait Arr extends StackVal with Cat1 with Ref{
   val tpe: imm.Type.Entity
-  val backing: Array[_]
+val backing: Array[_]
   def apply(index: Int): vrt.Val
 }
 object Arr{

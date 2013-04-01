@@ -79,7 +79,7 @@ object Util{
     def run(main: String, args: vrt.Val*): Any ={
       val res = invoke(className.replace('.', '/'), main, args)
 
-      vrt.unvirtualize(res)
+      res
     }
   }
 }

@@ -27,7 +27,7 @@ object VM{
   var go = false
   def triggerGo() = ()
 }
-class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) {
+class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit) = s => ()) {
   private[this] implicit val vm = this
 
   object InternedStrings extends Cache[vrt.Obj, vrt.Obj]{
@@ -64,7 +64,7 @@ class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) 
 
   lazy val threads = List(new VmThread())
 
-  def invoke(bootClass: String, mainMethod: String, args: Seq[vrt.Val]): vrt.Val = {
+  def invoke(bootClass: String, mainMethod: String, args: Seq[vrt.Val] = Nil): Any = {
     val res = threads(0).invoke(
       imm.Type.Cls(bootClass),
       mainMethod,
@@ -77,7 +77,7 @@ class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit)) 
       args
     )
 
-    res
+    vrt.unvirtualize(res)
   }
 
 
@@ -97,7 +97,7 @@ class BufferLog(n: Int) extends ((=> String) => Unit){
   def apply(s: =>String) = {
 
     count += 1
-    if (count > 10000000){
+    if (count > 0){
       buffer(index) = s
       index = (index + 1) % n
     }

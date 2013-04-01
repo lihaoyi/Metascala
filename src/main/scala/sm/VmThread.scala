@@ -46,8 +46,8 @@ class VmThread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack()
   final def step() = {
     val insnsList = frame.runningClass.insns(frame.methodIndex)
     val node = insnsList(frame.pc)
-//    println(indent + frame.runningClass.name + "/" + frame.method.name + ": " + frame.stack)
-//    println(indent + "---------------------- " + frame.pc + "\t" + node )
+    vm.log(indent + frame.runningClass.name + "/" + frame.method.name + ": " + frame.stack)
+    vm.log(indent + "---------------------- " + frame.pc + "\t" + node )
     frame.pc += 1
     i += 1
     try{
@@ -108,8 +108,9 @@ class VmThread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack()
 //    println("PrepInvoke " + mRef)
     mRef match{
       case rt.MethodRef.Native(index) =>
-        val result = vm.natives.trappedIndex(index)._2(this)(args)
-        threadStack.top.stack.push(result.toStackVal)
+        val ((name, desc), op) = vm.natives.trappedIndex(index)
+        val result = op(this)(args)
+        if(desc.ret != imm.Type.Prim('V'))threadStack.top.stack.push(result.toStackVal)
 
       case rt.MethodRef.Cls(tpeIndex, methodIndex) =>
         val cls = vm.Classes.clsIndex(tpeIndex)

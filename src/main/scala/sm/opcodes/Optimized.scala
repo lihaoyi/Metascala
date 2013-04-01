@@ -3,6 +3,7 @@ package opcodes
 
 import sm.imm.{Type}
 import sm.vrt
+import rt.MethodRef
 
 object Optimized {
   case class New(clsId: Int) extends OpCode{
@@ -14,7 +15,6 @@ object Optimized {
 
   case class InvokeStatic(mRef: rt.MethodRef, argCount: Int) extends OpCode{
     def op(vt: VmThread) = {
-
       vt.prepInvoke(mRef, vt.popArgs(argCount))
     }
   }
@@ -30,13 +30,32 @@ object Optimized {
     def op(vt: VmThread) = {
       val args = vt.popArgs(argCount+1)
       ensureNonNull(vt, args.head){
+
         val objCls =
           args.head match{
             case a: vrt.Obj => a.cls
             case _ => vt.vm.Classes(imm.Type.Cls("java/lang/Object"))
           }
-        val mRef = objCls.methodList(methodIndex)
-        vt.prepInvoke(mRef, args)
+        try{
+          val mRef = objCls.methodList(methodIndex)
+          vt.prepInvoke(mRef, args)
+        }catch{case e: IndexOutOfBoundsException =>
+          println("IndexOutOfBoundsException")
+          println(args.head)
+          println(objCls.name)
+          println("Methods " + objCls.methodList.length)
+          objCls.methodList.map{
+            case MethodRef.Cls(clsIndex, methodIndex) =>
+              val cls = vt.vm.Classes.clsIndex(clsIndex)
+              val method = cls.clsData.methods(methodIndex)
+              cls.name + " " + method.name + method.desc.unparse
+            case MethodRef.Native(nativeIndex) =>
+              val (name, desc) = vt.vm.natives.trappedIndex(nativeIndex)._1
+              "Native " + name + desc.unparse
+          }.foreach(println)
+          throw e
+        }
+
       }
     }
   }
