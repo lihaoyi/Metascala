@@ -26,7 +26,7 @@ object Optimized {
     }
   }
 
-  case class InvokeVirtual(methodIndex: Int, argCount: Int) extends OpCode{
+  case class InvokeVirtual(vTableIndex: Int, argCount: Int) extends OpCode{
     def op(vt: Thread) = {
       val args = vt.popArgs(argCount+1)
       ensureNonNull(vt, args.head){
@@ -37,19 +37,18 @@ object Optimized {
             case _ => vt.vm.ClsTable(imm.Type.Cls("java/lang/Object"))
           }
         try{
-          val mRef = objCls.methodList(methodIndex)
+          val mRef = objCls.vTable(vTableIndex)
           vt.prepInvoke(mRef, args)
         }catch{case e: IndexOutOfBoundsException =>
           println("IndexOutOfBoundsException")
           println(args.head)
           println(objCls.name)
-          println("Methods " + objCls.methodList.length)
-          objCls.methodList.map{
-            case Method.Cls(clsIndex, methodIndex, method) =>
+          println("Methods " + objCls.vTable.length)
+          objCls.vTable.map{
+            case Method.Cls(clsIndex, _, method) =>
               val cls = vt.vm.ClsTable.clsIndex(clsIndex)
               cls.name + " " + method.name + method.desc.unparse
-            case Method.Native(nativeIndex) =>
-              val (name, desc) = vt.vm.natives.trappedIndex(nativeIndex)._1
+            case Method.Native((name, desc), op) =>
               "Native " + name + desc.unparse
           }.foreach(println)
           throw e

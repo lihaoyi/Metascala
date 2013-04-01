@@ -86,7 +86,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
   @tailrec final def throwException(ex: vrt.Obj, print: Boolean = true): Unit = {
 
-
     threadStack.headOption match{
       case Some(frame)=>
         val handler =
@@ -120,14 +119,12 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
                        args: Seq[vrt.StackVal]) = {
     vm.log("PrepInvoke " + mRef.name)
     mRef match{
-      case rt.Method.Native(index) =>
-        val ((name, desc), op) = vm.natives.trappedIndex(index)
+      case rt.Method.Native((name, desc), op) =>
         val result = op(this)(args)
         if(desc.ret != imm.Type.Prim('V'))threadStack.top.stack.push(result.toStackVal)
 
       case m @ rt.Method.Cls(tpeIndex, methodIndex, method) =>
         val cls = vm.ClsTable.clsIndex(tpeIndex)
-
 
         val array = new Array[vrt.StackVal](method.misc.maxLocals)
         var i = 0
@@ -155,13 +152,13 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
                        args: Seq[vrt.StackVal])
                        : Unit = {
     //println("Prep Invoking By Name " + vm.ClsTable(tpe.cast[imm.Type.Cls]).name + " " + methodName + desc.unparse)
-    val mIndex = vm.ClsTable(tpe.cast[imm.Type.Cls])
-      .clsData
-      .methods
-      .indexWhere(m => m.name == methodName && m.desc == desc)
+
+
     prepInvoke(
       vm.ClsTable(tpe.cast[imm.Type.Cls])
-        .methods(mIndex),
+        .methods
+        .find(m => m.method.name == methodName && m.method.desc == desc)
+        .get,
       args
     )
   }

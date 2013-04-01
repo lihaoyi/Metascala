@@ -73,7 +73,7 @@ object Misc {
         owner
           .methodType
           .cls
-          .methodList
+          .vTable
           .indexWhere{ m => m.name == name && m.desc == desc }
 
       vt.swapOpCode(Optimized.InvokeVirtual(index, desc.args.length))
@@ -81,23 +81,23 @@ object Misc {
 
   }
 
-  def resolveDirectRef(owner: Type.Cls, name: String, desc: imm.Desc)(implicit vm: VM) = {
-    val nativeId = vm.natives
-      .trappedIndex
-      .indexWhere(m => m._1._1.endsWith("/" + name) && m._1._2 == desc)
+  def resolveDirectRef(owner: Type.Cls, name: String, desc: imm.Desc)(implicit vm: VM): Option[rt.Method] = {
+    val native =
+      vm.natives
+        .trapped
+        .find(m => m._1._1.endsWith("/" + name) && m._1._2 == desc)
+        .map(n => rt.Method.Native(n._1, n._2))
 
-    val methodId = owner.cls
-      .clsData
-      .methods
-      .indexWhere(m => m.name == name && m.desc == desc)
+    val method =
+      owner.cls
+           .methods
+           .find(m => m.name == name && m.desc == desc)
 
-    if(nativeId != -1) Some(rt.Method.Native(nativeId))
-    else if (methodId != -1) {
-      if(owner.cls.clsData.methods(methodId).code.insns.length != 1)
-        Some(owner.cls.methods(methodId))
-      else
-        None
-    }else throw new Exception(s"Can't find method ${owner.unparse} $name ${desc.unparse}")
+    Some(
+      native.orElse(method)
+            .getOrElse(throw new Exception(s"Can't find method ${owner.unparse} $name ${desc.unparse}"))
+    )
+
 
   }
 
@@ -118,7 +118,6 @@ object Misc {
     def op(vt: Thread) = vt.swapOpCode {
       import vt.vm
       resolveDirectRef(owner, name, desc) match{
-        case None => StackManip.Pop
         case Some(methodRef) => Optimized.InvokeStatic(methodRef, desc.args.length)
       }
     }
@@ -135,8 +134,8 @@ object Misc {
         val objType = args.head.cast[vrt.Ref].refType.methodType
         val cls = vm.ClsTable(objType)
         vt.prepInvoke(
-          cls.methodMap.getOrElseUpdate((name, desc),
-            cls.methodList
+          cls.vTableMap.getOrElseUpdate((name, desc),
+            cls.vTable
                .find(m => m.name == name && m.desc == desc)
                .get
           )

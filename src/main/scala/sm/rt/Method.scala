@@ -16,9 +16,9 @@ object Method{
    * A reference to a native method at a particular index in the
    * native method table
    */
-  case class Native(index: Int)(implicit vm: VM) extends Method{
-    lazy val name = vm.natives.trappedIndex(index)._1._1.reverse.takeWhile(_ != '/').reverse
-    lazy val desc = vm.natives.trappedIndex(index)._1._2
+  case class Native(sig: imm.Method.Sig, func: natives.Bindings.Func)(implicit vm: VM) extends Method{
+    lazy val name = sig._1.reverse.takeWhile(_ != '/').reverse
+    lazy val desc = sig._2
   }
 
   /**

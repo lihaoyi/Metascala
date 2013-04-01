@@ -72,7 +72,7 @@ trait Default extends Bindings{
     }
   }
 
-  val trappedIndex = {
+  val trapped = {
     Seq(
       "java"/(
         "io"/(
@@ -414,6 +414,6 @@ trait Default extends Bindings{
     ).toRoute()
   }
 
-  val trapped = trappedIndex.toMap
+//  val trapped = trappedIndex.toMap
 }
 

@@ -10,8 +10,9 @@ object Bindings{
  * A set of bindings between method signatures and callable binding functions
  */
 trait Bindings{
-  val trapped: Map[imm.Method.Sig, Bindings.Func]
-  val trappedIndex: Seq[(imm.Method.Sig, Bindings.Func)]
+  //val trapped: Map[imm.Method.Sig, Bindings.Func]
+  val trapped: Seq[(imm.Method.Sig, Bindings.Func)]
+
   val fileLoader: String => Option[Array[Byte]]
 }
 

@@ -23,7 +23,7 @@ final class Var(var x: vrt.Val){
 class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
   import vm._
 
-  val methods =
+  val methods: Seq[rt.Method.Cls] =
     clsData.methods
            .zipWithIndex
            .map{case (m, i) => new rt.Method.Cls(index, i, m)}
@@ -76,40 +76,38 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
   }
 
 
-  lazy val methodList: Seq[rt.Method] = {
-    val methods =
+  lazy val vTable: Seq[rt.Method] = {
+    val oldMethods =
       mutable.ArrayBuffer(
         clsData.superType
                .toArray
-               .flatMap(_.methodList): _*
+               .flatMap(_.vTable): _*
       )
 
-    clsData.methods
-           .zipWithIndex
-           .filter(_._1.access.&(Access.Static) == 0)
-           .map{ case (m, i) =>
+    methods.filter(_.method.access.&(Access.Static) == 0)
+           .map{ m =>
 
-      val index = methods.indexWhere{ mRef => mRef.name == m.name && mRef.desc == m.desc }
+      val index = oldMethods.indexWhere{ mRef => mRef.name == m.name && mRef.desc == m.desc }
 
-      val nIndex = vm.natives.trappedIndex.indexWhere{case ((n, idesc), func) =>
+      val native = vm.natives.trapped.find{case ((n, idesc), func) =>
         (n == name + "/" + m.name) && (idesc == m.desc)
       }
 
       val update =
-        if (index == -1) methods.append(_: Method)
-        else methods.update(index, _: Method)
+        if (index == -1) oldMethods.append(_: Method)
+        else oldMethods.update(index, _: Method)
 
-      nIndex match {
-        case -1 => update(Method.Cls(this.index, i, m))
-        case n => update(Method.Native(n))
+      native match {
+        case None => update(m)
+        case Some(((name, desc), op)) => update(Method.Native((name, desc), op))
 
       }
     }
 
-    methods
+    oldMethods
   }
 
-  val methodMap: mutable.Map[(String, imm.Desc), Method] = mutable.Map.empty
+  val vTableMap: mutable.Map[imm.Method.Sig, Method] = mutable.Map.empty
 }
 
 

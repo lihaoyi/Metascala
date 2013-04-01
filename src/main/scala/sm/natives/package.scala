@@ -7,6 +7,7 @@ package sm
  *
  * A ScalaMachine VM takes a set of Bindings on instantiation, which can be customized
  * e.g. to trapped the calls to native methods and redirect them to wherever you want.
+ *
  */
 package object natives {
   def value(x: => vrt.Val) = (vm: rt.Thread) => x
@@ -16,6 +17,9 @@ package object natives {
   val noOp1 = value1(vrt.Unit)
   val noOp2 = value2(vrt.Unit)
 
+  /**
+   * Implements a nice DSL to build the list of trapped method calls
+   */
   implicit class pimpedRoute(val m: Seq[(String, Any)]) extends AnyVal{
     def toRoute(parts: List[String] = Nil): Seq[(imm.Method.Sig, Bindings.Func)] = {
       m.flatMap{ case (k, v) =>
