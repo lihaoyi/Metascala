@@ -51,10 +51,10 @@ object MetacircularTest{
 
 class MetacircularTest extends FreeSpec with Util{
 
-  val buffer = new BufferLog(4000)
+  val buffer = new BufferLog(8000)
   var count = 0
 
-  val tester = new Tester("sm.full.MetacircularTest", buffer)
+  val tester = new Tester("sm.full.MetacircularTest")
   "helloWorld" in {
     tester.run("helloWorld")
   }
@@ -66,7 +66,6 @@ class MetacircularTest extends FreeSpec with Util{
       buffer.lines.foreach(println)
       throw e
     }
-
   }
 
   "fibonacci" in {

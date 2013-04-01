@@ -3,6 +3,7 @@ package natives
 
 
 import java.io.DataInputStream
+import vrt.Arr
 
 trait Default extends Bindings{
 
@@ -90,7 +91,7 @@ trait Default extends Bindings{
           "reflect"/(
             "Array"/(
               "newArray(Ljava/lang/Class;I)Ljava/lang/Object;" x2 {
-                vt =>(x: vrt.Cls, n: vrt.Int) => new Array[vrt.Obj](n): vrt.Val
+                vt =>(x: vrt.Cls, n: vrt.Int) => Arr.Obj(x.tpe, n)
               }
             )
           ),

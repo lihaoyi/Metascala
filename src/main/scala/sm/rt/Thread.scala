@@ -28,7 +28,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   def getOpCount = opCount
   def frame = threadStack.top
 
-  var returnedIndex = 0
   var returnedVal: vrt.StackVal = ()
 
   def getStackTrace =
@@ -119,7 +118,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
   final def prepInvoke(mRef: rt.Method,
                        args: Seq[vrt.StackVal]) = {
-    vm.log(indent + "PrepInvoke " + mRef.name)
+    vm.log("PrepInvoke " + mRef.name)
     mRef match{
       case rt.Method.Native(index) =>
         val ((name, desc), op) = vm.natives.trappedIndex(index)
@@ -171,12 +170,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     val startHeight = threadStack.length
     prepInvoke(cls, methodName, desc, args.map(_.toStackVal))
-    returnedIndex = startHeight
-    returnedVal = vrt.Unit
+
     while(threadStack.length != startHeight) step()
 
-    if (returnedIndex == startHeight) returnedVal
-    else vrt.Unit
+    returnedVal
   }
 }
 
