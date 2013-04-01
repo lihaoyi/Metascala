@@ -3,6 +3,7 @@ package sm
 import collection.mutable
 import annotation.tailrec
 import imm.Code
+import natives.Bindings
 import rt.{FrameDump, Thread}
 
 
@@ -10,7 +11,7 @@ import rt.{FrameDump, Thread}
  * A ScalaMachine VM. Call invoke() on it with a class, method name and arguments
  * to have it interpret some Java bytecode for you.
  */
-class VM(val natives: Natives = Natives.default, val log: ((=>String) => Unit) = s => ()) {
+class VM(val natives: Bindings = Bindings.default, val log: ((=>String) => Unit) = s => ()) {
   private[this] implicit val vm = this
 
   /**

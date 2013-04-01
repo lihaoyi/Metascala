@@ -43,6 +43,8 @@ object Method {
                   maxStack: Int = 0,
                   maxLocals: Int = 0,
                   attrs: Seq[Attribute] = Nil)
+
+  type Sig = (String, Desc)
 }
 
 

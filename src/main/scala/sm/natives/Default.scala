@@ -1,78 +1,12 @@
 package sm
-
-import imm.Type.Prim.Info
-import imm.{Access, Type}
-import rt.{Thread, Cls}
-import vrt.Obj
-import java.io.{DataInputStream}
+package natives
 
 
-object Natives{
-  val default = new DefaultNatives {}
-  type NativeMap = Map[(String, imm.Desc), Thread => Seq[vrt.Val] => vrt.Val]
-  type NativeSeq = Seq[((String, imm.Desc), Thread => Seq[vrt.Val] => vrt.Val)]
-}
-trait Natives{
-  val trapped: Natives.NativeMap
-  val trappedIndex: Natives.NativeSeq
-  val fileLoader: String => Option[Array[Byte]]
-}
-object NativeUtils{
-  def value(x: => vrt.Val) = (vm: Thread) => x
-  def value1(x: => vrt.Val) = (vm: Thread) => (a: vrt.Val) => x
-  def value2(x: => vrt.Val) = (vm: Thread) => (a: vrt.Val, b: vrt.Val) => x
-  val noOp = value(vrt.Unit)
-  val noOp1 = value1(vrt.Unit)
-  val noOp2 = value2(vrt.Unit)
+import java.io.DataInputStream
 
-  implicit class pimpedRoute(val m: Seq[(String, Any)]) extends AnyVal{
-    def toRoute(parts: List[String] = Nil): Natives.NativeSeq = {
-      m.flatMap{ case (k, v) =>
-        v match{
-          case thing: Seq[(String, Any)] =>
-            thing.toRoute(k :: parts).map {
-              case ((path, desc), func) => ((k + "/" + path, desc), func)
-            }
+trait Default extends Bindings{
 
-          case func: (Thread => Any) =>
-            val (name, descString) = k.splitAt(k.indexOf('('))
-            val p = parts.reverse
 
-            val fullDescString =
-              descString
-                .replaceAllLiterally("L//", s"L${p(0)}/${p(1)}/")
-                .replaceAllLiterally("L/", s"L${p(0)}/")
-
-            val desc = imm.Desc.read(fullDescString)
-
-            type V = vrt.Val
-            val newFunc = (vt: Thread) => (args: Seq[vrt.Val]) => func(vt) match{
-              case f: ((V, V, V, V, V) => V) => f(args(0), args(1), args(2), args(3), args(4))
-              case f: ((V, V, V, V) => V) => f(args(0), args(1), args(2), args(3))
-              case f: ((V, V, V) => V) => f(args(0), args(1), args(2))
-              case f: ((V, V) => V) => f(args(0), args(1))
-              case f: (V => V) => f(args(0))
-              case f: V => f
-            }
-            Vector((name, desc) -> newFunc)
-        }
-      }
-    }
-  }
-  implicit class pimpedMap(val s: String) extends AnyVal{
-    def /(a: (String, Any)*) = s -> a
-    def x(a: Thread => vrt.Val) = s -> a
-    def x1(a: Thread => Nothing => vrt.Val) = s -> a
-    def x2(a: Thread => (Nothing, Nothing) => vrt.Val) = s -> a
-    def x3(a: Thread => (Nothing, Nothing, Nothing) => vrt.Val) = s -> a
-    def x4(a: Thread => (Nothing, Nothing, Nothing, Nothing) => vrt.Val) = s -> a
-    def x5(a: Thread => (Nothing, Nothing, Nothing, Nothing, Nothing) => vrt.Val) = s -> a
-    def x6(a: Thread => (Nothing, Nothing, Nothing, Nothing, Nothing, Nothing) => vrt.Val) = s -> a
-  }
-}
-trait DefaultNatives extends Natives{
-
-  import NativeUtils._
   val fileLoader = (name: String) => {
     val slashName = s"/$name"
 
@@ -156,27 +90,27 @@ trait DefaultNatives extends Natives{
           "reflect"/(
             "Array"/(
               "newArray(Ljava/lang/Class;I)Ljava/lang/Object;" x2 {
-                vt =>(x: vrt.Cls, n: vrt.Int) => new Array[Obj](n): vrt.Val
+                vt =>(x: vrt.Cls, n: vrt.Int) => new Array[vrt.Obj](n): vrt.Val
               }
             )
           ),
           "Class"/(
             "registerNatives()V" x noOp,
             "getName0()L//String;" x1 {vt => (s: vrt.Type) =>
-              import vt.vm
+              import vt._
               s.tpe.unparse.replace("/", "."): vrt.Val
             },
             "forName0(L//String;)L//Class;" x1 {vt => (s: vrt.Obj) =>
               import vt._
-              Type.Cls(s).obj
+              imm.Type.Cls(s).obj
             },
             "forName0(L//String;ZL//ClassLoader;)L//Class;" x3 {vt => (s: vrt.Obj, w: Any, y: Any) =>
               import vt._
-              Type.Cls(s.replace('.', '/')).obj
+              imm.Type.Cls(s.replace('.', '/')).obj
             },
             "getPrimitiveClass(L//String;)L//Class;" x1 {vt => (s: vrt.Obj) =>
               import vt._
-              Type.Cls(imm.Type.Prim.Info.all.find(_.name == (s: String)).get.boxName).obj
+              imm.Type.Cls(imm.Type.Prim.Info.all.find(_.name == (s: String)).get.boxName).obj
             },
             "getClassLoader0()L//ClassLoader;" x1 value1(vrt.Null),
             "getDeclaringClass()L//Class;" x value(vrt.Null),
@@ -200,21 +134,27 @@ trait DefaultNatives extends Natives{
               cls.getDeclaredMethods()
             },
             "getEnclosingMethod0()[L//Object;" x value(vrt.Null),
-            "getModifiers()I" x1 { vt => (x: vrt.Cls) => import vt.vm._; Type.Cls(x.name).clsData.access_flags },
+            "getModifiers()I" x1 { vt => (x: vrt.Cls) =>
+              import vt.vm
+              imm.Type.Cls(x.name).cls.clsData.access_flags
+            },
             "getSuperclass()L//Class;" x1 { vt => (x: vrt.Cls) =>
               import vt.vm
               import vm._
-              Type.Cls(x.name).clsData
+              imm.Type.Cls(x.name).cls.clsData
                 .superType
                 .map(_.obj)
                 .getOrElse(vrt.Null)
             },
             "getRawAnnotations()[B" x1 value1(new vrt.Arr.Prim(new Array[Boolean](0))),
-            "isPrimitive()Z" x1 { vt => (x: vrt.Type) => x.tpe.isInstanceOf[Type.Prim]
+            "isPrimitive()Z" x1 { vt => (x: vrt.Type) => x.tpe.isInstanceOf[imm.Type.Prim]
             },
-            "isInterface()Z" x1 { vt => (x: vrt.Cls) => import vt.vm._; ((Type.Cls(x.name.replace(".", "/")).clsData.access_flags & Access.Interface) != 0): vrt.Val},
+            "isInterface()Z" x1 { vt => (x: vrt.Cls) =>
+              import vt.vm
+              ((imm.Type.Cls(x.name.replace(".", "/")).cls.clsData.access_flags & imm.Access.Interface) != 0): vrt.Val
+            },
             "isAssignableFrom(L//Class;)Z" x2 { vt => (x: vrt.Type, y: vrt.Type) => true: vrt.Val},
-            "isArray()Z" x1 { vt => (x: vrt.Type) => x.tpe.isInstanceOf[Type.Arr]
+            "isArray()Z" x1 { vt => (x: vrt.Type) => x.tpe.isInstanceOf[imm.Type.Arr]
             },
             "desiredAssertionStatus0(L//Class;)Z" x1 value1(0: vrt.Val)
           ),
@@ -278,7 +218,7 @@ trait DefaultNatives extends Natives{
               case (x: vrt.Obj) => x.cls.obj
               case (x: vrt.Arr) => imm.Type.Arr(x.tpe).obj(vt.vm)
             }},
-            "hashCode()I" x1 { vt => (_: Obj).hashCode()},
+            "hashCode()I" x1 { vt => (_: vrt.Obj).hashCode()},
             "notify()V" x1 noOp1,
             "notifyAll()V" x1 noOp1
             ),
@@ -296,7 +236,7 @@ trait DefaultNatives extends Natives{
             },
             "currentTimeMillis()J" x value(System.currentTimeMillis()),
             "getProperty(L//String;)L//String;" x1 {
-              vt => (s: Obj) =>
+              vt => (s: vrt.Obj) =>
                 import vt.vm
                 properties.get(s)
                           .map(x => x: vrt.Val)
@@ -304,7 +244,7 @@ trait DefaultNatives extends Natives{
 
             },
             "getProperty(L//String;L//String;)L//String;" x2 {
-              vt => (s: Obj, dflt: Obj) =>
+              vt => (s: vrt.Obj, dflt: vrt.Obj) =>
                 import vt.vm
                 properties.get(s)
                           .map(x => x: vrt.Val)
@@ -312,7 +252,7 @@ trait DefaultNatives extends Natives{
             },
             "nanoTime()J" x value(System.nanoTime()),
             "initProperties(Ljava/util/Properties;)Ljava/util/Properties;" x1 value1(vrt.Null),
-            "identityHashCode(L//Object;)I" x1 ( vt => (x: Obj) => System.identityHashCode(x): vrt.Val),
+            "identityHashCode(L//Object;)I" x1 ( vt => (x: vrt.Obj) => System.identityHashCode(x): vrt.Val),
             "registerNatives()V" x noOp,
             "setIn0(Ljava/io/InputStream;)V" x1 noOp1,
             "setOut0(Ljava/io/PrintStream;)V" x1 noOp1,
@@ -325,9 +265,8 @@ trait DefaultNatives extends Natives{
             "start0()V" x noOp
             ),
           "Throwable"/(
-            "fillInStackTrace(I)L//Throwable;" x2 { vt => (throwable: Obj, dummy: vrt.Int) =>
+            "fillInStackTrace(I)L//Throwable;" x2 { vt => (throwable: vrt.Obj, dummy: vrt.Int) =>
               import vt.vm;
-              import vm._
               throwable(throwable.refType, "stackTrace") =
                 new vrt.Arr.Obj(
                   imm.Type.Cls("java/lang/StackTraceElement"),
@@ -352,7 +291,7 @@ trait DefaultNatives extends Natives{
         "security"/(
           "AccessController"/(
             "doPrivileged(L//PrivilegedAction;)L/lang/Object;" x1 {
-              vt => (pa: Obj) =>
+              vt => (pa: vrt.Obj) =>
                 vt.prepInvoke(pa.cls.clsData.tpe, "run", pa.cls.clsData.methods.find(_.name == "run").get.desc, Seq(pa))
             },
             "getStackAccessControlContext()L//AccessControlContext;" x { vt => vrt.Obj("java/security/AccessControlContext")(vt.vm)},
@@ -407,7 +346,7 @@ trait DefaultNatives extends Natives{
               vm.theUnsafe
             },
             "compareAndSwapObject(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z" x5 {
-              vt => (unsafe: Obj, a: vrt.Val, i: vrt.Long, b: vrt.Val, c: vrt.Val) =>
+              vt => (unsafe: vrt.Obj, a: vrt.Val, i: vrt.Long, b: vrt.Val, c: vrt.Val) =>
                 if (getObject(a, i) == b) {
                   putObject(a, i, b)
                   true
@@ -415,15 +354,15 @@ trait DefaultNatives extends Natives{
                   false
                 }
             },
-            "objectFieldOffset(Ljava/lang/reflect/Field;)J" x2 { vt => (unsafe: Any, x: Obj) =>
-              val cls: Type.Cls = Type.Cls("java/lang/reflect/Field")
+            "objectFieldOffset(Ljava/lang/reflect/Field;)J" x2 { vt => (unsafe: Any, x: vrt.Obj) =>
+              val cls: imm.Type.Cls = imm.Type.Cls("java/lang/reflect/Field")
               x(cls, "slot").asInstanceOf[vrt.Int].toLong
             },
-            "staticFieldOffset(Ljava/lang/reflect/Field;)J" x2 { vt => (unsafe: Any, x: Obj) =>
-              val cls: Type.Cls = Type.Cls("java/lang/reflect/Field")
+            "staticFieldOffset(Ljava/lang/reflect/Field;)J" x2 { vt => (unsafe: Any, x: vrt.Obj) =>
+              val cls: imm.Type.Cls = imm.Type.Cls("java/lang/reflect/Field")
               x(cls, "slot").asInstanceOf[vrt.Int].toLong
             },
-            "staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;" x2 { vt => (unsafe: Any, x: Obj) =>
+            "staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;" x2 { vt => (unsafe: Any, x: vrt.Obj) =>
               import vt._
               vm.theUnsafe
             }
@@ -432,7 +371,7 @@ trait DefaultNatives extends Natives{
             "initialize()V" x noOp,
             "isBooted()Z" x value(true),
             "getSavedProperty(Ljava/lang/String;)Ljava/lang/String;" x1 {
-              vt => (s: Obj) =>
+              vt => (s: vrt.Obj) =>
                 import vt.vm
                 properties.get(s)
                           .map(x => x: vrt.Val)
@@ -445,22 +384,21 @@ trait DefaultNatives extends Natives{
         "reflect"/(
           "NativeConstructorAccessorImpl"/(
             "newInstance0(Ljava/lang/reflect/Constructor;[Ljava/lang/Object;)Ljava/lang/Object;" x2 {
-              vt => (constr: Obj, args: Array[Obj]) =>
-                import vt.vm; import vm._
-                val cls: Cls = imm.Type.Cls(constr.members.find(_._1.name == "clazz").get._2.asInstanceOf[vrt.Cls].name)
-                val newObj = new Obj(cls)
+              vt => (constr: vrt.Obj, args: Array[vrt.Obj]) =>
+                import vt.vm
+                val cls: rt.Cls = imm.Type.Cls(constr.members.find(_._1.name == "clazz").get._2.asInstanceOf[vrt.Cls].name).cls
+                val newObj = new vrt.Obj(cls)
                 vt.invoke(cls.clsData.tpe, "<init>", imm.Desc.read("()V"), Seq(newObj))
                 newObj
             }
             ),
           "Reflection"/(
             "getCallerClass(I)Ljava/lang/Class;" x1 { vt => (n: vrt.Int) =>
-              import vt.vm; import vm._
-              Type.Cls(vt.getStackTrace.drop(n).head.getClassName).obj
+              import vt.vm; imm.Type.Cls(vt.getStackTrace.drop(n).head.getClassName).obj
             },
             "getClassAccessFlags(Ljava/lang/Class;)I" x1 { vt => (x: vrt.Cls) =>
-              import vt.vm._;
-              Type.Cls(x.name).clsData.access_flags
+              import vt.vm
+              imm.Type.Cls(x.name).cls.clsData.access_flags
             },
             "registerMethodsToFilter(Ljava/lang/Class;[Ljava/lang/String;)V" x2 noOp2
           )
@@ -470,9 +408,5 @@ trait DefaultNatives extends Natives{
   }
 
   val trapped = trappedIndex.toMap
-
-
-
-
 }
 

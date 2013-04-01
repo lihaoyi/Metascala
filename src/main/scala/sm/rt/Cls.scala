@@ -17,6 +17,9 @@ final class Var(var x: vrt.Val){
   }
 }
 
+/**
+ * The runtime mutable and VM-specific data of a Java Class
+ */
 class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
   import vm._
 
