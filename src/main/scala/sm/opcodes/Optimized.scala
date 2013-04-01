@@ -45,9 +45,8 @@ object Optimized {
           println(objCls.name)
           println("Methods " + objCls.methodList.length)
           objCls.methodList.map{
-            case Method.Cls(clsIndex, methodIndex) =>
+            case Method.Cls(clsIndex, methodIndex, method) =>
               val cls = vt.vm.ClsTable.clsIndex(clsIndex)
-              val method = cls.clsData.methods(methodIndex)
               cls.name + " " + method.name + method.desc.unparse
             case Method.Native(nativeIndex) =>
               val (name, desc) = vt.vm.natives.trappedIndex(nativeIndex)._1

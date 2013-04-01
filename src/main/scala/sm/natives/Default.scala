@@ -394,7 +394,13 @@ trait Default extends Bindings{
             ),
           "Reflection"/(
             "getCallerClass(I)Ljava/lang/Class;" x1 { vt => (n: vrt.Int) =>
-              import vt.vm; imm.Type.Cls(vt.getStackTrace.drop(n).head.getClassName).obj
+              import vt.vm;
+              vt.getStackTrace
+                .drop(n)
+                .headOption
+                .map(_.getClassName)
+                .map(imm.Type.Cls(_).obj)
+                .getOrElse(vrt.Null)
             },
             "getClassAccessFlags(Ljava/lang/Class;)I" x1 { vt => (x: vrt.Cls) =>
               import vt.vm

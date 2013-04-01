@@ -54,14 +54,14 @@ class MetacircularTest extends FreeSpec with Util{
   val buffer = new BufferLog(4000)
   var count = 0
 
-  val tester = new Tester("sm.full.MetacircularTest")
+  val tester = new Tester("sm.full.MetacircularTest", buffer)
   "helloWorld" in {
     tester.run("helloWorld")
   }
   "sqrtFinder" in {
     try{
     tester.run("sqrtFinder")
-    println(tester.svm.threads(0).getI)
+    println(tester.svm.threads(0).getOpCount)
     }catch {case e =>
       buffer.lines.foreach(println)
       throw e
@@ -71,7 +71,7 @@ class MetacircularTest extends FreeSpec with Util{
 
   "fibonacci" in {
     tester.run("fibonacci")
-    println(tester.svm.threads(0).getI)
+    println(tester.svm.threads(0).getOpCount)
   }
 
 
@@ -84,14 +84,13 @@ class MetacircularTest extends FreeSpec with Util{
   }
   "getAndSet" in {
     tester.run("getAndSet")
-    println(tester.svm.threads(0).getI)
+    println(tester.svm.threads(0).getOpCount)
   }
 
   "multiCatch" in {
     tester.run("multiCatch")
-    println(tester.svm.threads(0).getI)
+    println(tester.svm.threads(0).getOpCount)
   }
-
   /*"doubleMetaOne" in {
     tester.run("doubleMetaOne")
     println(tester.svm.threads(0).getI)

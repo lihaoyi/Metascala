@@ -23,17 +23,21 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     "priority" -> 5
   )
 
-  private[this] var i = 0
-  def getI = i
+
+  private[this] var opCount = 0
+  def getOpCount = opCount
   def frame = threadStack.top
+
+  var returnedIndex = 0
+  var returnedVal: vrt.StackVal = ()
 
   def getStackTrace =
     threadStack.map { f =>
       new StackTraceElement(
         f.runningClass.name,
-        if (f.method.code != imm.Code()) f.method.name + f.method.desc.unparse + " " + f.method.code.insns(f.pc) else "",
+        if (f.method.method.code != imm.Code()) f.method.name + f.method.desc.unparse + " " + f.method.method.code.insns(f.pc) else "",
         f.runningClass.clsData.misc.sourceFile.getOrElse("[no source]"),
-        f.method.code.attachments.flatten.reverse.collect{
+        f.method.method.code.attachments.flatten.reverse.collect{
           case LineNumber(line, startPc) if startPc < f.pc => line
         }.headOption.getOrElse(-1)
       )
@@ -41,19 +45,22 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
   def indent = "\t" * threadStack.filter(_.method.name != "Dummy").length
 
-  def optimize(opcode: OpCode) = {
-    val insnsList = frame.runningClass.insns(frame.methodIndex)
+  def swapOpCode(opcode: OpCode) = {
+    val insnsList = frame.method.insns
     insnsList(frame.pc-1) = opcode
+    vm.log(indent + "SWAPPED")
+    vm.log(indent + frame.runningClass.name + "/" + frame.method.name + ": " + frame.stack)
+    vm.log(indent + "---------------------- " + frame.pc + "\t" + opcode)
     opcode.op(this)
   }
 
   final def step() = {
-    val insnsList = frame.runningClass.insns(frame.methodIndex)
+    val insnsList = frame.method.insns
     val node = insnsList(frame.pc)
     vm.log(indent + frame.runningClass.name + "/" + frame.method.name + ": " + frame.stack)
     vm.log(indent + "---------------------- " + frame.pc + "\t" + node )
     frame.pc += 1
-    i += 1
+    opCount += 1
     try{
       node.op(this)
     }catch{ case e: Throwable =>
@@ -66,13 +73,16 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   def returnVal(x: Option[vrt.StackVal]) = {
     threadStack.pop()
     x match{
-      case Some(value) => threadStack.top.stack.push(value)
+      case Some(value) => threadStack.headOption match{
+        case Some(frame) => frame.stack.push(value)
+        case None => returnedVal = value
+      }
       case None => () //donothing
     }
   }
   def dumpStack =
     threadStack.map(f =>
-      f.runningClass.name.padTo(35, ' ') + (f.method.name + f.method.desc.unparse).padTo(35, ' ') + f.pc.toString.padTo(5, ' ') + (try f.method.code.insns(f.pc-1) catch {case x =>})
+      f.runningClass.name.padTo(35, ' ') + (f.method.name + f.method.desc.unparse).padTo(35, ' ') + f.pc.toString.padTo(5, ' ') + (try f.method.method.code.insns(f.pc-1) catch {case x =>})
     )
 
   @tailrec final def throwException(ex: vrt.Obj, print: Boolean = true): Unit = {
@@ -81,7 +91,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     threadStack.headOption match{
       case Some(frame)=>
         val handler =
-          frame.method.misc.tryCatchBlocks
+          frame.method.method.misc.tryCatchBlocks
                .filter{x =>
                   x.start <= frame.pc &&
                   x.end >= frame.pc &&
@@ -109,16 +119,16 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
   final def prepInvoke(mRef: rt.Method,
                        args: Seq[vrt.StackVal]) = {
-//    println("PrepInvoke " + mRef)
+    vm.log(indent + "PrepInvoke " + mRef.name)
     mRef match{
       case rt.Method.Native(index) =>
         val ((name, desc), op) = vm.natives.trappedIndex(index)
         val result = op(this)(args)
         if(desc.ret != imm.Type.Prim('V'))threadStack.top.stack.push(result.toStackVal)
 
-      case rt.Method.Cls(tpeIndex, methodIndex) =>
+      case m @ rt.Method.Cls(tpeIndex, methodIndex, method) =>
         val cls = vm.ClsTable.clsIndex(tpeIndex)
-        val method = cls.clsData.methods(methodIndex)
+
 
         val array = new Array[vrt.StackVal](method.misc.maxLocals)
         var i = 0
@@ -132,8 +142,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
         val startFrame = new Frame(
           runningClass = cls,
-          method = method,
-          methodIndex = methodIndex,
+          method = m,
           locals = array
         )
 
@@ -147,34 +156,27 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
                        args: Seq[vrt.StackVal])
                        : Unit = {
     //println("Prep Invoking By Name " + vm.ClsTable(tpe.cast[imm.Type.Cls]).name + " " + methodName + desc.unparse)
+    val mIndex = vm.ClsTable(tpe.cast[imm.Type.Cls])
+      .clsData
+      .methods
+      .indexWhere(m => m.name == methodName && m.desc == desc)
     prepInvoke(
-      rt.Method.Cls(
-        vm.ClsTable(tpe.cast[imm.Type.Cls]).index,
-        vm.ClsTable(tpe.cast[imm.Type.Cls])
-           .clsData
-           .methods
-           .indexWhere(m => m.name == methodName && m.desc == desc)
-      ),
+      vm.ClsTable(tpe.cast[imm.Type.Cls])
+        .methods(mIndex),
       args
     )
   }
 
   def invoke(cls: imm.Type.Cls, methodName: String, desc: imm.Desc, args: Seq[vrt.Val]): vrt.Val = {
-    val dummyFrame = new Frame(
-      runningClass = cls,
-      method = imm.Method(0, "Dummy", imm.Desc.read("()V")),
-      methodIndex = 0,
-      locals = mutable.Seq.empty
-    )
 
-    threadStack.push(dummyFrame)
+    val startHeight = threadStack.length
     prepInvoke(cls, methodName, desc, args.map(_.toStackVal))
+    returnedIndex = startHeight
+    returnedVal = vrt.Unit
+    while(threadStack.length != startHeight) step()
 
-    while(threadStack.top != dummyFrame) step()
-
-    val x = threadStack.pop().stack.headOption.getOrElse(vrt.Unit)
-
-    x
+    if (returnedIndex == startHeight) returnedVal
+    else vrt.Unit
   }
 }
 
@@ -184,10 +186,12 @@ case class FrameDump(clsName: String,
                      lineNumber: Int)
 
 
+/**
+ * The stack frame created by every method call
+ */
 class Frame(var pc: Int = 0,
-            val runningClass: Cls,
-            val method: imm.Method,
-            val methodIndex: Int,
+            val runningClass: rt.Cls,
+            val method: rt.Method.Cls,
             val locals: mutable.Seq[vrt.StackVal] = mutable.Seq.empty,
             val stack: mutable.ArrayStack[vrt.StackVal] = mutable.ArrayStack.empty[vrt.StackVal])
 

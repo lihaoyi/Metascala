@@ -9,7 +9,9 @@ import rt.{FrameDump, Thread}
 
 /**
  * A ScalaMachine VM. Call invoke() on it with a class, method name and arguments
- * to have it interpret some Java bytecode for you.
+ * to have it interpret some Java bytecode for you. It optionally takes in a set of
+ * native bindings, as well as a logging function which it will use to log all of
+ * its bytecode operations
  */
 class VM(val natives: Bindings = Bindings.default, val log: ((=>String) => Unit) = s => ()) {
   private[this] implicit val vm = this

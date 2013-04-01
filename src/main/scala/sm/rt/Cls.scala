@@ -23,7 +23,12 @@ final class Var(var x: vrt.Val){
 class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
   import vm._
 
-  val insns = clsData.methods.map(x => mutable.Seq(x.code.insns:_*))
+  val methods =
+    clsData.methods
+           .zipWithIndex
+           .map{case (m, i) => new rt.Method.Cls(index, i, m)}
+
+
   lazy val obj = new vrt.Cls(Type.Cls(name))
   val statics =
     clsData.fields.map{f =>
@@ -71,7 +76,7 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
   }
 
 
-  lazy val methodList: Seq[Method] = {
+  lazy val methodList: Seq[rt.Method] = {
     val methods =
       mutable.ArrayBuffer(
         clsData.superType
@@ -95,7 +100,7 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
         else methods.update(index, _: Method)
 
       nIndex match {
-        case -1 => update(Method.Cls(this.index, i))
+        case -1 => update(Method.Cls(this.index, i, m))
         case n => update(Method.Native(n))
 
       }

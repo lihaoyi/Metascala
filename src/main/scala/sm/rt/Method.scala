@@ -24,11 +24,11 @@ object Method{
   /**
    * A reference to a method belonging to a class
    */
-  case class Cls(clsIndex: Int, methodIndex: Int)(implicit vm: VM) extends Method{
+  case class Cls(clsIndex: Int, methodIndex: Int, method: imm.Method)(implicit vm: VM) extends Method{
     assert(clsIndex >= 0, "clsIndex can't be negative")
     assert(methodIndex >= 0, "index can't be negative")
-    lazy val name = vm.ClsTable.clsIndex(clsIndex).clsData.methods(methodIndex).name
-
-    lazy val desc = vm.ClsTable.clsIndex(clsIndex).clsData.methods(methodIndex).desc
+    def name = method.name
+    def desc = method.desc
+    val insns = Array(method.code.insns:_*)
   }
 }

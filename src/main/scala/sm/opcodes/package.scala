@@ -7,7 +7,7 @@ import rt.Thread
 /**
  * `opcodes` contains the stack manipulating behavior of each individual
  * opcode. Each opcode is a case class or case object extending the trait
- * [[opcode.OpCode]]. These are split into three separate files to help keep
+ * [[sm.opcodes.OpCode]]. These are split into three separate files to help keep
  * compile times down.
  *
  * A large number of the opcodes are unused (they extend [[sm.opcodes.UnusedOpCode]])

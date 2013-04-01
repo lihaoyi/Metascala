@@ -41,25 +41,25 @@ object Misc {
   case object Return extends OpCode{ def op(vt: Thread) =  vt.returnVal(None) }
 
   case class GetStatic(owner: Type.Cls, name: String, desc: Type) extends OpCode{
-    def op(vt: Thread) = vt.optimize(
+    def op(vt: Thread) = vt.swapOpCode(
       Optimized.GetStatic(owner.cls(vt.vm).resolveStatic(owner, name))
     )
 
   }
   case class PutStatic(owner: Type.Cls, name: String, desc: Type) extends OpCode{
-    def op(vt: Thread) = vt.optimize(
+    def op(vt: Thread) = vt.swapOpCode(
       Optimized.PutStatic(owner.cls(vt.vm).resolveStatic(owner, name))
     )
 
   }
 
   case class GetField(owner: Type.Cls, name: String, desc: Type) extends OpCode{
-    def op(vt: Thread) = vt.optimize(
+    def op(vt: Thread) = vt.swapOpCode(
       Optimized.GetField(owner.cls(vt.vm).fieldList.lastIndexWhere(_.name == name))
     )
   }
   case class PutField(owner: Type.Cls, name: String, desc: Type) extends OpCode{
-    def op(vt: Thread) = vt.optimize(
+    def op(vt: Thread) = vt.swapOpCode(
       Optimized.PutField(owner.cls(vt.vm).fieldList.lastIndexWhere(_.name == name))
     )
 
@@ -76,7 +76,7 @@ object Misc {
           .methodList
           .indexWhere{ m => m.name == name && m.desc == desc }
 
-      vt.optimize(Optimized.InvokeVirtual(index, desc.args.length))
+      vt.swapOpCode(Optimized.InvokeVirtual(index, desc.args.length))
     }
 
   }
@@ -94,7 +94,7 @@ object Misc {
     if(nativeId != -1) Some(rt.Method.Native(nativeId))
     else if (methodId != -1) {
       if(owner.cls.clsData.methods(methodId).code.insns.length != 1)
-        Some(rt.Method.Cls(owner.cls(vm).index, methodId))
+        Some(owner.cls.methods(methodId))
       else
         None
     }else throw new Exception(s"Can't find method ${owner.unparse} $name ${desc.unparse}")
@@ -102,7 +102,7 @@ object Misc {
   }
 
   case class InvokeSpecial(owner: Type.Cls, name: String, desc: imm.Desc) extends OpCode{
-    def op(vt: Thread) = vt.optimize{
+    def op(vt: Thread) = vt.swapOpCode{
       import vt.vm
 
       resolveDirectRef(owner, name, desc) match{
@@ -115,7 +115,7 @@ object Misc {
   }
 
   case class InvokeStatic(owner: Type.Cls, name: String, desc: imm.Desc) extends OpCode{
-    def op(vt: Thread) = vt.optimize {
+    def op(vt: Thread) = vt.swapOpCode {
       import vt.vm
       resolveDirectRef(owner, name, desc) match{
         case None => StackManip.Pop
@@ -152,7 +152,7 @@ object Misc {
   case class New(desc: Type.Cls) extends OpCode{
     def op(vt: Thread) = {
       vt.vm.ClsTable(desc)
-      vt.optimize(
+      vt.swapOpCode(
         Optimized.New(vt.vm.ClsTable.clsIndex.indexWhere(_.clsData.tpe == desc))
       )
     }

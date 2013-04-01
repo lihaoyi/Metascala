@@ -136,7 +136,7 @@ class BufferLog(n: Int) extends ((=> String) => Unit){
   def apply(s: =>String) = {
 
     count += 1
-    if (count > 0){
+    if (count > 8000000){
       buffer(index) = s
       index = (index + 1) % n
     }
