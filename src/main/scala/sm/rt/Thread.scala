@@ -28,7 +28,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   def getOpCount = opCount
   def frame = threadStack.top
 
-  var returnedVal: vrt.StackVal = ()
+  var returnedVal: vrt.StackVal = vrt.Null
 
   def getStackTrace =
     threadStack.map { f =>

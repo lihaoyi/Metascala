@@ -193,7 +193,6 @@ object Misc {
       vt.push(top)
       top match{
         case vrt.Null => ()
-        case vrt.Unit => ()
         case (top: vrt.Ref with vrt.StackVal) if !check(top.tpe, desc) =>
           vt.throwException(
             vrt.Obj("java/lang/ClassCastException",

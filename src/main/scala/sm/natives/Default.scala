@@ -53,9 +53,9 @@ trait Default extends Bindings{
       case o: vrt.Obj =>
         val matches = for {
           (f, m) <- o.members
-          if m.hashCode == i
-        } yield m
-
+          if m().hashCode == i
+        } yield m()
+        vrt.Null
       case r: vrt.Arr =>
         r.backing(i.toInt).asInstanceOf[vrt.Val]
     }
@@ -232,7 +232,7 @@ trait Default extends Bindings{
             ),
           "System"/(
             "arraycopy(L//Object;IL//Object;II)V" x5 { vt => (src: vrt.Arr, srcPos: vrt.Int, dest: vrt.Arr, destPos: vrt.Int, length: vrt.Int) =>
-
+              import vt.vm
               System.arraycopy(src.backing, srcPos, dest.backing, destPos, length)
             },
             "currentTimeMillis()J" x value(System.currentTimeMillis()),
@@ -293,6 +293,7 @@ trait Default extends Bindings{
           "AccessController"/(
             "doPrivileged(L//PrivilegedAction;)L/lang/Object;" x1 {
               vt => (pa: vrt.Obj) =>
+                import vt.vm
                 vt.prepInvoke(pa.cls.clsData.tpe, "run", pa.cls.clsData.methods.find(_.name == "run").get.desc, Seq(pa))
             },
             "getStackAccessControlContext()L//AccessControlContext;" x { vt => vrt.Obj("java/security/AccessControlContext")(vt.vm)},
@@ -305,10 +306,12 @@ trait Default extends Bindings{
         "Predef$"/(
           "println(Ljava/lang/String;)V" x2 {
             vt => (x: vrt.Obj, y: vrt.Obj) =>
+              import vt.vm
               println("VIRTUAL " + vrt.unvirtString(y))
           },
           "println(Ljava/lang/Object;)V" x2 {
             vt => (x: vrt.Obj, y: vrt.Obj) =>
+              import vt.vm
               println("VIRTUAL " + vrt.unvirtString(y))
           }
 
@@ -334,7 +337,9 @@ trait Default extends Bindings{
             },
             "ensureClassInitialized(Ljava/lang/Class;)V" x2 noOp2,
             "putOrderedObject(Ljava/lang/Object;JLjava/lang/Object;)V" x4 {
-              vt => (unsafe: vrt.Obj, a: vrt.Val, i: vrt.Long, b: vrt.Val) => putObject(a, i, b)
+              vt => (unsafe: vrt.Obj, a: vrt.Val, i: vrt.Long, b: vrt.Val) =>
+                import vt.vm
+                putObject(a, i, b)
             },
             "getObject(Ljava/lang/Object;J)Ljava/lang/Object;" x3 {
               vt => (unsafe: vrt.Obj, a: vrt.Val, i: vrt.Long) => getObject(a, i)

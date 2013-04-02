@@ -15,6 +15,3 @@ case class Double(v: scala.Double) extends Prim[scala.Double] with Cat2
 case object Null extends Cat1{
   def tpe = ???
 }
-case object Unit extends Cat1{
-  def tpe = ???
-}

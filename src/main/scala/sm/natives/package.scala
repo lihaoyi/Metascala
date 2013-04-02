@@ -13,9 +13,9 @@ package object natives {
   def value(x: => vrt.Val) = (vm: rt.Thread) => x
   def value1(x: => vrt.Val) = (vm: rt.Thread) => (a: vrt.Val) => x
   def value2(x: => vrt.Val) = (vm: rt.Thread) => (a: vrt.Val, b: vrt.Val) => x
-  val noOp = value(vrt.Unit)
-  val noOp1 = value1(vrt.Unit)
-  val noOp2 = value2(vrt.Unit)
+  val noOp = value(vrt.Null)
+  val noOp1 = value1(vrt.Null)
+  val noOp2 = value2(vrt.Null)
 
   /**
    * Implements a nice DSL to build the list of trapped method calls

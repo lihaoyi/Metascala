@@ -31,7 +31,7 @@ package object vrt {
   implicit def virtLong(i: Long)        = vrt.Long(i)
   implicit def virtDouble(i: Double)    = vrt.Double(i)
   implicit def virtNull(i: Null)        = vrt.Null
-  implicit def virtUnit(i: Unit)        = vrt.Unit
+  implicit def virtUnit(i: Unit)(implicit vm: VM)        = virtualize(i)
 
   def virtualize(i: Any)(implicit vm: VM): vrt.Val = {
     i match{
@@ -95,7 +95,6 @@ package object vrt {
   implicit def unvirtLong(i: vrt.Long) = i.v
   implicit def unvirtDouble(i: vrt.Double) = i.v
   implicit def unvirtNull(i: vrt.Null.type) = null
-  implicit def unvirtUnit(i: vrt.Unit.type) = ()
 
   def unvirtualize(i: vrt.Val): Any = {
 
@@ -120,7 +119,6 @@ package object vrt {
         }
         obj
       case vrt.Null => null
-      case vrt.Unit => null
     }
   }
 
