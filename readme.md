@@ -22,8 +22,8 @@ ScalaMachine is a simple Scala application, and compiles to Java bytecode like a
 In fact, each ScalaMachine JVM is a single Java object, containing in itself all state relevant to its own computation, and instantiating one and invoking methods using it is simple: 
 
 ```
-val x = new sm.VM()
-x.invoke("sm.features.arrays.ArrayStuff", "bubbleSort", Seq(Array(6, 5, 2, 7, 3, 4, 9, 1, 8)))
+val x = new metascala.VM()
+x.invoke("metascala.features.arrays.ArrayStuff", "bubbleSort", Seq(Array(6, 5, 2, 7, 3, 4, 9, 1, 8)))
 // Array(1, 2, 3, 4, 5, 6, 7, 8, 9)
 ```
 
@@ -34,10 +34,10 @@ Architecture
 
 Apart from the test folder, the main packages of interest in ScalaMachine are:
 
-- [sm/imm](): an immutable model of the data structures that make up a java .class file. These are an almost direct conversion of the data structures provided by the [ASM Tree API](), converted to idiomatic, immutable Scala case classes. These classes should be purely immutable, and should have no dependency on the rest of ScalaMachine.
-- [sm/opcodes](): contains the attributes and behavior of the 200ish java bytecodes. Many of the 200 opcodes are unused (as ASM automatically collapses these into other opcodes during parsing), and there are additional opcodes in [Optimized.scala]() which are versions of the default opcodes optimized for the individual ScalaMachine.
-- [sm/vrt](): virtual versions of the standard JVM data types: objects, arrays, `int`s, `double`s and the rest of the primitive types. These virtual values populate the heap, operand stack, local variable table and anywhere where variables may be stored within the ScalaMachine VM.
-- [sm/rt](): runtime data-structures that make up the JVM: threads, classes, etc. These classes also contain the mutable state associated with these constructs (e.g. static class fields) or ScalaMachine-specific optimizations (e.g. virtual-method vtables) that can't be placed in the [sm/imm]() package.
+- [metascala/imm](): an immutable model of the data structures that make up a java .class file. These are an almost direct conversion of the data structures provided by the [ASM Tree API](), converted to idiomatic, immutable Scala case classes. These classes should be purely immutable, and should have no dependency on the rest of ScalaMachine.
+- [metascala/opcodes](): contains the attributes and behavior of the 200ish java bytecodes. Many of the 200 opcodes are unused (as ASM automatically collapses these into other opcodes during parsing), and there are additional opcodes in [Optimized.scala]() which are versions of the default opcodes optimized for the individual ScalaMachine.
+- [metascala/vrt](): virtual versions of the standard JVM data types: objects, arrays, `int`s, `double`s and the rest of the primitive types. These virtual values populate the heap, operand stack, local variable table and anywhere where variables may be stored within the ScalaMachine VM.
+- [metascala/rt](): runtime data-structures that make up the JVM: threads, classes, etc. These classes also contain the mutable state associated with these constructs (e.g. static class fields) or ScalaMachine-specific optimizations (e.g. virtual-method vtables) that can't be placed in the [metascala/imm]() package.
 
 Many concepts have classes in several of these packages representing them. For example, the abstract idea of a Java "Class" is modelled by:
 
