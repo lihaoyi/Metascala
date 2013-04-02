@@ -90,9 +90,9 @@ class MetacircularTest extends FreeSpec with Util{
     tester.run("multiCatch")
     println(tester.svm.threads(0).getOpCount)
   }
-  /*"doubleMetaOne" in {
+  "doubleMetaOne" in {
     tester.run("doubleMetaOne")
-    println(tester.svm.threads(0).getI)
-  }*/
+    println(tester.svm.threads(0).getOpCount)
+  }
 }
 

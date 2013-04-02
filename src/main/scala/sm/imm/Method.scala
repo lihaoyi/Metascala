@@ -44,9 +44,11 @@ object Method {
                   maxLocals: Int = 0,
                   attrs: Seq[Attribute] = Nil)
 
-  type Sig = (String, Desc)
-}
 
+}
+case class Sig(name: String, desc: Desc){
+  override lazy val hashCode = name.hashCode + desc.hashCode
+}
 
 case class Method(access: Int,
                   name: String,
@@ -56,6 +58,7 @@ case class Method(access: Int,
                   misc: Method.Misc = Method.Misc(),
                   annotations: Method.Annotations = Method.Annotations()){
   def concrete = code != Code()
+  lazy val sig = Sig(name, desc)
 }
 
 object Code{

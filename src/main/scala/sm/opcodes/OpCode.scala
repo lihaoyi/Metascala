@@ -23,19 +23,19 @@ object OpCode {
   implicit def parseTypeCls(x: String) = imm.Type.Cls.read(x)
   implicit def parseTypeDesc(x: String) = imm.Desc.read(x)
   def read(implicit labelMap: Map[Label, Int]): PartialFunction[Any, OpCode] = {
-    case x: FieldInsnNode           => all(x.getOpcode).asInstanceOf[(imm.Type.Cls, String, imm.Type) => OpCode].apply(x.owner, x.name, imm.Type.read(x.desc))
-    case x: IincInsnNode            => all(x.getOpcode).asInstanceOf[(Int, Int) => OpCode].apply(x.`var`, x.incr)
-    case x: InsnNode                => all(x.getOpcode).asInstanceOf[OpCode]
-    case x: IntInsnNode             => all(x.getOpcode).asInstanceOf[Int => OpCode].apply(x.operand)
-    case x: InvokeDynamicInsnNode   => all(x.getOpcode).asInstanceOf[(String, String, Object, Object) => OpCode].apply(x.name, x.desc, x.bsm, x.bsmArgs)
-    case x: JumpInsnNode            => all(x.getOpcode).asInstanceOf[Int => OpCode].apply(x.label.getLabel)
-    case x: LdcInsnNode             => all(x.getOpcode).asInstanceOf[Object => OpCode].apply(x.cst)
-    case x: LookupSwitchInsnNode    => all(x.getOpcode).asInstanceOf[(Int, Seq[Int], Seq[Int]) => OpCode].apply(x.dflt.getLabel, x.keys.safeList.map(x => x: Int), x.labels.safeList.map(x => labelMap(x.getLabel)))
-    case x: MethodInsnNode          => all(x.getOpcode).asInstanceOf[(imm.Type, String, imm.Desc) => OpCode].apply(imm.Type.read(x.owner), x.name, x.desc)
-    case x: MultiANewArrayInsnNode  => all(x.getOpcode).asInstanceOf[(imm.Type, Int) => OpCode].apply(imm.Type.read(x.desc), x.dims)
-    case x: TableSwitchInsnNode     => all(x.getOpcode).asInstanceOf[(Int, Int, Int, Seq[Int]) => OpCode].apply(x.min, x.max, x.dflt.getLabel, x.labels.safeList.map(x => labelMap(x.getLabel)))
-    case x: TypeInsnNode            => all(x.getOpcode).asInstanceOf[imm.Type => OpCode].apply(imm.Type.read(x.desc))
-    case x: VarInsnNode             => all(x.getOpcode).asInstanceOf[Int => OpCode].apply(x.`var`)
+    case x: FieldInsnNode           => all(x.getOpcode).cast[(imm.Type.Cls, String, imm.Type) => OpCode].apply(x.owner, x.name, imm.Type.read(x.desc))
+    case x: IincInsnNode            => all(x.getOpcode).cast[(Int, Int) => OpCode].apply(x.`var`, x.incr)
+    case x: InsnNode                => all(x.getOpcode).cast[OpCode]
+    case x: IntInsnNode             => all(x.getOpcode).cast[Int => OpCode].apply(x.operand)
+    case x: InvokeDynamicInsnNode   => all(x.getOpcode).cast[(String, String, Object, Object) => OpCode].apply(x.name, x.desc, x.bsm, x.bsmArgs)
+    case x: JumpInsnNode            => all(x.getOpcode).cast[Int => OpCode].apply(x.label.getLabel)
+    case x: LdcInsnNode             => all(x.getOpcode).cast[Object => OpCode].apply(x.cst)
+    case x: LookupSwitchInsnNode    => all(x.getOpcode).cast[(Int, Seq[Int], Seq[Int]) => OpCode].apply(x.dflt.getLabel, x.keys.safeList.map(x => x: Int), x.labels.safeList.map(x => labelMap(x.getLabel)))
+    case x: MethodInsnNode          => all(x.getOpcode).cast[(imm.Type, imm.Sig) => OpCode].apply(imm.Type.read(x.owner), imm.Sig(x.name, x.desc))
+    case x: MultiANewArrayInsnNode  => all(x.getOpcode).cast[(imm.Type, Int) => OpCode].apply(imm.Type.read(x.desc), x.dims)
+    case x: TableSwitchInsnNode     => all(x.getOpcode).cast[(Int, Int, Int, Seq[Int]) => OpCode].apply(x.min, x.max, x.dflt.getLabel, x.labels.safeList.map(x => labelMap(x.getLabel)))
+    case x: TypeInsnNode            => all(x.getOpcode).cast[imm.Type => OpCode].apply(imm.Type.read(x.desc))
+    case x: VarInsnNode             => all(x.getOpcode).cast[Int => OpCode].apply(x.`var`)
   }
 
 

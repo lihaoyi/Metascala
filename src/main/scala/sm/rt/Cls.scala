@@ -26,7 +26,7 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
   val methods: Seq[rt.Method.Cls] =
     clsData.methods
            .zipWithIndex
-           .map{case (m, i) => new rt.Method.Cls(index, i, m)}
+           .map{case (m, i) => new rt.Method.Cls(this, i, m)}
 
 
   lazy val obj = new vrt.Cls(Type.Cls(name))
@@ -85,11 +85,11 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
       )
 
     methods.filter(_.method.access.&(Access.Static) == 0)
-           .map{ m =>
+           .foreach{ m =>
 
       val index = oldMethods.indexWhere{ mRef => mRef.name == m.name && mRef.desc == m.desc }
 
-      val native = vm.natives.trapped.find{case rt.Method.Native(clsName, (mName, idesc), func) =>
+      val native = vm.natives.trapped.find{case rt.Method.Native(clsName, imm.Sig(mName, idesc), func) =>
         (name == clsName) && (mName == m.name) && (idesc == m.desc)
       }
 
@@ -100,14 +100,13 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
       native match {
         case None => update(m)
         case Some(native) => update(native)
-
       }
     }
 
     oldMethods
   }
 
-  val vTableMap: mutable.Map[imm.Method.Sig, Method] = mutable.Map.empty
+  lazy val vTableMap = vTable.map(m => m.sig -> m).toMap
 }
 
 

@@ -49,7 +49,7 @@ package object natives {
               case f: (V => V) => f(args(0))
               case f: V => f
             }
-            Vector(rt.Method.Native("", (name, desc), newFunc))
+            Vector(rt.Method.Native("", imm.Sig(name, desc), newFunc))
         }
       }
     }

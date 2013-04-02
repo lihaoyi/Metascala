@@ -5,11 +5,17 @@ import sm.imm.{Type}
 import sm.vrt
 import rt.{Thread, Method}
 
+/**
+ * The optimized versions of various opcodes; these hold direct references
+ * or indexes to the methods or classes that they are referring to, and are
+ * created the first time the un-optimized versions are run using the swapOpCod()
+ * method
+ */
 object Optimized {
-  case class New(clsId: Int) extends OpCode{
+  case class New(cls: rt.Cls) extends OpCode{
     def op(vt: Thread) = {
       import vt.vm._
-      vt.push(new vrt.Obj(vt.vm.ClsTable.clsIndex(clsId))(vt.vm))
+      vt.push(new vrt.Obj(cls)(vt.vm))
     }
   }
 
@@ -45,10 +51,9 @@ object Optimized {
           println(objCls.name)
           println("Methods " + objCls.vTable.length)
           objCls.vTable.map{
-            case Method.Cls(clsIndex, _, method) =>
-              val cls = vt.vm.ClsTable.clsIndex(clsIndex)
+            case Method.Cls(cls, _, method) =>
               cls.name + " " + method.name + method.desc.unparse
-            case Method.Native(clsName, (name, desc), op) =>
+            case Method.Native(clsName, imm.Sig(name, desc), op) =>
               "Native " + name + desc.unparse
           }.foreach(println)
           throw e

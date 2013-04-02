@@ -56,8 +56,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   final def step() = {
     val insnsList = frame.method.insns
     val node = insnsList(frame.pc)
-    vm.log(indent + frame.runningClass.name + "/" + frame.method.name + ": " + frame.stack)
-    vm.log(indent + "---------------------- " + frame.pc + "\t" + node )
+    /*vm.log(indent + frame.runningClass.name + "/" + frame.method.name + ": " + frame.stack)
+    vm.log(indent + "---------------------- " + frame.pc + "\t" + node )*/
     frame.pc += 1
     opCount += 1
     try{
@@ -117,14 +117,14 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
   final def prepInvoke(mRef: rt.Method,
                        args: Seq[vrt.StackVal]) = {
-    vm.log("PrepInvoke " + mRef.name)
+    //vm.log("PrepInvoke " + mRef.name)
     mRef match{
-      case rt.Method.Native(clsName, (name, desc), op) =>
+      case rt.Method.Native(clsName, imm.Sig(name, desc), op) =>
         val result = op(this)(args)
-        if(desc.ret != imm.Type.Prim('V'))threadStack.top.stack.push(result.toStackVal)
+        if(desc.ret != imm.Type.Prim('V')) threadStack.top.stack.push(result.toStackVal)
 
-      case m @ rt.Method.Cls(tpeIndex, methodIndex, method) =>
-        val cls = vm.ClsTable.clsIndex(tpeIndex)
+      case m @ rt.Method.Cls(cls, methodIndex, method) =>
+
 
         val array = new Array[vrt.StackVal](method.misc.maxLocals)
         var i = 0

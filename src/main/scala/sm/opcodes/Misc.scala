@@ -65,7 +65,7 @@ object Misc {
 
   }
 
-  case class InvokeVirtual(owner: Type.Ref, name: String, desc: imm.Desc) extends OpCode{
+  case class InvokeVirtual(owner: Type.Ref, sig: imm.Sig) extends OpCode{
     def op(vt: Thread) = {
       import vt.vm
 
@@ -74,71 +74,66 @@ object Misc {
           .methodType
           .cls
           .vTable
-          .indexWhere{ m => m.name == name && m.desc == desc }
+          .indexWhere{ _.sig == sig }
 
-      vt.swapOpCode(Optimized.InvokeVirtual(index, desc.args.length))
+      vt.swapOpCode(Optimized.InvokeVirtual(index, sig.desc.args.length))
     }
 
   }
 
-  def resolveDirectRef(owner: Type.Cls, name: String, desc: imm.Desc)(implicit vm: VM): Option[rt.Method] = {
+  def resolveDirectRef(owner: Type.Cls, sig: imm.Sig)(implicit vm: VM): Option[rt.Method] = {
     val native =
       vm.natives
         .trapped
-        .find{ case rt.Method.Native(clsName, (mName, mDesc), func) => mName == name && mDesc == desc}
+        .find(_.sig == sig)
 
     val method =
       owner.cls
            .methods
-           .find(m => m.name == name && m.desc == desc)
+           .find(_.sig == sig)
 
     Some(
       native.orElse(method)
-            .getOrElse(throw new Exception(s"Can't find method ${owner.unparse} $name ${desc.unparse}"))
+            .getOrElse(throw new Exception(s"Can't find method ${owner.unparse} ${sig.name} ${sig.desc.unparse}"))
     )
 
 
   }
 
-  case class InvokeSpecial(owner: Type.Cls, name: String, desc: imm.Desc) extends OpCode{
+  case class InvokeSpecial(owner: Type.Cls, sig: imm.Sig) extends OpCode{
     def op(vt: Thread) = vt.swapOpCode{
       import vt.vm
 
-      resolveDirectRef(owner, name, desc) match{
+      resolveDirectRef(owner, sig) match{
         case None => StackManip.Pop
-        case Some(methodRef) => Optimized.InvokeSpecial(methodRef, desc.args.length)
+        case Some(methodRef) => Optimized.InvokeSpecial(methodRef, sig.desc.args.length)
       }
 
     }
 
   }
 
-  case class InvokeStatic(owner: Type.Cls, name: String, desc: imm.Desc) extends OpCode{
+  case class InvokeStatic(owner: Type.Cls, sig: imm.Sig) extends OpCode{
     def op(vt: Thread) = vt.swapOpCode {
       import vt.vm
-      resolveDirectRef(owner, name, desc) match{
-        case Some(methodRef) => Optimized.InvokeStatic(methodRef, desc.args.length)
+      resolveDirectRef(owner, sig) match{
+        case Some(methodRef) => Optimized.InvokeStatic(methodRef, sig.desc.args.length)
       }
     }
 
   }
 
-  case class InvokeInterface(owner: Type.Cls, name: String, desc: imm.Desc) extends OpCode{
+  case class InvokeInterface(owner: Type.Cls, sig: imm.Sig) extends OpCode{
 
     def op(vt: Thread) =  {
       import vt.vm
-      val argCount = desc.args.length
+      val argCount = sig.desc.args.length
       val args = vt.popArgs(argCount + 1)
       ensureNonNull(vt, args.head){
         val objType = args.head.cast[vrt.Ref].refType.methodType
         val cls = vm.ClsTable(objType)
         vt.prepInvoke(
-          cls.vTableMap.getOrElseUpdate((name, desc),
-            cls.vTable
-               .find(m => m.name == name && m.desc == desc)
-               .get
-          )
-          ,
+          cls.vTableMap(sig),
           args
         )
       }
@@ -149,9 +144,8 @@ object Misc {
 
   case class New(desc: Type.Cls) extends OpCode{
     def op(vt: Thread) = {
-      vt.vm.ClsTable(desc)
       vt.swapOpCode(
-        Optimized.New(vt.vm.ClsTable.clsIndex.indexWhere(_.clsData.tpe == desc))
+        Optimized.New(vt.vm.ClsTable(desc))
       )
     }
 
@@ -262,9 +256,9 @@ object Misc {
             new vrt.Arr.Obj(innerType, Array.fill[vrt.Val](size)(rec(tail, innerType)))
         }
       }
-      val (dimValues, newStack) = vt.frame.stack.splitAt(dims)
-      val dimArray = dimValues.map(x => x.asInstanceOf[vrt.Int].v).toList
-      val array = rec(dimArray, desc)
+      val dimValues = vt.popArgs(dims).map(_.cast[vrt.Int].v).toList
+
+      val array = rec(dimValues, desc)
       vt.push(array)
     }
   }
