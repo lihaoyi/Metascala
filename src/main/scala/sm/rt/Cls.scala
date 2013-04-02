@@ -23,6 +23,9 @@ final class Var(var x: vrt.Val){
 class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
   import vm._
 
+  /**
+   * Mutable representations of all the methods this class has
+   */
   val methods: Seq[rt.Method.Cls] =
     clsData.methods
            .zipWithIndex
@@ -30,6 +33,10 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
 
 
   lazy val obj = new vrt.Cls(Type.Cls(name))
+
+  /**
+   * A map of static fields
+   */
   val statics =
     clsData.fields
            .filter(_.static)
@@ -58,6 +65,9 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
 
   def name = clsData.tpe.name
 
+  /**
+   * All classes that this class inherits from
+   */
   lazy val clsAncestry: List[imm.Cls] = {
     clsData.superType match{
       case None => List(clsData)
@@ -65,18 +75,26 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
     }
   }
 
+  /**
+   * All classes and interfaces that this class inherits from
+   */
   lazy val typeAncestry: Set[imm.Type.Cls] = {
     Set(this.clsData.tpe) ++
     clsData.superType.toSeq.flatMap(_.cls.typeAncestry) ++
     clsData.interfaces.flatMap(_.cls.typeAncestry)
   }
 
+  /**
+   *
+   */
   val fieldList: Seq[imm.Field] = {
     clsData.superType.toSeq.flatMap(_.fieldList) ++
     clsData.fields.filter(!_.static)
   }
 
-
+  /**
+   * The virtual function dispatch table
+   */
   lazy val vTable: Seq[rt.Method] = {
     val oldMethods =
       mutable.ArrayBuffer(
@@ -88,10 +106,10 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
     methods.filter(!_.method.static)
            .foreach{ m =>
 
-      val index = oldMethods.indexWhere{ mRef => mRef.name == m.name && mRef.desc == m.desc }
+      val index = oldMethods.indexWhere{ mRef => mRef.sig == m.sig }
 
-      val native = vm.natives.trapped.find{case rt.Method.Native(clsName, imm.Sig(mName, idesc), func) =>
-        (name == clsName) && (mName == m.name) && (idesc == m.desc)
+      val native = vm.natives.trapped.find{case rt.Method.Native(clsName, sig, func) =>
+        (name == clsName) && sig == m.sig
       }
 
       val update =
@@ -107,6 +125,10 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
     oldMethods
   }
 
+  /**
+   * A hash map of the virtual function table, used for quick lookup
+   * by method signature
+   */
   lazy val vTableMap = vTable.map(m => m.sig -> m).toMap
 }
 

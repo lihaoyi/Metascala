@@ -34,7 +34,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     threadStack.map { f =>
       new StackTraceElement(
         f.runningClass.name,
-        if (f.method.method.code != imm.Code()) f.method.name + f.method.desc.unparse + " " + f.method.method.code.insns(f.pc) else "",
+        if (f.method.method.code != imm.Code()) f.method.sig.unparse + " " + f.method.method.code.insns(f.pc) else "",
         f.runningClass.clsData.misc.sourceFile.getOrElse("[no source]"),
         f.method.method.code.attachments.flatten.reverse.collect{
           case LineNumber(line, startPc) if startPc < f.pc => line
@@ -42,13 +42,13 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       )
     }.toList
 
-  def indent = "\t" * threadStack.filter(_.method.name != "Dummy").length
+  def indent = "\t" * threadStack.filter(_.method.sig.name != "Dummy").length
 
   def swapOpCode(opcode: OpCode) = {
     val insnsList = frame.method.insns
     insnsList(frame.pc-1) = opcode
     vm.log(indent + "SWAPPED")
-    vm.log(indent + frame.runningClass.name + "/" + frame.method.name + ": " + frame.stack)
+    vm.log(indent + frame.runningClass.name + "/" + frame.method.sig.name + ": " + frame.stack)
     vm.log(indent + "---------------------- " + frame.pc + "\t" + opcode)
     opcode.op(this)
   }
@@ -81,7 +81,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   }
   def dumpStack =
     threadStack.map(f =>
-      f.runningClass.name.padTo(35, ' ') + (f.method.name + f.method.desc.unparse).padTo(35, ' ') + f.pc.toString.padTo(5, ' ') + (try f.method.method.code.insns(f.pc-1) catch {case x =>})
+      f.runningClass.name.padTo(35, ' ') + f.method.sig.unparse.padTo(35, ' ') + f.pc.toString.padTo(5, ' ') + (try f.method.method.code.insns(f.pc-1) catch {case x =>})
     )
 
   @tailrec final def throwException(ex: vrt.Obj, print: Boolean = true): Unit = {

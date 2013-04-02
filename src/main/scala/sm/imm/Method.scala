@@ -48,6 +48,7 @@ object Method {
 }
 case class Sig(name: String, desc: Desc){
   override lazy val hashCode = name.hashCode + desc.hashCode
+  def unparse = name + desc.unparse
 }
 
 case class Method(access: Int,
