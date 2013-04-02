@@ -130,7 +130,7 @@ object Misc {
       val argCount = sig.desc.args.length
       val args = vt.popArgs(argCount + 1)
       ensureNonNull(vt, args.head){
-        val objType = args.head.cast[vrt.Ref].refType.methodType
+        val objType = args.head.cast[vrt.Ref].tpe.methodType
         val cls = vm.ClsTable(objType)
         vt.prepInvoke(
           cls.vTableMap(sig),
@@ -194,10 +194,10 @@ object Misc {
       top match{
         case vrt.Null => ()
         case vrt.Unit => ()
-        case (top: vrt.Ref with vrt.StackVal) if !check(top.refType, desc) =>
+        case (top: vrt.Ref with vrt.StackVal) if !check(top.tpe, desc) =>
           vt.throwException(
             vrt.Obj("java/lang/ClassCastException",
-              "detailMessage" -> s"${top.refType.unparse} cannot be converted to ${desc.unparse}"
+              "detailMessage" -> s"${top.tpe.unparse} cannot be converted to ${desc.unparse}"
             )
           )
         case _ => ()
@@ -223,7 +223,7 @@ object Misc {
       import vm._
       val res = vt.pop match{
         case vrt.Null => 0
-        case obj: vrt.Ref => if (check(obj.refType, desc)) 1 else 0
+        case obj: vrt.Ref => if (check(obj.tpe, desc)) 1 else 0
       }
 
       vt.push(res)

@@ -63,7 +63,9 @@ case class Field(access: Int,
                  value: Any,
                  visibleAnnotations: Seq[Annotation],
                  invisibleAnnotations: Seq[Annotation],
-                 attrs: Seq[Attribute])
+                 attrs: Seq[Attribute]){
+  def static = (access & Access.Static) != 0
+}
 
 
 

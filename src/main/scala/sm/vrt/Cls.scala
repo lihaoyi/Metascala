@@ -10,7 +10,7 @@ object Type{
     case tpe => new Type(tpe)
   }
 }
-class Type(val tpe: imm.Type, initMembers: (String, vrt.Val)*)
+class Type(val heldType: imm.Type, initMembers: (String, vrt.Val)*)
           (implicit vm: VM)
           extends Obj(vm.ClsTable(imm.Type.Cls("java/lang/Class")), initMembers: _*){
   def getDeclaredConstructors() = Arr.Obj(imm.Type.Cls("java/lang/reflect/Constructor"), 0)
@@ -18,21 +18,21 @@ class Type(val tpe: imm.Type, initMembers: (String, vrt.Val)*)
   def getDeclaredMethods() = Arr.Obj(imm.Type.Cls("java/lang/reflect/Method"), 0)
   def getInterfaces() = new Array[vrt.Obj](0)
   override def toString = {
-    s"vrt.Type(${tpe.unparse})"
+    s"vrt.Type(${heldType.unparse})"
   }
 }
-class Cls(override val tpe: imm.Type.Cls)
+class Cls(override val heldType: imm.Type.Cls)
           (implicit vm: VM)
-             extends Type(tpe, "name" -> tpe.name.replace('/', '.')){
+             extends Type(heldType, "name" -> heldType.name.replace('/', '.')){
   import vm._
-  def name = tpe.unparse
+  def name = heldType.unparse
   override def getDeclaredConstructors() = {
-    val res = tpe.clsData
+    val res = heldType.clsData
       .methods
       .filter(_.name == "<init>")
       .map{m =>
       vrt.Obj("java/lang/reflect/Constructor",
-        "clazz" -> tpe.obj,
+        "clazz" -> heldType.obj,
         "slot" -> 0,
         "parameterTypes" -> new vrt.Arr.Obj(imm.Type.Cls("java/lang/reflect/Type"), m.desc.args.map(_.obj).toArray),
         "exceptionTypes" -> new Array[vrt.Cls](0),
@@ -43,10 +43,10 @@ class Cls(override val tpe: imm.Type.Cls)
   }
 
   override def getDeclaredFields() = {
-    val res = tpe.clsData.fields.map {f =>
+    val res = heldType.clsData.fields.map {f =>
 
       vrt.Obj("java/lang/reflect/Field",
-        "clazz" -> tpe.obj,
+        "clazz" -> heldType.obj,
         "slot" -> f.name.hashCode,
         "name" -> vm.InternedStrings(f.name),
         "modifiers" -> f.access,
@@ -60,7 +60,7 @@ class Cls(override val tpe: imm.Type.Cls)
 
   override def getDeclaredMethods() = {
 
-    val res = tpe.clsData.methods.map {m =>
+    val res = heldType.clsData.methods.map {m =>
       vrt.Obj("java/lang/reflect/Method",
         "clazz" -> this,
         "slot" -> m.name.hashCode,
@@ -76,9 +76,9 @@ class Cls(override val tpe: imm.Type.Cls)
     new vrt.Arr.Obj(imm.Type.Cls("java/lang/reflect/Method"), res)
   }
   override def getInterfaces(): Array[vrt.Obj] = {
-    tpe.clsData.interfaces.map(_.obj).toArray
+    heldType.clsData.interfaces.map(_.obj).toArray
   }
   override def toString = {
-    s"vrt.Cls(${tpe.unparse}})"
+    s"vrt.Cls(${heldType.unparse}})"
   }
 }

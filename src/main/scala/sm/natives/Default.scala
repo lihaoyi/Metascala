@@ -91,7 +91,7 @@ trait Default extends Bindings{
           "reflect"/(
             "Array"/(
               "newArray(Ljava/lang/Class;I)Ljava/lang/Object;" x2 {
-                vt =>(x: vrt.Cls, n: vrt.Int) => Arr.Obj(x.tpe, n)
+                vt =>(x: vrt.Cls, n: vrt.Int) => Arr.Obj(x.heldType, n)
               }
             )
           ),
@@ -99,7 +99,7 @@ trait Default extends Bindings{
             "registerNatives()V" x noOp,
             "getName0()L//String;" x1 {vt => (s: vrt.Type) =>
               import vt._
-              s.tpe.unparse.replace("/", "."): vrt.Val
+              s.heldType.unparse.replace("/", "."): vrt.Val
             },
             "forName0(L//String;)L//Class;" x1 {vt => (s: vrt.Obj) =>
               import vt._
@@ -117,7 +117,7 @@ trait Default extends Bindings{
             "getDeclaringClass()L//Class;" x value(vrt.Null),
             "getComponentType()Ljava/lang/Class;" x1 { vt => (x: vrt.Type) =>
               import vt._
-              x.tpe match{
+              x.heldType match{
                 case imm.Type.Arr(inner) => inner.obj
                 case _ => vrt.Null
               }
@@ -148,14 +148,14 @@ trait Default extends Bindings{
                 .getOrElse(vrt.Null)
             },
             "getRawAnnotations()[B" x1 value1(new vrt.Arr.Prim(new Array[Boolean](0))),
-            "isPrimitive()Z" x1 { vt => (x: vrt.Type) => x.tpe.isInstanceOf[imm.Type.Prim]
+            "isPrimitive()Z" x1 { vt => (x: vrt.Type) => x.heldType.isInstanceOf[imm.Type.Prim]
             },
             "isInterface()Z" x1 { vt => (x: vrt.Cls) =>
               import vt.vm
               ((imm.Type.Cls(x.name.replace(".", "/")).cls.clsData.access_flags & imm.Access.Interface) != 0): vrt.Val
             },
             "isAssignableFrom(L//Class;)Z" x2 { vt => (x: vrt.Type, y: vrt.Type) => true: vrt.Val},
-            "isArray()Z" x1 { vt => (x: vrt.Type) => x.tpe.isInstanceOf[imm.Type.Arr]
+            "isArray()Z" x1 { vt => (x: vrt.Type) => x.heldType.isInstanceOf[imm.Type.Arr]
             },
             "desiredAssertionStatus0(L//Class;)Z" x1 value1(0: vrt.Val)
           ),
@@ -217,7 +217,7 @@ trait Default extends Bindings{
 
               x match{
               case (x: vrt.Obj) => x.cls.obj
-              case (x: vrt.Arr) => imm.Type.Arr(x.tpe).obj(vt.vm)
+              case (x: vrt.Arr) => imm.Type.Arr(x.innerType).obj(vt.vm)
             }},
             "hashCode()I" x1 { vt => (_: vrt.Obj).hashCode()},
             "notify()V" x1 noOp1,
@@ -268,7 +268,7 @@ trait Default extends Bindings{
           "Throwable"/(
             "fillInStackTrace(I)L//Throwable;" x2 { vt => (throwable: vrt.Obj, dummy: vrt.Int) =>
               import vt.vm;
-              throwable(throwable.refType, "stackTrace") =
+              throwable(throwable.tpe, "stackTrace") =
                 new vrt.Arr.Obj(
                   imm.Type.Cls("java/lang/StackTraceElement"),
                   vt.getStackTrace.map { f =>

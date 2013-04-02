@@ -1,9 +1,10 @@
-package sm.vrt
+package sm
+package vrt
 
-import sm.vrt
+
 
 trait Val{
-
+  def tpe: imm.Type
   def toStackVal = this match {
     case vrt.Boolean(b) => vrt.Int(if (b) 1 else 0)
     case vrt.Char(c) => vrt.Int(c)

@@ -12,7 +12,7 @@ import sm.imm
 
 
 trait Ref{
-  def refType: imm.Type.Ref
+  def tpe: imm.Type.Ref
 }
 object Obj{
   def apply(clsName: String, initMembers: (String, vrt.Val)*)(implicit vm: VM) = {
@@ -29,13 +29,11 @@ class Obj(val cls: rt.Cls, initMembers: (String, vrt.Val)*)
 
   val members = cls.fieldList.map(x => (x, new Var(x.desc.default)))
 
-
-
   for ((s, v) <- initMembers){
     this(imm.Type.Cls.read(cls.name), s) = v
   }
 
-  def refType = cls.clsData.tpe
+  def tpe = cls.clsData.tpe
 
   def apply(owner: imm.Type.Cls, name: String): vrt.Val = {
     members(owner.fieldList.lastIndexWhere(_.name == name))._2()
@@ -52,8 +50,8 @@ class Obj(val cls: rt.Cls, initMembers: (String, vrt.Val)*)
 }
 
 trait Arr extends StackVal with Cat1 with Ref{
-  val tpe: imm.Type
-val backing: Array[_]
+  val innerType: imm.Type
+  val backing: Array[_]
   def apply(index: Int): vrt.Val
 }
 object Arr{
@@ -64,11 +62,11 @@ object Arr{
       new Arr.Obj(t, Array.fill[vrt.Val](n)(t.default))
     }
   }
-  class Obj(val tpe: imm.Type.Ref, val backing: Array[vrt.Val]) extends Arr{
+  class Obj(val innerType: imm.Type.Ref, val backing: Array[vrt.Val]) extends Arr{
 
-    val refType = imm.Type.Arr(tpe)
+    val tpe = imm.Type.Arr(innerType)
     def apply(index: Int) = backing(index)
-    override def toString = s"vrt.Arr.Obj(${tpe.getClass} ${tpe.unparse}: ${backing.fold("")(_+", "+_)})"
+    override def toString = s"vrt.Arr.Obj(${innerType.getClass} ${innerType.unparse}: ${backing.fold("")(_+", "+_)})"
   }
   object Prim{
     def apply[T: ClassTag: imm.Type.Prim.Info](n: Int) = {
@@ -81,11 +79,11 @@ object Arr{
 
   }
   class Prim[T: imm.Type.Prim.Info](val backing: Array[T]) extends Arr{
-    lazy val tpe: imm.Type.Prim = imm.Type.Prim.Info()
-    val refType = imm.Type.Arr(tpe)
+    lazy val innerType: imm.Type.Prim = imm.Type.Prim.Info()
+    val tpe = imm.Type.Arr(innerType)
     def charClass = implicitly[imm.Type.Prim.Info[T]]
     def apply(index: Int) = charClass.constructor(backing(index))
-    override def toString = s"vrt.PrimArr(${tpe.unparse}: ${backing.fold("")(_+", "+_)})"
+    override def toString = s"vrt.PrimArr(${innerType.unparse}: ${backing.fold("")(_+", "+_)})"
   }
 }
 

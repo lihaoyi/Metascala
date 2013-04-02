@@ -58,6 +58,7 @@ case class Method(access: Int,
                   misc: Method.Misc = Method.Misc(),
                   annotations: Method.Annotations = Method.Annotations()){
   def concrete = code != Code()
+  def static = (access & Access.Static) != 0
   lazy val sig = Sig(name, desc)
 }
 

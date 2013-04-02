@@ -59,18 +59,11 @@ class MetacircularTest extends FreeSpec with Util{
     tester.run("helloWorld")
   }
   "sqrtFinder" in {
-    try{
     tester.run("sqrtFinder")
-    println(tester.svm.threads(0).getOpCount)
-    }catch {case e =>
-      buffer.lines.foreach(println)
-      throw e
-    }
   }
 
   "fibonacci" in {
     tester.run("fibonacci")
-    println(tester.svm.threads(0).getOpCount)
   }
 
 
@@ -90,9 +83,9 @@ class MetacircularTest extends FreeSpec with Util{
     tester.run("multiCatch")
     println(tester.svm.threads(0).getOpCount)
   }
-  "doubleMetaOne" in {
+  /*"doubleMetaOne" in {
     tester.run("doubleMetaOne")
     println(tester.svm.threads(0).getOpCount)
-  }
+  }*/
 }
 

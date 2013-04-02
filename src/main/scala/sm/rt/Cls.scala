@@ -31,9 +31,10 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
 
   lazy val obj = new vrt.Cls(Type.Cls(name))
   val statics =
-    clsData.fields.map{f =>
-      f.name -> new Var(f.desc.default)
-    }.toMap
+    clsData.fields
+           .filter(_.static)
+           .map{f => f.name -> new Var(f.desc.default) }
+           .toMap
 
 
   def method(name: String, desc: imm.Desc): Option[imm.Method] = {
@@ -72,7 +73,7 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
 
   val fieldList: Seq[imm.Field] = {
     clsData.superType.toSeq.flatMap(_.fieldList) ++
-    clsData.fields.filter(_.access.&(Access.Static) == 0)
+    clsData.fields.filter(!_.static)
   }
 
 
@@ -84,7 +85,7 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
                .flatMap(_.vTable): _*
       )
 
-    methods.filter(_.method.access.&(Access.Static) == 0)
+    methods.filter(!_.method.static)
            .foreach{ m =>
 
       val index = oldMethods.indexWhere{ mRef => mRef.name == m.name && mRef.desc == m.desc }
