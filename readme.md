@@ -81,7 +81,7 @@ sbt
 > test-only metascala.full.*
 ```
 
-into the command line and SBT will run a selection of the unit tests with one level of indirection: rather than directly loading and interpreting the bytecode of the `sqrtFinder` method, for example, this will *load and interpret the bytecode of a method which creates a Metascala interpreter which is then used to interpret `sqrtFinder`*. These tests take significantly longer than the unit tests, and typically take on the order of about30 seconds to complete.
+into the command line and SBT will run a selection of the unit tests with one level of indirection: rather than directly loading and interpreting the bytecode of the `sqrtFinder` method, for example, this will *load and interpret the bytecode of a method which creates a Metascala interpreter which is then used to interpret `sqrtFinder`*. These tests take significantly longer than the unit tests, and typically take on the order of about 30 seconds to complete.
 
 
 
@@ -110,7 +110,7 @@ Fun Facts
 - Metascala took about a months worth of a single person's free time to construct.
 - Metascala isn't a metacircular Java/Scala interpreter, because it is currently unable to interpret the Java/Scala compilers.
 - The number of native method bindings to the JVM is huge, and unlike the virtual machine specification, completely undocumented, although it is necessary to run basically anything. The only way to find out what natives are missing is to run stuff and see it crash when it encounters a missing native method.
-- The 90kb of source code gets compiled into 1800kb of binaries, an increase of 20x.
+- The 90kb of source code gets compiled into 1800kb of binaries, an increase of 20x. Compiled Scala results in a lot of class files.
 
 Credits
 -------
