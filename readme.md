@@ -3,7 +3,7 @@ Metascala
 
 Metascala is a tiny [metacircular](http://en.wikipedia.org/wiki/Metacircular) [Java Virtual Machine (JVM)](http://en.wikipedia.org/wiki/Jvm) written in the [Scala](http://en.wikipedia.org/wiki/Scala_(programming_language)) programming language. Metascala is less than 3000 lines of plain Scala, while being complete enough that it is able to interpret itself metacircularly (and rather slowly!). Being written in Scala and compiled to [Java bytecode](http://en.wikipedia.org/wiki/Java_bytecode), the Metascala JVM requires a host JVM in order to run.
 
-The point of Metascala is to have a toy platform to experiment with the JVM: a 3000 Lines of Code (LOC) JVM written in Scala is probably much more approachable than the 250,000 lines of C/C++ which make up [HotSpot](http://openjdk.java.net/groups/hotspot/), the standard implementation. Implementing [continuations](http://en.wikipedia.org/wiki/Continuation)? You could be done in an afternoon! [Isolates](http://www.javalobby.org/java/forums/t105978.html)? [Threadlocal Heaps](http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.2.7362)? [Value Classes](https://blogs.oracle.com/jrose/entry/value_types_in_the_vm)? Each of these would probably take less than 50 LOC to implement.
+The point of Metascala is to have a toy platform to experiment with the JVM: a 3000 Lines of Code (LOC) JVM written in Scala is probably much more approachable than the 250,000 lines of C/C++ which make up [HotSpot](http://openjdk.java.net/groups/hotspot/), the standard implementation, and more amenable to implementing fun features like [continuations](http://en.wikipedia.org/wiki/Continuation), [isolates](http://www.javalobby.org/java/forums/t105978.html) or [Value Classes](https://blogs.oracle.com/jrose/entry/value_types_in_the_vm).
 
 Getting Started
 ---------------
@@ -84,7 +84,7 @@ into the command line and SBT will run a selection of the unit tests with one le
 
 Performance
 -----------
-The performance of Metascala is absolutely abyssmal: it performs basic optimizations (e.g. pre-calculating virtual-dispatch tables and maintaining invoke-interface caches), and I've tried to eliminate most of the micro-bottlenecks using [JProfiler](http://www.ej-technologies.com/products/jprofiler/overview.html) but the performance remains extremely low.
+The performance of Metascala is absolutely abysmal: it performs basic optimizations (e.g. pre-calculating virtual-dispatch tables and maintaining invoke-interface caches), and I've tried to eliminate most of the micro-bottlenecks using [JProfiler](http://www.ej-technologies.com/products/jprofiler/overview.html) but the performance remains extremely low.
 
 Part of this arises from the fact that it is written in Scala in a mostly immutable, functional style, and that results in overhead (lots of extra allocations and method calls) over an imperative, mutable style. The other part is probably a fundamental limitation of it being an interpreter, and any major increase in performance would require pretty fundamental changes to the system.
 
@@ -94,7 +94,7 @@ Ideas for where this could go include:
 
 - Fleshing out the completeness of the Java implementation: multiple Threads, ClassLoaders, Filesystem access, enough to run some standard Java benchmarks and applications like the [Scala Compiler](https://github.com/scala/scala)
 - Get reflection working for real
-- Implement a custom [Heap](http://en.wikipedia.org/wiki/Heap_(programming)), with memory allocator and garbage collector, to remove a dependency on the host JVM
+- Implement a custom Heap, with memory allocator and garbage collector, to remove a dependency on the host JVM
 - Implement a Just-In-Time/Ahead-Of-Time compiler to avoid interpretation and speed up execution of the Metascala VM. This could either target bytecode (and run on the host JVM) or LLVM/C/x86 and run on the bare metal.
 - Make the Metascala VM self-hosted, such that it can bootstrap itself and run natively without a host JVM
 
