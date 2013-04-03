@@ -3,7 +3,7 @@ Metascala
 
 Metascala is a tiny [metacircular](http://en.wikipedia.org/wiki/Metacircular) [Java Virtual Machine (JVM)](http://en.wikipedia.org/wiki/Jvm) written in the [Scala](http://en.wikipedia.org/wiki/Scala_(programming_language)) programming language. Metascala is less than 3000 lines of plain Scala, while being complete enough that it is able to interpret itself metacircularly (and rather slowly!). Being written in Scala and compiled to [Java bytecode](http://en.wikipedia.org/wiki/Java_bytecode), the Metascala JVM requires a host JVM in order to run.
 
-The point of Metascala is to have a toy platform to experiment with the JVM: a 3000 Lines of Code (LOC) JVM written in Scala is probably much more approachable than the 250,000 lines of C/C++ which make up [HotSpot](http://openjdk.java.net/groups/hotspot/), the standard implementation, and more amenable to implementing fun features like [continuations](http://en.wikipedia.org/wiki/Continuation), [isolates](http://www.javalobby.org/java/forums/t105978.html) or [Value Classes](https://blogs.oracle.com/jrose/entry/value_types_in_the_vm).
+The point of Metascala is to have a toy platform to experiment with the JVM: a 3000 Lines of Code (LOC) JVM written in Scala is probably much more approachable than the 250,000 lines of C/C++ which make up [HotSpot](http://openjdk.java.net/groups/hotspot/), the standard implementation, and more amenable to implementing fun features like [continuations](http://en.wikipedia.org/wiki/Continuation), [isolates](http://www.javalobby.org/java/forums/t105978.html) or [value classes](https://blogs.oracle.com/jrose/entry/value_types_in_the_vm).
 
 Getting Started
 ---------------
@@ -29,6 +29,9 @@ x.invoke("metascala.features.arrays.ArrayStuff", "bubbleSort", Seq(Array(6, 5, 2
 ```
 
 One thing of note is that Metascala does not have its own memory allocator or [garbage collector](http://en.wikipedia.org/wiki/Garbage_collection_(computer_science)). Rather, it represents virtual objects and arrays as real instances of the classes `vrt.Obj`s and `vrt.Arr`s. References between virtual objects are also references between the real `vrt.Obj` instances. Thus, the garbage collector of the underlying runtime is used to garbage-collect the unreachable objects the inside the Metascala JVM.
+
+Arguments passed in to the `invoke()` method are converted from their real representation into virtual versions (the `vrt.*` classes) to be handled within the Metascala VM. The return value is similarly converted from a virtual value back to a real value before being given to the caller of `invoke()`.
+
 
 Architecture
 ------------
