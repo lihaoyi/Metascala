@@ -129,16 +129,16 @@ trait Util extends ShouldMatchers { this: FreeSpec  =>
 
 
 }
-class BufferLog(n: Int) extends ((=> String) => Unit){
-  val buffer = new Array[String](n)
+class BufferLog(size: Int, delay: Long  = 0) extends ((=> String) => Unit){
+  val buffer = new Array[String](size)
   var index = 0
-  var count = 0
+  var count = 0l
   def apply(s: =>String) = {
 
     count += 1
-    if (count > 8000000){
+    if (count > delay){
       buffer(index) = s
-      index = (index + 1) % n
+      index = (index + 1) % size
     }
   }
   def lines = buffer.drop(index) ++ buffer.take(index)

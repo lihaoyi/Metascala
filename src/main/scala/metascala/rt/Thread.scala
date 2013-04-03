@@ -24,7 +24,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   )
 
 
-  private[this] var opCount = 0
+  private[this] var opCount = 0L
   def getOpCount = opCount
   def frame = threadStack.top
 
@@ -56,8 +56,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   final def step() = {
     val insnsList = frame.method.insns
     val node = insnsList(frame.pc)
-    /*vm.log(indent + frame.runningClass.name + "/" + frame.method.name + ": " + frame.stack)
-    vm.log(indent + "---------------------- " + frame.pc + "\t" + node )*/
+    vm.log(indent + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.stack)
+    vm.log(indent + "---------------------- " + frame.pc + "\t" + node )
     frame.pc += 1
     opCount += 1
     try{
@@ -117,7 +117,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
   final def prepInvoke(mRef: rt.Method,
                        args: Seq[vrt.StackVal]) = {
-    //vm.log("PrepInvoke " + mRef.name)
+    vm.log("PrepInvoke " + mRef.sig.unparse)
     mRef match{
       case rt.Method.Native(clsName, imm.Sig(name, desc), op) =>
         val result = op(this)(args)

@@ -51,6 +51,7 @@ object MetacircularTest{
 
 class MetacircularTest extends FreeSpec with Util{
 
+
   val buffer = new BufferLog(8000)
   var count = 0
 
@@ -83,9 +84,5 @@ class MetacircularTest extends FreeSpec with Util{
     tester.run("multiCatch")
     println(tester.svm.threads(0).getOpCount)
   }
-  /*"doubleMetaOne" in {
-    tester.run("doubleMetaOne")
-    println(tester.svm.threads(0).getOpCount)
-  }*/
 }
 

@@ -10,7 +10,8 @@ Getting Started
 Metascala requires [Scala 2.10](http://www.scala-lang.org/downloads) and is built using [SBT 12](http://www.scala-sbt.org/). After checking out the repository, if you have SBT installed, all you need to do is run
 
 ```
-sbt test
+sbt
+> test-only metascala.features.*
 ```
 
 Which will run download the dependencies (currently just [asm](http://asm.ow2.org/)), compile the code, and run the unit tests in the [test/scala/features](test/scala/features) folder. Compiling Metascala could take up to a minute or two, but running the unit tests should take less than 10 seconds. These tests exercise individual pieces of functionality available on the JVM: math, methods, classes, exceptions, etc., and verify that the result of executing a method via Metascala is identical to the result of executing it directly via [reflection](http://docs.oracle.com/javase/tutorial/reflect/).
@@ -52,7 +53,7 @@ These types are always referred to by their qualified names in the source code (
 
 Compatibility
 -------------
-Metascala implements a subset of the [Java Virtual Machine Specification](http://docs.oracle.com/javase/specs/jvms/se7/html/). The implementation has been mostly focused on the features that Metascala needs to run. Metascala itself is a medium sized Scala application (almost 3000LOC), making extensive use of the Scala standard library, using the ASM java library for dealing with the `.class` files. However, Metascala does not require (and hence does not implement) several pretty basic things such as:
+Metascala implements a subset of the [Java Virtual Machine Specification](http://docs.oracle.com/javase/specs/jvms/se7/html/). The implementation has been mostly focused on the features that Metascala needs to run. However, Metascala does not require (and hence does not implement) several pretty basic things such as:
 
 - **Multiple Threads**
 - **Custom ClassLoaders**
@@ -64,25 +65,22 @@ Apart from the language specification, there is a large amount of functionality 
 - **Network Access**
 - **System.out.println** (`scala.Predef.println` works though)
 
-Nonetheless, as we'll see, Metascala is compatible enough to interpret itself: a moderately sized Scala program which makes heavy use of the standard library and a small number of external Java libraries.
+Nonetheless, as we'll see, Metascala is compatible enough to interpret itself: a moderately sized Scala program which makes heavy use of the standard library, some basic reflection, and a small number of external Java libraries.
+
+MetaScala has been tested on Windows 7 using the Sun JVM (Java 7), and Ubuntu 12.04 using OpenJDK 7.
 
 Metainterpretation
 ------------------
-Despite leaving out all this functionality, Metascala is perfectly capable of loading and interpreting itself! Simply type:
+Despite leaving out all this functionality, Metascala is perfectly capable of loading and interpreting itself! Simply enter:
 
 ```
-sbt test meta
+sbt
+> test-only metascala.full.*
 ```
 
-into the command line and SBT will run a selection of the unit tests with one level of indirection: rather than directly loading and interpreting the bytecode of the `sqrtFinder` method, for example, this will *load and interpret the bytecode of a method which creates a Metascala interpreter which is then used to interpret `sqrtFinder`. These tests take significantly longer than the unit tests, and typically take on the order of 30 seconds to a minute to complete.
+into the command line and SBT will run a selection of the unit tests with one level of indirection: rather than directly loading and interpreting the bytecode of the `sqrtFinder` method, for example, this will *load and interpret the bytecode of a method which creates a Metascala interpreter which is then used to interpret `sqrtFinder`. These tests take significantly longer than the unit tests, and typically take on the order of about30 seconds to complete.
 
-If you're feeling particularly adventurous, you can try
 
-```
-sbt test double-meta
-```
-
-which will run a simple unit test with *yet another layer of interpretation*: instead of interpreting the bytecode of a method, or even interpreting an interpreter which interprets the bytecode of a method (as in the case above), this will *interpret an interpreter which interprets an interpreter interpreting the bytecode of a method*. This takes on the order of **3 hours** to complete.
 
 Performance
 -----------
@@ -98,6 +96,15 @@ Ideas for where this could go include:
 - Implement a custom [Heap](http://en.wikipedia.org/wiki/Heap_(programming)), with memory allocator and garbage collector, to remove a dependency on the host JVM
 - Implement a Just-In-Time/Ahead-Of-Time compiler to avoid interpretation and speed up execution of the Metascala VM. This could either target bytecode (and run on the host JVM) or LLVM/C/x86 and run on the bare metal.
 - Make the Metascala VM self-hosted, such that it can bootstrap itself and run natively without a host JVM
+
+Fun Facts
+---------
+
+- At only 3000 lines of source code, Metascala is probably one of the smallest JVMs ever.
+- Metascala took about a months worth of a single person's free time to construct.
+- Metascala isn't a metacircular Java/Scala interpreter, because it is currently unable to interpret the Java/Scala compilers.
+- The number of native method bindings to the JVM is huge, and unlike the virtual machine specification, completely undocumented, although it is necessary to run basically anything. The only way to find out what natives are missing is to run stuff and see it crash when it encounters a missing native method.
+- The 90kb of source code gets compiled into 1800kb of binaries, an increase of 20x.
 
 Credits
 -------
