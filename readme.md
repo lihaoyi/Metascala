@@ -34,7 +34,7 @@ Architecture
 
 Apart from the test folder, the main packages of interest in Metascala are:
 
-- [metascala/imm](src/main/scala/metascala/imm): an immutable model of the data structures that make up a java .class file. These are an almost direct conversion of the data structures provided by the [ASM Tree API](), converted to idiomatic, immutable Scala case classes. These classes should be purely immutable, and should have no dependency on the rest of Metascala.
+- [metascala/imm](src/main/scala/metascala/imm): an immutable model of the data structures that make up a java .class file. These are an almost direct conversion of the data structures provided by the [ASM Tree API](http://www.geekyarticles.com/2011/10/manipulating-java-class-files-with-asm_13.html), converted to idiomatic, immutable Scala case classes. These classes should be purely immutable, and should have no dependency on the rest of Metascala.
 - [metascala/opcodes](src/main/scala/metascala/opcodes): contains the attributes and behavior of the 200ish java bytecodes. Many of the 200 opcodes are unused (as ASM automatically collapses these into other opcodes during parsing), and there are additional opcodes in [Optimized.scala](src/main/scala/metascala/opcodes/Optimized.scala) which are versions of the default opcodes optimized for the individual Metascala.
 - [metascala/vrt](src/main/scala/metascala/vrt): virtual versions of the standard JVM data types: objects, arrays, `int`s, `double`s and the rest of the primitive types. These virtual values populate the heap, operand stack, local variable table and anywhere where variables may be stored within the Metascala VM.
 - [metascala/rt](src/main/scala/metascala/rt): runtime data-structures that make up the JVM: threads, classes, etc. These classes also contain the mutable state associated with these constructs (e.g. static class fields) or Metascala-specific optimizations (e.g. virtual-method vtables) that can't be placed in the [metascala/imm](src/main/scala/metascala/imm) package.
@@ -86,7 +86,7 @@ which will run a simple unit test with *yet another layer of interpretation*: in
 
 Performance
 -----------
-The performance of Metascala is absolutely abyssmal: it performs basic optimizations (e.g. pre-calculating virtual-dispatch tables and maintaining invoke-interface caches), and I've tried to eliminate most of the micro-bottlenecks using [JProfiler]() but the performance remains extremely low. 
+The performance of Metascala is absolutely abyssmal: it performs basic optimizations (e.g. pre-calculating virtual-dispatch tables and maintaining invoke-interface caches), and I've tried to eliminate most of the micro-bottlenecks using [JProfiler](http://www.ej-technologies.com/products/jprofiler/overview.html) but the performance remains extremely low.
 
 Part of this arises from the fact that it is written in Scala in a mostly immutable, functional style, and that results in overhead (lots of extra allocations and method calls) over an imperative, mutable style. The other part is probably a fundamental limitation of it being an interpreter, and any major increase in performance would require pretty fundamental changes to the system.
 
