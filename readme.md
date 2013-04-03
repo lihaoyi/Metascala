@@ -93,9 +93,12 @@ Future Work
 Ideas for where this could go include:
 
 - Fleshing out the completeness of the Java implementation: multiple Threads, ClassLoaders, Filesystem access, enough to run some standard Java benchmarks and applications like the [Scala Compiler](https://github.com/scala/scala)
+- Get reflection working for real
 - Implement a custom [Heap](http://en.wikipedia.org/wiki/Heap_(programming)), with memory allocator and garbage collector, to remove a dependency on the host JVM
 - Implement a Just-In-Time/Ahead-Of-Time compiler to avoid interpretation and speed up execution of the Metascala VM. This could either target bytecode (and run on the host JVM) or LLVM/C/x86 and run on the bare metal.
 - Make the Metascala VM self-hosted, such that it can bootstrap itself and run natively without a host JVM
+
+Feel free to contact me (below) or open an issue/send a pull request if you're interested and want to help out. Contributions are welcome!
 
 Fun Facts
 ---------
