@@ -81,7 +81,7 @@ sbt
 > test-only metascala.full.*
 ```
 
-into the command line and SBT will run a selection of the unit tests with one level of indirection: rather than directly loading and interpreting the bytecode of the `sqrtFinder` method, for example, this will *load and interpret the bytecode of a method which creates a Metascala interpreter which is then used to interpret `sqrtFinder`. These tests take significantly longer than the unit tests, and typically take on the order of about30 seconds to complete.
+into the command line and SBT will run a selection of the unit tests with one level of indirection: rather than directly loading and interpreting the bytecode of the `sqrtFinder` method, for example, this will *load and interpret the bytecode of a method which creates a Metascala interpreter which is then used to interpret `sqrtFinder`*. These tests take significantly longer than the unit tests, and typically take on the order of about30 seconds to complete.
 
 
 
