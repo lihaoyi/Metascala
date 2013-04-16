@@ -6,8 +6,9 @@ import org.scalatest.FreeSpec
 import metascala.Util.{SingleClassVM}
 import com.fasterxml.jackson.databind.ObjectMapper
 import collection.GenSeq
-
+/*
 object MetacircularTest{
+
   def sqrtFinder = {
     val x = new metascala.VM()
     x.invoke("metascala.features.controlflow.Loops", "sqrtFinder", Seq(5.0))
@@ -42,7 +43,8 @@ object MetacircularTest{
   }
   def doubleMetaTwo = {
     val x = new metascala.VM()
-    x.invoke("metascala.full.MetacircularTest", "helloWorld")
+    x.invoke("metascala.features.controlflow.Loops", "sqrtFinder", Seq(5.0))
+
   }
   def helloWorld = {
     println("Hello Scala!")
@@ -50,7 +52,6 @@ object MetacircularTest{
 }
 
 class MetacircularTest extends FreeSpec with Util{
-
 
   val buffer = new BufferLog(8000)
   var count = 0
@@ -84,5 +85,10 @@ class MetacircularTest extends FreeSpec with Util{
     tester.run("multiCatch")
     println(tester.svm.threads(0).getOpCount)
   }
+  /*"doubleMetaOne" in {
+    tester.run("doubleMetaOne")
+    println(tester.svm.threads(0).getOpCount)
+  }*/
 }
 
+*/

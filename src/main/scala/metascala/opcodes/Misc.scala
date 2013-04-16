@@ -153,7 +153,7 @@ object Misc {
   case class NewArray(typeCode: Int) extends OpCode{
     def op(vt: Thread) =  {
       val vrt.Int(count) = vt.pop
-
+      import vt.vm
       val newArray = typeCode match{
         case 4  => vrt.Arr.Prim[Boolean](count)
         case 5  => vrt.Arr.Prim[Char](count)
@@ -170,13 +170,14 @@ object Misc {
   case class ANewArray(desc: imm.Type.Ref) extends OpCode{
     def op(vt: Thread) =  {
       val vrt.Int(count) = vt.pop
+      import vt.vm
       vt.push(vrt.Arr.Obj(desc, count))
     }
   }
 
   case object ArrayLength extends OpCode{
     def op(vt: Thread) =  {
-      vt.push(vt.pop.asInstanceOf[vrt.Arr].backing.length)
+      vt.push(vt.pop.cast[vrt.Arr[_]].length)
     }
   }
 
@@ -196,7 +197,7 @@ object Misc {
         case (top: vrt.Ref with vrt.StackVal) if !check(top.tpe, desc) =>
           vt.throwException(
             vrt.Obj("java/lang/ClassCastException",
-              "detailMessage" -> s"${top.tpe.unparse} cannot be converted to ${desc.unparse}"
+              "detailMessage" -> vrt.virtString(s"${top.tpe.unparse} cannot be converted to ${desc.unparse}")
             )
           )
         case _ => ()
@@ -242,17 +243,18 @@ object Misc {
 
   case class MultiANewArray(desc: Type.Arr, dims: Int) extends OpCode{
     def op(vt: Thread) =  {
-      def rec(dims: List[Int], tpe: Type): vrt.Arr = {
+      import vt.vm
+      def rec(dims: List[Int], tpe: Type): vrt.Arr[_] = {
 
         (dims, tpe) match {
           case (size :: Nil, Type.Arr(Type.Prim(c))) =>
             imm.Type.Prim.Info.charMap(c).newVirtArray(size)
 
           case (size :: Nil, Type.Arr(innerType: imm.Type.Ref)) =>
-            new vrt.Arr.Obj(innerType, Array.fill[vrt.Val](size)(innerType.default))
+            vrt.Arr.Obj(innerType, Array.fill[vrt.Val](size)(innerType.default))
 
           case (size :: tail, Type.Arr(innerType: imm.Type.Ref)) =>
-            new vrt.Arr.Obj(innerType, Array.fill[vrt.Val](size)(rec(tail, innerType)))
+            vrt.Arr.Obj(innerType, Array.fill[vrt.Val](size)(rec(tail, innerType)))
         }
       }
       val dimValues = vt.popArgs(dims).map(_.cast[vrt.Int].v).toList

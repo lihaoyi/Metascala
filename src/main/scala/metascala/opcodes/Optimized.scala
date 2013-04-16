@@ -16,7 +16,7 @@ object Optimized {
   case class New(cls: rt.Cls) extends OpCode{
     def op(vt: Thread) = {
       import vt.vm._
-      vt.push(new vrt.Obj(cls)(vt.vm))
+      vt.push(vrt.Obj(cls.name)(vt.vm))
     }
   }
 
@@ -74,7 +74,7 @@ object Optimized {
     def op(vt: Thread) = {
       val obj = vt.pop.cast[vrt.Obj]
       ensureNonNull(vt, obj){
-        vt.push(obj.members(index)._2().toStackVal)
+        vt.push(obj.members(index).toStackVal)
       }
     }
   }
@@ -82,7 +82,7 @@ object Optimized {
     def op(vt: Thread) ={
       val (value, obj) = (vt.pop, vt.pop.cast[vrt.Obj])
       ensureNonNull(vt, obj){
-        obj.members(index)._2() = value
+        obj.members(index) = value
       }
     }
   }

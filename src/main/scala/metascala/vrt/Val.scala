@@ -12,7 +12,7 @@ trait Val{
     case vrt.Short(s) => vrt.Int(s)
     case x: vrt.StackVal => x
   }
-
+  def longVal: scala.Long
 }
 
 /**

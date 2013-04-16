@@ -10,7 +10,7 @@ import metascala.imm.{Access, Type}
 /**
  * A handle to a readable and writable value.
  */
-final class Var(var x: vrt.Val){
+class Var(var x: vrt.Val){
   final def apply() = x
   final def update(y: vrt.Val){
     x = y
@@ -30,9 +30,6 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
     clsData.methods
            .zipWithIndex
            .map{case (m, i) => new rt.Method.Cls(this, i, m)}
-
-
-  lazy val obj = new vrt.Cls(Type.Cls(name))
 
   /**
    * A map of static fields

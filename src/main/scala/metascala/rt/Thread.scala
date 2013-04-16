@@ -11,18 +11,13 @@ import scala.Some
 import metascala.UncaughtVmException
 import metascala.vrt
 import metascala.imm
+import metascala.imm.Access
 
 /**
  * A single thread within the Metascala VM.
  */
 class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(implicit val vm: VM){
   import vm._
-  lazy val obj = vrt.Obj("java/lang/Thread",
-    "name" -> "MyThread".toCharArray,
-    "group" -> vrt.Obj("java/lang/ThreadGroup"),
-    "priority" -> 5
-  )
-
 
   private[this] var opCount = 0L
   def getOpCount = opCount
@@ -56,16 +51,14 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   final def step() = {
     val insnsList = frame.method.insns
     val node = insnsList(frame.pc)
-    vm.log(indent + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.stack)
-    vm.log(indent + "---------------------- " + frame.pc + "\t" + node )
+
+    println(indent + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.stack)
+    println(indent + "---------------------- " + frame.pc + "\t" + node )
     frame.pc += 1
     opCount += 1
-    try{
-      node.op(this)
-    }catch{ case e: Throwable =>
-      this.dumpStack.foreach(x => vm log x)
-      throw e
-    }
+
+    node.op(this)
+
 
     //log(indent + frame.runningClass.name + "/" + frame.method.name + ": " + frame.stack.map(x => if (x == null) null else x.getClass))
   }
@@ -107,24 +100,26 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
             frame.stack.push(ex)
         }
       case None =>
-        throw new UncaughtVmException(ex.cls.clsData.tpe.unparse,
-                                      ex(imm.Type.Cls("java/lang/Throwable"), "detailMessage").cast[vrt.Obj],
-                                      Nil,
-                                      Nil)
+        throw new UncaughtVmException(
+          ex.cls.clsData.tpe.unparse,
+          "exception lulz",//ex(imm.Type.Cls("java/lang/Throwable"), "detailMessage").cast[vrt.Obj],
+          Nil,
+          Nil
+        )
     }
   }
 
 
   final def prepInvoke(mRef: rt.Method,
                        args: Seq[vrt.StackVal]) = {
-    vm.log("PrepInvoke " + mRef.sig.unparse)
+    println("PrepInvoke " + mRef.sig.unparse)
     mRef match{
       case rt.Method.Native(clsName, imm.Sig(name, desc), op) =>
         val result = op(this)(args)
         if(desc.ret != imm.Type.Prim('V')) threadStack.top.stack.push(result.toStackVal)
 
       case m @ rt.Method.Cls(cls, methodIndex, method) =>
-
+        assert((m.method.access & Access.Native) == 0, "method cannot be native: " + cls.name + " " + method.name)
 
         val array = new Array[vrt.StackVal](method.misc.maxLocals)
         var i = 0
@@ -162,7 +157,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   }
 
   def invoke(cls: imm.Type.Cls, methodName: String, desc: imm.Desc, args: Seq[vrt.Val]): vrt.Val = {
-
+    println(s"Invoking Class ${cls.name}.$methodName")
     val startHeight = threadStack.length
     prepInvoke(cls, methodName, desc, args.map(_.toStackVal))
 

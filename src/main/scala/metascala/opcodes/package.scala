@@ -47,7 +47,7 @@ package object opcodes{
   private[opcodes] final def ensureNonNull(vt: Thread, x: Any)(thunk: => Unit) = {
     import vt._
     if (x == vrt.Null){
-      throwException(vrt.Obj("java/lang/NullPointerException", "detailMessage" -> "null"))
+      throwException(vrt.Obj("java/lang/NullPointerException", "detailMessage" -> vrt.virtString("null")))
     }else {
       thunk
     }

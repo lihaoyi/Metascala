@@ -50,7 +50,6 @@ object Type{
     def unparse = name
     def cls(implicit vm: VM) = vm.ClsTable(this)
     def parent(implicit vm: VM) = this.cls.clsData.superType
-    override def obj(implicit vm: VM): vrt.Type = vm.VirtualClassObjects(this)
     def realCls = classOf[Object]
     def default = vrt.Null
     def methodType: Type.Cls = this
@@ -63,25 +62,33 @@ object Type{
                             val name: String,
                             val boxName: String,
                             defaultV: => T,
-                            val constructor: T => vrt.Val){
+                            val constructor: T => vrt.Val,
+                            val fromLong: scala.Long => vrt.Val,
+                            val toLong: T => scala.Long,
+                            val longToRaw: scala.Long => T){
 
       lazy val default = constructor(defaultV)
       val realCls: Class[_] = implicitly[ClassTag[T]].getClass
       def newArray(n: Int): Array[T] = new Array[T](n)
-      def newVirtArray(n: Int): vrt.Arr.Prim[T] = new vrt.Arr.Prim(new Array[T](n))(this)
+      implicit val self = this
+      def newVirtArray(n: Int)(implicit vm: VM): vrt.Arr.Prim[T] = vrt.Arr.Prim(new Array[T](n))
 
     }
     object Info{
+      val iToF = java.lang.Float.intBitsToFloat _
+      val fToI = java.lang.Float.floatToIntBits _
+      val lToD = java.lang.Double.longBitsToDouble _
+      val dToL= java.lang.Double.doubleToLongBits _
       private[this] implicit def char2Type(c: Char) = imm.Type.Prim(c)
-      implicit val ZC = new Info[Boolean]( 'Z', "boolean", "java/lang/Boolean",  false,  vrt.Boolean)
-      implicit val BC = new Info[Byte](    'B', "byte",    "java/lang/Byte",     0,      vrt.Byte)
-      implicit val CC = new Info[Char](    'C', "char",    "java/lang/Character",0,      vrt.Char)
-      implicit val SC = new Info[Short](   'S', "short",   "java/lang/Short",    0,      vrt.Short)
-      implicit val IC = new Info[Int](     'I', "int",     "java/lang/Integer",  0,      vrt.Int)
-      implicit val FC = new Info[Float](   'F', "float",   "java/lang/Float",    0,      vrt.Float)
-      implicit val JC = new Info[Long](    'J', "long",    "java/lang/Long",     0,      vrt.Long)
-      implicit val DC = new Info[Double](  'D', "double",  "java/lang/Double",   0,      vrt.Double)
-      implicit val VC = new Info[Void](    'V', "void",    "java/lang/Void",     ???,    x => ???)
+      implicit val ZC = new Info[Boolean]( 'Z', "boolean", "java/lang/Boolean",  false,  vrt.Boolean, x => vrt.Boolean(x == 0), if (_) 1 else 0, _ == 0)
+      implicit val BC = new Info[Byte](    'B', "byte",    "java/lang/Byte",     0,      vrt.Byte,    x => vrt.Byte(x.toByte),   _.toLong, _.toByte)
+      implicit val CC = new Info[Char](    'C', "char",    "java/lang/Character",0,      vrt.Char,    x => vrt.Char(x.toChar),   _.toLong, _.toChar)
+      implicit val SC = new Info[Short](   'S', "short",   "java/lang/Short",    0,      vrt.Short,   x => vrt.Short(x.toShort),  _.toLong, _.toShort)
+      implicit val IC = new Info[Int](     'I', "int",     "java/lang/Integer",  0,      vrt.Int,     x => vrt.Int(x.toInt),    _.toLong, _.toInt)
+      implicit val FC = new Info[Float](   'F', "float",   "java/lang/Float",    0,      vrt.Float,   x => vrt.Float(iToF(x.toInt)),  x => fToI(x.toLong), x => iToF(x.toInt))
+      implicit val JC = new Info[Long](    'J', "long",    "java/lang/Long",     0,      vrt.Long,    x => vrt.Long(x.toLong),   _.toLong, _.toLong)
+      implicit val DC = new Info[Double](  'D', "double",  "java/lang/Double",   0,      vrt.Double,  x => vrt.Double(lToD(x)), dToL, lToD)
+      implicit val VC = new Info[Void](    'V', "void",    "java/lang/Void",     ???,    x => ???,         x => ???,        x => ???,      x => ???)
       val all: Seq[Info[_]] = Seq(ZC, BC, CC, SC, IC, FC, JC, DC, VC)
       val charMap = all.map(x => x.tpe.char -> (x: Info[_])).toMap[Char, Info[_]]
 
@@ -129,11 +136,6 @@ trait Type{
    */
   def default: vrt.Val
 
-  /**
-   * Retrieves the Class object inside the Metascala VM which represents
-   * this Type.
-   */
-  def obj(implicit vm: VM): vrt.Type = vm.VirtualClassObjects(this)
 }
 
 object Desc{

@@ -107,7 +107,7 @@ Fun Facts
 ---------
 
 - At only 3000 lines of source code, Metascala is probably one of the smallest JVMs ever.
-- Metascala took about a months worth of a single person's free time to construct.
+- Metascala took about a months worth of a single person's free time to construct. Not a lot, really.
 - Metascala isn't a metacircular Java/Scala interpreter, because it is currently unable to interpret the Java/Scala compilers.
 - The number of native method bindings to the JVM is huge, and unlike the virtual machine specification, completely undocumented, although it is necessary to run basically anything. The only way to find out what natives are missing is to run stuff and see it crash when it encounters a missing native method.
 - The 90kb of source code gets compiled into 1800kb of binaries, an increase of 20x. Compiled Scala results in a lot of class files.

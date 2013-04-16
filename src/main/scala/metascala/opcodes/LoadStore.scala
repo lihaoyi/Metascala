@@ -64,8 +64,6 @@ object LoadStore {
         case s: String =>
           val v: vrt.Obj = s
           vt.vm.InternedStrings(v)
-        case t: asm.Type =>
-          Type.Cls(t.getClassName.replace('.', '/')).obj
 
         case x => anyValToStackVal(x)
       }
@@ -124,13 +122,13 @@ object LoadStore {
 
   class PushFromArray() extends OpCode{
     def op(vt: Thread) = (vt.pop, vt.pop) match {
-      case (vrt.Int(index), arr: vrt.Arr)=>
+      case (vrt.Int(index), arr: vrt.Arr[_])=>
         import vt._
-        if (arr.backing.isDefinedAt(index)){
+        if (arr.view.isDefinedAt(index)){
           vt.push(arr(index).toStackVal)
         }else{
           throwException{
-            metascala.vrt.Obj("java/lang/ArrayIndexOutOfBoundsException",
+            vrt.Obj("java/lang/ArrayIndexOutOfBoundsException",
               "detailMessage" -> (index+"")
             )
           }
@@ -186,21 +184,21 @@ object LoadStore {
   val AStore3 = UnusedOpCode(78, "astore_3")
   //===============================================================
 
-  class StoreArray(store: Function1[(vrt.StackVal, Int, Array[_]), Unit]) extends OpCode{
+  class StoreArray(store: Function1[(vrt.StackVal, Int, vrt.Arr[_]), Unit]) extends OpCode{
     def op(vt: Thread) = (vt.pop, vt.pop, vt.pop) match {
-      case (value, vrt.Int(index), arr: vrt.Arr) => store(value, index, arr.backing)
+      case (value, vrt.Int(index), arr: vrt.Arr[_]) => store(value, index, arr)
     }
   }
 
-  case object IAStore extends StoreArray({case (vrt.Int(value), i, backing: Array[Int]) => backing(i) = value})
-  case object LAStore extends StoreArray({case (vrt.Long(value), i, backing: Array[Long]) => backing(i) = value})
-  case object FAStore extends StoreArray({case (vrt.Float(value), i, backing: Array[Float]) => backing(i) = value})
-  case object DAStore extends StoreArray({case (vrt.Double(value), i, backing: Array[Double]) => backing(i) = value})
-  case object AAStore extends StoreArray({case (value, i, backing: Array[Any]) => backing(i) = value})
+  case object IAStore extends StoreArray({case (vrt.Int(value), i, backing: vrt.Arr[Int]) => backing(i) = value})
+  case object LAStore extends StoreArray({case (vrt.Long(value), i, backing: vrt.Arr[Long]) => backing(i) = value})
+  case object FAStore extends StoreArray({case (vrt.Float(value), i, backing: vrt.Arr[Float]) => backing(i) = value})
+  case object DAStore extends StoreArray({case (vrt.Double(value), i, backing: vrt.Arr[Double]) => backing(i) = value})
+  case object AAStore extends StoreArray({case (value, i, backing: vrt.Arr[Any]) => backing(i) = value})
   case object BAStore extends StoreArray({
-    case (vrt.Int(value), i, backing: Array[Byte]) => backing(i) = value.toByte
-    case (vrt.Int(value), i, backing: Array[Boolean]) => backing(i) = value.toByte != 0
+    case (vrt.Int(value), i, backing: vrt.Arr[Byte]) => backing(i) = value.toByte
+    case (vrt.Int(value), i, backing: vrt.Arr[Boolean]) => backing(i) = value.toByte != 0
   })
-  case object CAStore extends StoreArray({case (vrt.Int(value), i, backing: Array[Char]) => backing(i) = value.toChar})
-  case object SAStore extends StoreArray({case (vrt.Int(value), i, backing: Array[Short]) => backing(i) = value.toShort})
+  case object CAStore extends StoreArray({case (vrt.Int(value), i, backing: vrt.Arr[Char]) => backing(i) = value.toChar})
+  case object SAStore extends StoreArray({case (vrt.Int(value), i, backing: vrt.Arr[Short]) => backing(i) = value.toShort})
 }
