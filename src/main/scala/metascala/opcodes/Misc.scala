@@ -41,15 +41,23 @@ object Misc {
   case object Return extends OpCode{ def op(vt: Thread) =  vt.returnVal(0) }
 
   case class GetStatic(owner: Type.Cls, name: String, desc: Type) extends OpCode{
-    def op(vt: Thread) = vt.swapOpCode(
-      Optimized.GetStatic(owner.cls(vt.vm).resolveStatic(owner, name))
-    )
+    def op(vt: Thread) = vt.swapOpCode{
+      import vt.vm
+
+      val index = owner.cls.staticList.indexWhere(_.name == name)
+      val size = owner.cls.staticList(index).desc.size
+      Optimized.GetStatic(owner.cls, index, size)
+    }
 
   }
   case class PutStatic(owner: Type.Cls, name: String, desc: Type) extends OpCode{
-    def op(vt: Thread) = vt.swapOpCode(
-      Optimized.PutStatic(owner.cls(vt.vm).resolveStatic(owner, name))
-    )
+    def op(vt: Thread) = vt.swapOpCode{
+      println("PUTTING STATIC")
+      import vt.vm
+      val index = owner.cls.staticList.indexWhere(_.name == name)
+      val size = owner.cls.staticList(index).desc.size
+      Optimized.PutStatic(owner.cls, index, size)
+    }
 
   }
 

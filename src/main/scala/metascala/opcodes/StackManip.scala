@@ -158,7 +158,9 @@ object StackManip {
   abstract class BinaryBranch(pred: (Int, Int) => Boolean) extends OpCode{
     def label: Int
     def op(vt: Thread) =  {
-      if(pred(vt.pop, vt.pop)) vt.frame.pc = label
+
+      val (a, b) = (vt.pop, vt.pop)
+      if(pred(b, a)) vt.frame.pc = label
     }
   }
 

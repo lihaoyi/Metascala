@@ -31,14 +31,19 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
            .zipWithIndex
            .map{case (m, i) => new rt.Method.Cls(this, i, m)}
 
-  /**
-   * A map of static fields
-   */
-  val statics =
-    clsData.fields
-           .filter(_.static)
-           .map{f => f.name -> new Var(0) }
-           .toMap
+
+  val staticList: Seq[imm.Field] = {
+
+    clsData.fields.filter(_.static).flatMap{x =>
+      Seq.fill(x.desc.size)(x)
+    }
+  }
+
+
+  val statics = {
+
+    new Array[Int](staticList.length)
+  }
 
 
   def method(name: String, desc: imm.Desc): Option[imm.Method] = {
@@ -46,19 +51,7 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
                .find(m => m.name == name && m.desc == desc)
   }
 
-  def resolveStatic(owner: Type.Cls, name: String) = {
-    clsAncestry.dropWhile(_.tpe != owner)
-      .find(_.fields.exists(_.name == name))
-      .get.tpe.statics(name)
-  }
 
-  def apply(owner: Type.Cls, name: String) = {
-    resolveStatic(owner, name)()
-  }
-
-  def update(owner: Type.Cls, name: String, value: Val) = {
-    resolveStatic(owner, name)() = value
-  }
 
   def name = clsData.tpe.name
 
@@ -81,14 +74,13 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
     clsData.interfaces.flatMap(_.cls.typeAncestry)
   }
 
-  /**
-   *
-   */
+
+
   val fieldList: Seq[imm.Field] = {
     clsData.superType.toSeq.flatMap(_.fieldList) ++
-    clsData.fields.filter(!_.static).flatMap(x =>
+    clsData.fields.filter(!_.static).flatMap{x =>
       Seq.fill(x.desc.size)(x)
-    )
+    }
   }
 
   /**

@@ -65,11 +65,15 @@ object Optimized {
     }
   }
 
-  case class GetStatic(field: rt.Var) extends OpCode{
-    def op(vt: Thread) = vt.push(field())
+  case class GetStatic(cls: rt.Cls, index: Int, size: Int) extends OpCode{
+    def op(vt: Thread) = {
+      for(i <- 0 until size) vt.push(cls.statics(index + i))
+    }
   }
-  case class PutStatic(field: rt.Var) extends OpCode{
-    def op(vt: Thread) = field() = vt.pop
+  case class PutStatic(cls: rt.Cls, index: Int, size: Int) extends OpCode{
+    def op(vt: Thread) = {
+      for(i <- 0 until size) cls.statics(index + i) = vt.pop
+    }
   }
   case class GetField(index: Int, size: Int) extends OpCode{
 

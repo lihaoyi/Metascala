@@ -109,7 +109,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
   final def prepInvoke(mRef: rt.Method,
                        args: Seq[Int]) = {
-    println(indent + "PrepInvoke " + mRef.sig.unparse + " with " + args)
+    println(indent + "PrepInvoke " + mRef + " with " + args)
 
 
     mRef match{
@@ -123,7 +123,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         val startFrame = new Frame(
           runningClass = cls,
           method = m,
-          locals = mutable.Seq(args:_*)
+        locals = mutable.Seq(args:_*).padTo(m.method.misc.maxLocals, 0)
         )
 
         //log(indent + "locals " + startFrame.locals)
@@ -134,7 +134,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
                        sig: imm.Sig,
                        args: Seq[Any])
                        : Unit = {
-    println(indent + s"PrepInvoke! $tpe $sig")
+
     val tmp = mutable.Buffer.empty[Val]
     for(arg <- args.reverse){
       this.pushVirtual(arg, {v =>
@@ -149,7 +149,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
   }
   def invoke(mRef: rt.Method, args: Seq[Int]): Any = {
-
+    println(indent + "Invoke A")
     val startHeight = threadStack.length
     prepInvoke(mRef, args)
 
@@ -159,7 +159,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   }
 
   def invoke(cls: imm.Type.Cls, sig: imm.Sig, args: Seq[Any]): Any = {
-
+    println(indent + "Invoke B")
     val startHeight = threadStack.length
     prepInvoke(cls, sig, args)
 

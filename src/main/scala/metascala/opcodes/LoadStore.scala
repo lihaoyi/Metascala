@@ -133,16 +133,17 @@ object LoadStore {
   case object CALoad extends PushFromArray()
   case object SALoad extends PushFromArray()
 
-  abstract class StoreLocal() extends OpCode{
+  abstract class StoreLocal(size: Int) extends OpCode{
     def varId: Int
-    def op(vt: Thread) = vt.frame.locals(varId) = vt.pop
-
+    def op(vt: Thread) = for (i <- 0 until size){
+      vt.frame.locals(varId + i) = vt.pop
+    }
   }
-  case class IStore(varId: Int) extends StoreLocal()
-  case class LStore(varId: Int) extends StoreLocal()
-  case class FStore(varId: Int) extends StoreLocal()
-  case class DStore(varId: Int) extends StoreLocal()
-  case class AStore(varId: Int) extends StoreLocal()
+  case class IStore(varId: Int) extends StoreLocal(1)
+  case class LStore(varId: Int) extends StoreLocal(2)
+  case class FStore(varId: Int) extends StoreLocal(1)
+  case class DStore(varId: Int) extends StoreLocal(2)
+  case class AStore(varId: Int) extends StoreLocal(1)
 
   // Not used, because ASM converts these to raw XStore(index: Int)s
   //===============================================================

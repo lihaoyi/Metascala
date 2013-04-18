@@ -89,7 +89,7 @@ class VM(val natives: Bindings = Bindings.default, val log: ((=>String) => Unit)
     val native =
       vm.natives
         .trapped
-        .find(_.sig == sig)
+        .find(x => x.sig == sig && x.clsName == owner.name)
 
     val method =
       owner.cls
