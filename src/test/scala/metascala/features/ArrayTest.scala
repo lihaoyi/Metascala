@@ -15,12 +15,8 @@ class ArrayTest extends FreeSpec with Util{
     val tester = new Tester("metascala.features.arrays.ArrayStuff", buffer)
     "makeIntArray" in chk(tester.run("makeIntArray", _: Int))(Seq(0, 1, 2, 3, 4, 5, 6, 7, 8, 9))
     "makeFloatArray" in tester.run("makeFloatArray")
-    "makeStringArray" in {
-      try tester.run("makeStringArray") catch {case x =>
-        buffer.lines.foreach(println)
-        throw x
-      }
-    }
+    "makeStringArray" in tester.run("makeStringArray")
+
     "arrayLength" in tester.run("arrayLength")
     "arraySet" in tester.run("arraySet")
     "arrayGet" in tester.run("arrayGet")

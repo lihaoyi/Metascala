@@ -41,42 +41,49 @@ package object metascala {
     def pop(x: => Val): T
     def push(x: T, out: Val => Unit): Unit
   }
+
   type Z = Boolean
   object Z extends Prim[Boolean]{
     def apply(x: Val) = x != 0
     def pop(x: => Val) = this(x)
     def push(x: Boolean, out: Val => Unit) = out(if (x) 1 else 0)
   }
+
   type B = Byte
   object B extends Prim[Byte]{
     def apply(x: Val) = x.toByte
     def pop(x: => Val) = this(x)
     def push(x: Byte, out: Val => Unit) = out(x)
   }
+
   type C = Char
   object C extends Prim[Char]{
     def apply(x: Val) = x.toChar
     def pop(x: => Val) = this(x)
     def push(x: Char, out: Val => Unit) = out(x)
   }
+
   type S = Short
   object S extends Prim[Short]{
     def apply(x: Val) = x.toShort
     def pop(x: => Val) = this(x)
     def push(x: Short, out: Val => Unit) = out(x)
   }
+
   type I = Int
   object I extends Prim[Int]{
     def apply(x: Val) = x
     def pop(x: => Val) = this(x)
     def push(x: Int, out: Val => Unit) = out(x)
   }
+
   type F = Float
   object F extends Prim[Float]{
     def apply(x: Val) = java.lang.Float.intBitsToFloat(x)
     def pop(x: => Val) = this(x)
     def push(x: Float, out: Val => Unit) = out(java.lang.Float.floatToRawIntBits(x))
   }
+
   type J = Long
   object J extends Prim[Long]{
     def apply(v1: Val, v2: Val) = v1.toLong << 32 | v2 & 0xFFFFFFFFL
@@ -89,12 +96,15 @@ package object metascala {
       out(x.toInt)
     }
   }
+
   type D = Double
   object D extends Prim[Double]{
     def apply(v1: Val, v2: Val) = java.lang.Double.longBitsToDouble(J(v1, v2))
     def pop(x: => Val) = java.lang.Double.longBitsToDouble(J.pop(x))
     def push(x: Double, out: Val => Unit) = J.push(java.lang.Double.doubleToRawLongBits(x), out)
   }
+
+
 
   type Val = Int
 
@@ -111,5 +121,10 @@ package object metascala {
       while(i >= 0) {args(i) = vt.frame.stack.pop(); i-=1}
       args
     }
+  }
+
+  implicit class pimpedString(val s: String){
+    def toDot = s.replace('/', '.')
+    def toSlash = s.replace('.', '/')
   }
 }

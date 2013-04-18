@@ -108,7 +108,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       case t @ imm.Type.Cls(name) =>
         val address = src
         println("popVirtual Obj " + address)
-        val obj = vrt.unsafe.allocateInstance(Class.forName(name.replace('/', '.')))
+        val obj = vrt.unsafe.allocateInstance(Class.forName(name.toDot))
 
         println(vm.Heap.dump)
         var index = 0
@@ -127,9 +127,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         val address = src
         println("popVirtual Arr " + address)
 
-
         println(vm.Heap.dump)
-        val clsObj = forName(tpe.unparse)
+        val clsObj = forName(tpe.unparse.toDot)
         val newArr = java.lang.reflect.Array.newInstance(clsObj, address.arr.length)
         println(newArr)
         for(i <- 0 until address.arr.length){
@@ -143,7 +142,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
             case "F" => F.apply(raw)
             case "J" => J.apply(0, raw)
             case "D" => D.apply(0, raw)
-            case x => ???
+            case x => popVirtual(tpe, raw)
           }
           java.lang.reflect.Array.set(newArr, i, cooked)
         }
@@ -201,7 +200,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       case b: Any =>
         println("pushVirtual Obj")
         println(vm.Heap.dump)
-        val obj = vrt.Obj.allocate(b.getClass.getName.replace('.', '/'))
+        val obj = vrt.Obj.allocate(b.getClass.getName.toSlash)
         println(vm.Heap.dump)
         var index = 0
         for(field <- obj.cls.clsData.fields.filter(!_.static)){

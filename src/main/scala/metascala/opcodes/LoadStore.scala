@@ -174,23 +174,26 @@ object LoadStore {
   val AStore3 = UnusedOpCode
   //===============================================================
 
-  class StoreArray extends OpCode{
+  class StoreArray[T](p: Prim[T]) extends OpCode{
     def op(vt: Thread) = {
       import vt.vm
-      val value = vt.pop
+      val value = p.pop(vt.pop)
       val index = vt.pop
       val arr = vt.pop.arr
-      arr(index) = value
-
+      var i = 0
+      p.push(value, { x =>
+        arr(index + i) = x
+        i += 1
+      })
     }
   }
 
-  case object IAStore extends StoreArray
-  case object LAStore extends StoreArray
-  case object FAStore extends StoreArray
-  case object DAStore extends StoreArray
-  case object AAStore extends StoreArray
-  case object BAStore extends StoreArray
-  case object CAStore extends StoreArray
-  case object SAStore extends StoreArray
+  case object IAStore extends StoreArray(I)
+  case object LAStore extends StoreArray(J)
+  case object FAStore extends StoreArray(F)
+  case object DAStore extends StoreArray(D)
+  case object AAStore extends StoreArray(I)
+  case object BAStore extends StoreArray(B)
+  case object CAStore extends StoreArray(C)
+  case object SAStore extends StoreArray(S)
 }
