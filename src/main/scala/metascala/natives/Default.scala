@@ -52,6 +52,11 @@ trait Default extends Bindings{
     Seq(
       "java"/(
         "lang"/(
+          "Class"/(
+            "getClassLoader0()Ljava/lang/ClassLoader;" x1 noOp1,
+            "desiredAssertionStatus0(Ljava/lang/Class;)Z" x1 value1(0),
+            "registerNatives()V" x noOp
+            ),
           "Object"/(
             "registerNatives()V" x noOp
           ),

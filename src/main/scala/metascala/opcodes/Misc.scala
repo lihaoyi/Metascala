@@ -52,7 +52,6 @@ object Misc {
   }
   case class PutStatic(owner: Type.Cls, name: String, desc: Type) extends OpCode{
     def op(vt: Thread) = vt.swapOpCode{
-      println("PUTTING STATIC")
       import vt.vm
       val index = owner.cls.staticList.indexWhere(_.name == name)
       val size = owner.cls.staticList(index).desc.size
@@ -81,7 +80,6 @@ object Misc {
   case class InvokeVirtual(owner: Type.Ref, sig: imm.Sig) extends OpCode{
     def op(vt: Thread) = {
       import vt.vm
-
       val index =
         owner
           .methodType
@@ -191,17 +189,16 @@ object Misc {
 
       val top = vt.pop
       vt.push(top)
-      /*top match{
-        case vrt.Null => ()
-        case (top: vrt.Ref with vrt.StackVal) if !check(top.tpe, desc) =>
+      top match{
+        case 0 => ()
+        case top if (top.isArr && !check(top.arr.tpe, desc)) || (top.isObj && !check(top.obj.tpe, desc)) =>
           vt.throwException(
-            vrt.Obj("java/lang/ClassCastException",
-              "detailMessage" -> vrt.virtString(s"${top.tpe.unparse} cannot be converted to ${desc.unparse}")
+            vrt.Obj.allocate("java/lang/ClassCastException"//,
+              //"detailMessage" -> vrt.virtString(s"${top.tpe.unparse} cannot be converted to ${desc.unparse}")
             )
           )
         case _ => ()
-      }*/
-      ???
+      }
     }
   }
   def check(s: imm.Type, t: imm.Type)(implicit vm: VM): Boolean = {
@@ -218,7 +215,15 @@ object Misc {
   }
   case class InstanceOf(desc: Type) extends OpCode{
     def op(vt: Thread) = {
-      ???
+
+      import vt._
+      import vm._
+      val res = vt.pop match{
+        case 0 => 0
+        case top => if ((top.isArr && check(top.arr.tpe, desc)) || (top.isObj && check(top.obj.tpe, desc))) 1 else 0
+      }
+
+      vt.push(res)
     }
   }
   case object MonitorEnter extends OpCode{

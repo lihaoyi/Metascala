@@ -44,24 +44,9 @@ object Optimized {
           case a if a.isObj => a.obj.cls
           case _ => vt.vm.ClsTable(imm.Type.Cls("java/lang/Object"))
         }
-      try{
-        val mRef = objCls.vTable(vTableIndex)
-        vt.prepInvoke(mRef, args)
-      }catch{case e: IndexOutOfBoundsException =>
-        println("IndexOutOfBoundsException")
-        println(args.head)
-        println(objCls.name)
-        println("Methods " + objCls.vTable.length)
-        objCls.vTable.map{
-          case Method.Cls(cls, _, method) =>
-            cls.name + " " + method.name + method.desc.unparse
-          case Method.Native(clsName, imm.Sig(name, desc), op) =>
-            "Native " + name + desc.unparse
-        }.foreach(println)
-        throw e
-      }
 
-
+      val mRef = objCls.vTable(vTableIndex)
+      vt.prepInvoke(mRef, args)
     }
   }
 

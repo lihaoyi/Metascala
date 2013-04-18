@@ -47,11 +47,11 @@ class Obj(val address: Val)
 
   object members extends mutable.Seq[Val]{
     def apply(n: Int): Val = {
-      vm.Heap(address + n + 1)
+      vm.Heap(address + n + 2)
     }
 
     def update(n: Int, v: Val): Unit = {
-      vm.Heap(address + n + 1) = v
+      vm.Heap(address + n + 2) = v
     }
 
     def length = cls.fieldList.length
@@ -59,7 +59,7 @@ class Obj(val address: Val)
     def iterator: Iterator[Val] = new Iterator[Val]{
       var index = 0
       def hasNext = index < members.length
-      def next() = vm.Heap(address + index + 1)
+      def next() = vm.Heap(address + index + 2)
     }
   }
 
@@ -110,7 +110,7 @@ class Arr(val address: scala.Int)(implicit vm: VM) {
    * N FieldN-1
    */
   def longVal = address
-  def innerType = Arr.arrayTypeCache(vm.Heap(address).toInt)
+  def innerType = Arr.arrayTypeCache(vm.Heap(address))
   def tpe = imm.Type.Arr(innerType)
   def length = vm.Heap(address + 1).toInt
   def apply(index: scala.Int) = vm.Heap(address + index + 2)

@@ -25,5 +25,6 @@ object Method{
   case class Cls(cls: rt.Cls, methodIndex: Int, method: imm.Method)(implicit vm: VM) extends Method{
     lazy val sig = method.sig
     lazy val insns = Array(method.code.insns:_*)
+    override def toString = s"Method.Cls(${cls.name}, ${method.name}${method.sig.unparse}})"
   }
 }

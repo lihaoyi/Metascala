@@ -51,7 +51,7 @@ object LoadStore {
       import vm._
       const match{
         case s: String => vt.pushVirtual(s, vt.push)
-        case t: asm.Type => vt.pushVirtual(t.toString, vt.push)
+        case t: asm.Type => vt.push(vrt.Obj.allocate("java/lang/Class").address)
         case x: scala.Byte  => B.push(x, vt.push)
         case x: scala.Char  => C.push(x, vt.push)
         case x: scala.Short => S.push(x, vt.push)

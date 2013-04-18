@@ -42,9 +42,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   def swapOpCode(opcode: OpCode) = {
     val insnsList = frame.method.insns
     insnsList(frame.pc-1) = opcode
-    vm.log(indent + "SWAPPED")
-    vm.log(indent + frame.runningClass.name + "/" + frame.method.sig.name + ": " + frame.stack)
-    vm.log(indent + "---------------------- " + frame.pc + "\t" + opcode)
     opcode.op(this)
   }
 
@@ -52,15 +49,14 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     val insnsList = frame.method.insns
     val node = insnsList(frame.pc)
 
-   // println(indent + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.stack)
-   // println(indent + "---------------------- " + frame.pc + "\t" + node )
+    println(indent + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.stack)
+    println(indent + "---------------------- " + frame.pc + "\t" + node )
     frame.pc += 1
     opCount += 1
 
     node.op(this)
   }
   def returnVal(x: Int) = {
-    println("Returning " + x)
 
     val oldTop = threadStack.pop()
     threadStack.headOption match{
@@ -69,6 +65,34 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     }
   }
 
+  @tailrec final def throwException(ex: vrt.Obj, print: Boolean = true): Unit = {
+
+    threadStack.headOption match{
+      case Some(frame)=>
+        val handler =
+          frame.method.method.misc.tryCatchBlocks
+            .filter{x =>
+            x.start <= frame.pc &&
+              x.end >= frame.pc &&
+              !x.blockType.isDefined ||
+              ex.cls.typeAncestry.contains(x.blockType.get)
+          }.headOption
+
+        handler match{
+          case None =>
+            threadStack.pop()
+            throwException(ex, false)
+          case Some(imm.TryCatchBlock(start, end, handler, blockType)) =>
+            frame.pc = handler
+            frame.stack.push(ex.address)
+        }
+      case None =>
+        throw new UncaughtVmException(ex.cls.clsData.tpe.unparse,
+          "Uncaught VM Error!",
+          Nil,
+          Nil)
+    }
+  }
 
   def popVirtual(tpe: imm.Type, src: => Val): Any = {
     tpe match {
