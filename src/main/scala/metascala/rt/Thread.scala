@@ -65,32 +65,94 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     val oldTop = threadStack.pop()
     threadStack.headOption match{
       case Some(frame) => for (i <- 0 until x) frame.stack.push(oldTop.stack.pop())
-      case None => returnedVal = popVirtual(oldTop.method.method.desc.ret, oldTop.stack)
+      case None => returnedVal = popVirtual(oldTop.method.method.desc.ret, oldTop.stack.pop)
     }
   }
 
-  def popVirtual(tpe: imm.Type, stack: mutable.ArrayStack[Val]) = {
+
+  def popVirtual(tpe: imm.Type, src: => Val): Any = {
     tpe match {
       case imm.Type.Prim('V') => ()
-      case imm.Type.Prim('Z') => Z(stack.pop)
-      case imm.Type.Prim('B') => B(stack.pop)
-      case imm.Type.Prim('C') => C(stack.pop)
-      case imm.Type.Prim('S') => S(stack.pop)
-      case imm.Type.Prim('I') => I(stack.pop)
-      case imm.Type.Prim('F') => F(stack.pop)
-      case imm.Type.Prim('J') =>
-        val devirt = J.pop(stack.pop)
-        println("DEVIRT " + devirt)
-        devirt
-      case imm.Type.Prim('D') =>
-        val devirt = D.pop(stack.pop)
-        println("DEVIRT " + devirt)
-        devirt
-      case imm.Type.Cls(_) => ???
-      case imm.Type.Arr(_) => ???
+      case imm.Type.Prim('Z') => Z(src)
+      case imm.Type.Prim('B') => B(src)
+      case imm.Type.Prim('C') => C(src)
+      case imm.Type.Prim('S') => S(src)
+      case imm.Type.Prim('I') => I(src)
+      case imm.Type.Prim('F') => F(src)
+      case imm.Type.Prim('J') => J.pop(src)
+      case imm.Type.Prim('D') => D.pop(src)
+      case t @ imm.Type.Cls(name) =>
+        val address = src
+        println("popVirtual Obj " + address)
+        val obj = vrt.unsafe.allocateInstance(Class.forName(name.replace('/', '.')))
+
+        println(vm.Heap.dump)
+        var index = 0
+        for(field <- t.cls.clsData.fields.filter(!_.static)){
+          val f = obj.getClass.getDeclaredField(field.name)
+          f.setAccessible(true)
+          f.set(obj, popVirtual(field.desc, {
+            val x = vm.Heap(address + 2 + index)
+            index += 1
+            x
+          }))
+        }
+        obj
+
+      case t @ imm.Type.Arr(tpe) =>
+        val address = src
+        println("popVirtual Arr " + address)
+
+
+        println(vm.Heap.dump)
+        val clsObj = forName(tpe.unparse)
+        val newArr = java.lang.reflect.Array.newInstance(clsObj, address.arr.length)
+        println(newArr)
+        for(i <- 0 until address.arr.length){
+          val raw = vm.Heap(address + 2 + i)
+          val cooked = tpe.unparse match{
+            case "Z" => raw == 0
+            case "B" => raw.toByte
+            case "C" => raw.toChar
+            case "S" => raw.toShort
+            case "I" => raw.toInt
+            case "F" => F.apply(raw)
+            case "J" => J.apply(0, raw)
+            case "D" => D.apply(0, raw)
+            case x => ???
+          }
+          java.lang.reflect.Array.set(newArr, i, cooked)
+        }
+        newArr
     }
   }
-  def pushVirtual(thing: Any, out: Val => Unit) = {
+  def forNameBoxed(name: String) = {
+    name match{
+      case "Z" => classOf[java.lang.Boolean]
+      case "B" => classOf[java.lang.Byte]
+      case "C" => classOf[java.lang.Character]
+      case "S" => classOf[java.lang.Short]
+      case "I" => classOf[java.lang.Integer]
+      case "F" => classOf[java.lang.Float]
+      case "J" => classOf[java.lang.Long]
+      case "D" => classOf[java.lang.Double]
+      case x => Class.forName(x)
+    }
+  }
+  def forName(name: String) = {
+    name match{
+      case "Z" => classOf[Boolean]
+      case "B" => classOf[Byte]
+      case "C" => classOf[Char]
+      case "S" => classOf[Short]
+      case "I" => classOf[Int]
+      case "F" => classOf[Float]
+      case "J" => classOf[Long]
+      case "D" => classOf[Double]
+      case x => Class.forName(x)
+    }
+  }
+  def pushVirtual(thing: Any, out: Val => Unit): Unit = {
     thing match {
       case b: Boolean => Z.push(b, out)
       case b: Byte    => B.push(b, out)
@@ -99,10 +161,43 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       case b: Int     => I.push(b, out)
       case b: Float   => F.push(b, out)
       case b: Long    => J.push(b, out)
-
       case b: Double  => D.push(b, out)
-      case imm.Type.Cls(_) => ???
-      case imm.Type.Arr(_) => ???
+      case b: Array[_] =>
+        println("pushVirtual Arr ")
+        println(vm.Heap.dump)
+        val arr = vrt.Arr.allocate(imm.Type.Arr.read(b.getClass.getName),
+          b.map{x => var tmp = 0; pushVirtual(x, tmp = _); tmp}
+        )
+        println(vm.Heap.dump)
+        out(arr.address)
+        println(vm.Heap.dump)
+        println("address " + arr.address)
+        println(vm.Heap.dump)
+        println("EndPushArray")
+      case b: Any =>
+        println("pushVirtual Obj")
+        println(vm.Heap.dump)
+        val obj = vrt.Obj.allocate(b.getClass.getName.replace('.', '/'))
+        println(vm.Heap.dump)
+        var index = 0
+        for(field <- obj.cls.clsData.fields.filter(!_.static)){
+          println("FIELD " + field.name)
+          val f = b.getClass.getDeclaredField(field.name)
+          f.setAccessible(true)
+
+          pushVirtual(f.get(b), {x =>
+            vm.Heap(obj.address + 2 + index) = x
+            println("index " + index)
+            index += 1
+            println("index " + index)
+          })
+        }
+        println(vm.Heap.dump)
+        println("address " +  obj.address)
+        println(vm.Heap.dump)
+        out(obj.address)
+        println(vm.Heap.dump)
+        println("EndPushObject")
     }
   }
 

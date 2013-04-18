@@ -16,7 +16,7 @@ object Optimized {
   case class New(cls: rt.Cls) extends OpCode{
     def op(vt: Thread) = {
       import vt.vm._
-      vt.push(vrt.Obj(cls.name)(vt.vm).address)
+      vt.push(vrt.Obj.allocate(cls.name)(vt.vm).address)
     }
   }
 

@@ -25,16 +25,16 @@ class VM(val natives: Bindings = Bindings.default, val log: ((=>String) => Unit)
       freePointer += n
       newFree
     }
-    def apply(n: Int) = memory(n)
+    def apply(n: Int): Int = memory(n)
     def update(n: Int, v: Int) = memory.update(n, v)
-
+    def dump = memory.take(freePointer).toList
   }
 
 
   /**
    * Globally shared sun.misc.Unsafe object.
    */
-  lazy val theUnsafe = vrt.Obj("sun/misc/Unsafe")
+  lazy val theUnsafe = vrt.Obj.allocate("sun/misc/Unsafe")
 
   /**
    * Cache of all the classes loaded so far within the Metascala VM.

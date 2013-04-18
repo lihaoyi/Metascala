@@ -150,16 +150,17 @@ object Misc {
     def op(vt: Thread) =  {
       val count = vt.pop
       import vt.vm
-      val newArray = typeCode match{
-        case 4  => vrt.Arr(imm.Type.Prim('Z'), count)
-        case 5  => vrt.Arr(imm.Type.Prim('C'), count)
-        case 6  => vrt.Arr(imm.Type.Prim('F'), count)
-        case 7  => vrt.Arr(imm.Type.Prim('D'), count)
-        case 8  => vrt.Arr(imm.Type.Prim('B'), count)
-        case 9  => vrt.Arr(imm.Type.Prim('S'), count)
-        case 10 => vrt.Arr(imm.Type.Prim('I'), count)
-        case 11 => vrt.Arr(imm.Type.Prim('L'), count)
+      val tpeChar = typeCode match{
+        case 4  => 'Z'
+        case 5  => 'C'
+        case 6  => 'F'
+        case 7  => 'D'
+        case 8  => 'B'
+        case 9  => 'S'
+        case 10 => 'I'
+        case 11 => 'L'
       }
+      val newArray = vrt.Arr.allocate(imm.Type.Prim(tpeChar), count)
       vt.push(newArray.address)
     }
   }
@@ -167,13 +168,14 @@ object Misc {
     def op(vt: Thread) =  {
       val count = vt.pop
       import vt.vm
-      vt.push(vrt.Arr(desc, count).address)
+      vt.push(vrt.Arr.allocate(desc, count).address)
     }
   }
 
   case object ArrayLength extends OpCode{
     def op(vt: Thread) =  {
-      vt.push(vt.pop.cast[vrt.Arr].length)
+      import vt.vm
+      vt.push(vt.pop.arr.length)
     }
   }
 

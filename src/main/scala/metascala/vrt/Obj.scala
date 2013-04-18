@@ -13,11 +13,12 @@ import metascala.imm
 
 
 object Obj{
-  def apply(clsName: String, initMembers: (String, Val)*)(implicit vm: VM): vrt.Obj = {
-    Obj.make(vm.ClsTable(imm.Type.Cls(clsName)), initMembers: _*)
+  def allocate(clsName: String, initMembers: (String, Val)*)(implicit vm: VM): vrt.Obj = {
+    Obj.allocate(vm.ClsTable(imm.Type.Cls(clsName)), initMembers: _*)
   }
-  def make(cls: rt.Cls, initMembers: (String, Val)*)(implicit vm: VM): vrt.Obj = {
+  def allocate(cls: rt.Cls, initMembers: (String, Val)*)(implicit vm: VM): vrt.Obj = {
     val address = vm.Heap.allocate(1 + cls.fieldList.length)
+    println("Allocated Obj at " + address)
     vm.Heap(address) = -cls.index
     val obj = new Obj(address)
     for ((s, v) <- initMembers){
@@ -83,13 +84,13 @@ object Arr{
   val arrayTypeCache = mutable.Buffer.empty[imm.Type]
 
 
-  def apply(t: imm.Type, n: scala.Int)(implicit vm: VM): Arr = {
-    vrt.Arr(t, Array.fill[Int](n)(0))
+  def allocate(t: imm.Type, n: scala.Int)(implicit vm: VM): Arr = {
+    vrt.Arr.allocate(t, Array.fill[Int](n)(0))
   }
-  def apply(innerType: imm.Type, backing: Array[Int])(implicit vm: VM): Arr = {
+  def allocate(innerType: imm.Type, backing: Array[Int])(implicit vm: VM): Arr = {
     val address = vm.Heap.allocate(2 + backing.length)
     vm.Heap(address) = arrayTypeCache.length
-    println("Allocated Arr.Obj at" + address)
+    println("Allocated Arr at " + address)
     arrayTypeCache.append(innerType)
     vm.Heap(address + 1) = backing.length
     backing.copyToArray(vm.Heap.memory, address + 2)
@@ -114,9 +115,9 @@ class Arr(val address: scala.Int)(implicit vm: VM) {
   def length = vm.Heap(address + 1).toInt
   def apply(index: scala.Int) = vm.Heap(address + index + 2)
   def update(index: scala.Int, value: Val) = vm.Heap(address + index + 2) = value
-  override def toString = s"vrt.Arr.Obj(${innerType.getClass})"
+  override def toString = s"vrt.Arr(${innerType.getClass})"
 
-  def view = vm.Heap.memory.slice(address + 1, address + length + 1).map(x => new vrt.Obj(x.toInt)).toArray
+  def view = vm.Heap.memory.slice(address + 1, address + length + 1).toArray
 }
 
 
