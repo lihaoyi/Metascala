@@ -87,18 +87,14 @@ package object metascala {
     def push(x: Long, out: Val => Unit) = {
       out((x >> 32).toInt)
       out(x.toInt)
-
-
-
     }
   }
   type D = Double
   object D extends Prim[Double]{
-    def apply(v1: Val, v2: Val) = ??? //java.lang.Double.longBitsToDouble(J(v1, v2))
+    def apply(v1: Val, v2: Val) = java.lang.Double.longBitsToDouble(J(v1, v2))
     def pop(x: => Val) = java.lang.Double.longBitsToDouble(J.pop(x))
     def push(x: Double, out: Val => Unit) = J.push(java.lang.Double.doubleToRawLongBits(x), out)
   }
-
 
   type Val = Int
 

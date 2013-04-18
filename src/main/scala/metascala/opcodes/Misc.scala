@@ -202,6 +202,7 @@ object Misc {
     }
   }
   def check(s: imm.Type, t: imm.Type)(implicit vm: VM): Boolean = {
+    println(s"CHECK $s $t")
     (s, t) match{
 
       case (s: Type.Cls, t: Type.Cls) => s.cls.typeAncestry.contains(t)

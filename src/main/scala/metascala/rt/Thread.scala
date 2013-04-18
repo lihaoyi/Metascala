@@ -189,7 +189,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       case b: Array[_] =>
         println("pushVirtual Arr ")
         println(vm.Heap.dump)
-        val arr = vrt.Arr.allocate(imm.Type.Arr.read(b.getClass.getName),
+        val arr = vrt.Arr.allocate(imm.Type.Arr.read(b.getClass.getName).innerType,
           b.map{x => var tmp = 0; pushVirtual(x, tmp = _); tmp}
         )
         println(vm.Heap.dump)
