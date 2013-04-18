@@ -109,6 +109,7 @@ trait Util extends ShouldMatchers { this: FreeSpec  =>
       val inString = args.toString
       println("svmRes " + svmRes)
       println("refRes " + refRes)
+      println("args " + args)
       try{
         svmRes should be === refRes
       }catch {case ex: TestFailedException =>

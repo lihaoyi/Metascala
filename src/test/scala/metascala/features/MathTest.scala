@@ -11,10 +11,10 @@ import util.Random
 
 class MathTest extends FreeSpec with Util{
 
-  implicit val intAll10 = 10 ** Gen.intAll
-  implicit val floatAll110 = 10 ** Gen.floatAll
-  implicit val longAll10 = 10 ** Gen.longAll
-  implicit val doubleAll110 = 10 ** Gen.doubleAll
+  implicit def intAll10 = 10 ** Gen.intAll
+  implicit def floatAll110 = 10 ** Gen.floatAll
+  implicit def longAll10 = 10 ** Gen.longAll
+  implicit def doubleAll110 = 10 ** Gen.doubleAll
   "single precision" - {
     val tester = new Tester("metascala.features.math.HelloMath")
     "hello math" - {

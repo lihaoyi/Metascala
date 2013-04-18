@@ -76,13 +76,13 @@ object StackManip {
   case object FNeg extends UnaryOp(F, F)(-_)
   case object DNeg extends UnaryOp(D, D)(-_)
 
-  case object IShl extends BinOp(I, I, I)((x, y) => y << x)
-  case object LShl extends BinOp(I, J, J)((x, y) => y << x)
-  case object IShr extends BinOp(I, I, I)((x, y) => y >> x)
-  case object LShr extends BinOp(I, J, J)((x, y) => y >> x)
+  case object IShl extends BinOp(I, I, I)(_ << _)
+  case object LShl extends BinOp(I, J, J)(_ << _)
+  case object IShr extends BinOp(I, I, I)(_ >> _)
+  case object LShr extends BinOp(I, J, J)(_ >> _)
 
-  case object IUShr extends BinOp(I, I, I)((x, y) => y >>> x)
-  case object LUShr extends BinOp(I, J, J)((x, y) => y >>> x)
+  case object IUShr extends BinOp(I, I, I)(_ >>> _)
+  case object LUShr extends BinOp(I, J, J)(_ >>> _)
 
   case object IAnd extends BinOp(I, I, I)(_ & _)
   case object LAnd extends BinOp(J, J, J)(_ & _)
@@ -105,11 +105,11 @@ object StackManip {
       out.push(x, vt.push)
     }
   }
-  class BinOp[A, B, R](a: Prim[A], b: Prim[B], out: Prim[R])(func: (A, B) => R) extends OpCode{
+  class BinOp[A, B, R](a: Prim[A], b: Prim[B], out: Prim[R])(func: (B, A) => R) extends OpCode{
     def op(vt: Thread) = {
       val first = a.pop(vt.pop)
       val second = b.pop(vt.pop)
-      val res = func(first, second)
+      val res = func(second, first)
       println(s"$first, $second -> $res")
       out.push(res, vt.push)
     }
