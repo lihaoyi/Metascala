@@ -52,8 +52,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     val insnsList = frame.method.insns
     val node = insnsList(frame.pc)
 
-    println(indent + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.stack)
-    println(indent + "---------------------- " + frame.pc + "\t" + node )
+   // println(indent + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.stack)
+   // println(indent + "---------------------- " + frame.pc + "\t" + node )
     frame.pc += 1
     opCount += 1
 

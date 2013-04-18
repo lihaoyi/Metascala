@@ -70,18 +70,18 @@ object LoadStore {
   val Ldc2W = UnusedOpCode
   //===============================================================
 
-  abstract class PushLocalIndexed(size: Int) extends OpCode{
+  abstract class Load(size: Int) extends OpCode{
     def op(vt: Thread) = for (i <- (size-1) to 0 by -1){
-      vt.frame.stack.push(vt.frame.locals(index + i))
+      vt.push(vt.frame.locals(index + i))
     }
     def index: Int
   }
 
-  case class ILoad(index: Int) extends PushLocalIndexed(1)
-  case class LLoad(index: Int) extends PushLocalIndexed(2)
-  case class FLoad(index: Int) extends PushLocalIndexed(1)
-  case class DLoad(index: Int) extends PushLocalIndexed(2)
-  case class ALoad(index: Int) extends PushLocalIndexed(1)
+  case class ILoad(index: Int) extends Load(1)
+  case class LLoad(index: Int) extends Load(2)
+  case class FLoad(index: Int) extends Load(1)
+  case class DLoad(index: Int) extends Load(2)
+  case class ALoad(index: Int) extends Load(1)
 
 
 
@@ -133,17 +133,17 @@ object LoadStore {
   case object CALoad extends PushFromArray()
   case object SALoad extends PushFromArray()
 
-  abstract class StoreLocal(size: Int) extends OpCode{
-    def varId: Int
+  abstract class Store(size: Int) extends OpCode{
+    def index: Int
     def op(vt: Thread) = for (i <- 0 until size){
-      vt.frame.locals(varId + i) = vt.pop
+      vt.frame.locals(index + i) = vt.pop
     }
   }
-  case class IStore(varId: Int) extends StoreLocal(1)
-  case class LStore(varId: Int) extends StoreLocal(2)
-  case class FStore(varId: Int) extends StoreLocal(1)
-  case class DStore(varId: Int) extends StoreLocal(2)
-  case class AStore(varId: Int) extends StoreLocal(1)
+  case class IStore(index: Int) extends Store(1)
+  case class LStore(index: Int) extends Store(2)
+  case class FStore(index: Int) extends Store(1)
+  case class DStore(index: Int) extends Store(2)
+  case class AStore(index: Int) extends Store(1)
 
   // Not used, because ASM converts these to raw XStore(index: Int)s
   //===============================================================
