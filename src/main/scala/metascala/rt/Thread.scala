@@ -51,6 +51,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     println(indent + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.stack)
     println(indent + "---------------------- " + frame.pc + "\t" + node )
+    println(indent + vm.Heap.dump)
     frame.pc += 1
     opCount += 1
 
@@ -231,7 +232,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
 
     mRef match{
-      case rt.Method.Native(clsName, imm.Sig(name, desc), op) =>
+      case rt.Method.Native1(clsName, imm.Sig(name, desc), op) =>
         val result = op(this)(args)
         if(desc.ret != imm.Type.Prim('V')) threadStack.top.stack.push(result)
 

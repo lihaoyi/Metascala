@@ -51,6 +51,7 @@ class Obj(val address: Val)
     }
 
     def update(n: Int, v: Val): Unit = {
+      println("Updating ! " + (address + n + 2))
       vm.Heap(address + n + 2) = v
     }
 

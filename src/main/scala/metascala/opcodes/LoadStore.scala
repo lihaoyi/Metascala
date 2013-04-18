@@ -8,6 +8,7 @@ import metascala.vrt
 import rt.Thread
 
 object LoadStore {
+
   case object Nop extends OpCode{
     def op(vt: Thread) = ()
   }

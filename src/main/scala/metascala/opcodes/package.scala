@@ -19,7 +19,7 @@ import rt.Thread
  */
 package object opcodes{
 
-  private[opcodes] case class UnusedOpCode extends OpCode{
+  object UnusedOpCode extends OpCode{
     def op(vt: Thread)  = ???
   }
   implicit def intToByte(n: Int) = n.toByte

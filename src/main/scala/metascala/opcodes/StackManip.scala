@@ -108,6 +108,7 @@ object StackManip {
       val first = a.pop(vt.pop)
       val second = b.pop(vt.pop)
       val res = func(second, first)
+      println(s"BinOp $first $second $res")
       out.push(res, vt.push)
     }
   }

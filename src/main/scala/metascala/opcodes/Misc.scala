@@ -72,6 +72,7 @@ object Misc {
     def op(vt: Thread) = vt.swapOpCode{
       import vt.vm
       val index = owner.cls.fieldList.indexWhere(_.name == name)
+      println("OPTIMIZING " + index)
       val size = owner.cls.fieldList(index).desc.size
       Optimized.PutField(index, size)
     }
@@ -86,8 +87,8 @@ object Misc {
           .cls
           .vTable
           .indexWhere{ _.sig == sig }
-
-      vt.swapOpCode(Optimized.InvokeVirtual(index, sig.desc.args.length))
+      val x = sig.desc.argSize
+      vt.swapOpCode(Optimized.InvokeVirtual(index, x + 1))
     }
 
   }
@@ -241,7 +242,25 @@ object Misc {
 
   case class MultiANewArray(desc: Type.Arr, dims: Int) extends OpCode{
     def op(vt: Thread) =  {
-      ???
+      import vt.vm
+      def rec(dims: List[Int], tpe: Type): Val = {
+
+        (dims, tpe) match {
+          case (size :: tail, Type.Arr(innerType: imm.Type.Ref)) =>
+            val newArr = vrt.Arr.allocate(innerType, size)
+            for(i <- 0 until size){
+              newArr(i) = rec(tail, innerType)
+            }
+            newArr.address
+
+          case (size :: Nil, Type.Arr(innerType)) =>
+            vrt.Arr.allocate(innerType, size).address
+        }
+      }
+      val dimValues = vt.popArgs(dims).toList
+
+      val array = rec(dimValues, desc)
+      vt.push(array)
     }
   }
 

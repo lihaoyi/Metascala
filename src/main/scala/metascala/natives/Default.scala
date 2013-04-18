@@ -60,12 +60,20 @@ trait Default extends Bindings{
           "Object"/(
             "registerNatives()V" x noOp
           ),
-          /*"System"/(
-            "nanoTime()J" x value(System.nanoTime()),
-            "currentTimeMillis()J" x value(System.currentTimeMillis())
-          ),*/
+          "System"/(
+            "arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V" x5 {
+              vt => (src, srcIndex, dest, destIndex, length) =>
+                src.
+
+            }
+            ///"nanoTime()J" x value(System.nanoTime()),
+            //"currentTimeMillis()J" x value(System.currentTimeMillis())
+          ),
           "String"/(
             "<clinit>()V" x noOp
+          ),
+          "System"/(
+            "registerNatives()V" x noOp
           )
         )
       )

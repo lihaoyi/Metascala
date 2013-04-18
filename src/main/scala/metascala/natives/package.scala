@@ -21,12 +21,12 @@ package object natives {
    * Implements a nice DSL to build the list of trapped method calls
    */
   implicit class pimpedRoute(val m: Seq[(String, Any)]) extends AnyVal{
-    def toRoute(parts: List[String] = Nil): Seq[rt.Method.Native] = {
+    def toRoute(parts: List[String] = Nil): Seq[rt.Method.Native1] = {
       m.flatMap{ case (k, v) =>
         v match{
           case thing: Seq[(String, Any)] =>
             thing.toRoute(k :: parts).map {
-              case rt.Method.Native(clsName, sig, func) => rt.Method.Native(if (clsName == "") k else k + "/" + clsName, sig, func)
+              case rt.Method.Native1(clsName, sig, func) => rt.Method.Native1(if (clsName == "") k else k + "/" + clsName, sig, func)
             }
 
           case func: (`rt`.Thread => Any) =>
@@ -49,7 +49,7 @@ package object natives {
               case f: (V => V) => f(args(0))
               case f: V => f
             }
-            Vector(rt.Method.Native("", imm.Sig(name, desc), newFunc))
+            Vector(rt.Method.Native1("", imm.Sig(name, desc), newFunc))
         }
       }
     }

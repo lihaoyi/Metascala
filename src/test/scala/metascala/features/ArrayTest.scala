@@ -20,27 +20,21 @@ class ArrayTest extends FreeSpec with Util{
     "arrayLength" in tester.run("arrayLength")
     "arraySet" in tester.run("arraySet")
     "arrayGet" in tester.run("arrayGet")
-    /*"bubbleSort" in chk{ src: Seq[Int] =>
-      tester.runC("bubbleSort", Seq(src.toArray))
+    "bubbleSort" in chk{ src: Seq[Int] =>
+      tester.run("bubbleSort", Seq(src.toArray))
     }(Seq(
       Seq(0, 1, 2, 3, 4, 5, 6, 7),
       Seq(7, 6, 5, 4, 3, 2, 1, 0),
       Seq(0, 1, 2, 3, 4, 5, 6, 7),
       Seq.fill(10)(util.Random.nextInt()),
       Seq.fill(20)(util.Random.nextInt())
-    ))*/
+    ))
   }
   "multi dim arrays" - {
     val buffer = new BufferLog(4000)
     val tester = new Tester("metascala.features.arrays.MultiDimArrays", buffer)
-    "make2D" in {
-      try
-      chk(tester.run("make2D", _: Int, _: Int))(Seq(0, 1, 2), Seq(0, 1, 2))
-      catch {case x =>
-        buffer.lines.foreach(println)
-        throw x
-      }
-    }
+    "make2D" in chk(tester.run("make2D", _: Int, _: Int))(Seq(0, 1, 2), Seq(0, 1, 2))
+
     "make3D" in chk(tester.run("make3D", _: Int, _: Int, _ : Int))(Seq(0, 1, 2), Seq(0, 1, 2), Seq(0, 1, 2))
     "getAndSet" in tester.run("getAndSet")
   }

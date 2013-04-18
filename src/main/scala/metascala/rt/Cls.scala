@@ -99,7 +99,7 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
 
       val index = oldMethods.indexWhere{ mRef => mRef.sig == m.sig }
 
-      val native = vm.natives.trapped.find{case rt.Method.Native(clsName, sig, func) =>
+      val native = vm.natives.trapped.find{case rt.Method.Native1(clsName, sig, func) =>
         (name == clsName) && sig == m.sig
       }
 

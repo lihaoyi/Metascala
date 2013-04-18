@@ -64,9 +64,7 @@ case class Method(access: Int,
   lazy val sig = Sig(name, desc)
   def argSize = {
     val thisSize = if(static) 1 else 0
-    val baseArgSize = desc.args.length
-    val longArgSize = desc.args.count(x => x == Type.Prim('J') || x == Type.Prim('D'))
-    thisSize + baseArgSize + longArgSize
+    thisSize + desc.argSize
   }
 }
 

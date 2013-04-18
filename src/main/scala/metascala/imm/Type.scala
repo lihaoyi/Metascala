@@ -139,5 +139,10 @@ object Desc{
  */
 case class Desc(args: Seq[Type], ret: Type){
   def unparse = "(" + args.map(Desc.unparse).foldLeft("")(_+_) + ")" + Desc.unparse(ret)
+  def argSize = {
+    val baseArgSize = args.length
+    val longArgSize = args.count(x => x == Type.Prim('J') || x == Type.Prim('D'))
 
+    baseArgSize + longArgSize
+  }
 }

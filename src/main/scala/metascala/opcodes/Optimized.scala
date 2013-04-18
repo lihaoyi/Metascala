@@ -36,9 +36,8 @@ object Optimized {
   case class InvokeVirtual(vTableIndex: Int, argCount: Int) extends OpCode{
     def op(vt: Thread) = {
       import vt.vm
-      val args = vt.popArgs(argCount+1)
-
-
+      val args = vt.popArgs(argCount)
+      println("ARGS " + args.toList)
       val objCls =
         args.head match{
           case a if a.isObj => a.obj.cls
