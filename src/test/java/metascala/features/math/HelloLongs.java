@@ -2,7 +2,7 @@ package metascala.features.math;
 
 public class HelloLongs {
 
-    public static long lmain(){ return 31337; }
+    public static long lmain(){ return 313373133731337L; }
     public static double dmain(){ return 31.337; }
 
     public static long lneg(long a){ return -a; }

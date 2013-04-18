@@ -20,13 +20,8 @@ class IOTest extends FreeSpec with Util{
     "multiArgD" in tester.run("multiArgD", 27, 3.14)
     "multiArgI" in tester.run("multiArgI", 27, 3.14)
 
-    "strings" in {try{
-      tester.run("strings", "mooo")
+    "strings" in tester.run("strings", "mooo")
 
-    }catch { case e =>
-      buffer.lines.foreach(println)
-      throw e
-    }}
   }
   "exceptions" -{
     val tester = new Tester("metascala.io.Exceptions")

@@ -16,7 +16,7 @@ object Optimized {
   case class New(cls: rt.Cls) extends OpCode{
     def op(vt: Thread) = {
       import vt.vm._
-      vt.push(vrt.Obj(cls.name)(vt.vm))
+      vt.push(vrt.Obj(cls.name)(vt.vm).address)
     }
   }
 
@@ -35,55 +35,62 @@ object Optimized {
 
   case class InvokeVirtual(vTableIndex: Int, argCount: Int) extends OpCode{
     def op(vt: Thread) = {
+      import vt.vm
       val args = vt.popArgs(argCount+1)
-      ensureNonNull(vt, args.head){
 
-        val objCls =
-          args.head match{
-            case a: vrt.Obj => a.cls
-            case _ => vt.vm.ClsTable(imm.Type.Cls("java/lang/Object"))
-          }
-        try{
-          val mRef = objCls.vTable(vTableIndex)
-          vt.prepInvoke(mRef, args)
-        }catch{case e: IndexOutOfBoundsException =>
-          println("IndexOutOfBoundsException")
-          println(args.head)
-          println(objCls.name)
-          println("Methods " + objCls.vTable.length)
-          objCls.vTable.map{
-            case Method.Cls(cls, _, method) =>
-              cls.name + " " + method.name + method.desc.unparse
-            case Method.Native(clsName, imm.Sig(name, desc), op) =>
-              "Native " + name + desc.unparse
-          }.foreach(println)
-          throw e
+
+      val objCls =
+        args.head match{
+          case a if a.isObj => a.obj.cls
+          case _ => vt.vm.ClsTable(imm.Type.Cls("java/lang/Object"))
         }
-
+      try{
+        val mRef = objCls.vTable(vTableIndex)
+        vt.prepInvoke(mRef, args)
+      }catch{case e: IndexOutOfBoundsException =>
+        println("IndexOutOfBoundsException")
+        println(args.head)
+        println(objCls.name)
+        println("Methods " + objCls.vTable.length)
+        objCls.vTable.map{
+          case Method.Cls(cls, _, method) =>
+            cls.name + " " + method.name + method.desc.unparse
+          case Method.Native(clsName, imm.Sig(name, desc), op) =>
+            "Native " + name + desc.unparse
+        }.foreach(println)
+        throw e
       }
+
+
     }
   }
 
   case class GetStatic(field: rt.Var) extends OpCode{
-    def op(vt: Thread) = vt.push(field().toStackVal)
+    def op(vt: Thread) = vt.push(field())
   }
   case class PutStatic(field: rt.Var) extends OpCode{
     def op(vt: Thread) = field() = vt.pop
   }
-  case class GetField(index: Int) extends OpCode{
+  case class GetField(index: Int, size: Int) extends OpCode{
+
     def op(vt: Thread) = {
-      val obj = vt.pop.cast[vrt.Obj]
-      ensureNonNull(vt, obj){
-        vt.push(obj.members(index).toStackVal)
+      import vt.vm
+      val obj = vt.pop.obj
+      for(i <- 0 until size){
+        vt.push(obj.members(index))
       }
     }
   }
-  case class PutField(index: Int) extends OpCode{
-    def op(vt: Thread) ={
-      val (value, obj) = (vt.pop, vt.pop.cast[vrt.Obj])
-      ensureNonNull(vt, obj){
-        obj.members(index) = value
+  case class PutField(index: Int, size: Int) extends OpCode{
+    def op(vt: Thread) = {
+      import vt.vm
+      val values = for(i <- 0 until size) yield vt.pop
+      val obj = vt.pop.obj
+      for(i <- 0 until size){
+        obj.members(index + i) = values(i)
       }
+
+
     }
   }
 }

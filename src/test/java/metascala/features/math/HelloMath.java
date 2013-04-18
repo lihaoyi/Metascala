@@ -5,7 +5,6 @@ public class HelloMath {
 
     public static int imain(){ return 1337; }
     public static float fmain(){ return 1.337f; }
-    public static String amain(){ return "i am 3l33t"; }
 
     public static int ineg(int a){ return -a; }
     public static int iadd(int a, int b){ return a + b; }

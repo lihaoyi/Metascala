@@ -47,22 +47,6 @@ trait Default extends Bindings{
 
   )
 
-  def getObject(x: vrt.Val, i: Long): vrt.Val = {
-
-    x match{
-      case o: vrt.Obj =>
-
-        vrt.Null
-      case r: vrt.Arr[_] =>
-        vrt.Null
-    }
-  }
-  def putObject(x: vrt.Val, i: Long, b: vrt.Val): Unit = {
-    x match{
-      case o: vrt.Obj =>
-      case r: vrt.Arr.Obj =>
-    }
-  }
 
   val trapped = {
     Seq(
@@ -70,10 +54,17 @@ trait Default extends Bindings{
         "lang"/(
           "Object"/(
             "registerNatives()V" x noOp
+          ),
+          /*"System"/(
+            "nanoTime()J" x value(System.nanoTime()),
+            "currentTimeMillis()J" x value(System.currentTimeMillis())
+          ),*/
+          "String"/(
+            "<clinit>()V" x noOp
           )
         )
-      ),
-      "scala"/(
+      )
+      /*"scala"/(
         "Predef$"/(
           "println(Ljava/lang/String;)V" x2 {
             vt => (x: vrt.Obj, y: vrt.Obj) =>
@@ -87,7 +78,7 @@ trait Default extends Bindings{
           }
 
         )
-      )
+      )*/
 
     ).toRoute()
   }

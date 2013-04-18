@@ -10,9 +10,9 @@ import metascala.imm.{Access, Type}
 /**
  * A handle to a readable and writable value.
  */
-class Var(var x: vrt.Val){
+class Var(var x: Val){
   final def apply() = x
-  final def update(y: vrt.Val){
+  final def update(y: Val){
     x = y
   }
 }
@@ -37,7 +37,7 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
   val statics =
     clsData.fields
            .filter(_.static)
-           .map{f => f.name -> new Var(f.desc.default) }
+           .map{f => f.name -> new Var(0) }
            .toMap
 
 
@@ -56,7 +56,7 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
     resolveStatic(owner, name)()
   }
 
-  def update(owner: Type.Cls, name: String, value: vrt.Val) = {
+  def update(owner: Type.Cls, name: String, value: Val) = {
     resolveStatic(owner, name)() = value
   }
 
@@ -86,7 +86,9 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
    */
   val fieldList: Seq[imm.Field] = {
     clsData.superType.toSeq.flatMap(_.fieldList) ++
-    clsData.fields.filter(!_.static)
+    clsData.fields.filter(!_.static).flatMap(x =>
+      Seq.fill(x.desc.size)(x)
+    )
   }
 
   /**

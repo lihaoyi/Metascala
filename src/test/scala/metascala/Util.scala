@@ -76,7 +76,7 @@ object Util{
 
   class SingleClassVM(className: String, log: (=>String) => Unit) extends VM(log = log){
 
-    def run(main: String, args: vrt.Val*): Any ={
+    def run(main: String, args: Any*): Any ={
       val res = invoke(className.replace('.', '/'), main, args)
 
       res
@@ -104,7 +104,7 @@ trait Util extends ShouldMatchers { this: FreeSpec  =>
     val ref = new ReflectiveRunner(className)
     def run(main: String, args: Any*) = {
 
-      val svmRes = svm.run(main, args.map(vrt.virtualize):_*)
+      val svmRes = svm.run(main, args:_*)
       val refRes = ref.run(main, args:_*)
       val inString = args.toString
       println("svmRes " + svmRes)
@@ -117,13 +117,6 @@ trait Util extends ShouldMatchers { this: FreeSpec  =>
 
         throw ex
       }
-    }
-    def runC(main: String, args: => Seq[Any] = Nil) = {
-      val svmRes = svm.run(main, args.map(vrt.virtualize):_*)
-      val refRes = ref.run(main, args:_*)
-      println(svmRes)
-      println(refRes)
-      svmRes should be === refRes
     }
   }
 

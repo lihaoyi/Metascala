@@ -1,6 +1,6 @@
 package metascala.rt
 
-import collection.mutable
+import scala.collection.mutable
 import annotation.tailrec
 import collection.mutable.ArrayBuffer
 import metascala._
@@ -23,7 +23,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   def getOpCount = opCount
   def frame = threadStack.top
 
-  var returnedVal: vrt.StackVal = vrt.Null
+  var returnedVal: Any = 0
 
   def getStackTrace =
     threadStack.map { f =>
@@ -58,83 +58,72 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     opCount += 1
 
     node.op(this)
-
-
-    //log(indent + frame.runningClass.name + "/" + frame.method.name + ": " + frame.stack.map(x => if (x == null) null else x.getClass))
   }
-  def returnVal(x: Option[vrt.StackVal]) = {
-    threadStack.pop()
-    x match{
-      case Some(value) => threadStack.headOption match{
-        case Some(frame) => frame.stack.push(value)
-        case None => returnedVal = value
-      }
-      case None => () //donothing
+  def returnVal(x: Int) = {
+    println("Returning " + x)
+
+    val oldTop = threadStack.pop()
+    threadStack.headOption match{
+      case Some(frame) => for (i <- 0 until x) frame.stack.push(oldTop.stack.pop())
+      case None => returnedVal = popVirtual(oldTop.method.method.desc.ret, oldTop.stack)
     }
   }
-  def dumpStack =
-    threadStack.map(f =>
-      f.runningClass.name.padTo(35, ' ') + f.method.sig.unparse.padTo(35, ' ') + f.pc.toString.padTo(5, ' ') + (try f.method.method.code.insns(f.pc-1) catch {case x =>})
-    )
 
-  @tailrec final def throwException(ex: vrt.Obj, print: Boolean = true): Unit = {
+  def popVirtual(tpe: imm.Type, stack: mutable.ArrayStack[Val]) = {
+    tpe match {
+      case imm.Type.Prim('V') => ()
+      case imm.Type.Prim('Z') => Z(stack.pop)
+      case imm.Type.Prim('B') => B(stack.pop)
+      case imm.Type.Prim('C') => C(stack.pop)
+      case imm.Type.Prim('S') => S(stack.pop)
+      case imm.Type.Prim('I') => I(stack.pop)
+      case imm.Type.Prim('F') => F(stack.pop)
+      case imm.Type.Prim('J') =>
+        val devirt = J.pop(stack.pop)
+        println("DEVIRT " + devirt)
+        devirt
+      case imm.Type.Prim('D') =>
+        val devirt = D.pop(stack.pop)
+        println("DEVIRT " + devirt)
+        devirt
+      case imm.Type.Cls(_) => ???
+      case imm.Type.Arr(_) => ???
+    }
+  }
+  def pushVirtual(thing: Any, out: Val => Unit) = {
+    thing match {
+      case b: Boolean => Z.push(b, out)
+      case b: Byte    => B.push(b, out)
+      case b: Char    => C.push(b, out)
+      case b: Short   => S.push(b, out)
+      case b: Int     => I.push(b, out)
+      case b: Float   => F.push(b, out)
+      case b: Long    => J.push(b, out)
 
-    threadStack.headOption match{
-      case Some(frame)=>
-        val handler =
-          frame.method.method.misc.tryCatchBlocks
-               .filter{x =>
-                  x.start <= frame.pc &&
-                  x.end >= frame.pc &&
-                  !x.blockType.isDefined ||
-                  ex.cls.typeAncestry.contains(x.blockType.get)
-                }
-               .headOption
-
-        handler match{
-          case None =>
-            threadStack.pop()
-            throwException(ex, false)
-          case Some(imm.TryCatchBlock(start, end, handler, blockType)) =>
-            frame.pc = handler
-            frame.stack.push(ex)
-        }
-      case None =>
-        throw new UncaughtVmException(
-          ex.cls.clsData.tpe.unparse,
-          "exception lulz",//ex(imm.Type.Cls("java/lang/Throwable"), "detailMessage").cast[vrt.Obj],
-          Nil,
-          Nil
-        )
+      case b: Double  => D.push(b, out)
+      case imm.Type.Cls(_) => ???
+      case imm.Type.Arr(_) => ???
     }
   }
 
 
   final def prepInvoke(mRef: rt.Method,
-                       args: Seq[vrt.StackVal]) = {
-    println("PrepInvoke " + mRef.sig.unparse)
+                       args: Seq[Int]) = {
+    println(indent + "PrepInvoke " + mRef.sig.unparse + " with " + args)
+
+
     mRef match{
       case rt.Method.Native(clsName, imm.Sig(name, desc), op) =>
         val result = op(this)(args)
-        if(desc.ret != imm.Type.Prim('V')) threadStack.top.stack.push(result.toStackVal)
+        if(desc.ret != imm.Type.Prim('V')) threadStack.top.stack.push(result)
 
       case m @ rt.Method.Cls(cls, methodIndex, method) =>
         assert((m.method.access & Access.Native) == 0, "method cannot be native: " + cls.name + " " + method.name)
 
-        val array = new Array[vrt.StackVal](method.misc.maxLocals)
-        var i = 0
-        var j = 0
-        while(i < args.length){
-          val a = args(i)
-          array(j) = a
-          j += a.size
-          i+= 1
-        }
-
         val startFrame = new Frame(
           runningClass = cls,
           method = m,
-          locals = array
+          locals = mutable.Seq(args:_*)
         )
 
         //log(indent + "locals " + startFrame.locals)
@@ -142,24 +131,37 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     }
   }
   final def prepInvoke(tpe: imm.Type,
-                       methodName: String,
-                       desc: imm.Desc,
-                       args: Seq[vrt.StackVal])
+                       sig: imm.Sig,
+                       args: Seq[Any])
                        : Unit = {
-
+    println(indent + s"PrepInvoke! $tpe $sig")
+    val tmp = mutable.Buffer.empty[Val]
+    for(arg <- args){
+      this.pushVirtual(arg, {v =>
+        tmp.append(v)
+      })
+    }
     prepInvoke(
-      vm.ClsTable(tpe.cast[imm.Type.Cls])
-        .methods
-        .find(m => m.method.name == methodName && m.method.desc == desc)
-        .get,
-      args
+      vm.resolveDirectRef(tpe.cast[imm.Type.Cls], sig).get,
+      tmp.reverse
     )
+
+
+  }
+  def invoke(mRef: rt.Method, args: Seq[Int]): Any = {
+
+    val startHeight = threadStack.length
+    prepInvoke(mRef, args)
+
+    while(threadStack.length != startHeight) step()
+
+    returnedVal
   }
 
-  def invoke(cls: imm.Type.Cls, methodName: String, desc: imm.Desc, args: Seq[vrt.Val]): vrt.Val = {
-    println(s"Invoking Class ${cls.name}.$methodName")
+  def invoke(cls: imm.Type.Cls, sig: imm.Sig, args: Seq[Any]): Any = {
+
     val startHeight = threadStack.length
-    prepInvoke(cls, methodName, desc, args.map(_.toStackVal))
+    prepInvoke(cls, sig, args)
 
     while(threadStack.length != startHeight) step()
 
@@ -179,7 +181,7 @@ case class FrameDump(clsName: String,
 class Frame(var pc: Int = 0,
             val runningClass: rt.Cls,
             val method: rt.Method.Cls,
-            val locals: mutable.Seq[vrt.StackVal] = mutable.Seq.empty,
-            val stack: mutable.ArrayStack[vrt.StackVal] = mutable.ArrayStack.empty[vrt.StackVal])
+            val locals: mutable.Seq[Val] = mutable.Seq.empty,
+            val stack: mutable.ArrayStack[Val] = mutable.ArrayStack.empty[Val])
 
 

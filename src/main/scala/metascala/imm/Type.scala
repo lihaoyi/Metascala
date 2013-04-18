@@ -30,11 +30,11 @@ object Type{
    * @param innerType The type of the components of the array
    */
   case class Arr(innerType: Type) extends Ref{
+    def size = 1
     def unparse = "[" + innerType.unparse
     def name = "[" + innerType.unparse
     def parent(implicit vm: VM) = Some(imm.Type.Cls("java/lang/Object"))
     def realCls = innerType.realCls
-    def default = vrt.Null
     def methodType = Type.Cls("java/lang/Object")
   }
   object Cls{
@@ -47,67 +47,44 @@ object Type{
    */
   case class Cls(name: String) extends Ref {
     //assert(!name.contains('.'), "Cls name cannot contain . " + name)
+    def size = 1
     def unparse = name
     def cls(implicit vm: VM) = vm.ClsTable(this)
     def parent(implicit vm: VM) = this.cls.clsData.superType
     def realCls = classOf[Object]
-    def default = vrt.Null
     def methodType: Type.Cls = this
     override val hashCode = name.hashCode
   }
 
   object Prim{
     def read(s: String) = Prim(s(0))
-    class Info[T: ClassTag](val tpe: imm.Type.Prim,
-                            val name: String,
-                            val boxName: String,
-                            defaultV: => T,
-                            val constructor: T => vrt.Val,
-                            val fromLong: scala.Long => vrt.Val,
-                            val toLong: T => scala.Long,
-                            val longToRaw: scala.Long => T){
-
-      lazy val default = constructor(defaultV)
-      val realCls: Class[_] = implicitly[ClassTag[T]].getClass
-      def newArray(n: Int): Array[T] = new Array[T](n)
-      implicit val self = this
-      def newVirtArray(n: Int)(implicit vm: VM): vrt.Arr.Prim[T] = vrt.Arr.Prim(new Array[T](n))
-
-    }
-    object Info{
-      val iToF = java.lang.Float.intBitsToFloat _
-      val fToI = java.lang.Float.floatToIntBits _
-      val lToD = java.lang.Double.longBitsToDouble _
-      val dToL= java.lang.Double.doubleToLongBits _
-      private[this] implicit def char2Type(c: Char) = imm.Type.Prim(c)
-      implicit val ZC = new Info[Boolean]( 'Z', "boolean", "java/lang/Boolean",  false,  vrt.Boolean, x => vrt.Boolean(x == 0), if (_) 1 else 0, _ == 0)
-      implicit val BC = new Info[Byte](    'B', "byte",    "java/lang/Byte",     0,      vrt.Byte,    x => vrt.Byte(x.toByte),   _.toLong, _.toByte)
-      implicit val CC = new Info[Char](    'C', "char",    "java/lang/Character",0,      vrt.Char,    x => vrt.Char(x.toChar),   _.toLong, _.toChar)
-      implicit val SC = new Info[Short](   'S', "short",   "java/lang/Short",    0,      vrt.Short,   x => vrt.Short(x.toShort),  _.toLong, _.toShort)
-      implicit val IC = new Info[Int](     'I', "int",     "java/lang/Integer",  0,      vrt.Int,     x => vrt.Int(x.toInt),    _.toLong, _.toInt)
-      implicit val FC = new Info[Float](   'F', "float",   "java/lang/Float",    0,      vrt.Float,   x => vrt.Float(iToF(x.toInt)),  x => fToI(x.toLong), x => iToF(x.toInt))
-      implicit val JC = new Info[Long](    'J', "long",    "java/lang/Long",     0,      vrt.Long,    x => vrt.Long(x.toLong),   _.toLong, _.toLong)
-      implicit val DC = new Info[Double](  'D', "double",  "java/lang/Double",   0,      vrt.Double,  x => vrt.Double(lToD(x)), dToL, lToD)
-      implicit val VC = new Info[Void](    'V', "void",    "java/lang/Void",     ???,    x => ???,         x => ???,        x => ???,      x => ???)
-      val all: Seq[Info[_]] = Seq(ZC, BC, CC, SC, IC, FC, JC, DC, VC)
-      val charMap = all.map(x => x.tpe.char -> (x: Info[_])).toMap[Char, Info[_]]
-
-      def apply[T: Info]() = implicitly[Info[T]].tpe
-    }
+    class Info(val name: String,
+               val boxName: String)
+    val info = Map(
+      'Z' -> new Info("boolean", "java/lang/Boolean"  ),
+      'B' -> new Info("byte",    "java/lang/Byte"     ),
+      'C' -> new Info("char",    "java/lang/Character"),
+      'S' -> new Info("short",   "java/lang/Short"    ),
+      'I' -> new Info("int",     "java/lang/Integer"  ),
+      'F' -> new Info("float",   "java/lang/Float"    ),
+      'L' -> new Info("long",    "java/lang/Long"     ),
+      'D' -> new Info("double",  "java/lang/Double"   ),
+      'V' -> new Info("void",    "java/lang/Void"     )
+    )
   }
 
   /**
    * Primitive Types
    */
   case class Prim(char: Char) extends Type{
+    def size = if (char == 'D' || char == 'L') 2 else 1
+    def info = Prim.info(char)
     def unparse = ""+char
-    def name = imm.Type.Prim.Info.charMap(char).name
+    def name = info.name
 
-    def realCls = imm.Type.Prim.Info.charMap(name(0)).realCls
+    def realCls = Class.forName(info.boxName.replace('/', '.'))
 
     def parent(implicit vm: VM) = ???
-
-    def default = Prim.Info.charMap(char).default
   }
 
 
@@ -127,15 +104,8 @@ trait Type{
    */
   def realCls: Class[_]
 
-
+  def size: Int
   def name: String
-
-  /**
-   * The default value of this type: primitives are false/0, reference
-   * types are null.
-   */
-  def default: vrt.Val
-
 }
 
 object Desc{
@@ -169,4 +139,5 @@ object Desc{
  */
 case class Desc(args: Seq[Type], ret: Type){
   def unparse = "(" + args.map(Desc.unparse).foldLeft("")(_+_) + ")" + Desc.unparse(ret)
+
 }

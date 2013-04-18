@@ -21,7 +21,6 @@ class MathTest extends FreeSpec with Util{
 
       "imain" in tester.run("imain")
       "fmain" in tester.run("fmain")
-      "amain" in tester.run("amain")
     }
     "basic math" - {
       "int" - {

@@ -10,12 +10,12 @@ package metascala
  *
  */
 package object natives {
-  def value(x: => vrt.Val) = (vm: rt.Thread) => x
-  def value1(x: => vrt.Val) = (vm: rt.Thread) => (a: vrt.Val) => x
-  def value2(x: => vrt.Val) = (vm: rt.Thread) => (a: vrt.Val, b: vrt.Val) => x
-  val noOp = value(vrt.Null)
-  val noOp1 = value1(vrt.Null)
-  val noOp2 = value2(vrt.Null)
+  def value(x: => Val) = (vm: rt.Thread) => x
+  def value1(x: => Val) = (vm: rt.Thread) => (a: Val) => x
+  def value2(x: => Val) = (vm: rt.Thread) => (a: Val, b: Val) => x
+  val noOp = value(0)
+  val noOp1 = value1(0)
+  val noOp2 = value2(0)
 
   /**
    * Implements a nice DSL to build the list of trapped method calls
@@ -40,8 +40,8 @@ package object natives {
 
             val desc = imm.Desc.read(fullDescString)
 
-            type V = vrt.Val
-            val newFunc = (vt: rt.Thread) => (args: Seq[vrt.Val]) => func(vt) match{
+            type V = Val
+            val newFunc = (vt: rt.Thread) => (args: Seq[Val]) => func(vt) match{
               case f: ((V, V, V, V, V) => V) => f(args(0), args(1), args(2), args(3), args(4))
               case f: ((V, V, V, V) => V) => f(args(0), args(1), args(2), args(3))
               case f: ((V, V, V) => V) => f(args(0), args(1), args(2))
@@ -56,12 +56,12 @@ package object natives {
   }
   implicit class pimpedMap(val s: String) extends AnyVal{
     def /(a: (String, Any)*) = s -> a
-    def x(a: rt.Thread => vrt.Val) = s -> a
-    def x1(a: rt.Thread => Nothing => vrt.Val) = s -> a
-    def x2(a: rt.Thread => (Nothing, Nothing) => vrt.Val) = s -> a
-    def x3(a: rt.Thread => (Nothing, Nothing, Nothing) => vrt.Val) = s -> a
-    def x4(a: rt.Thread => (Nothing, Nothing, Nothing, Nothing) => vrt.Val) = s -> a
-    def x5(a: rt.Thread => (Nothing, Nothing, Nothing, Nothing, Nothing) => vrt.Val) = s -> a
-    def x6(a: rt.Thread => (Nothing, Nothing, Nothing, Nothing, Nothing, Nothing) => vrt.Val) = s -> a
+    def x(a: rt.Thread => Val) = s -> a
+    def x1(a: rt.Thread => Nothing => Val) = s -> a
+    def x2(a: rt.Thread => (Nothing, Nothing) => Val) = s -> a
+    def x3(a: rt.Thread => (Nothing, Nothing, Nothing) => Val) = s -> a
+    def x4(a: rt.Thread => (Nothing, Nothing, Nothing, Nothing) => Val) = s -> a
+    def x5(a: rt.Thread => (Nothing, Nothing, Nothing, Nothing, Nothing) => Val) = s -> a
+    def x6(a: rt.Thread => (Nothing, Nothing, Nothing, Nothing, Nothing, Nothing) => Val) = s -> a
   }
 }

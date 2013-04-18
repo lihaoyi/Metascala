@@ -3,7 +3,7 @@ package natives
 
 object Bindings{
   val default = new Default {}
-  type Func = rt.Thread => Seq[vrt.Val] => vrt.Val
+  type Func = rt.Thread => Seq[Val] => Val
 }
 
 /**

@@ -17,7 +17,7 @@ object Misc {
 
   case class TableSwitch(min: Int, max: Int, defaultTarget: Int, targets: Seq[Int]) extends OpCode{
     def op(vt: Thread) =  {
-      val vrt.Int(top) = vt.pop
+      val top = vt.pop
       val newPc: Int =
         if (targets.isDefinedAt(top - min)) targets(top - min)
         else defaultTarget
@@ -27,18 +27,18 @@ object Misc {
 
   case class LookupSwitch(defaultTarget: Int, keys: Seq[Int], targets: Seq[Int]) extends OpCode{
     def op(vt: Thread) =  {
-      val vrt.Int(top) = vt.pop
+      val top = vt.pop
       val newPc: Int = keys.zip(targets).toMap.get(top).getOrElse(defaultTarget: Int)
       vt.frame.pc = newPc
     }
   }
 
-  case object IReturn extends OpCode{ def op(vt: Thread) =  vt.returnVal(Some(vt.frame.stack.pop)) }
-  case object LReturn extends OpCode{ def op(vt: Thread) =  vt.returnVal(Some(vt.frame.stack.pop)) }
-  case object FReturn extends OpCode{ def op(vt: Thread) =  vt.returnVal(Some(vt.frame.stack.pop)) }
-  case object DReturn extends OpCode{ def op(vt: Thread) =  vt.returnVal(Some(vt.frame.stack.pop)) }
-  case object AReturn extends OpCode{ def op(vt: Thread) =  vt.returnVal(Some(vt.frame.stack.pop)) }
-  case object Return extends OpCode{ def op(vt: Thread) =  vt.returnVal(None) }
+  case object IReturn extends OpCode{ def op(vt: Thread) =  vt.returnVal(1) }
+  case object LReturn extends OpCode{ def op(vt: Thread) =  vt.returnVal(2) }
+  case object FReturn extends OpCode{ def op(vt: Thread) =  vt.returnVal(1) }
+  case object DReturn extends OpCode{ def op(vt: Thread) =  vt.returnVal(2) }
+  case object AReturn extends OpCode{ def op(vt: Thread) =  vt.returnVal(1) }
+  case object Return extends OpCode{ def op(vt: Thread) =  vt.returnVal(0) }
 
   case class GetStatic(owner: Type.Cls, name: String, desc: Type) extends OpCode{
     def op(vt: Thread) = vt.swapOpCode(
@@ -54,15 +54,20 @@ object Misc {
   }
 
   case class GetField(owner: Type.Cls, name: String, desc: Type) extends OpCode{
-    def op(vt: Thread) = vt.swapOpCode(
-      Optimized.GetField(owner.cls(vt.vm).fieldList.lastIndexWhere(_.name == name))
-    )
+    def op(vt: Thread) = vt.swapOpCode{
+      import vt.vm
+      val index = owner.cls.fieldList.indexWhere(_.name == name)
+      val size = owner.cls.fieldList(index).desc.size
+      Optimized.GetField(index, size)
+    }
   }
   case class PutField(owner: Type.Cls, name: String, desc: Type) extends OpCode{
-    def op(vt: Thread) = vt.swapOpCode(
-      Optimized.PutField(owner.cls(vt.vm).fieldList.lastIndexWhere(_.name == name))
-    )
-
+    def op(vt: Thread) = vt.swapOpCode{
+      import vt.vm
+      val index = owner.cls.fieldList.indexWhere(_.name == name)
+      val size = owner.cls.fieldList(index).desc.size
+      Optimized.PutField(index, size)
+    }
   }
 
   case class InvokeVirtual(owner: Type.Ref, sig: imm.Sig) extends OpCode{
@@ -81,30 +86,13 @@ object Misc {
 
   }
 
-  def resolveDirectRef(owner: Type.Cls, sig: imm.Sig)(implicit vm: VM): Option[rt.Method] = {
-    val native =
-      vm.natives
-        .trapped
-        .find(_.sig == sig)
 
-    val method =
-      owner.cls
-           .methods
-           .find(_.sig == sig)
-
-    Some(
-      native.orElse(method)
-            .getOrElse(throw new Exception(s"Can't find method ${owner.unparse} ${sig.name} ${sig.desc.unparse}"))
-    )
-
-
-  }
 
   case class InvokeSpecial(owner: Type.Cls, sig: imm.Sig) extends OpCode{
     def op(vt: Thread) = vt.swapOpCode{
       import vt.vm
 
-      resolveDirectRef(owner, sig) match{
+      vm.resolveDirectRef(owner, sig) match{
         case None => StackManip.Pop
         case Some(methodRef) => Optimized.InvokeSpecial(methodRef, sig.desc.args.length)
       }
@@ -116,7 +104,7 @@ object Misc {
   case class InvokeStatic(owner: Type.Cls, sig: imm.Sig) extends OpCode{
     def op(vt: Thread) = vt.swapOpCode {
       import vt.vm
-      resolveDirectRef(owner, sig) match{
+      vm.resolveDirectRef(owner, sig) match{
         case Some(methodRef) => Optimized.InvokeStatic(methodRef, sig.desc.args.length)
       }
     }
@@ -129,14 +117,14 @@ object Misc {
       import vt.vm
       val argCount = sig.desc.args.length
       val args = vt.popArgs(argCount + 1)
-      ensureNonNull(vt, args.head){
-        val objType = args.head.cast[vrt.Ref].tpe.methodType
-        val cls = vm.ClsTable(objType)
-        vt.prepInvoke(
-          cls.vTableMap(sig),
-          args
-        )
-      }
+
+      val objType = args.head.obj.tpe
+      val cls = vm.ClsTable(objType)
+      vt.prepInvoke(
+        cls.vTableMap(sig),
+        args
+      )
+
     }
   }
 
@@ -152,38 +140,39 @@ object Misc {
   }
   case class NewArray(typeCode: Int) extends OpCode{
     def op(vt: Thread) =  {
-      val vrt.Int(count) = vt.pop
+      val count = vt.pop
       import vt.vm
       val newArray = typeCode match{
-        case 4  => vrt.Arr.Prim[Boolean](count)
-        case 5  => vrt.Arr.Prim[Char](count)
-        case 6  => vrt.Arr.Prim[Float](count)
-        case 7  => vrt.Arr.Prim[Double](count)
-        case 8  => vrt.Arr.Prim[Byte](count)
-        case 9  => vrt.Arr.Prim[Short](count)
-        case 10 => vrt.Arr.Prim[Int](count)
-        case 11 => vrt.Arr.Prim[Long](count)
+        case 4  => vrt.Arr(imm.Type.Prim('Z'), count)
+        case 5  => vrt.Arr(imm.Type.Prim('C'), count)
+        case 6  => vrt.Arr(imm.Type.Prim('F'), count)
+        case 7  => vrt.Arr(imm.Type.Prim('D'), count)
+        case 8  => vrt.Arr(imm.Type.Prim('B'), count)
+        case 9  => vrt.Arr(imm.Type.Prim('S'), count)
+        case 10 => vrt.Arr(imm.Type.Prim('I'), count)
+        case 11 => vrt.Arr(imm.Type.Prim('L'), count)
       }
-      vt.push(newArray)
+      vt.push(newArray.address)
     }
   }
   case class ANewArray(desc: imm.Type.Ref) extends OpCode{
     def op(vt: Thread) =  {
-      val vrt.Int(count) = vt.pop
+      val count = vt.pop
       import vt.vm
-      vt.push(vrt.Arr.Obj(desc, count))
+      vt.push(vrt.Arr(desc, count).address)
     }
   }
 
   case object ArrayLength extends OpCode{
     def op(vt: Thread) =  {
-      vt.push(vt.pop.cast[vrt.Arr[_]].length)
+      vt.push(vt.pop.cast[vrt.Arr].length)
     }
   }
 
   case object AThrow extends OpCode{
     def op(vt: Thread) =  {
-      vt.throwException(vt.pop.asInstanceOf[vrt.Obj])
+      ???
+      //vt.throwException(vt.pop.asInstanceOf[vrt.Obj])
     }
   }
   case class CheckCast(desc: Type) extends OpCode{
@@ -192,7 +181,7 @@ object Misc {
 
       val top = vt.pop
       vt.push(top)
-      top match{
+      /*top match{
         case vrt.Null => ()
         case (top: vrt.Ref with vrt.StackVal) if !check(top.tpe, desc) =>
           vt.throwException(
@@ -201,7 +190,8 @@ object Misc {
             )
           )
         case _ => ()
-      }
+      }*/
+      ???
     }
   }
   def check(s: imm.Type, t: imm.Type)(implicit vm: VM): Boolean = {
@@ -218,15 +208,7 @@ object Misc {
   }
   case class InstanceOf(desc: Type) extends OpCode{
     def op(vt: Thread) = {
-
-      import vt._
-      import vm._
-      val res = vt.pop match{
-        case vrt.Null => 0
-        case obj: vrt.Ref => if (check(obj.tpe, desc)) 1 else 0
-      }
-
-      vt.push(res)
+      ???
     }
   }
   case object MonitorEnter extends OpCode{
@@ -243,36 +225,19 @@ object Misc {
 
   case class MultiANewArray(desc: Type.Arr, dims: Int) extends OpCode{
     def op(vt: Thread) =  {
-      import vt.vm
-      def rec(dims: List[Int], tpe: Type): vrt.Arr[_] = {
-
-        (dims, tpe) match {
-          case (size :: Nil, Type.Arr(Type.Prim(c))) =>
-            imm.Type.Prim.Info.charMap(c).newVirtArray(size)
-
-          case (size :: Nil, Type.Arr(innerType: imm.Type.Ref)) =>
-            vrt.Arr.Obj(innerType, Array.fill[vrt.Val](size)(innerType.default))
-
-          case (size :: tail, Type.Arr(innerType: imm.Type.Ref)) =>
-            vrt.Arr.Obj(innerType, Array.fill[vrt.Val](size)(rec(tail, innerType)))
-        }
-      }
-      val dimValues = vt.popArgs(dims).map(_.cast[vrt.Int].v).toList
-
-      val array = rec(dimValues, desc)
-      vt.push(array)
+      ???
     }
   }
 
   case class IfNull(label: Int) extends OpCode{
     def op(vt: Thread) =  {
-      if (vt.pop == vrt.Null) vt.frame.pc = label
+      if (vt.pop == 0) vt.frame.pc = label
     }
   }
 
   case class IfNonNull(label: Int) extends OpCode{
     def op(vt: Thread) =  {
-      if (vt.pop != vrt.Null) vt.frame.pc = label
+      if (vt.pop != 0) vt.frame.pc = label
     }
   }
 

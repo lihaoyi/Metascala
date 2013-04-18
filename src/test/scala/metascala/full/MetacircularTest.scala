@@ -1,7 +1,7 @@
 package metascala
 package full
 
-import metascala.{UncaughtVmException, Gen, Util}
+//import metascala.{UncaughtVmException, Gen, Util}
 import org.scalatest.FreeSpec
 import metascala.Util.{SingleClassVM}
 import com.fasterxml.jackson.databind.ObjectMapper

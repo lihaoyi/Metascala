@@ -1,4 +1,5 @@
-package metascala.imm
+package metascala
+package imm
 
 import org.objectweb.asm.tree._
 import org.objectweb.asm.Label
@@ -61,6 +62,12 @@ case class Method(access: Int,
   def concrete = code != Code()
   def static = (access & Access.Static) != 0
   lazy val sig = Sig(name, desc)
+  def argSize = {
+    val thisSize = if(static) 1 else 0
+    val baseArgSize = desc.args.length
+    val longArgSize = desc.args.count(x => x == Type.Prim('J') || x == Type.Prim('D'))
+    thisSize + baseArgSize + longArgSize
+  }
 }
 
 object Code{

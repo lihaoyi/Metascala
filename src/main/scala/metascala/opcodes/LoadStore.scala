@@ -4,7 +4,6 @@ package opcodes
 import org.objectweb.asm
 import metascala.imm.{Type}
 
-import collection.mutable
 import metascala.vrt
 import rt.Thread
 
@@ -13,31 +12,31 @@ object LoadStore {
     def op(vt: Thread) = ()
   }
 
-  class PushOpCode(value: vrt.StackVal) extends OpCode{
-    def op(vt: Thread) = vt.frame.stack.push(value)
+  class PushOpCode[A](b: Prim[A])(value: A) extends OpCode{
+    def op(vt: Thread) = b.push(value, vt.push)
   }
 
-  case object AConstNull extends PushOpCode(vrt.Null)
-  case object IConstNull extends PushOpCode(-1)
+  case object AConstNull extends PushOpCode(I)(0)
+  case object IConstNull extends PushOpCode(I)(-1)
 
-  case object IConst0 extends PushOpCode(0)
-  case object IConst1 extends PushOpCode(1)
-  case object IConst2 extends PushOpCode(2)
-  case object IConst3 extends PushOpCode(3)
-  case object IConst4 extends PushOpCode(4)
-  case object IConst5 extends PushOpCode(5)
+  case object IConst0 extends PushOpCode(I)(0)
+  case object IConst1 extends PushOpCode(I)(1)
+  case object IConst2 extends PushOpCode(I)(2)
+  case object IConst3 extends PushOpCode(I)(3)
+  case object IConst4 extends PushOpCode(I)(4)
+  case object IConst5 extends PushOpCode(I)(5)
 
-  case object LConst0 extends PushOpCode(0L)
-  case object LConst1 extends PushOpCode(1L)
+  case object LConst0 extends PushOpCode(J)(0)
+  case object LConst1 extends PushOpCode(J)(1)
 
-  case object FConst0 extends PushOpCode(0f)
-  case object FConst1 extends PushOpCode(1f)
-  case object FConst2 extends PushOpCode(2f)
+  case object FConst0 extends PushOpCode(F)(0)
+  case object FConst1 extends PushOpCode(F)(0)
+  case object FConst2 extends PushOpCode(F)(0)
 
-  case object DConst0 extends PushOpCode(0d)
-  case object DConst1 extends PushOpCode(1d)
+  case object DConst0 extends PushOpCode(D)(0)
+  case object DConst1 extends PushOpCode(D)(0)
 
-  class PushValOpCode(value: vrt.Int) extends OpCode{
+  class PushValOpCode(value: Int) extends OpCode{
     def op(vt: Thread) = vt.frame.stack.push(value)
   }
 
@@ -45,94 +44,83 @@ object LoadStore {
   case class SiPush(value: Int) extends PushValOpCode(value)
 
 
-  def anyValToStackVal(x: Any): vrt.StackVal = x match {
-    case x: scala.Byte => vrt.Int(x).toStackVal
-    case x: scala.Char => vrt.Int(x).toStackVal
-    case x: scala.Short => vrt.Int(x).toStackVal
-    case x: scala.Int => x
-    case x: scala.Float => x
-    case x: scala.Long => x
-    case x: scala.Double => x
-  }
-
   case class Ldc(const: Any) extends OpCode{
     def op(vt: Thread) = {
 
       import vt.vm
       import vm._
-      val newConst: vrt.StackVal = const match{
-        case s: String =>
-          val v: vrt.Obj = s
-          vt.vm.InternedStrings(v)
-
-        case x => anyValToStackVal(x)
+      const match{
+        case s: String => ???
+        case x: scala.Byte  => B.push(x, vt.push)
+        case x: scala.Char  => C.push(x, vt.push)
+        case x: scala.Short => S.push(x, vt.push)
+        case x: scala.Int   => I.push(x, vt.push)
+        case x: scala.Float => F.push(x, vt.push)
+        case x: scala.Long  => J.push(x, vt.push)
+        case x: scala.Double => D.push(x, vt.push)
       }
 
-      vt.push(newConst)
+
     }
   }
 
   // Not used, because ASM converts these Ldc(const: Any)
   //===============================================================
-  val LdcW = UnusedOpCode(19, "ldc_w")
-  val Ldc2W = UnusedOpCode(20, "ldc2_w")
+  val LdcW = UnusedOpCode
+  val Ldc2W = UnusedOpCode
   //===============================================================
 
-  abstract class PushLocalIndexed() extends OpCode{
-    def op(vt: Thread) = vt.frame.stack.push(vt.frame.locals(index))
+  abstract class PushLocalIndexed(size: Int) extends OpCode{
+    def op(vt: Thread) = for (i <- (size-1) to 0 by -1){
+      vt.frame.stack.push(vt.frame.locals(index + i))
+    }
     def index: Int
   }
 
-  case class ILoad(index: Int) extends PushLocalIndexed()
-  case class LLoad(index: Int) extends PushLocalIndexed()
-  case class FLoad(index: Int) extends PushLocalIndexed()
-  case class DLoad(index: Int) extends PushLocalIndexed()
-  case class ALoad(index: Int) extends PushLocalIndexed()
+  case class ILoad(index: Int) extends PushLocalIndexed(1)
+  case class LLoad(index: Int) extends PushLocalIndexed(2)
+  case class FLoad(index: Int) extends PushLocalIndexed(1)
+  case class DLoad(index: Int) extends PushLocalIndexed(2)
+  case class ALoad(index: Int) extends PushLocalIndexed(1)
 
 
 
   // Not used, because ASM converts these to raw XLoad(index: Int)s
   //===============================================================
-  val ILoad0 = UnusedOpCode(26, "iLoad_0")
-  val ILoad1 = UnusedOpCode(27, "iLoad_1")
-  val ILoad2 = UnusedOpCode(28, "iLoad_2")
-  val ILoad3 = UnusedOpCode(29, "iLoad_3")
+  val ILoad0 = UnusedOpCode
+  val ILoad1 = UnusedOpCode
+  val ILoad2 = UnusedOpCode
+  val ILoad3 = UnusedOpCode
 
-  val LLoad0 = UnusedOpCode(30, "lLoad_0")
-  val LLoad1 = UnusedOpCode(31, "lLoad_1")
-  val LLoad2 = UnusedOpCode(32, "lLoad_2")
-  val LLoad3 = UnusedOpCode(33, "lLoad_3")
+  val LLoad0 = UnusedOpCode
+  val LLoad1 = UnusedOpCode
+  val LLoad2 = UnusedOpCode
+  val LLoad3 = UnusedOpCode
 
-  val FLoad0 = UnusedOpCode(34, "fLoad_0")
-  val FLoad1 = UnusedOpCode(35, "fLoad_1")
-  val FLoad2 = UnusedOpCode(36, "fLoad_2")
-  val FLoad3 = UnusedOpCode(37, "fLoad_3")
+  val FLoad0 = UnusedOpCode
+  val FLoad1 = UnusedOpCode
+  val FLoad2 = UnusedOpCode
+  val FLoad3 = UnusedOpCode
 
-  val DLoad0 = UnusedOpCode(38, "dLoad_0")
-  val DLoad1 = UnusedOpCode(39, "dLoad_1")
-  val DLoad2 = UnusedOpCode(40, "dLoad_2")
-  val DLoad3 = UnusedOpCode(41, "dLoad_3")
+  val DLoad0 = UnusedOpCode
+  val DLoad1 = UnusedOpCode
+  val DLoad2 = UnusedOpCode
+  val DLoad3 = UnusedOpCode
 
-  val ALoad0 = UnusedOpCode(42, "aLoad_0")
-  val ALoad1 = UnusedOpCode(43, "aLoad_1")
-  val ALoad2 = UnusedOpCode(44, "aLoad_2")
-  val ALoad3 = UnusedOpCode(45, "aLoad_3")
+  val ALoad0 = UnusedOpCode
+  val ALoad1 = UnusedOpCode
+  val ALoad2 = UnusedOpCode
+  val ALoad3 = UnusedOpCode
   //===============================================================
 
 
   class PushFromArray() extends OpCode{
-    def op(vt: Thread) = (vt.pop, vt.pop) match {
-      case (vrt.Int(index), arr: vrt.Arr[_])=>
-        import vt._
-        if (arr.view.isDefinedAt(index)){
-          vt.push(arr(index).toStackVal)
-        }else{
-          throwException{
-            vrt.Obj("java/lang/ArrayIndexOutOfBoundsException",
-              "detailMessage" -> (index+"")
-            )
-          }
-        }
+    def op(vt: Thread) = {
+      import vt.vm
+      val index = vt.pop
+      val arr = vt.pop.arr
+      vt.push(arr(index))
+
     }
   }
 
@@ -158,47 +146,49 @@ object LoadStore {
 
   // Not used, because ASM converts these to raw XStore(index: Int)s
   //===============================================================
-  val IStore0 = UnusedOpCode(59, "istore_0")
-  val IStore1 = UnusedOpCode(60, "istore_1")
-  val IStore2 = UnusedOpCode(61, "istore_2")
-  val IStore3 = UnusedOpCode(62, "istore_3")
+  val IStore0 = UnusedOpCode
+  val IStore1 = UnusedOpCode
+  val IStore2 = UnusedOpCode
+  val IStore3 = UnusedOpCode
 
-  val LStore0 = UnusedOpCode(63, "lstore_0")
-  val LStore1 = UnusedOpCode(64, "lstore_1")
-  val LStore2 = UnusedOpCode(65, "lstore_2")
-  val LStore3 = UnusedOpCode(66, "lstore_3")
+  val LStore0 = UnusedOpCode
+  val LStore1 = UnusedOpCode
+  val LStore2 = UnusedOpCode
+  val LStore3 = UnusedOpCode
 
-  val FStore0 = UnusedOpCode(67, "fstore_0")
-  val FStore1 = UnusedOpCode(68, "fstore_1")
-  val FStore2 = UnusedOpCode(69, "fstore_2")
-  val FStore3 = UnusedOpCode(70, "fstore_3")
+  val FStore0 = UnusedOpCode
+  val FStore1 = UnusedOpCode
+  val FStore2 = UnusedOpCode
+  val FStore3 = UnusedOpCode
 
-  val DStore0 = UnusedOpCode(71, "dstore_0")
-  val DStore1 = UnusedOpCode(72, "dstore_1")
-  val DStore2 = UnusedOpCode(73, "dstore_2")
-  val DStore3 = UnusedOpCode(74, "dstore_3")
+  val DStore0 = UnusedOpCode
+  val DStore1 = UnusedOpCode
+  val DStore2 = UnusedOpCode
+  val DStore3 = UnusedOpCode
 
-  val AStore0 = UnusedOpCode(75, "astore_0")
-  val AStore1 = UnusedOpCode(76, "astore_1")
-  val AStore2 = UnusedOpCode(77, "astore_2")
-  val AStore3 = UnusedOpCode(78, "astore_3")
+  val AStore0 = UnusedOpCode
+  val AStore1 = UnusedOpCode
+  val AStore2 = UnusedOpCode
+  val AStore3 = UnusedOpCode
   //===============================================================
 
-  class StoreArray(store: Function1[(vrt.StackVal, Int, vrt.Arr[_]), Unit]) extends OpCode{
-    def op(vt: Thread) = (vt.pop, vt.pop, vt.pop) match {
-      case (value, vrt.Int(index), arr: vrt.Arr[_]) => store(value, index, arr)
+  class StoreArray extends OpCode{
+    def op(vt: Thread) = {
+      import vt.vm
+      val value = vt.pop
+      val index = vt.pop
+      val arr = vt.pop.arr
+      arr(index) = value
+
     }
   }
 
-  case object IAStore extends StoreArray({case (vrt.Int(value), i, backing: vrt.Arr[Int]) => backing(i) = value})
-  case object LAStore extends StoreArray({case (vrt.Long(value), i, backing: vrt.Arr[Long]) => backing(i) = value})
-  case object FAStore extends StoreArray({case (vrt.Float(value), i, backing: vrt.Arr[Float]) => backing(i) = value})
-  case object DAStore extends StoreArray({case (vrt.Double(value), i, backing: vrt.Arr[Double]) => backing(i) = value})
-  case object AAStore extends StoreArray({case (value, i, backing: vrt.Arr[Any]) => backing(i) = value})
-  case object BAStore extends StoreArray({
-    case (vrt.Int(value), i, backing: vrt.Arr[Byte]) => backing(i) = value.toByte
-    case (vrt.Int(value), i, backing: vrt.Arr[Boolean]) => backing(i) = value.toByte != 0
-  })
-  case object CAStore extends StoreArray({case (vrt.Int(value), i, backing: vrt.Arr[Char]) => backing(i) = value.toChar})
-  case object SAStore extends StoreArray({case (vrt.Int(value), i, backing: vrt.Arr[Short]) => backing(i) = value.toShort})
+  case object IAStore extends StoreArray
+  case object LAStore extends StoreArray
+  case object FAStore extends StoreArray
+  case object DAStore extends StoreArray
+  case object AAStore extends StoreArray
+  case object BAStore extends StoreArray
+  case object CAStore extends StoreArray
+  case object SAStore extends StoreArray
 }
