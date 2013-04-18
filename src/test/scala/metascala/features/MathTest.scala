@@ -76,9 +76,9 @@ class MathTest extends FreeSpec with Util{
       }
 
       "more long stuff" - {
-        "lshl" in chk(tester.run("lshl", _: Long, _: Long))(10 ** Gen.longAll, 10 ** Gen.long(6))
-        "lshr" in chk(tester.run("lshr", _: Long, _: Long))(10 ** Gen.longAll, 10 ** Gen.long(6))
-        "lushr" in chk(tester.run("lushr", _: Long, _: Long))(10 ** Gen.longAll, 10 ** Gen.long(6))
+        "lshl" in chk(tester.run("lshl", _: Long, _: Int))(10 ** Gen.longAll, 10 ** Gen.int(6))
+        "lshr" in chk(tester.run("lshr", _: Long, _: Int))(10 ** Gen.longAll, 10 ** Gen.int(6))
+        "lushr" in chk(tester.run("lushr", _: Long, _: Int))(10 ** Gen.longAll, 10 ** Gen.int(6))
         "land" in chk(tester.run("land", _: Long, _: Long))
         "lor" in chk(tester.run("lor", _: Long, _: Long))
         "lxor" in chk(tester.run("lxor", _: Long, _: Long))

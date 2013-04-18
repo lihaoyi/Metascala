@@ -19,9 +19,9 @@ public class HelloLongs {
     public static double ddiv(double a, double b){ return a / b; }
     public static double dmod(double a, double b){ return a % b; }
 
-    public static long lshl(long a, long b){ return a << b;}
-    public static long lshr(long a, long b){ return a >> b;}
-    public static long lushr(long a, long b){ return a >>> b;}
+    public static long lshl(long a, int b){ return a << b;}
+    public static long lshr(long a, int b){ return a >> b;}
+    public static long lushr(long a, int b){ return a >>> b;}
     public static long land(long a, long b){ return a & b;}
     public static long lor(long a, long b){ return a | b;}
     public static long lxor(long a, long b){ return a ^ b;}

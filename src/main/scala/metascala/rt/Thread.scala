@@ -136,7 +136,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
                        : Unit = {
     println(indent + s"PrepInvoke! $tpe $sig")
     val tmp = mutable.Buffer.empty[Val]
-    for(arg <- args){
+    for(arg <- args.reverse){
       this.pushVirtual(arg, {v =>
         tmp.append(v)
       })
