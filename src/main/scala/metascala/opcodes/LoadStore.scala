@@ -31,11 +31,11 @@ object LoadStore {
   case object LConst1 extends PushOpCode(J)(1)
 
   case object FConst0 extends PushOpCode(F)(0)
-  case object FConst1 extends PushOpCode(F)(0)
-  case object FConst2 extends PushOpCode(F)(0)
+  case object FConst1 extends PushOpCode(F)(1)
+  case object FConst2 extends PushOpCode(F)(2)
 
   case object DConst0 extends PushOpCode(D)(0)
-  case object DConst1 extends PushOpCode(D)(0)
+  case object DConst1 extends PushOpCode(D)(1)
 
   class PushValOpCode(value: Int) extends OpCode{
     def op(vt: Thread) = vt.push(value)

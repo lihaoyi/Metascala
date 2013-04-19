@@ -63,18 +63,18 @@ object Misc {
   case class GetField(owner: Type.Cls, name: String, desc: Type) extends OpCode{
     def op(vt: Thread) = vt.swapOpCode{
       import vt.vm
-      val index = owner.cls.fieldList.indexWhere(_.name == name)
+      val index = owner.cls.fieldList.lastIndexWhere(_.name == name)
       val size = owner.cls.fieldList(index).desc.size
-      Optimized.GetField(index, size)
+      Optimized.GetField(index - size + 1, size)
     }
   }
   case class PutField(owner: Type.Cls, name: String, desc: Type) extends OpCode{
     def op(vt: Thread) = vt.swapOpCode{
       import vt.vm
-      val index = owner.cls.fieldList.indexWhere(_.name == name)
+      val index = owner.cls.fieldList.lastIndexWhere(_.name == name)
 
       val size = owner.cls.fieldList(index).desc.size
-      Optimized.PutField(index, size)
+      Optimized.PutField(index - size + 1, size)
     }
   }
 
