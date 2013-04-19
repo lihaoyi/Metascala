@@ -51,7 +51,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
 //    println(indent + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.stackDump)
 //    println(indent + "---------------------- " + frame.pc + "\t" + node )
-//    println(indent + vm.Heap.dump)
     frame.pc += 1
     opCount += 1
 
@@ -88,6 +87,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
             throwException(ex, false)
           case Some(imm.TryCatchBlock(start, end, handler, blockType)) =>
             frame.pc = handler
+            frame.popAll
             frame.push(ex.address)
         }
       case None =>
@@ -111,10 +111,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       case imm.Type.Prim('D') => D.read(src)
       case t @ imm.Type.Cls(name) =>
         val address = src
-        println("popVirtual Obj " + address)
         val obj = vrt.unsafe.allocateInstance(Class.forName(name.toDot))
-
-        println(vm.Heap.dump)
         var index = 0
         for(field <- t.cls.clsData.fields.filter(!_.static)){
           val f = obj.getClass.getDeclaredField(field.name)
@@ -129,12 +126,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
       case t @ imm.Type.Arr(tpe) =>
         val address = src
-        println("popVirtual Arr " + address)
 
-        println(vm.Heap.dump)
         val clsObj = forName(tpe.unparse.toDot)
         val newArr = java.lang.reflect.Array.newInstance(clsObj, address.arr.length)
-        println(newArr)
+
         for(i <- 0 until address.arr.length){
           val raw = vm.Heap(address + 2 + i)
           val cooked = tpe.unparse match{
@@ -287,7 +282,7 @@ class Frame(var pc: Int = 0,
             val method: rt.Method.Cls,
             val locals: mutable.Seq[Val] = mutable.Seq.empty){
 
-  private[this] val stack = new Array[Int](method.method.misc.maxStack + 1)
+  private[this] val stack = new Array[Int](method.method.misc.maxStack)
   private[this] var index = 0
   def push(n: Int) = {
 
@@ -298,7 +293,9 @@ class Frame(var pc: Int = 0,
     index -= 1
     stack(index)
   }
-
+  def popAll = {
+    index = 0
+  }
   def stackDump = stack.take(index).toList
 }
 

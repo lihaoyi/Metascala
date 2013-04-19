@@ -11,5 +11,6 @@ public class Primitives {
     public static double multiArgD(int i, double d){ return d; }
     public static double multiArgI(int i, double d){ return i; }
 
+    public static String stringLiteral(){ return "omgwtfbbq"; }
     public static String strings(String s){ return s; }
 }

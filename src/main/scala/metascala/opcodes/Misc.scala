@@ -54,10 +54,10 @@ object Misc {
     def op(vt: Thread) = vt.swapOpCode{
       import vt.vm
       val index = owner.cls.staticList.indexWhere(_.name == name)
+
       val size = owner.cls.staticList(index).desc.size
       Optimized.PutStatic(owner.cls, index, size)
     }
-
   }
 
   case class GetField(owner: Type.Cls, name: String, desc: Type) extends OpCode{
@@ -72,7 +72,7 @@ object Misc {
     def op(vt: Thread) = vt.swapOpCode{
       import vt.vm
       val index = owner.cls.fieldList.indexWhere(_.name == name)
-      println("OPTIMIZING " + index)
+
       val size = owner.cls.fieldList(index).desc.size
       Optimized.PutField(index, size)
     }
@@ -101,7 +101,7 @@ object Misc {
 
       vm.resolveDirectRef(owner, sig) match{
         case None => StackManip.Pop
-        case Some(methodRef) => Optimized.InvokeSpecial(methodRef, sig.desc.args.length)
+        case Some(methodRef) => Optimized.InvokeSpecial(methodRef, sig.desc.argSize)
       }
 
     }
@@ -112,7 +112,7 @@ object Misc {
     def op(vt: Thread) = vt.swapOpCode {
       import vt.vm
       vm.resolveDirectRef(owner, sig) match{
-        case Some(methodRef) => Optimized.InvokeStatic(methodRef, sig.desc.args.length)
+        case Some(methodRef) => Optimized.InvokeStatic(methodRef, sig.desc.argSize)
       }
     }
 
@@ -122,7 +122,7 @@ object Misc {
 
     def op(vt: Thread) =  {
       import vt.vm
-      val argCount = sig.desc.args.length
+      val argCount = sig.desc.argSize
       val args = vt.popArgs(argCount + 1)
 
       val objType = args.head.obj.tpe
@@ -203,7 +203,7 @@ object Misc {
     }
   }
   def check(s: imm.Type, t: imm.Type)(implicit vm: VM): Boolean = {
-    println(s"CHECK $s $t")
+
     (s, t) match{
 
       case (s: Type.Cls, t: Type.Cls) => s.cls.typeAncestry.contains(t)

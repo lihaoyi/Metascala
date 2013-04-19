@@ -77,7 +77,7 @@ object Type{
    * Primitive Types
    */
   case class Prim(char: Char) extends Type{
-    def size = if (char == 'D' || char == 'L') 2 else 1
+    def size = if (char == 'D' || char == 'J') 2 else 1
     def info = Prim.info(char)
     def unparse = ""+char
     def name = info.name

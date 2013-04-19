@@ -20,15 +20,21 @@ class VM(val natives: Bindings = Bindings.default, val log: ((=>String) => Unit)
     val memory = new Array[Int](4096)
     var freePointer = 1
     def allocate(n: Int) = {
-      println("Allocating at " + freePointer)
-      println(dump)
       val newFree = freePointer
       freePointer += n
       newFree
     }
     def apply(n: Int): Int = memory(n)
     def update(n: Int, v: Int) = memory.update(n, v)
-    def dump = memory.take(freePointer + 1).toList
+    def dump = {
+
+
+      memory.take(freePointer)
+            .grouped(10)
+            .map(_.map(_+""))
+            .map(_.reduce(_+"\t"+_))
+            .reduce(_+"\n"+_)
+    }
   }
 
 

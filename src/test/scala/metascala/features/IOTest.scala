@@ -21,6 +21,7 @@ class IOTest extends FreeSpec with Util{
     "multiArgD" in tester.run("multiArgD", 27, 3.14)
     "multiArgI" in tester.run("multiArgI", 27, 3.14)
 
+    "stringLiteral" in tester.run("stringLiteral")
     "strings" in tester.run("strings", "mooo")
 
   }

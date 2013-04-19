@@ -60,9 +60,13 @@ trait Default extends Bindings{
               ).address)
             },
             "registerNatives()V" x noOp(0)
-            ),
+          ),
+          "Double"/(
+            "doubleToRawLongBits(D)J" x noOp(0)
+          ),
           "Float"/(
-            "intBitsToFloat(I)F" x noOp(0)
+            "intBitsToFloat(I)F" x noOp(0),
+            "floatToRawIntBits(F)I" x noOp(0)
           ),
           "Object"/(
             "getClass()Ljava/lang/Class;" x {vt =>
@@ -88,8 +92,8 @@ trait Default extends Bindings{
           ),
           "System"/(
             "arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V" x { vt =>
-              val (src, srcIndex, dest, destIndex, length) = (vt.pop, vt.pop, vt.pop, vt.pop, vt.pop)
-              System.arraycopy(vt.vm.Heap, src + srcIndex + 2, vt.vm.Heap, dest + destIndex + 2, length)
+              val Seq(src, srcIndex, dest, destIndex, length) = Seq(vt.pop, vt.pop, vt.pop, vt.pop, vt.pop).reverse
+              System.arraycopy(vt.vm.Heap.memory, src + srcIndex + 2, vt.vm.Heap.memory, dest + destIndex + 2, length)
 
             },
             "nanoTime()J" x value(J)(0, System.nanoTime()),
