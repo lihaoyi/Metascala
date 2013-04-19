@@ -51,11 +51,39 @@ trait Default extends Bindings{
       "java"/(
         "lang"/(
           "Class"/(
-            "getClassLoader0()Ljava/lang/ClassLoader;" x value(I)(0, 0),
             "desiredAssertionStatus0(Ljava/lang/Class;)Z" x value(I)(0, 0),
+            "getClassLoader0()Ljava/lang/ClassLoader;" x value(I)(0, 0),
+            "getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;" x {vt =>
+              import vt.vm
+              vt.push(vrt.Obj.allocate("java/lang/Class",
+                "name" -> vt.pop
+              ).address)
+            },
             "registerNatives()V" x noOp(0)
             ),
+          "Float"/(
+            "intBitsToFloat(I)F" x noOp(0)
+          ),
           "Object"/(
+            "getClass()Ljava/lang/Class;" x {vt =>
+
+              import vt.vm
+              val obj = vt.pop.obj
+              val stringAddr = {
+                var a = 0
+                vt.pushVirtual(obj.cls.name.toDot, a = _)
+                a
+              }
+              vt.push(vrt.Obj.allocate("java/lang/Class",
+                "name" -> stringAddr
+              ).address)
+            },
+            "getName0()Ljava/lang/String;" x {vt =>
+              vt.pop
+              import vt.vm
+              vm.ClsTable
+              vt.push(vrt.Obj.allocate("java/lang/Class").address)
+            },
             "registerNatives()V" x noOp(0)
           ),
           "System"/(

@@ -293,12 +293,9 @@ class Frame(var pc: Int = 0,
 
     stack(index) = n
     index += 1
-    println("INDEX " + index)
   }
   def pop = {
     index -= 1
-
-    println("INDEX " + index)
     stack(index)
   }
 
