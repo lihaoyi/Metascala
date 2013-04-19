@@ -72,7 +72,6 @@ object Misc {
     def op(vt: Thread) = vt.swapOpCode{
       import vt.vm
       val index = owner.cls.fieldList.lastIndexWhere(_.name == name)
-
       val size = owner.cls.fieldList(index).desc.size
       Optimized.PutField(index - size + 1, size)
     }
@@ -174,15 +173,16 @@ object Misc {
   case object ArrayLength extends OpCode{
     def op(vt: Thread) =  {
       import vt.vm
-      val arr = vt.pop.arr
-      vt.push(arr.length)
+      val addr = vt.pop
+      if (addr == 0) throwNPE(vt)
+      else vt.push(addr.arr.length)
     }
   }
 
   case object AThrow extends OpCode{
     def op(vt: Thread) =  {
-      ???
-      //vt.throwException(vt.read.asInstanceOf[vrt.Obj])
+      import vt.vm
+      vt.throwException(vt.pop.obj)
     }
   }
   case class CheckCast(desc: Type) extends OpCode{

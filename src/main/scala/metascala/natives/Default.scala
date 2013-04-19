@@ -90,6 +90,27 @@ trait Default extends Bindings{
             },
             "registerNatives()V" x noOp(0)
           ),
+          "Throwable"/(
+            "fillInStackTrace()Ljava/lang/Throwable;" x {vt =>
+              import vt.vm
+              //vt.pop // pop dummy
+              val throwable = vt.pop.obj
+              val trace = vrt.Arr.allocate(imm.Type.Cls("java/lang/StackTraceElement"),
+                vt.threadStack.map( f =>
+                  vrt.Obj.allocate(imm.Type.Cls("java/lang/StackTraceElement").cls,
+                    "declaringClass" -> vt.pushVirtual(f.runningClass.name)(0),
+                    "methodName" -> vt.pushVirtual(f.method.method.name)(0),
+                    "fileName" -> vt.pushVirtual(f.runningClass.clsData.misc.sourceFile.getOrElse("<unknown file>"))(0),
+                    "lineNumber" -> 0
+                  ).address
+                ).toArray
+              )
+              throwable("stackTrace") = trace.address
+
+              vt.push(throwable.address)
+            }
+          ),
+
           "System"/(
             "arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V" x { vt =>
               val Seq(src, srcIndex, dest, destIndex, length) = Seq(vt.pop, vt.pop, vt.pop, vt.pop, vt.pop).reverse
@@ -107,22 +128,6 @@ trait Default extends Bindings{
           )
         )
       )
-      /*"scala"/(
-        "Predef$"/(
-          "println(Ljava/lang/String;)V" x2 {
-            vt => (x: vrt.Obj, y: vrt.Obj) =>
-              import vt.vm
-              println("VIRTUAL " + vrt.unvirtString(y))
-          },
-          "println(Ljava/lang/Object;)V" x2 {
-            vt => (x: vrt.Obj, y: vrt.Obj) =>
-              import vt.vm
-              println("VIRTUAL " + vrt.unvirtString(y))
-          }
-
-        )
-      )*/
-
     ).toRoute()
   }
 

@@ -115,14 +115,14 @@ object LoadStore {
   val ALoad3 = UnusedOpCode
   //===============================================================
 
-
   class PushFromArray() extends OpCode{
     def op(vt: Thread) = {
       import vt.vm
       val index = vt.pop
       val arr = vt.pop.arr
-      vt.push(arr(index))
-
+      checkBounds(index, arr, vt){
+        vt.push(arr(index))
+      }
     }
   }
 
@@ -141,6 +141,7 @@ object LoadStore {
       vt.frame.locals(index + i) = vt.pop
     }
   }
+
   case class IStore(index: Int) extends Store(1)
   case class LStore(index: Int) extends Store(2)
   case class FStore(index: Int) extends Store(1)
@@ -175,17 +176,30 @@ object LoadStore {
   val AStore3 = UnusedOpCode
   //===============================================================
 
+  def checkBounds(index: Int, arr: vrt.Arr, vt: Thread)(thunk: => Unit) = {
+    import vt.vm
+    if(0 <= index && index < arr.length){
+      thunk
+    }else{
+      vt.throwException(vrt.Obj.allocate("java/lang/ArrayIndexOutOfBoundsException",
+        "detailMessage" -> vt.pushVirtual(""+index)(0)
+      ))
+    }
+  }
   class StoreArray[T](p: Prim[T]) extends OpCode{
     def op(vt: Thread) = {
       import vt.vm
       val value = p.read(vt.pop)
       val index = vt.pop
       val arr = vt.pop.arr
-      var i = 0
-      p.write(value, { x =>
-        arr(index + i) = x
-        i += 1
-      })
+      checkBounds(index, arr, vt){
+        var i = 0
+        p.write(value, { x =>
+          arr(index + i) = x
+          i += 1
+        })
+      }
+
     }
   }
 

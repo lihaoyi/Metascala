@@ -15,8 +15,8 @@ import rt.{Thread, Method}
 object Optimized {
   case class New(cls: rt.Cls) extends OpCode{
     def op(vt: Thread) = {
-      import vt.vm._
-      val obj = vrt.Obj.allocate(cls.name)(vt.vm)
+      import vt.vm
+      val obj = vrt.Obj.allocate(cls.name)
       vt.push(obj.address)
     }
   }
@@ -29,8 +29,9 @@ object Optimized {
 
   case class InvokeSpecial(mRef: rt.Method, argCount: Int) extends OpCode{
     def op(vt: Thread) = {
-
-      vt.prepInvoke(mRef, vt.popArgs(argCount+1))
+      val args = vt.popArgs(argCount+1)
+      if (args.head == 0) throwNPE(vt)
+      else vt.prepInvoke(mRef, args)
     }
   }
 
@@ -38,14 +39,19 @@ object Optimized {
     def op(vt: Thread) = {
       import vt.vm
       val args = vt.popArgs(argCount)
-      val objCls =
-        args.head match{
-          case a if a.isObj => a.obj.cls
-          case _ => vt.vm.ClsTable(imm.Type.Cls("java/lang/Object"))
-        }
 
-      val mRef = objCls.vTable(vTableIndex)
-      vt.prepInvoke(mRef, args)
+      args.head match{
+          case 0 => throwNPE(vt)
+          case a =>
+            val objCls: rt.Cls =
+              if (a.isObj)
+                a.obj.cls
+              else
+                "java/lang/Object"
+
+            val mRef = objCls.vTable(vTableIndex)
+            vt.prepInvoke(mRef, args)
+        }
     }
   }
 
@@ -63,20 +69,25 @@ object Optimized {
 
     def op(vt: Thread) = {
       import vt.vm
-      val obj = vt.pop.obj
-      for(i <- 0 until size){
-        vt.push(obj.members(index))
-      }
+      val addr = vt.pop
+      if (addr == 0) throwNPE(vt)
+      else
+        for(i <- 0 until size){
+          vt.push(addr.obj.members(index))
+        }
     }
   }
   case class PutField(index: Int, size: Int) extends OpCode{
     def op(vt: Thread) = {
       import vt.vm
       val values = for(i <- 0 until size) yield vt.pop
-      val obj = vt.pop.obj
-      for(i <- 0 until size){
-        obj.members(index + i) = values(i)
-      }
+      val addr = vt.pop
+
+      if(addr == 0) throwNPE(vt)
+      else
+        for(i <- 0 until size){
+          addr.obj.members(index + i) = values(i)
+        }
     }
   }
 }

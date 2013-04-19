@@ -28,9 +28,10 @@ class IOTest extends FreeSpec with Util{
   "exceptions" -{
     val tester = new Tester("metascala.io.Exceptions")
     "runtime" in {
-      val x = Try(tester.svm.invoke("metascala/io/Exceptions", "runtime", Nil))
 
-      val Failure(UncaughtVmException(_, _, _, _)) = x
+      val x = Try(tester.svm.invoke("metascala/io/Exceptions", "runtime", Nil))
+      val Failure(UncaughtVmException(wrapped)) = x
+
     }
   }
 

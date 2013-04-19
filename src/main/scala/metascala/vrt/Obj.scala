@@ -13,16 +13,13 @@ import metascala.imm
 
 
 object Obj{
-  def allocate(clsName: String, initMembers: (String, Val)*)(implicit vm: VM): vrt.Obj = {
-    Obj.allocate(vm.ClsTable(imm.Type.Cls(clsName)), initMembers: _*)
-  }
   def allocate(cls: rt.Cls, initMembers: (String, Val)*)(implicit vm: VM): vrt.Obj = {
     val address = vm.Heap.allocate(2 + cls.fieldList.length)
 
     vm.Heap(address) = -cls.index
     val obj = new Obj(address)
     for ((s, v) <- initMembers){
-      obj(imm.Type.Cls.read(cls.name), s) = v
+      obj(s) = v
     }
     obj
   }
@@ -65,15 +62,18 @@ class Obj(val address: Val)
 
   def tpe = cls.clsData.tpe
 
-  def apply(owner: imm.Type.Cls, name: String): Val = {
-    members(owner.fieldList.lastIndexWhere(_.name == name))
+  def apply(name: String): Val = {
+
+    members(tpe.fieldList.lastIndexWhere(_.name == name))
   }
 
-  def update(owner: imm.Type.Cls, name: String, value: Val) = {
-    members(owner.fieldList.lastIndexWhere(_.name == name)) = value
+  def update(name: String, value: Val) = {
+
+    val index = tpe.fieldList.lastIndexWhere(_.name == name)
+    members(index + 1 - tpe.fieldList(index).desc.size) = value
   }
 
-  def view = vm.Heap.memory.slice(address, address + cls.fieldList.length + 2).toList
+  def view = address + " " + vm.Heap.memory.slice(address, address + cls.fieldList.length + 2).toList
 
   override def toString = {
     s"vrt.Obj(${cls.name} + )"
@@ -96,6 +96,7 @@ object Arr{
     arrayTypeCache.append(innerType)
     vm.Heap(address + 1) = backing.length
     backing.copyToArray(vm.Heap.memory, address + 2)
+
     (new Arr(address))
 
   }

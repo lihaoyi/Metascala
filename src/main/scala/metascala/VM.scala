@@ -17,7 +17,7 @@ class VM(val natives: Bindings = Bindings.default, val log: ((=>String) => Unit)
   private[this] implicit val vm = this
 
   object Heap{
-    val memory = new Array[Int](4096)
+    val memory = new Array[Int](4096 * 4096)
     var freePointer = 1
     def allocate(n: Int) = {
       val newFree = freePointer
@@ -112,11 +112,8 @@ class VM(val natives: Bindings = Bindings.default, val log: ((=>String) => Unit)
   }
 }
 
-case class UncaughtVmException(name: String,
-                               msg: String,
-                               stackTrace: Seq[StackTraceElement],
-                               stackData: Seq[FrameDump])
-                               extends Exception(msg){
+case class UncaughtVmException(wrapped: Throwable)
+                               extends Exception(wrapped){
 
 }
 

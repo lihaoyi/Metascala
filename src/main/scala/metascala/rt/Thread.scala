@@ -70,7 +70,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   }
 
   @tailrec final def throwException(ex: vrt.Obj, print: Boolean = true): Unit = {
-
     threadStack.headOption match{
       case Some(frame)=>
         val handler =
@@ -92,14 +91,12 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
             frame.push(ex.address)
         }
       case None =>
-        throw new UncaughtVmException(ex.cls.clsData.tpe.unparse,
-          "Uncaught VM Error!",
-          Nil,
-          Nil)
+        throw new UncaughtVmException(
+          popVirtual(ex.cls.clsData.tpe, ex.address).cast[Throwable]
+        )
     }
   }
-
-  def popVirtual(tpe: imm.Type, src: => Val): Any = {
+  def popVirtual(tpe: imm.Type, src: => Val, refs: mutable.Map[Int, Any] = mutable.Map.empty): Any = {
     tpe match {
       case imm.Type.Prim('V') => ()
       case imm.Type.Prim('Z') => Z(src)
@@ -111,69 +108,68 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       case imm.Type.Prim('J') => J.read(src)
       case imm.Type.Prim('D') => D.read(src)
       case t @ imm.Type.Cls(name) =>
+
         val address = src
-        val obj = vrt.unsafe.allocateInstance(Class.forName(name.toDot))
-        var index = 0
-        for(field <- t.cls.clsData.fields.filter(!_.static)){
-          val f = obj.getClass.getDeclaredField(field.name)
-          f.setAccessible(true)
-          f.set(obj, popVirtual(field.desc, {
-            val x = vm.Heap(address + 2 + index)
-            index += 1
-            x
-          }))
+        if(address == 0){
+          null
+        }else if (refs.contains(address)) {
+          refs(address)
+        }else{
+          val obj = vrt.unsafe.allocateInstance(Class.forName(address.obj.cls.name.toDot))
+          refs += (address -> obj)
+          var index = 0
+          for(field <- address.obj.cls.fieldList.distinct){
+            // workaround for http://bugs.sun.com/view_bug.do?bug_id=4763881
+            if (field.name == "backtrace"){
+              index += 1
+            }else{
+              val f = getAllFields(obj.getClass).find(_.getName == field.name).get
+              f.setAccessible(true)
+              f.set(obj, popVirtual(field.desc, {
+                val x = vm.Heap(address + 2 + index)
+                index += 1
+                x
+              }, refs))
+            }
+          }
+          obj
         }
-        obj
+
+
 
       case t @ imm.Type.Arr(tpe) =>
+
         val address = src
+        if(address == 0){
+          null
+        }else{
+          val clsObj = forName(tpe.unparse.toDot)
+          val newArr = java.lang.reflect.Array.newInstance(clsObj, address.arr.length)
 
-        val clsObj = forName(tpe.unparse.toDot)
-        val newArr = java.lang.reflect.Array.newInstance(clsObj, address.arr.length)
-
-        for(i <- 0 until address.arr.length){
-          val raw = vm.Heap(address + 2 + i)
-          val cooked = tpe.unparse match{
-            case "Z" => raw == 0
-            case "B" => raw.toByte
-            case "C" => raw.toChar
-            case "S" => raw.toShort
-            case "I" => raw.toInt
-            case "F" => F.apply(raw)
-            case "J" => J.apply(0, raw)
-            case "D" => D.apply(0, raw)
-            case x => popVirtual(tpe, raw)
+          for(i <- 0 until address.arr.length){
+            val raw = vm.Heap(address + 2 + i)
+            val cooked = tpe.unparse match{
+              case "Z" => raw == 0
+              case "B" => raw.toByte
+              case "C" => raw.toChar
+              case "S" => raw.toShort
+              case "I" => raw.toInt
+              case "F" => F.apply(raw)
+              case "J" => J.apply(0, raw)
+              case "D" => D.apply(0, raw)
+              case x => popVirtual(tpe, raw)
+            }
+            java.lang.reflect.Array.set(newArr, i, cooked)
           }
-          java.lang.reflect.Array.set(newArr, i, cooked)
+          newArr
         }
-        newArr
     }
   }
-  def forNameBoxed(name: String) = {
-    name match{
-      case "Z" => classOf[java.lang.Boolean]
-      case "B" => classOf[java.lang.Byte]
-      case "C" => classOf[java.lang.Character]
-      case "S" => classOf[java.lang.Short]
-      case "I" => classOf[java.lang.Integer]
-      case "F" => classOf[java.lang.Float]
-      case "J" => classOf[java.lang.Long]
-      case "D" => classOf[java.lang.Double]
-      case x => Class.forName(x)
-    }
-  }
-  def forName(name: String) = {
-    name match{
-      case "Z" => classOf[Boolean]
-      case "B" => classOf[Byte]
-      case "C" => classOf[Char]
-      case "S" => classOf[Short]
-      case "I" => classOf[Int]
-      case "F" => classOf[Float]
-      case "J" => classOf[Long]
-      case "D" => classOf[Double]
-      case x => Class.forName(x)
-    }
+
+  def pushVirtual(thing: Any): Seq[Int] = {
+    val tmp = new mutable.Stack[Int]()
+    pushVirtual(thing, tmp.push(_))
+    tmp
   }
   def pushVirtual(thing: Any, out: Val => Unit): Unit = {
     thing match {
@@ -188,11 +184,12 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       case b: Double  => D.write(b, out)
       case b: Array[_] =>
         val arr = vrt.Arr.allocate(imm.Type.Arr.read(b.getClass.getName).innerType,
-          b.map{x => var tmp = 0; pushVirtual(x, tmp = _); tmp}
+          b.map{x =>
+            pushVirtual(x)(0)
+          }
         )
         out(arr.address)
       case b: Any =>
-
         val obj = vrt.Obj.allocate(b.getClass.getName.toSlash)
         var index = 0
         for(field <- obj.cls.clsData.fields.filter(!_.static)){
@@ -251,7 +248,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
   }
   def invoke(mRef: rt.Method, args: Seq[Int]): Any = {
-    println(indent + "Invoke A")
     val startHeight = threadStack.length
     prepInvoke(mRef, args)
 
@@ -261,7 +257,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   }
 
   def invoke(cls: imm.Type.Cls, sig: imm.Sig, args: Seq[Any]): Any = {
-    println(indent + "Invoke B")
     val startHeight = threadStack.length
     prepInvoke(cls, sig, args)
 

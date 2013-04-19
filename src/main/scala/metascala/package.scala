@@ -9,8 +9,14 @@ package object metascala {
   implicit class pimpedVal(v: Val){
     def isObj(implicit vm: VM) = vm.Heap(v) < 0
     def isArr(implicit vm: VM) = vm.Heap(v) >= 0
-    def obj(implicit vm: VM) = new vrt.Obj(v)
-    def arr(implicit vm: VM) = new vrt.Arr(v)
+    def obj(implicit vm: VM) = {
+      assert(v != 0)
+      new vrt.Obj(v)
+    }
+    def arr(implicit vm: VM) = {
+      assert(v != 0)
+      new vrt.Arr(v)
+    }
   }
   object Val{
     val Null = 0
@@ -105,4 +111,40 @@ package object metascala {
     def toDot = s.replace('/', '.')
     def toSlash = s.replace('.', '/')
   }
+
+  def forNameBoxed(name: String) = {
+    name match{
+      case "Z" => classOf[java.lang.Boolean]
+      case "B" => classOf[java.lang.Byte]
+      case "C" => classOf[java.lang.Character]
+      case "S" => classOf[java.lang.Short]
+      case "I" => classOf[java.lang.Integer]
+      case "F" => classOf[java.lang.Float]
+      case "J" => classOf[java.lang.Long]
+      case "D" => classOf[java.lang.Double]
+      case x => Class.forName(x)
+    }
+  }
+  def forName(name: String) = {
+    name match{
+      case "Z" => classOf[Boolean]
+      case "B" => classOf[Byte]
+      case "C" => classOf[Char]
+      case "S" => classOf[Short]
+      case "I" => classOf[Int]
+      case "F" => classOf[Float]
+      case "J" => classOf[Long]
+      case "D" => classOf[Double]
+      case x => Class.forName(x)
+    }
+  }
+
+  def getAllFields(cls: Class[_]): Seq[java.lang.reflect.Field] = {
+    Option(cls.getSuperclass)
+      .toSeq
+      .flatMap(getAllFields)
+      .++(cls.getDeclaredFields)
+  }
+
+  implicit def stringToClass(s: String)(implicit vm: VM) = vm.ClsTable(imm.Type.Cls(s))
 }
