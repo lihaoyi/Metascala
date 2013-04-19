@@ -20,14 +20,14 @@ class ArrayTest extends FreeSpec with Util{
     "arrayLength" in tester.run("arrayLength")
     "arraySet" in tester.run("arraySet")
     "arrayGet" in tester.run("arrayGet")
-    "bubbleSort" in chk{ src: Seq[Int] =>
-      tester.run("bubbleSort", Seq(src.toArray))
+    "bubbleSort" in chk{ src: Array[Int] =>
+      tester.run("bubbleSort", src.clone())
     }(Seq(
-      Seq(0, 1, 2, 3, 4, 5, 6, 7),
-      Seq(7, 6, 5, 4, 3, 2, 1, 0),
-      Seq(0, 1, 2, 3, 4, 5, 6, 7),
-      Seq.fill(10)(util.Random.nextInt()),
-      Seq.fill(20)(util.Random.nextInt())
+      Array(0, 1, 2, 3, 4, 5, 6, 7),
+      Array(7, 6, 5, 4, 3, 2, 1, 0),
+      Array(0, 1, 2, 3, 4, 5, 6, 7),
+      Array.fill(10)(util.Random.nextInt()),
+      Array.fill(20)(util.Random.nextInt())
     ))
   }
   "multi dim arrays" - {
