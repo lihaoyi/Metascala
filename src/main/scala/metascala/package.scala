@@ -5,27 +5,7 @@ package object metascala {
   private[metascala] implicit class castable(val x: Any) extends AnyVal{
     def cast[T] = x.asInstanceOf[T]
   }
-  trait Vrtable{
-    def repr: Val
-  }
-  implicit class magicBoolean(v: Boolean){
-    def repr = if (v) 1 else 0
-  }
-  implicit class magicChar(v: Char){
-    def repr = v.toInt
-  }
-  implicit class magicFloat(v: Float){
-    def repr = java.lang.Float.floatToRawIntBits(v)
-  }
-  implicit class magicLong(v: Long){
-    def repr = ((v >> 32).toInt, v.toInt)
-  }
-  implicit class magicDouble(v: Double){
-    def repr = {
-      val x = java.lang.Double.doubleToLongBits(v)
-      ((x >> 32).toInt, x.toInt)
-    }
-  }
+
   implicit class pimpedVal(v: Val){
     def isObj(implicit vm: VM) = vm.Heap(v) < 0
     def isArr(implicit vm: VM) = vm.Heap(v) >= 0
