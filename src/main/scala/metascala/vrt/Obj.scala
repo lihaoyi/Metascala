@@ -17,7 +17,7 @@ object Obj{
     Obj.allocate(vm.ClsTable(imm.Type.Cls(clsName)), initMembers: _*)
   }
   def allocate(cls: rt.Cls, initMembers: (String, Val)*)(implicit vm: VM): vrt.Obj = {
-    val address = vm.Heap.allocate(1 + cls.fieldList.length)
+    val address = vm.Heap.allocate(2 + cls.fieldList.length)
 
     vm.Heap(address) = -cls.index
     val obj = new Obj(address)
@@ -73,6 +73,8 @@ class Obj(val address: Val)
     members(owner.fieldList.lastIndexWhere(_.name == name)) = value
   }
 
+  def view = vm.Heap.memory.slice(address, address + cls.fieldList.length + 2).toList
+
   override def toString = {
     s"vrt.Obj(${cls.name} + )"
   }
@@ -104,20 +106,21 @@ class Arr(val address: scala.Int)(implicit vm: VM) {
    * Layout
    * ------
    * 0 Class Index
-   * 1 Field0
-   * 2 Field1
+   * 1 Length
+   * 2 Field0
+   * 3 Field1
    * ...
-   * N FieldN-1
+   * N FieldN-2
    */
   def longVal = address
   def innerType = Arr.arrayTypeCache(vm.Heap(address))
   def tpe = imm.Type.Arr(innerType)
-  def length = vm.Heap(address + 1).toInt
+  def length = vm.Heap(address + 1)
   def apply(index: scala.Int) = vm.Heap(address + index + 2)
   def update(index: scala.Int, value: Val) = vm.Heap(address + index + 2) = value
   override def toString = s"vrt.Arr(${innerType.getClass})"
 
-  def view = vm.Heap.memory.slice(address + 1, address + length + 1).toArray
+  def view = vm.Heap.memory.slice(address, address + length + 2).toList
 }
 
 

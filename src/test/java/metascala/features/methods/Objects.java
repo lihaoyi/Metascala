@@ -8,6 +8,9 @@ public class Objects {
         return d.getTwoN();
     }
 
+    public static int stringEquals(int a, String b){
+        return (a + "").length();// + b.length();
+    }
     public static int inheritance(int n){
         DumbObjectSubClass d = new DumbObjectSubClass(n);
         return d.getTwoN();

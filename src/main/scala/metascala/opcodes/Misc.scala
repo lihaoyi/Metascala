@@ -174,7 +174,8 @@ object Misc {
   case object ArrayLength extends OpCode{
     def op(vt: Thread) =  {
       import vt.vm
-      vt.push(vt.pop.arr.length)
+      val arr = vt.pop.arr
+      vt.push(arr.length)
     }
   }
 

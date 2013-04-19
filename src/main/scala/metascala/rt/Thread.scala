@@ -49,8 +49,9 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     val insnsList = frame.method.insns
     val node = insnsList(frame.pc)
 
-//    println(indent + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.stackDump)
-//    println(indent + "---------------------- " + frame.pc + "\t" + node )
+    //println(indent + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.stackDump)
+    //println(indent + "---------------------- " + frame.pc + "\t" + node )
+    //println(indent + vm.Heap.dump.replace("\n", "\n" + indent))
     frame.pc += 1
     opCount += 1
 
@@ -176,6 +177,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   }
   def pushVirtual(thing: Any, out: Val => Unit): Unit = {
     thing match {
+      case null => out(0)
       case b: Boolean => Z.write(b, out)
       case b: Byte    => B.write(b, out)
       case b: Char    => C.write(b, out)
@@ -202,6 +204,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
             index += 1
           })
         }
+
         out(obj.address)
     }
   }
@@ -209,7 +212,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
   final def prepInvoke(mRef: rt.Method,
                        args: Seq[Int]) = {
-    println(indent + "PrepInvoke " + mRef + " with " + args)
+    //println(indent + "PrepInvoke " + mRef + " with " + args)
 
 
     mRef match{
