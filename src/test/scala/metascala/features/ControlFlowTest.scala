@@ -23,7 +23,7 @@ class ControlFlowTest extends FreeSpec with Util{
     "basicFor" in chk(tester.run("basicFor", _: Int))(Seq.fill(0)(Gen.int(256)))
     "nullWhile" in tester.run("nullWhile", 100)
     "basicWhile" in chk(tester.run("basicWhile", _: Int))(Seq.fill(0)(Gen.int(256)))
-    "sqrtFinder" in chk(tester.run("sqrtFinder", _: Double))(Seq.fill(10)(Math.random() * 1000))
+    //"sqrtFinder" in chk(tester.run("sqrtFinder", _: Double))(Seq.fill(10)(Math.random() * 1000))
   }
   "switches" - {
     val buffer = new BufferLog(4000)
@@ -34,14 +34,7 @@ class ControlFlowTest extends FreeSpec with Util{
     "charSwitch" in chk(tester.run("charSwitch", _: Char))('a' to 'k')
     "byteSwitch" in chk(tester.run("byteSwitch", _: Byte))((0 to 8).map(x=>Math.pow(2, x).toByte))
     "stringSwitch" in chk(tester.run("stringSwitch", _: Int))(Seq(0, 1, 2))
-    "stringSwitchTwo" in {try
-      chk(tester.run("stringSwitchTwo", _: String))(Seq("omg", "wtf", "bbq" ,"lol"))
-    catch { case e =>
-      buffer.lines.foreach(println)
-      throw e
-    }}
+    "stringSwitchTwo" in chk(tester.run("stringSwitchTwo", _: String))(Seq("omg", "wtf", "bbq" ,"lol"))
   }
-
-
 }
 

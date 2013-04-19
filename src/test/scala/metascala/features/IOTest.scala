@@ -1,9 +1,10 @@
-package metascala
+package metascala.features
 
 import org.scalatest.FreeSpec
 
 import metascala.Gen._
 import util.{Failure, Try}
+import metascala.{UncaughtVmException, BufferLog, Gen, Util}
 
 class IOTest extends FreeSpec with Util{
 

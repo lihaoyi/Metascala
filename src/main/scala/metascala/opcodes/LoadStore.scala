@@ -14,7 +14,7 @@ object LoadStore {
   }
 
   class PushOpCode[A](b: Prim[A])(value: A) extends OpCode{
-    def op(vt: Thread) = b.push(value, vt.push)
+    def op(vt: Thread) = b.write(value, vt.push)
   }
 
   case object AConstNull extends PushOpCode(I)(0)
@@ -38,7 +38,7 @@ object LoadStore {
   case object DConst1 extends PushOpCode(D)(0)
 
   class PushValOpCode(value: Int) extends OpCode{
-    def op(vt: Thread) = vt.frame.stack.push(value)
+    def op(vt: Thread) = vt.push(value)
   }
 
   case class BiPush(value: Int) extends PushValOpCode(value)
@@ -53,13 +53,13 @@ object LoadStore {
       const match{
         case s: String => vt.pushVirtual(s, vt.push)
         case t: asm.Type => vt.push(vrt.Obj.allocate("java/lang/Class").address)
-        case x: scala.Byte  => B.push(x, vt.push)
-        case x: scala.Char  => C.push(x, vt.push)
-        case x: scala.Short => S.push(x, vt.push)
-        case x: scala.Int   => I.push(x, vt.push)
-        case x: scala.Float => F.push(x, vt.push)
-        case x: scala.Long  => J.push(x, vt.push)
-        case x: scala.Double => D.push(x, vt.push)
+        case x: scala.Byte  => B.write(x, vt.push)
+        case x: scala.Char  => C.write(x, vt.push)
+        case x: scala.Short => S.write(x, vt.push)
+        case x: scala.Int   => I.write(x, vt.push)
+        case x: scala.Float => F.write(x, vt.push)
+        case x: scala.Long  => J.write(x, vt.push)
+        case x: scala.Double => D.write(x, vt.push)
       }
 
 
@@ -178,11 +178,11 @@ object LoadStore {
   class StoreArray[T](p: Prim[T]) extends OpCode{
     def op(vt: Thread) = {
       import vt.vm
-      val value = p.pop(vt.pop)
+      val value = p.read(vt.pop)
       val index = vt.pop
       val arr = vt.pop.arr
       var i = 0
-      p.push(value, { x =>
+      p.write(value, { x =>
         arr(index + i) = x
         i += 1
       })

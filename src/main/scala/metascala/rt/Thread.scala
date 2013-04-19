@@ -49,20 +49,23 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     val insnsList = frame.method.insns
     val node = insnsList(frame.pc)
 
-    println(indent + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.stack)
-    println(indent + "---------------------- " + frame.pc + "\t" + node )
-    println(indent + vm.Heap.dump)
+    //println(indent + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.stackDump)
+//    println(indent + "---------------------- " + frame.pc + "\t" + node )
+//    println(indent + vm.Heap.dump)
     frame.pc += 1
     opCount += 1
 
     node.op(this)
   }
   def returnVal(x: Int) = {
-
     val oldTop = threadStack.pop()
+
     threadStack.headOption match{
-      case Some(frame) => for (i <- 0 until x) frame.stack.push(oldTop.stack.pop())
-      case None => returnedVal = popVirtual(oldTop.method.method.desc.ret, oldTop.stack.pop)
+      case Some(frame) =>
+        val tmp = for (i <- 0 until x) yield oldTop.pop
+        for (i <- tmp.reverse) frame.push(i)
+      case None =>
+        returnedVal = popVirtual(oldTop.method.method.desc.ret, oldTop.pop)
     }
   }
 
@@ -85,7 +88,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
             throwException(ex, false)
           case Some(imm.TryCatchBlock(start, end, handler, blockType)) =>
             frame.pc = handler
-            frame.stack.push(ex.address)
+            frame.push(ex.address)
         }
       case None =>
         throw new UncaughtVmException(ex.cls.clsData.tpe.unparse,
@@ -104,8 +107,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       case imm.Type.Prim('S') => S(src)
       case imm.Type.Prim('I') => I(src)
       case imm.Type.Prim('F') => F(src)
-      case imm.Type.Prim('J') => J.pop(src)
-      case imm.Type.Prim('D') => D.pop(src)
+      case imm.Type.Prim('J') => J.read(src)
+      case imm.Type.Prim('D') => D.read(src)
       case t @ imm.Type.Cls(name) =>
         val address = src
         println("popVirtual Obj " + address)
@@ -178,50 +181,33 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   }
   def pushVirtual(thing: Any, out: Val => Unit): Unit = {
     thing match {
-      case b: Boolean => Z.push(b, out)
-      case b: Byte    => B.push(b, out)
-      case b: Char    => C.push(b, out)
-      case b: Short   => S.push(b, out)
-      case b: Int     => I.push(b, out)
-      case b: Float   => F.push(b, out)
-      case b: Long    => J.push(b, out)
-      case b: Double  => D.push(b, out)
+      case b: Boolean => Z.write(b, out)
+      case b: Byte    => B.write(b, out)
+      case b: Char    => C.write(b, out)
+      case b: Short   => S.write(b, out)
+      case b: Int     => I.write(b, out)
+      case b: Float   => F.write(b, out)
+      case b: Long    => J.write(b, out)
+      case b: Double  => D.write(b, out)
       case b: Array[_] =>
-        println("pushVirtual Arr ")
-        println(vm.Heap.dump)
         val arr = vrt.Arr.allocate(imm.Type.Arr.read(b.getClass.getName).innerType,
           b.map{x => var tmp = 0; pushVirtual(x, tmp = _); tmp}
         )
-        println(vm.Heap.dump)
         out(arr.address)
-        println(vm.Heap.dump)
-        println("address " + arr.address)
-        println(vm.Heap.dump)
-        println("EndPushArray")
       case b: Any =>
-        println("pushVirtual Obj")
-        println(vm.Heap.dump)
+
         val obj = vrt.Obj.allocate(b.getClass.getName.toSlash)
-        println(vm.Heap.dump)
         var index = 0
         for(field <- obj.cls.clsData.fields.filter(!_.static)){
-          println("FIELD " + field.name)
           val f = b.getClass.getDeclaredField(field.name)
           f.setAccessible(true)
 
           pushVirtual(f.get(b), {x =>
             vm.Heap(obj.address + 2 + index) = x
-            println("index " + index)
             index += 1
-            println("index " + index)
           })
         }
-        println(vm.Heap.dump)
-        println("address " +  obj.address)
-        println(vm.Heap.dump)
         out(obj.address)
-        println(vm.Heap.dump)
-        println("EndPushObject")
     }
   }
 
@@ -232,10 +218,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
 
     mRef match{
-      case rt.Method.Native1(clsName, imm.Sig(name, desc), op) =>
-        val result = op(this)(args)
-        if(desc.ret != imm.Type.Prim('V')) threadStack.top.stack.push(result)
-
+      case rt.Method.Native(clsName, imm.Sig(name, desc), op) => op(this)
       case m @ rt.Method.Cls(cls, methodIndex, method) =>
         assert((m.method.access & Access.Native) == 0, "method cannot be native: " + cls.name + " " + method.name)
 
@@ -300,7 +283,20 @@ case class FrameDump(clsName: String,
 class Frame(var pc: Int = 0,
             val runningClass: rt.Cls,
             val method: rt.Method.Cls,
-            val locals: mutable.Seq[Val] = mutable.Seq.empty,
-            val stack: mutable.ArrayStack[Val] = mutable.ArrayStack.empty[Val])
+            val locals: mutable.Seq[Val] = mutable.Seq.empty){
+
+  private[this] val stack = new Array[Int](method.method.misc.maxStack)
+  private[this] var index = 0
+  def push(n: Int) = {
+    stack(index) = n
+    index += 1
+  }
+  def pop = {
+    index -= 1
+    stack(index)
+  }
+
+  def stackDump = stack.take(index).toList
+}
 
 

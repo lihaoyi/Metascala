@@ -13,7 +13,7 @@ object StackManip {
 
   class ManipOpCode(transform: List[Val] => List[Val]) extends OpCode{
     def op(vt: Thread) =  {
-      var i = vt.frame.stack.length min 4
+      var i = vt.frame.stackDump.length min 4
       var list: List[Val] = Nil
       while(i > 0){
         i -= 1
@@ -99,17 +99,17 @@ object StackManip {
 
   class UnaryOp[A, R](a: Prim[A], out: Prim[R])(func: A => R) extends OpCode{
     def op(vt: Thread) = {
-      val x = func(a.pop(vt.pop))
-      out.push(x, vt.push)
+      val x = func(a.read(vt.pop))
+      println("UnaryOp " + x)
+      out.write(x, vt.push)
     }
   }
   class BinOp[A, B, R](a: Prim[A], b: Prim[B], out: Prim[R])(func: (B, A) => R) extends OpCode{
     def op(vt: Thread) = {
-      val first = a.pop(vt.pop)
-      val second = b.pop(vt.pop)
+      val first = a.read(vt.pop)
+      val second = b.read(vt.pop)
       val res = func(second, first)
-      println(s"BinOp $first $second $res")
-      out.push(res, vt.push)
+      out.write(res, vt.push)
     }
   }
   case object I2L extends UnaryOp(I, J)(_.toLong)

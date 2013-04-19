@@ -12,15 +12,11 @@ trait Method{
 object Method{
 
 
-  case class Native1(clsName: String,
+  case class Native(clsName: String,
                      sig: imm.Sig,
-                     func: natives.Bindings.Func1)
+                     func: rt.Thread => Unit)
                      extends Method
 
-  case class Native2(clsName: String,
-                     sig: imm.Sig,
-                     func: natives.Bindings.Func2)
-    extends Method
 
   /**
    * A reference to a method belonging to a class

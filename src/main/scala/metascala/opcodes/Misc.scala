@@ -181,7 +181,7 @@ object Misc {
   case object AThrow extends OpCode{
     def op(vt: Thread) =  {
       ???
-      //vt.throwException(vt.pop.asInstanceOf[vrt.Obj])
+      //vt.throwException(vt.read.asInstanceOf[vrt.Obj])
     }
   }
   case class CheckCast(desc: Type) extends OpCode{

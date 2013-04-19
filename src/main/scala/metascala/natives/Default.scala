@@ -7,7 +7,6 @@ import vrt.Arr
 
 trait Default extends Bindings{
 
-
   val fileLoader = (name: String) => {
     val slashName = s"/$name"
 
@@ -17,7 +16,6 @@ trait Default extends Bindings{
       val stream = new DataInputStream(loaded)
       val bytes = new Array[Byte](stream.available())
       stream.readFully(bytes)
-      //imm.Util.printClass(bytes)
       Some(bytes)
     }
   }
@@ -53,27 +51,27 @@ trait Default extends Bindings{
       "java"/(
         "lang"/(
           "Class"/(
-            "getClassLoader0()Ljava/lang/ClassLoader;" x1 noOp1,
-            "desiredAssertionStatus0(Ljava/lang/Class;)Z" x1 value1(0),
-            "registerNatives()V" x noOp
+            "getClassLoader0()Ljava/lang/ClassLoader;" x noOp(1),
+            "desiredAssertionStatus0(Ljava/lang/Class;)Z" x value(I)(0, 0),
+            "registerNatives()V" x noOp(0)
             ),
           "Object"/(
-            "registerNatives()V" x noOp
+            "registerNatives()V" x noOp(0)
           ),
           "System"/(
-            "arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V" x5 {
-              vt => (src, srcIndex, dest, destIndex, length) =>
-                src.
+            "arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V" x { vt =>
+              val (src, srcIndex, dest, destIndex, length) = (vt.pop, vt.pop, vt.pop, vt.pop, vt.pop)
+              System.arraycopy(vt.vm.Heap, src + srcIndex + 2, vt.vm.Heap, dest + destIndex + 2, length)
 
-            }
-            ///"nanoTime()J" x value(System.nanoTime()),
-            //"currentTimeMillis()J" x value(System.currentTimeMillis())
+            },
+            "nanoTime()J" x value(J)(0, System.nanoTime()),
+            "currentTimeMillis()J" x value(J)(0, System.currentTimeMillis())
           ),
           "String"/(
-            "<clinit>()V" x noOp
+            "<clinit>()V" x noOp(0)
           ),
           "System"/(
-            "registerNatives()V" x noOp
+            "registerNatives()V" x noOp(0)
           )
         )
       )

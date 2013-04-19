@@ -14,7 +14,8 @@ public class Objects {
     }
     public static double points(int n){
         Point p = new Point(10, 10);
-        return p.distanceSq(n, -n);
+        return p.getX();
+        //return p.distanceSq(n, -n);
     }
     public static double points2(int n){
         Point p = new Point(10, 10);

@@ -100,10 +100,10 @@ object Code{
     } orElse Attached.read.andThen{ a =>
       attached ::= a
     }
+
     for(node <- nodes){
       f.lift(node)
     }
-
 
     Code(instructions, allAttached)
   }
@@ -126,5 +126,6 @@ object Attached{
   def read(implicit labelMap: Map[Label, Int]): PartialFunction[Any, Attached] = {
     case x: FrameNode       => Frame(x.`type`, x.local.safeSeq, x.stack.safeSeq)
     case x: LineNumberNode  => LineNumber(x.line, x.start.getLabel)
+
   }
 }
