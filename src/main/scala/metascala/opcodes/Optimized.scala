@@ -37,7 +37,6 @@ object Optimized {
     def op(vt: Thread) = {
       import vt.vm
       val args = vt.popArgs(argCount)
-      println("ARGS " + args.toList)
       val objCls =
         args.head match{
           case a if a.isObj => a.obj.cls

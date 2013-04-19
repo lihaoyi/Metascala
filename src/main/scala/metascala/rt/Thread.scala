@@ -49,7 +49,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     val insnsList = frame.method.insns
     val node = insnsList(frame.pc)
 
-    //println(indent + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.stackDump)
+//    println(indent + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.stackDump)
 //    println(indent + "---------------------- " + frame.pc + "\t" + node )
 //    println(indent + vm.Heap.dump)
     frame.pc += 1
@@ -218,7 +218,9 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
 
     mRef match{
-      case rt.Method.Native(clsName, imm.Sig(name, desc), op) => op(this)
+      case rt.Method.Native(clsName, imm.Sig(name, desc), op) =>
+        threadStack.headOption.map(f => args.map(f.push))
+        op(this)
       case m @ rt.Method.Cls(cls, methodIndex, method) =>
         assert((m.method.access & Access.Native) == 0, "method cannot be native: " + cls.name + " " + method.name)
 
@@ -285,14 +287,18 @@ class Frame(var pc: Int = 0,
             val method: rt.Method.Cls,
             val locals: mutable.Seq[Val] = mutable.Seq.empty){
 
-  private[this] val stack = new Array[Int](method.method.misc.maxStack)
+  private[this] val stack = new Array[Int](method.method.misc.maxStack + 1)
   private[this] var index = 0
   def push(n: Int) = {
+
     stack(index) = n
     index += 1
+    println("INDEX " + index)
   }
   def pop = {
     index -= 1
+
+    println("INDEX " + index)
     stack(index)
   }
 

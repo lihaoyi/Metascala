@@ -10,7 +10,6 @@ import rt.Thread
 
 object StackManip {
 
-
   class ManipOpCode(transform: List[Val] => List[Val]) extends OpCode{
     def op(vt: Thread) =  {
       var i = vt.frame.stackDump.length min 4
