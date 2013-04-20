@@ -44,10 +44,8 @@ object Optimized {
           case 0 => throwNPE(vt)
           case a =>
             val objCls: rt.Cls =
-              if (a.isObj)
-                a.obj.cls
-              else
-                "java/lang/Object"
+              if (a.isObj) a.obj.cls
+              else "java/lang/Object"
 
             val mRef = objCls.vTable(vTableIndex)
             vt.prepInvoke(mRef, args)
@@ -57,37 +55,32 @@ object Optimized {
 
   case class GetStatic(cls: rt.Cls, index: Int, size: Int) extends OpCode{
     def op(vt: Thread) = {
-      for(i <- 0 until size) vt.push(cls.statics(index + i))
+      vt.pushFrom(cls.statics, index, size)
     }
   }
   case class PutStatic(cls: rt.Cls, index: Int, size: Int) extends OpCode{
     def op(vt: Thread) = {
-      for(i <- 0 until size) cls.statics(index + i) = vt.pop
+      vt.popTo(cls.statics, index, size)
     }
   }
+
   case class GetField(index: Int, size: Int) extends OpCode{
 
     def op(vt: Thread) = {
       import vt.vm
+
       val addr = vt.pop
       if (addr == 0) throwNPE(vt)
-      else
-        for(i <- 0 until size){
-          vt.push(addr.obj.members(index + i))
-        }
+      else vt.pushFrom(addr.obj.members, index+1, size)
     }
   }
   case class PutField(index: Int, size: Int) extends OpCode{
     def op(vt: Thread) = {
       import vt.vm
-      val values = for(i <- 0 until size) yield vt.pop
-      val addr = vt.pop
 
+      val addr = vt.frame.stack(vt.frame.index - size)
       if(addr == 0) throwNPE(vt)
-      else
-        for(i <- 0 until size){
-          addr.obj.members(index + i) = values(i)
-        }
+      else vt.popTo(addr.obj.members, index, size)
     }
   }
 }

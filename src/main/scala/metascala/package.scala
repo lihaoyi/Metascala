@@ -26,18 +26,22 @@ package object metascala {
 
   type Val = Int
 
-
   implicit class poppable(val vt: Thread) extends AnyVal{
     def pop = vt.frame.pop
+    def popTo(dest: mutable.Seq[Val], index: Int, n: Int) = {
+      for(i <- (n-1) to 0 by -1){
+        dest(index + i) = pop
+      }
+    }
     def push(x: Val): Unit = vt.frame.push(x)
-    def push(x: (Val, Val)): Unit = {
-      push(x._1)
-      push(x._2)
+    def pushFrom(src: Seq[Val], index: Int, n: Int) = {
+      for(i <- 0 until n){
+        push(src(index + i))
+      }
     }
     def popArgs(n: Int) = {
       val args = new Array[Val](n)
-      var i = n-1
-      while(i >= 0) {args(i) = vt.frame.pop; i-=1}
+      popTo(args, 0, n)
       args
     }
   }

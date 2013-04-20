@@ -49,7 +49,6 @@ object LoadStore {
     def op(vt: Thread) = {
 
       import vt.vm
-      import vm._
       const match{
         case s: String => Virtualizer.pushVirtual(s, vt.push)
         case t: asm.Type => vt.push(vrt.Obj.allocate("java/lang/Class").address)
@@ -72,18 +71,18 @@ object LoadStore {
   val Ldc2W = UnusedOpCode
   //===============================================================
 
-  abstract class Load(size: Int) extends OpCode{
-    def op(vt: Thread) = for (i <- (size-1) to 0 by -1){
-      vt.push(vt.frame.locals(index + i))
+  abstract class Load[T](p: Prim[T]) extends OpCode{
+    def op(vt: Thread) = {
+      vt.pushFrom(vt.frame.locals, index, p.size)
     }
     def index: Int
   }
 
-  case class ILoad(index: Int) extends Load(1)
-  case class LLoad(index: Int) extends Load(2)
-  case class FLoad(index: Int) extends Load(1)
-  case class DLoad(index: Int) extends Load(2)
-  case class ALoad(index: Int) extends Load(1)
+  case class ILoad(index: Int) extends Load(I)
+  case class LLoad(index: Int) extends Load(J)
+  case class FLoad(index: Int) extends Load(F)
+  case class DLoad(index: Int) extends Load(D)
+  case class ALoad(index: Int) extends Load(I)
 
 
 
@@ -121,10 +120,7 @@ object LoadStore {
       val index = vt.pop
       val arr = vt.pop.arr
       checkBounds(index, arr, vt){
-
-        for(i <- 0 until p.size){
-          vt.push(arr(index * p.size + i))
-        }
+        vt.pushFrom(arr, index * p.size, p.size)
       }
     }
   }
@@ -138,18 +134,16 @@ object LoadStore {
   case object CALoad extends LoadArray(C)
   case object SALoad extends LoadArray(S)
 
-  abstract class Store(size: Int) extends OpCode{
+  abstract class Store[T](p: Prim[T]) extends OpCode{
     def index: Int
-    def op(vt: Thread) = for (i <- 0 until size){
-      vt.frame.locals(index + i) = vt.pop
-    }
+    def op(vt: Thread) = vt.popTo(vt.frame.locals, index, p.size)
   }
 
-  case class IStore(index: Int) extends Store(1)
-  case class LStore(index: Int) extends Store(2)
-  case class FStore(index: Int) extends Store(1)
-  case class DStore(index: Int) extends Store(2)
-  case class AStore(index: Int) extends Store(1)
+  case class IStore(index: Int) extends Store(I)
+  case class LStore(index: Int) extends Store(J )
+  case class FStore(index: Int) extends Store(F)
+  case class DStore(index: Int) extends Store(D)
+  case class AStore(index: Int) extends Store(I)
 
   // Not used, because ASM converts these to raw XStore(index: Int)s
   //===============================================================
@@ -197,7 +191,6 @@ object LoadStore {
       val index = vt.pop
       val arr = vt.pop.arr
       checkBounds(index, arr, vt){
-
         p.write(value, writer(arr, index * p.size))
       }
     }

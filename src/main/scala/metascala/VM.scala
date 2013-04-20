@@ -28,7 +28,6 @@ class VM(val natives: Bindings = Bindings.default, val log: ((=>String) => Unit)
     def update(n: Int, v: Int) = memory.update(n, v)
     def dump = {
 
-
       memory.take(freePointer)
             .grouped(10)
             .map(_.map(_+""))
@@ -107,15 +106,10 @@ class VM(val natives: Bindings = Bindings.default, val log: ((=>String) => Unit)
       native.orElse(method)
         .getOrElse(throw new Exception(s"Can't find method ${owner.unparse} ${sig.name} ${sig.desc.unparse}"))
     )
-
-
   }
 }
 
-case class UncaughtVmException(wrapped: Throwable)
-                               extends Exception(wrapped){
-
-}
+case class UncaughtVmException(wrapped: Throwable) extends Exception(wrapped)
 
 /**
  * A generic cache, which provides pre-processing of keys and post processing of values.

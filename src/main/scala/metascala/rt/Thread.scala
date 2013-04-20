@@ -58,15 +58,17 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     ).toArray
   }
 
-  def returnVal(x: Int) = {
-    val oldTop = threadStack.pop()
+  def returnVal(n: Int) = {
 
-    threadStack.headOption match{
+
+    threadStack.lift(1) match{
       case Some(frame) =>
-        val tmp = for (i <- 0 until x) yield oldTop.pop
-        for (i <- tmp.reverse) frame.push(i)
+        val x = this.popArgs(n)
+        this.threadStack.pop
+        this.pushFrom(x, 0, n)
       case None =>
-        returnedVal = Virtualizer.popVirtual(oldTop.method.method.desc.ret, () => oldTop.pop)
+        returnedVal = Virtualizer.popVirtual(frame.method.method.desc.ret, () => frame.pop)
+        this.threadStack.pop
     }
   }
 
@@ -103,8 +105,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
   final def prepInvoke(mRef: rt.Method,
                        args: Seq[Int]) = {
-    //println(indent + "PrepInvoke " + mRef + " with " + args)
-
+//    println(indent + "PrepInvoke " + mRef + " with " + args)
 
     mRef match{
       case rt.Method.Native(clsName, imm.Sig(name, desc), op) =>
@@ -129,14 +130,14 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
                        : Unit = {
 
     val tmp = mutable.Buffer.empty[Val]
-    for(arg <- args.reverse){
-      Virtualizer.pushVirtual(arg, {v =>
-        tmp.append(v)
-      })
-    }
+
+    args.map(
+      Virtualizer.pushVirtual(_, tmp.append(_: Int))
+    )
+
     prepInvoke(
       vm.resolveDirectRef(tpe.cast[imm.Type.Cls], sig).get,
-      tmp.reverse
+      tmp
     )
 
 
@@ -174,8 +175,8 @@ class Frame(var pc: Int = 0,
             val method: rt.Method.Cls,
             val locals: mutable.Seq[Val] = mutable.Seq.empty){
 
-  private[this] val stack = new Array[Int](method.method.misc.maxStack)
-  private[this] var index = 0
+  val stack = new Array[Int](method.method.misc.maxStack)
+  var index = 0
   def push(n: Int) = {
 
     stack(index) = n
