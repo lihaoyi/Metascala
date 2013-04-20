@@ -26,6 +26,7 @@ package object metascala {
   trait Prim[T]{
     def read(x: => Val): T
     def write(x: T, out: Val => Unit): Unit
+    def size: Int
   }
 
   type Z = Boolean
@@ -33,6 +34,7 @@ package object metascala {
     def apply(x: Val) = x != 0
     def read(x: => Val) = this(x)
     def write(x: Boolean, out: Val => Unit) = out(if (x) 1 else 0)
+    def size = 1
   }
 
   type B = Byte
@@ -40,6 +42,7 @@ package object metascala {
     def apply(x: Val) = x.toByte
     def read(x: => Val) = this(x)
     def write(x: Byte, out: Val => Unit) = out(x)
+    def size = 1
   }
 
   type C = Char
@@ -47,6 +50,7 @@ package object metascala {
     def apply(x: Val) = x.toChar
     def read(x: => Val) = this(x)
     def write(x: Char, out: Val => Unit) = out(x)
+    def size = 1
   }
 
   type S = Short
@@ -54,6 +58,7 @@ package object metascala {
     def apply(x: Val) = x.toShort
     def read(x: => Val) = this(x)
     def write(x: Short, out: Val => Unit) = out(x)
+    def size = 1
   }
 
   type I = Int
@@ -61,6 +66,7 @@ package object metascala {
     def apply(x: Val) = x
     def read(x: => Val) = this(x)
     def write(x: Int, out: Val => Unit) = out(x)
+    def size = 1
   }
 
   type F = Float
@@ -68,6 +74,7 @@ package object metascala {
     def apply(x: Val) = java.lang.Float.intBitsToFloat(x)
     def read(x: => Val) = this(x)
     def write(x: Float, out: Val => Unit) = out(java.lang.Float.floatToRawIntBits(x))
+    def size = 1
   }
 
   type J = Long
@@ -81,6 +88,7 @@ package object metascala {
       out((x >> 32).toInt)
       out(x.toInt)
     }
+    def size = 2
   }
 
   type D = Double
@@ -88,6 +96,7 @@ package object metascala {
     def apply(v1: Val, v2: Val) = java.lang.Double.longBitsToDouble(J(v1, v2))
     def read(x: => Val) = java.lang.Double.longBitsToDouble(J.read(x))
     def write(x: Double, out: Val => Unit) = J.write(java.lang.Double.doubleToRawLongBits(x), out)
+    def size = 2
   }
 
   type Val = Int

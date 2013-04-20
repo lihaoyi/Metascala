@@ -99,7 +99,6 @@ object StackManip {
   class UnaryOp[A, R](a: Prim[A], out: Prim[R])(func: A => R) extends OpCode{
     def op(vt: Thread) = {
       val x = func(a.read(vt.pop))
-      println("UnaryOp " + x)
       out.write(x, vt.push)
     }
   }

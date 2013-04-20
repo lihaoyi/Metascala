@@ -49,14 +49,27 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     val insnsList = frame.method.insns
     val node = insnsList(frame.pc)
 
-    //println(indent + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.stackDump)
-    //println(indent + "---------------------- " + frame.pc + "\t" + node )
-    //println(indent + vm.Heap.dump.replace("\n", "\n" + indent))
+//    println(indent + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.stackDump)
+//    println(indent + "---------------------- " + frame.pc + "\t" + node )
+//    println(indent + vm.Heap.dump.replace("\n", "\n" + indent))
     frame.pc += 1
     opCount += 1
-
     node.op(this)
+
   }
+
+  def trace = {
+
+    threadStack.map( f =>
+      new StackTraceElement(
+        f.runningClass.name,
+        f.method.method.name,
+        f.runningClass.clsData.misc.sourceFile.getOrElse("<unknown file>"),
+        0
+      )
+    ).toArray
+  }
+
   def returnVal(x: Int) = {
     val oldTop = threadStack.pop()
 
@@ -135,8 +148,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
           obj
         }
 
-
-
       case t @ imm.Type.Arr(tpe) =>
 
         val address = src
@@ -171,6 +182,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     pushVirtual(thing, tmp.push(_))
     tmp
   }
+
   def pushVirtual(thing: Any, out: Val => Unit): Unit = {
     thing match {
       case null => out(0)
@@ -184,8 +196,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       case b: Double  => D.write(b, out)
       case b: Array[_] =>
         val arr = vrt.Arr.allocate(imm.Type.Arr.read(b.getClass.getName).innerType,
-          b.map{x =>
-            pushVirtual(x)(0)
+          b.flatMap{x =>
+            pushVirtual(x)
           }
         )
         out(arr.address)

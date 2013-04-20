@@ -85,20 +85,23 @@ object Arr{
 
   val arrayTypeCache = mutable.Buffer.empty[imm.Type]
 
-
+  /**
+   * Allocates and returns an array of the specified type, with `n` elements.
+   * This is multiplied with the size of the type being allocated when
+   * calculating the total amount of memory benig allocated
+   */
   def allocate(t: imm.Type, n: scala.Int)(implicit vm: VM): Arr = {
-    vrt.Arr.allocate(t, Array.fill[Int](n)(0))
+    vrt.Arr.allocate(t, Array.fill[Int](n * t.size)(0))
   }
   def allocate(innerType: imm.Type, backing: Array[Int])(implicit vm: VM): Arr = {
     val address = vm.Heap.allocate(2 + backing.length)
     vm.Heap(address) = arrayTypeCache.length
 
     arrayTypeCache.append(innerType)
-    vm.Heap(address + 1) = backing.length
+    vm.Heap(address + 1) = backing.length / innerType.size
     backing.copyToArray(vm.Heap.memory, address + 2)
 
-    (new Arr(address))
-
+    new Arr(address)
   }
   def unapply(x: Int)(implicit vm: VM): Option[Arr] = Some(new Arr(x))
 }
@@ -121,7 +124,7 @@ class Arr(val address: scala.Int)(implicit vm: VM) {
   def update(index: scala.Int, value: Val) = vm.Heap(address + index + 2) = value
   override def toString = s"vrt.Arr(${innerType.getClass})"
 
-  def view = vm.Heap.memory.slice(address, address + length + 2).toList
+  def view = vm.Heap.memory.slice(address, address + length * innerType.size + 2).toList
 }
 
 

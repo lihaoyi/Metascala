@@ -9,6 +9,21 @@ public class ArrayStuff {
         float[] arr = {0.25f, 0.5f, 0.75f};
         return arr;
     }
+    public static long longArrayOps(int n){
+        long[] arr = {12345, 67890, 12345};
+        return arr[n];
+    }
+    public static double[] doubleArrayOps(double[] in){
+        for(int i = 0; i < in.length; i++){
+            in[i] = in[i] + i;
+        }
+
+        for(int i = 0; i < in.length; i++){
+            in[i] *= in[i];
+        }
+        return in;
+
+    }
     public static String[] makeStringArray(){
         String[] arr = {"omg", "wtf", "bbq"};
         return arr;
@@ -46,8 +61,5 @@ public class ArrayStuff {
             }
         }
         return arr;
-    }
-    public static void main(String[] args){
-
     }
 }

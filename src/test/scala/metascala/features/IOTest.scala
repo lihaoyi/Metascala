@@ -5,6 +5,7 @@ import org.scalatest.FreeSpec
 import metascala.Gen._
 import util.{Failure, Try}
 import metascala.{UncaughtVmException, BufferLog, Gen, Util}
+import metascala.Util.SingleClassVM
 
 class IOTest extends FreeSpec with Util{
 
@@ -26,12 +27,11 @@ class IOTest extends FreeSpec with Util{
 
   }
   "exceptions" -{
-    val tester = new Tester("metascala.io.Exceptions")
+    val tester = new SingleClassVM("metascala.io.Exceptions", x => ())
     "runtime" in {
+      val svmRes = Try(tester.run("runtime"))
 
-      val x = Try(tester.svm.invoke("metascala/io/Exceptions", "runtime", Nil))
-      val Failure(UncaughtVmException(wrapped)) = x
-
+      val Failure(UncaughtVmException(wrapped)) = svmRes
     }
   }
 

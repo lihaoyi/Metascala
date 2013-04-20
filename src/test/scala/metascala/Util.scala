@@ -75,10 +75,8 @@ object Util{
   }
 
   class SingleClassVM(className: String, log: (=>String) => Unit) extends VM(log = log){
-
     def run(main: String, args: Any*): Any ={
       val res = invoke(className.replace('.', '/'), main, args)
-
       res
     }
   }

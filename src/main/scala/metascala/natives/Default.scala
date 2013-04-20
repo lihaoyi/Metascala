@@ -52,13 +52,16 @@ trait Default extends Bindings{
         "lang"/(
           "Class"/(
             "desiredAssertionStatus0(Ljava/lang/Class;)Z" x value(I)(0, 0),
-            "getClassLoader0()Ljava/lang/ClassLoader;" x value(I)(0, 0),
+            "getClassLoader0()Ljava/lang/ClassLoader;" x value(I)(1, 0),
             "getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;" x {vt =>
               import vt.vm
               vt.push(vrt.Obj.allocate("java/lang/Class",
                 "name" -> vt.pop
               ).address)
             },
+            "registerNatives()V" x noOp(0)
+          ),
+          "ClassLoader"/(
             "registerNatives()V" x noOp(0)
           ),
           "Double"/(
@@ -88,34 +91,21 @@ trait Default extends Bindings{
               vm.ClsTable
               vt.push(vrt.Obj.allocate("java/lang/Class").address)
             },
+            "hashCode()I" x noOp(0),
             "registerNatives()V" x noOp(0)
           ),
-          "Throwable"/(
-            "fillInStackTrace()Ljava/lang/Throwable;" x {vt =>
-              import vt.vm
-              //vt.pop // pop dummy
-              val throwable = vt.pop.obj
-              val trace = vrt.Arr.allocate(imm.Type.Cls("java/lang/StackTraceElement"),
-                vt.threadStack.map( f =>
-                  vrt.Obj.allocate(imm.Type.Cls("java/lang/StackTraceElement").cls,
-                    "declaringClass" -> vt.pushVirtual(f.runningClass.name)(0),
-                    "methodName" -> vt.pushVirtual(f.method.method.name)(0),
-                    "fileName" -> vt.pushVirtual(f.runningClass.clsData.misc.sourceFile.getOrElse("<unknown file>"))(0),
-                    "lineNumber" -> 0
-                  ).address
-                ).toArray
-              )
-              throwable("stackTrace") = trace.address
-
-              vt.push(throwable.address)
-            }
+          "Runtime"/(
+            "freeMemory()J" x value(J)(1, 4*1024*1024)
           ),
 
           "System"/(
             "arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V" x { vt =>
               val Seq(src, srcIndex, dest, destIndex, length) = Seq(vt.pop, vt.pop, vt.pop, vt.pop, vt.pop).reverse
               System.arraycopy(vt.vm.Heap.memory, src + srcIndex + 2, vt.vm.Heap.memory, dest + destIndex + 2, length)
+            },
 
+            "identityHashCode(Ljava/lang/Object;)I" x { vt =>
+              vt.push(vt.pop)
             },
             "nanoTime()J" x value(J)(0, System.nanoTime()),
             "currentTimeMillis()J" x value(J)(0, System.currentTimeMillis())
@@ -125,9 +115,63 @@ trait Default extends Bindings{
           ),
           "System"/(
             "registerNatives()V" x noOp(0)
+          ),
+          "Thread"/(
+            "registerNatives()V" x noOp(0),
+            "currentThread()Ljava/lang/Thread;" x {vt =>
+              import vt.vm
+              vt.push(vrt.Obj.allocate("java/lang/Thread").address)
+            }
+          ),
+          "Throwable"/(
+            "fillInStackTrace()Ljava/lang/Throwable;" x {vt =>
+              import vt.vm
+              //vt.pop // pop dummy
+              val throwable = vt.pop.obj
+              val trace = vt.trace
+              throwable("stackTrace") = vt.pushVirtual(vt.trace)(0)
+
+              vt.push(throwable.address)
+            }
+          )
+
+        ),
+        "security"/(
+          "AccessController"/(
+            "doPrivileged(L//PrivilegedAction;)L/lang/Object;" x { vt =>
+              import vt.vm
+              val pa = vt.pop.obj
+              vt.prepInvoke(pa.cls.clsData.tpe, pa.cls.clsData.methods.find(_.name == "run").get.sig, Seq(pa))
+            }
+
+          )
+        )
+      ),
+      "sun"/(
+        "misc"/(
+          "Unsafe"/(
+            "arrayBaseOffset(Ljava/lang/Class;)I" x value(I)(2, 2),
+            "arrayIndexScale(Ljava/lang/Class;)I" x value(I)(2, 1),
+            "addressSize()I" x value(I)(1, 4),
+            "registerNatives()V" x noOp(0)
+          )
+        ),
+        "reflect"/(
+          "Reflection"/(
+            "getCallerClass(I)Ljava/lang/Class;" x { vt =>
+              import vt.vm;
+              val n = vt.pop
+              val name = vt.threadStack(n).runningClass.name
+              val clsObj = vrt.Obj.allocate("java/lang/Class",
+                "name" -> vt.pushVirtual(name)(0)
+              )
+              vt.push(clsObj.address)
+
+            }
           )
         )
       )
+
     ).toRoute()
   }
 

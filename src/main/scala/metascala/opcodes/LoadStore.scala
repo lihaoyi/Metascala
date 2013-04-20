@@ -115,25 +115,28 @@ object LoadStore {
   val ALoad3 = UnusedOpCode
   //===============================================================
 
-  class PushFromArray() extends OpCode{
+  class LoadArray[T](p: Prim[T]) extends OpCode{
     def op(vt: Thread) = {
       import vt.vm
       val index = vt.pop
       val arr = vt.pop.arr
       checkBounds(index, arr, vt){
-        vt.push(arr(index))
+
+        for(i <- 0 until p.size){
+          vt.push(arr(index * p.size + i))
+        }
       }
     }
   }
 
-  case object IALoad extends PushFromArray()
-  case object LALoad extends PushFromArray()
-  case object FALoad extends PushFromArray()
-  case object DALoad extends PushFromArray()
-  case object AALoad extends PushFromArray()
-  case object BALoad extends PushFromArray()
-  case object CALoad extends PushFromArray()
-  case object SALoad extends PushFromArray()
+  case object IALoad extends LoadArray(I)
+  case object LALoad extends LoadArray(J)
+  case object FALoad extends LoadArray(F)
+  case object DALoad extends LoadArray(D)
+  case object AALoad extends LoadArray(I)
+  case object BALoad extends LoadArray(B)
+  case object CALoad extends LoadArray(C)
+  case object SALoad extends LoadArray(S)
 
   abstract class Store(size: Int) extends OpCode{
     def index: Int
@@ -189,13 +192,14 @@ object LoadStore {
   class StoreArray[T](p: Prim[T]) extends OpCode{
     def op(vt: Thread) = {
       import vt.vm
+
       val value = p.read(vt.pop)
       val index = vt.pop
       val arr = vt.pop.arr
       checkBounds(index, arr, vt){
         var i = 0
         p.write(value, { x =>
-          arr(index + i) = x
+          arr(index * p.size + i) = x
           i += 1
         })
       }

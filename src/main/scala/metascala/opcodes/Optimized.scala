@@ -73,7 +73,7 @@ object Optimized {
       if (addr == 0) throwNPE(vt)
       else
         for(i <- 0 until size){
-          vt.push(addr.obj.members(index))
+          vt.push(addr.obj.members(index + i))
         }
     }
   }

@@ -156,7 +156,7 @@ object Misc {
         case 8  => 'B'
         case 9  => 'S'
         case 10 => 'I'
-        case 11 => 'L'
+        case 11 => 'J'
       }
       val newArray = vrt.Arr.allocate(imm.Type.Prim(tpeChar), count)
       vt.push(newArray.address)

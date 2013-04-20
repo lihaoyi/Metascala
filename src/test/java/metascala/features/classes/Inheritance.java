@@ -1,5 +1,9 @@
 package metascala.features.classes;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Vector;
+
 public class Inheritance {
     public static String implement(int n){
         Baas b = new Sheep();
@@ -25,6 +29,19 @@ public class Inheritance {
 
     public static String superMethod(){
         return new Toyota().superVStart();
+    }
+    public static int collections(int n){
+        Vector<Integer> vec = new Vector<>();
+        for(int i = 0; i < n; i++){
+            vec.add(i);
+        }
+        Map<Integer, String> map = new HashMap<>();
+        int total = 0;
+        for(int v: vec){
+            total = total + v;
+            map.put(v, ""+total);
+        }
+        return Integer.parseInt(map.get(n/2));
     }
 }
 class Sheep implements Baas{
