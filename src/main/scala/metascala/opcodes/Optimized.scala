@@ -71,16 +71,19 @@ object Optimized {
 
       val addr = vt.pop
       if (addr == 0) throwNPE(vt)
-      else vt.pushFrom(addr.obj.members, index+1, size)
+      else vt.pushFrom(addr.obj.members, index, size)
     }
   }
   case class PutField(index: Int, size: Int) extends OpCode{
     def op(vt: Thread) = {
       import vt.vm
 
-      val addr = vt.frame.stack(vt.frame.index - size)
+      val addr = vt.frame.stack(vt.frame.index - size - 1)
       if(addr == 0) throwNPE(vt)
-      else vt.popTo(addr.obj.members, index, size)
+      else {
+        vt.popTo(addr.obj.members, index, size)
+        vt.pop
+      }
     }
   }
 }

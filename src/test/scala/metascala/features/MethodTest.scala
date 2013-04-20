@@ -27,7 +27,7 @@ class MethodTest extends FreeSpec with Util{
   }
   "objects" - {
     val tester = new Tester("metascala.features.methods.Objects")
-    "dumbobjects" in tester.run("helloWorld", 5)
+    "helloWorld" in tester.run("helloWorld", 5)
     "stringEquals" in chk(tester.run("stringEquals", _: Int, _: String))(
       Seq(0),
       Seq("0")
