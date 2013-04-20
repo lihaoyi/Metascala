@@ -15,7 +15,6 @@ import metascala.imm
 object Obj{
   def allocate(cls: rt.Cls, initMembers: (String, Val)*)(implicit vm: VM): vrt.Obj = {
     val address = vm.Heap.allocate(2 + cls.fieldList.length)
-
     vm.Heap(address) = -cls.index
     val obj = new Obj(address)
     for ((s, v) <- initMembers){
@@ -105,7 +104,7 @@ object Arr{
   }
   def unapply(x: Int)(implicit vm: VM): Option[Arr] = Some(new Arr(x))
 }
-class Arr(val address: scala.Int)(implicit vm: VM) {
+class Arr(val address: scala.Int)(implicit vm: VM) extends mutable.Seq[Int]{
   /**
    * Layout
    * ------
@@ -122,9 +121,11 @@ class Arr(val address: scala.Int)(implicit vm: VM) {
   def length = vm.Heap(address + 1)
   def apply(index: scala.Int) = vm.Heap(address + index + 2)
   def update(index: scala.Int, value: Val) = vm.Heap(address + index + 2) = value
-  override def toString = s"vrt.Arr(${innerType.getClass})"
 
-  def view = vm.Heap.memory.slice(address, address + length * innerType.size + 2).toList
+
+  override def toString = ""+vm.Heap.memory.slice(address, address + length * innerType.size + 2).toList
+
+  def iterator: Iterator[Int] = vm.Heap.memory.view(address, address + length + 2).iterator
 }
 
 

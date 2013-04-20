@@ -78,7 +78,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         val tmp = for (i <- 0 until x) yield oldTop.pop
         for (i <- tmp.reverse) frame.push(i)
       case None =>
-        returnedVal = popVirtual(oldTop.method.method.desc.ret, oldTop.pop)
+        returnedVal = popVirtual(oldTop.method.method.desc.ret, () => oldTop.pop)
     }
   }
 
@@ -105,74 +105,61 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         }
       case None =>
         throw new UncaughtVmException(
-          popVirtual(ex.cls.clsData.tpe, ex.address).cast[Throwable]
+          popVirtual(ex.cls.clsData.tpe, () => ex.address).cast[Throwable]
         )
     }
   }
-  def popVirtual(tpe: imm.Type, src: => Val, refs: mutable.Map[Int, Any] = mutable.Map.empty): Any = {
+  def reader(src: Seq[Val], index: Int) = {
+    var i = index
+    () => {
+      i += 1
+      src(i - 1)
+    }
+  }
+  def writer(src: mutable.Seq[Val], index: Int) = {
+    var i = index
+    (x: Int) => {
+      i += 1
+      src(i - 1) = x
+    }
+  }
+  def popVirtual(tpe: imm.Type, src: () => Val, refs: mutable.Map[Int, Any] = mutable.Map.empty): Any = {
     tpe match {
       case imm.Type.Prim('V') => ()
-      case imm.Type.Prim('Z') => Z(src)
-      case imm.Type.Prim('B') => B(src)
-      case imm.Type.Prim('C') => C(src)
-      case imm.Type.Prim('S') => S(src)
-      case imm.Type.Prim('I') => I(src)
-      case imm.Type.Prim('F') => F(src)
-      case imm.Type.Prim('J') => J.read(src)
-      case imm.Type.Prim('D') => D.read(src)
-      case t @ imm.Type.Cls(name) =>
-
-        val address = src
-        if(address == 0){
-          null
-        }else if (refs.contains(address)) {
-          refs(address)
-        }else{
-          val obj = vrt.unsafe.allocateInstance(Class.forName(address.obj.cls.name.toDot))
-          refs += (address -> obj)
-          var index = 0
-          for(field <- address.obj.cls.fieldList.distinct){
-            // workaround for http://bugs.sun.com/view_bug.do?bug_id=4763881
-            if (field.name == "backtrace"){
-              index += 1
-            }else{
-              val f = getAllFields(obj.getClass).find(_.getName == field.name).get
-              f.setAccessible(true)
-              f.set(obj, popVirtual(field.desc, {
-                val x = vm.Heap(address + 2 + index)
-                index += 1
-                x
-              }, refs))
+      case imm.Type.Prim(c) => prims(c).read(src())
+      case _ => //reference type
+        val address = src()
+        if(address == 0) null
+        else if (refs.contains(address)) refs(address)
+        else tpe match{
+          case t @ imm.Type.Cls(name) =>
+            val obj = vrt.unsafe.allocateInstance(Class.forName(address.obj.cls.name.toDot))
+            refs += (address -> obj)
+            var index = 0
+            for(field <- address.obj.cls.fieldList.distinct){
+              // workaround for http://bugs.sun.com/view_bug.do?bug_id=4763881
+              if (field.name == "backtrace") index += 1
+              else{
+                val f = getAllFields(obj.getClass).find(_.getName == field.name).get
+                f.setAccessible(true)
+                f.set(obj, popVirtual(field.desc, reader(vm.Heap.memory, address + 2 + index), refs))
+                index += field.desc.size
+              }
             }
-          }
-          obj
-        }
+            obj
+          case t @ imm.Type.Arr(tpe) =>
+            val clsObj = forName(tpe.unparse.toDot)
+            val newArr = java.lang.reflect.Array.newInstance(clsObj, address.arr.length)
 
-      case t @ imm.Type.Arr(tpe) =>
+            for(i <- 0 until address.arr.length){
 
-        val address = src
-        if(address == 0){
-          null
-        }else{
-          val clsObj = forName(tpe.unparse.toDot)
-          val newArr = java.lang.reflect.Array.newInstance(clsObj, address.arr.length)
-
-          for(i <- 0 until address.arr.length){
-            val raw = vm.Heap(address + 2 + i)
-            val cooked = tpe.unparse match{
-              case "Z" => raw == 0
-              case "B" => raw.toByte
-              case "C" => raw.toChar
-              case "S" => raw.toShort
-              case "I" => raw.toInt
-              case "F" => F.apply(raw)
-              case "J" => J.apply(0, raw)
-              case "D" => D.apply(0, raw)
-              case x => popVirtual(tpe, raw)
+              val cooked = tpe match{
+                case imm.Type.Prim(c) => prims(c).read(vm.Heap.memory, address + 2 + i)
+                case x => popVirtual(tpe, reader(vm.Heap.memory, address + 2 + i * tpe.size))
+              }
+              java.lang.reflect.Array.set(newArr, i, cooked)
             }
-            java.lang.reflect.Array.set(newArr, i, cooked)
-          }
-          newArr
+            newArr
         }
     }
   }

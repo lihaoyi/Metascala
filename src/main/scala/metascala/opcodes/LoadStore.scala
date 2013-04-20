@@ -197,13 +197,9 @@ object LoadStore {
       val index = vt.pop
       val arr = vt.pop.arr
       checkBounds(index, arr, vt){
-        var i = 0
-        p.write(value, { x =>
-          arr(index * p.size + i) = x
-          i += 1
-        })
-      }
 
+        p.write(value, vt.writer(arr, index * p.size))
+      }
     }
   }
 

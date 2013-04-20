@@ -1,5 +1,5 @@
 import metascala.rt.Thread
-
+import collection.mutable
 
 package object metascala {
   private[metascala] implicit class castable(val x: Any) extends AnyVal{
@@ -25,8 +25,24 @@ package object metascala {
   }
   trait Prim[T]{
     def read(x: => Val): T
+    def read(x: Seq[Val], index: Int): T = {
+      var i = index;
+      read{
+        i += 1
+        x(i - 1)
+      }
+    }
     def write(x: T, out: Val => Unit): Unit
+    def write(x: T, s: mutable.Seq[Val], index: Int): Unit = {
+      var i = index;
+      write(x, { v =>
+        i += 1
+        s(i - 1) = v
+      })
+    }
     def size: Int
+    def boxedClass: Class[_]
+    def primClass: Class[_]
   }
 
   type Z = Boolean
@@ -35,6 +51,8 @@ package object metascala {
     def read(x: => Val) = this(x)
     def write(x: Boolean, out: Val => Unit) = out(if (x) 1 else 0)
     def size = 1
+    def boxedClass = classOf[java.lang.Boolean]
+    def primClass = classOf[Boolean]
   }
 
   type B = Byte
@@ -43,6 +61,8 @@ package object metascala {
     def read(x: => Val) = this(x)
     def write(x: Byte, out: Val => Unit) = out(x)
     def size = 1
+    def boxedClass = classOf[java.lang.Byte]
+    def primClass = classOf[Byte]
   }
 
   type C = Char
@@ -51,6 +71,8 @@ package object metascala {
     def read(x: => Val) = this(x)
     def write(x: Char, out: Val => Unit) = out(x)
     def size = 1
+    def boxedClass = classOf[java.lang.Character]
+    def primClass = classOf[Char]
   }
 
   type S = Short
@@ -59,6 +81,8 @@ package object metascala {
     def read(x: => Val) = this(x)
     def write(x: Short, out: Val => Unit) = out(x)
     def size = 1
+    def boxedClass = classOf[java.lang.Short]
+    def primClass = classOf[Short]
   }
 
   type I = Int
@@ -67,6 +91,8 @@ package object metascala {
     def read(x: => Val) = this(x)
     def write(x: Int, out: Val => Unit) = out(x)
     def size = 1
+    def boxedClass = classOf[java.lang.Integer]
+    def primClass = classOf[Integer]
   }
 
   type F = Float
@@ -75,6 +101,8 @@ package object metascala {
     def read(x: => Val) = this(x)
     def write(x: Float, out: Val => Unit) = out(java.lang.Float.floatToRawIntBits(x))
     def size = 1
+    def boxedClass = classOf[java.lang.Float]
+    def primClass = classOf[Float]
   }
 
   type J = Long
@@ -89,6 +117,8 @@ package object metascala {
       out(x.toInt)
     }
     def size = 2
+    def boxedClass = classOf[java.lang.Long]
+    def primClass = classOf[Long]
   }
 
   type D = Double
@@ -97,10 +127,22 @@ package object metascala {
     def read(x: => Val) = java.lang.Double.longBitsToDouble(J.read(x))
     def write(x: Double, out: Val => Unit) = J.write(java.lang.Double.doubleToRawLongBits(x), out)
     def size = 2
+    def boxedClass = classOf[java.lang.Double]
+    def primClass = classOf[Double]
   }
 
   type Val = Int
 
+  val prims = Map(
+    'Z' -> Z,
+    'B' -> B,
+    'C' -> C,
+    'S' -> S,
+    'I' -> I,
+    'F' -> F,
+    'J' -> J,
+    'D' -> D
+  )
   implicit class poppable(val vt: Thread) extends AnyVal{
     def pop = vt.frame.pop
     def push(x: Val): Unit = vt.frame.push(x)
@@ -123,27 +165,13 @@ package object metascala {
 
   def forNameBoxed(name: String) = {
     name match{
-      case "Z" => classOf[java.lang.Boolean]
-      case "B" => classOf[java.lang.Byte]
-      case "C" => classOf[java.lang.Character]
-      case "S" => classOf[java.lang.Short]
-      case "I" => classOf[java.lang.Integer]
-      case "F" => classOf[java.lang.Float]
-      case "J" => classOf[java.lang.Long]
-      case "D" => classOf[java.lang.Double]
+      case x if prims.contains(x(0)) => prims(x(0)).boxedClass
       case x => Class.forName(x)
     }
   }
   def forName(name: String) = {
     name match{
-      case "Z" => classOf[Boolean]
-      case "B" => classOf[Byte]
-      case "C" => classOf[Char]
-      case "S" => classOf[Short]
-      case "I" => classOf[Int]
-      case "F" => classOf[Float]
-      case "J" => classOf[Long]
-      case "D" => classOf[Double]
+      case x if prims.contains(x(0)) => prims(x(0)).primClass
       case x => Class.forName(x)
     }
   }
