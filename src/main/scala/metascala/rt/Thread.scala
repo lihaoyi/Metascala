@@ -25,18 +25,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
   var returnedVal: Any = 0
 
-  def getStackTrace =
-    threadStack.map { f =>
-      new StackTraceElement(
-        f.runningClass.name,
-        if (f.method.method.code != imm.Code()) f.method.sig.unparse + " " + f.method.method.code.insns(f.pc) else "",
-        f.runningClass.clsData.misc.sourceFile.getOrElse("[no source]"),
-        f.method.method.code.attachments.flatten.reverse.collect{
-          case LineNumber(line, startPc) if startPc < f.pc => line
-        }.headOption.getOrElse(-1)
-      )
-    }.toList
-
   def indent = "\t" * threadStack.filter(_.method.sig.name != "Dummy").length
 
   def swapOpCode(opcode: OpCode) = {
@@ -78,7 +66,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         val tmp = for (i <- 0 until x) yield oldTop.pop
         for (i <- tmp.reverse) frame.push(i)
       case None =>
-        returnedVal = popVirtual(oldTop.method.method.desc.ret, () => oldTop.pop)
+        returnedVal = Virtualizer.popVirtual(oldTop.method.method.desc.ret, () => oldTop.pop)
     }
   }
 
@@ -105,105 +93,12 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         }
       case None =>
         throw new UncaughtVmException(
-          popVirtual(ex.cls.clsData.tpe, () => ex.address).cast[Throwable]
+          Virtualizer.popVirtual(ex.cls.clsData.tpe, () => ex.address).cast[Throwable]
         )
     }
   }
-  def reader(src: Seq[Val], index: Int) = {
-    var i = index
-    () => {
-      i += 1
-      src(i - 1)
-    }
-  }
-  def writer(src: mutable.Seq[Val], index: Int) = {
-    var i = index
-    (x: Int) => {
-      i += 1
-      src(i - 1) = x
-    }
-  }
-  def popVirtual(tpe: imm.Type, src: () => Val, refs: mutable.Map[Int, Any] = mutable.Map.empty): Any = {
-    tpe match {
-      case imm.Type.Prim('V') => ()
-      case imm.Type.Prim(c) => prims(c).read(src())
-      case _ => //reference type
-        val address = src()
-        if(address == 0) null
-        else if (refs.contains(address)) refs(address)
-        else tpe match{
-          case t @ imm.Type.Cls(name) =>
-            val obj = vrt.unsafe.allocateInstance(Class.forName(address.obj.cls.name.toDot))
-            refs += (address -> obj)
-            var index = 0
-            for(field <- address.obj.cls.fieldList.distinct){
-              // workaround for http://bugs.sun.com/view_bug.do?bug_id=4763881
-              if (field.name == "backtrace") index += 1
-              else{
-                val f = getAllFields(obj.getClass).find(_.getName == field.name).get
-                f.setAccessible(true)
-                f.set(obj, popVirtual(field.desc, reader(vm.Heap.memory, address + 2 + index), refs))
-                index += field.desc.size
-              }
-            }
-            obj
-          case t @ imm.Type.Arr(tpe) =>
-            val clsObj = forName(tpe.unparse.toDot)
-            val newArr = java.lang.reflect.Array.newInstance(clsObj, address.arr.length)
 
-            for(i <- 0 until address.arr.length){
 
-              val cooked = tpe match{
-                case imm.Type.Prim(c) => prims(c).read(vm.Heap.memory, address + 2 + i)
-                case x => popVirtual(tpe, reader(vm.Heap.memory, address + 2 + i * tpe.size))
-              }
-              java.lang.reflect.Array.set(newArr, i, cooked)
-            }
-            newArr
-        }
-    }
-  }
-
-  def pushVirtual(thing: Any): Seq[Int] = {
-    val tmp = new mutable.Stack[Int]()
-    pushVirtual(thing, tmp.push(_))
-    tmp
-  }
-
-  def pushVirtual(thing: Any, out: Val => Unit): Unit = {
-    thing match {
-      case null => out(0)
-      case b: Boolean => Z.write(b, out)
-      case b: Byte    => B.write(b, out)
-      case b: Char    => C.write(b, out)
-      case b: Short   => S.write(b, out)
-      case b: Int     => I.write(b, out)
-      case b: Float   => F.write(b, out)
-      case b: Long    => J.write(b, out)
-      case b: Double  => D.write(b, out)
-      case b: Array[_] =>
-        val arr = vrt.Arr.allocate(imm.Type.Arr.read(b.getClass.getName).innerType,
-          b.flatMap{x =>
-            pushVirtual(x)
-          }
-        )
-        out(arr.address)
-      case b: Any =>
-        val obj = vrt.Obj.allocate(b.getClass.getName.toSlash)
-        var index = 0
-        for(field <- obj.cls.clsData.fields.filter(!_.static)){
-          val f = b.getClass.getDeclaredField(field.name)
-          f.setAccessible(true)
-
-          pushVirtual(f.get(b), {x =>
-            vm.Heap(obj.address + 2 + index) = x
-            index += 1
-          })
-        }
-
-        out(obj.address)
-    }
-  }
 
 
   final def prepInvoke(mRef: rt.Method,
@@ -235,7 +130,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     val tmp = mutable.Buffer.empty[Val]
     for(arg <- args.reverse){
-      this.pushVirtual(arg, {v =>
+      Virtualizer.pushVirtual(arg, {v =>
         tmp.append(v)
       })
     }

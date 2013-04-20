@@ -51,7 +51,7 @@ object LoadStore {
       import vt.vm
       import vm._
       const match{
-        case s: String => vt.pushVirtual(s, vt.push)
+        case s: String => Virtualizer.pushVirtual(s, vt.push)
         case t: asm.Type => vt.push(vrt.Obj.allocate("java/lang/Class").address)
         case x: scala.Byte  => B.write(x, vt.push)
         case x: scala.Char  => C.write(x, vt.push)
@@ -185,7 +185,7 @@ object LoadStore {
       thunk
     }else{
       vt.throwException(vrt.Obj.allocate("java/lang/ArrayIndexOutOfBoundsException",
-        "detailMessage" -> vt.pushVirtual(""+index)(0)
+        "detailMessage" -> Virtualizer.pushVirtual(""+index).apply(0)
       ))
     }
   }
@@ -198,7 +198,7 @@ object LoadStore {
       val arr = vt.pop.arr
       checkBounds(index, arr, vt){
 
-        p.write(value, vt.writer(arr, index * p.size))
+        p.write(value, writer(arr, index * p.size))
       }
     }
   }

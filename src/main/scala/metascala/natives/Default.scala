@@ -78,7 +78,7 @@ trait Default extends Bindings{
               val obj = vt.pop.obj
               val stringAddr = {
                 var a = 0
-                vt.pushVirtual(obj.cls.name.toDot, a = _)
+                Virtualizer.pushVirtual(obj.cls.name.toDot, a = _)
                 a
               }
               vt.push(vrt.Obj.allocate("java/lang/Class",
@@ -129,7 +129,7 @@ trait Default extends Bindings{
               //vt.pop // pop dummy
               val throwable = vt.pop.obj
               val trace = vt.trace
-              throwable("stackTrace") = vt.pushVirtual(vt.trace)(0)
+              throwable("stackTrace") = Virtualizer.pushVirtual(vt.trace).apply(0)
 
               vt.push(throwable.address)
             }
@@ -159,11 +159,11 @@ trait Default extends Bindings{
         "reflect"/(
           "Reflection"/(
             "getCallerClass(I)Ljava/lang/Class;" x { vt =>
-              import vt.vm;
+              import vt.vm
               val n = vt.pop
               val name = vt.threadStack(n).runningClass.name
               val clsObj = vrt.Obj.allocate("java/lang/Class",
-                "name" -> vt.pushVirtual(name)(0)
+                "name" -> Virtualizer.pushVirtual(name).apply(0)
               )
               vt.push(clsObj.address)
 
