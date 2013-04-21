@@ -4,11 +4,11 @@ import org.scalatest.FreeSpec
 import collection.mutable
 import Gen._
 class Misc extends FreeSpec with Util{
-  val intStack = new mutable.Stack[Int]()
+  val arr = new Array[Int](2)
   def test[T](p: Prim[T])(cases: Iterable[T]){
     chk{ x: T =>
-      p.write(x, x => intStack.push(x))
-      assert(p.read(intStack.pop) == x)
+      p.write(x, writer(arr, 0))
+      assert(p.read(reader(arr, 0)) === x)
     }(cases)
   }
   "making sure Prim[T] write & pops preserve the value T" - {
@@ -17,6 +17,7 @@ class Misc extends FreeSpec with Util{
     "testC" in test(C)(30 ** Gen.intAll.toChar)
     "testS" in test(S)(30 ** Gen.intAll.toShort)
     "testF" in test(F)(30 ** java.lang.Float.intBitsToFloat(Gen.intAll))
+    "testL" in test(J)(30 ** Gen.longAll)
     "testD" in test(D)(30 ** Gen.doubleAll)
   }
 }

@@ -17,7 +17,7 @@ class ArrayTest extends FreeSpec with Util{
     "makeFloatArray" in tester.run("makeFloatArray")
     "makeStringArray" in tester.run("makeStringArray")
     "longArrayOps" in chk(tester.run("longArrayOps", _: Int))(Seq(0, 1, 2))
-    "doubleArrayOps" in tester.run("doubleArrayOps", Array(0, 1, 2.1))
+    "doubleArrayOps" in tester.run("doubleArrayOps", Array(1.0, 2.0))
 
     "arrayLength" in tester.run("arrayLength")
     "arraySet" in tester.run("arraySet")

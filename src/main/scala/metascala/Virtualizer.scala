@@ -6,7 +6,7 @@ object Virtualizer {
   def popVirtual(tpe: imm.Type, src: () => Val, refs: mutable.Map[Int, Any] = mutable.Map.empty)(implicit vm: VM): Any = {
     tpe match {
       case imm.Type.Prim('V') => ()
-      case imm.Type.Prim(c) => Prim.all(c).read(src())
+      case imm.Type.Prim(c) => Prim.all(c).read(src)
       case _ => //reference type
         val address = src()
         if(address == 0) null
@@ -28,13 +28,14 @@ object Virtualizer {
             }
             obj
           case t @ imm.Type.Arr(tpe) =>
+
             val clsObj = forName(tpe.unparse.toDot)
             val newArr = java.lang.reflect.Array.newInstance(clsObj, address.arr.length)
 
             for(i <- 0 until address.arr.length){
 
               val cooked = tpe match{
-                case imm.Type.Prim(c) => Prim.all(c).read(vm.Heap.memory, address + 2 + i)
+                case imm.Type.Prim(c) => Prim.all(c).read(reader(vm.Heap.memory, address + 2 + i * tpe.size))
                 case x => popVirtual(tpe, reader(vm.Heap.memory, address + 2 + i * tpe.size))
               }
               java.lang.reflect.Array.set(newArr, i, cooked)
@@ -47,7 +48,9 @@ object Virtualizer {
   def pushVirtual(thing: Any)(implicit vm: VM): Seq[Int] = {
     val tmp = new mutable.Stack[Int]()
     pushVirtual(thing, tmp.push(_))
-    tmp
+    println("PushVirtual")
+    println(tmp.toList)
+    tmp.reverse
   }
 
   def pushVirtual(thing: Any, out: Val => Unit)(implicit vm: VM): Unit = {

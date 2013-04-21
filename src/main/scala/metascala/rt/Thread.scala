@@ -60,14 +60,14 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
   def returnVal(n: Int) = {
 
-
     threadStack.lift(1) match{
       case Some(frame) =>
         val x = this.popArgs(n)
         this.threadStack.pop
         this.pushFrom(x, 0, n)
       case None =>
-        returnedVal = Virtualizer.popVirtual(frame.method.method.desc.ret, () => frame.pop)
+        val x = this.popArgs(n)
+        returnedVal = Virtualizer.popVirtual(frame.method.method.desc.ret, reader(x, 0))
         this.threadStack.pop
     }
   }

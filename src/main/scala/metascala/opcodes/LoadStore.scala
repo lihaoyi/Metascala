@@ -186,8 +186,10 @@ object LoadStore {
   class StoreArray[T](p: Prim[T]) extends OpCode{
     def op(vt: Thread) = {
       import vt.vm
-
-      val value = p.read(vt.pop)
+      val top = vt.popArgs(p.size)
+      println(top.toList)
+      val value = p.read(reader(top, 0))
+      println(value)
       val index = vt.pop
       val arr = vt.pop.arr
       checkBounds(index, arr, vt){

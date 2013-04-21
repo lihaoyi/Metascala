@@ -98,15 +98,19 @@ object StackManip {
 
   class UnaryOp[A, R](a: Prim[A], out: Prim[R])(func: A => R) extends OpCode{
     def op(vt: Thread) = {
-      val x = func(a.read(vt.pop))
+      val top = vt.popArgs(a.size)
+      val x = func(a.read(reader(top, 0)))
       out.write(x, vt.push)
     }
   }
   class BinOp[A, B, R](a: Prim[A], b: Prim[B], out: Prim[R])(func: (B, A) => R) extends OpCode{
     def op(vt: Thread) = {
-      val first = a.read(vt.pop)
-      val second = b.read(vt.pop)
+      val top = vt.popArgs(a.size + b.size)
+      println("BinOp " + top.toSeq)
+      val first = a.read(reader(top, b.size))
+      val second = b.read(reader(top, 0))
       val res = func(second, first)
+      println(s"BinOp $first $second $res")
       out.write(res, vt.push)
     }
   }
