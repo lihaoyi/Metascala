@@ -10,7 +10,7 @@ import rt.Thread
 
 object StackManip {
 
-  class ManipOpCode(transform: List[Val] => List[Val]) extends OpCode{
+  case class ManipOpCode(override val toString: String)(transform: List[Val] => List[Val]) extends OpCode{
     def op(vt: Thread) =  {
       var i = vt.frame.stackDump.length min 4
       var list: List[Val] = Nil
@@ -23,27 +23,27 @@ object StackManip {
     }
   }
 
-  case object Pop extends ManipOpCode({ case _ :: s => s })
-  case object Pop2 extends ManipOpCode({
+  val Pop = ManipOpCode("Pop")({ case _ :: s => s })
+  val Pop2 = ManipOpCode("Pop2")({
     case _ :: _ :: s => s
 
   })
-  case object Dup extends ManipOpCode({ case top :: s => top :: top :: s })
-  case object DupX1 extends ManipOpCode({ case top :: x :: s => top :: x :: top :: s })
-  case object DupX2 extends ManipOpCode({
+  val Dup = ManipOpCode("Dup")({ case top :: s => top :: top :: s })
+  val DupX1 = ManipOpCode("DupX1")({ case top :: x :: s => top :: x :: top :: s })
+  val DupX2 = ManipOpCode("DupX2")({
     case top :: y :: x :: s => top :: y :: x :: top :: s
 
   })
-  case object Dup2 extends ManipOpCode({
+  val Dup2 = ManipOpCode("Dup2")({
     case y :: x :: s => y :: x :: y :: x :: s
   })
-  case object Dup2X1 extends ManipOpCode({
+  val Dup2X1 = ManipOpCode("Dup2X1")({
     case a :: b :: x :: s => a :: b :: x :: a :: b :: s
   })
-  case object Dup2X2 extends ManipOpCode({
+  val Dup2X2 = ManipOpCode("Dup2X2")({
     case a :: b :: x :: y :: s => a :: b :: x :: y :: a :: b :: s
   })
-  case object Swap extends ManipOpCode({ case x :: y :: s=> y :: x :: s })
+  val Swap = ManipOpCode("Swap")({ case x :: y :: s=> y :: x :: s })
 
 
   val IAdd = BinOp("IAdd")(I, I, I)(_ + _)
