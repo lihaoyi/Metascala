@@ -43,7 +43,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     frame.pc += 1
     opCount += 1
     node.op(this)
-
   }
 
   def trace = {

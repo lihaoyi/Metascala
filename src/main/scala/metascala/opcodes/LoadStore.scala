@@ -13,36 +13,35 @@ object LoadStore {
     def op(vt: Thread) = ()
   }
 
-  class PushOpCode[A](b: Prim[A])(value: A) extends OpCode{
+  case class Const[A](override val toString: String)(b: Prim[A])(value: A) extends OpCode{
     def op(vt: Thread) = b.write(value, vt.push)
   }
 
-  case object AConstNull extends PushOpCode(I)(0)
-  case object IConstNull extends PushOpCode(I)(-1)
+  val AConstNull = Const("AConstNull")(I)(0)
+  val IConstM1 = Const("IConstM1")(I)(-1)
 
-  case object IConst0 extends PushOpCode(I)(0)
-  case object IConst1 extends PushOpCode(I)(1)
-  case object IConst2 extends PushOpCode(I)(2)
-  case object IConst3 extends PushOpCode(I)(3)
-  case object IConst4 extends PushOpCode(I)(4)
-  case object IConst5 extends PushOpCode(I)(5)
+  val IConst0 = Const("IConst0")(I)(0)
+  val IConst1 = Const("IConst1")(I)(1)
+  val IConst2 = Const("IConst2")(I)(2)
+  val IConst3 = Const("IConst3")(I)(3)
+  val IConst4 = Const("IConst4")(I)(4)
+  val IConst5 = Const("IConst5")(I)(5)
 
-  case object LConst0 extends PushOpCode(J)(0)
-  case object LConst1 extends PushOpCode(J)(1)
+  val LConst0 = Const("LConst0")(J)(0)
+  val LConst1 = Const("LConst1")(J)(1)
 
-  case object FConst0 extends PushOpCode(F)(0)
-  case object FConst1 extends PushOpCode(F)(1)
-  case object FConst2 extends PushOpCode(F)(2)
+  val FConst0 = Const("FConst0")(F)(0)
+  val FConst1 = Const("FConst1")(F)(1)
+  val FConst2 = Const("FConst2")(F)(2)
 
-  case object DConst0 extends PushOpCode(D)(0)
-  case object DConst1 extends PushOpCode(D)(1)
+  val DConst0 = Const("DConst0")(D)(0)
+  val DConst1 = Const("DConst1")(D)(1)
 
-  class PushValOpCode(value: Int) extends OpCode{
+  case class Push(override val toString: String)(value: Int) extends OpCode{
     def op(vt: Thread) = vt.push(value)
   }
-
-  case class BiPush(value: Int) extends PushValOpCode(value)
-  case class SiPush(value: Int) extends PushValOpCode(value)
+  val BiPush = Push("BiPush")(_: Int)
+  val SiPush = Push("SiPush")(_: Int)
 
 
   case class Ldc(const: Any) extends OpCode{
@@ -71,18 +70,19 @@ object LoadStore {
   val Ldc2W = UnusedOpCode
   //===============================================================
 
-  abstract class Load[T](p: Prim[T]) extends OpCode{
+
+  case class Load[T](override val toString: String)(index: Int, p: Prim[T]) extends OpCode{
     def op(vt: Thread) = {
       vt.pushFrom(vt.frame.locals, index, p.size)
     }
-    def index: Int
+
   }
 
-  case class ILoad(index: Int) extends Load(I)
-  case class LLoad(index: Int) extends Load(J)
-  case class FLoad(index: Int) extends Load(F)
-  case class DLoad(index: Int) extends Load(D)
-  case class ALoad(index: Int) extends Load(I)
+  val ILoad = Load("ILoad")(_: Int, I)
+  val LLoad = Load("LLoad")(_: Int, J)
+  val FLoad = Load("FLoad")(_: Int, F)
+  val DLoad = Load("DLoad")(_: Int, D)
+  val ALoad = Load("ALoad")(_: Int, I)
 
 
 
@@ -114,7 +114,7 @@ object LoadStore {
   val ALoad3 = UnusedOpCode
   //===============================================================
 
-  class LoadArray[T](p: Prim[T]) extends OpCode{
+  case class LoadArray[T](override val toString: String)(p: Prim[T]) extends OpCode{
     def op(vt: Thread) = {
       import vt.vm
       val index = vt.pop
@@ -125,25 +125,24 @@ object LoadStore {
     }
   }
 
-  case object IALoad extends LoadArray(I)
-  case object LALoad extends LoadArray(J)
-  case object FALoad extends LoadArray(F)
-  case object DALoad extends LoadArray(D)
-  case object AALoad extends LoadArray(I)
-  case object BALoad extends LoadArray(B)
-  case object CALoad extends LoadArray(C)
-  case object SALoad extends LoadArray(S)
+  val IALoad = LoadArray("IALoad")(I)
+  val LALoad = LoadArray("LALoad")(J)
+  val FALoad = LoadArray("FALoad")(F)
+  val DALoad = LoadArray("DALoad")(D)
+  val AALoad = LoadArray("AALoad")(I)
+  val BALoad = LoadArray("BALoad")(B)
+  val CALoad = LoadArray("CALoad")(C)
+  val SALoad = LoadArray("SALoad")(S)
 
-  abstract class Store[T](p: Prim[T]) extends OpCode{
-    def index: Int
+  case class Store[T](index: Int, p: Prim[T], override val toString: String) extends OpCode{
     def op(vt: Thread) = vt.popTo(vt.frame.locals, index, p.size)
   }
 
-  case class IStore(index: Int) extends Store(I)
-  case class LStore(index: Int) extends Store(J )
-  case class FStore(index: Int) extends Store(F)
-  case class DStore(index: Int) extends Store(D)
-  case class AStore(index: Int) extends Store(I)
+  val IStore = Store(_: Int, I, "IStore")
+  val LStore = Store(_: Int, J, "LStore")
+  val FStore = Store(_: Int, F, "FStore")
+  val DStore = Store(_: Int, D, "DStore")
+  val AStore = Store(_: Int, I, "AStore")
 
   // Not used, because ASM converts these to raw XStore(index: Int)s
   //===============================================================
@@ -183,7 +182,7 @@ object LoadStore {
       ))
     }
   }
-  class StoreArray[T](p: Prim[T]) extends OpCode{
+  case class StoreArray[T](override val toString: String)(p: Prim[T]) extends OpCode{
     def op(vt: Thread) = {
       import vt.vm
       val top = vt.popArgs(p.size)
@@ -198,12 +197,12 @@ object LoadStore {
     }
   }
 
-  case object IAStore extends StoreArray(I)
-  case object LAStore extends StoreArray(J)
-  case object FAStore extends StoreArray(F)
-  case object DAStore extends StoreArray(D)
-  case object AAStore extends StoreArray(I)
-  case object BAStore extends StoreArray(B)
-  case object CAStore extends StoreArray(C)
-  case object SAStore extends StoreArray(S)
+  val IAStore = StoreArray("IAStore")(I)
+  val LAStore = StoreArray("LAStore")(J)
+  val FAStore = StoreArray("FAStore")(F)
+  val DAStore = StoreArray("DAStore")(D)
+  val AAStore = StoreArray("AAStore")(I)
+  val BAStore = StoreArray("BAStore")(B)
+  val CAStore = StoreArray("CAStore")(C)
+  val SAStore = StoreArray("SAStore")(S)
 }

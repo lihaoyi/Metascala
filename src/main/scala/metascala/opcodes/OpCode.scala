@@ -49,7 +49,7 @@ object OpCode {
   val all = Seq(
     Nop,
     AConstNull,
-    IConstNull,
+    IConstM1,
     IConst0,
     IConst1,
     IConst2,

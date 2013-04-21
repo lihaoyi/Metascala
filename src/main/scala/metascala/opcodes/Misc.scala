@@ -32,13 +32,16 @@ object Misc {
       vt.frame.pc = newPc
     }
   }
+  case class ReturnVal(n: Int) extends OpCode{
+    def op(vt: Thread) =  vt.returnVal(n)
+  }
 
-  case object IReturn extends OpCode{ def op(vt: Thread) =  vt.returnVal(1) }
-  case object LReturn extends OpCode{ def op(vt: Thread) =  vt.returnVal(2) }
-  case object FReturn extends OpCode{ def op(vt: Thread) =  vt.returnVal(1) }
-  case object DReturn extends OpCode{ def op(vt: Thread) =  vt.returnVal(2) }
-  case object AReturn extends OpCode{ def op(vt: Thread) =  vt.returnVal(1) }
-  case object Return extends OpCode{ def op(vt: Thread) =  vt.returnVal(0) }
+  val IReturn = ReturnVal(1)
+  val LReturn = ReturnVal(2)
+  val FReturn = ReturnVal(1)
+  val DReturn = ReturnVal(2)
+  val AReturn = ReturnVal(1)
+  val Return = ReturnVal(0)
 
   case class GetStatic(owner: Type.Cls, name: String, desc: Type) extends OpCode{
     def op(vt: Thread) = vt.swapOpCode{

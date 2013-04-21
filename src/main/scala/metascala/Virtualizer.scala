@@ -48,8 +48,6 @@ object Virtualizer {
   def pushVirtual(thing: Any)(implicit vm: VM): Seq[Int] = {
     val tmp = new mutable.Stack[Int]()
     pushVirtual(thing, tmp.push(_))
-    println("PushVirtual")
-    println(tmp.toList)
     tmp.reverse
   }
 
