@@ -177,6 +177,7 @@ object LoadStore {
     if(0 <= index && index < arr.length){
       thunk
     }else{
+
       vt.throwException(vrt.Obj.allocate("java/lang/ArrayIndexOutOfBoundsException",
         "detailMessage" -> Virtualizer.pushVirtual(""+index).apply(0)
       ))

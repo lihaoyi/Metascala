@@ -268,17 +268,10 @@ object Misc {
     }
   }
 
-  case class IfNull(label: Int) extends OpCode{
-    def op(vt: Thread) =  {
-      if (vt.pop == 0) vt.frame.pc = label
-    }
-  }
+  val IfNull = StackManip.UnaryBranch("IfNull")(_: Int, _ == 0)
 
-  case class IfNonNull(label: Int) extends OpCode{
-    def op(vt: Thread) =  {
-      if (vt.pop != 0) vt.frame.pc = label
-    }
-  }
+
+  val IfNonNull = StackManip.UnaryBranch("IfNull")(_: Int, _ != 0)
 
   // Not used, because ASM converts these to normal Goto()s and Jsr()s
   //===============================================================

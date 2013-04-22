@@ -10,7 +10,7 @@ import rt.Thread
 
 object StackManip {
 
-  case class ManipOpCode(override val toString: String)(transform: List[Val] => List[Val]) extends OpCode{
+  case class ManipStack(override val toString: String)(transform: List[Val] => List[Val]) extends OpCode{
     def op(vt: Thread) =  {
       var i = vt.frame.stackDump.length min 4
       var list: List[Val] = Nil
@@ -23,27 +23,15 @@ object StackManip {
     }
   }
 
-  val Pop = ManipOpCode("Pop")({ case _ :: s => s })
-  val Pop2 = ManipOpCode("Pop2")({
-    case _ :: _ :: s => s
-
-  })
-  val Dup = ManipOpCode("Dup")({ case top :: s => top :: top :: s })
-  val DupX1 = ManipOpCode("DupX1")({ case top :: x :: s => top :: x :: top :: s })
-  val DupX2 = ManipOpCode("DupX2")({
-    case top :: y :: x :: s => top :: y :: x :: top :: s
-
-  })
-  val Dup2 = ManipOpCode("Dup2")({
-    case y :: x :: s => y :: x :: y :: x :: s
-  })
-  val Dup2X1 = ManipOpCode("Dup2X1")({
-    case a :: b :: x :: s => a :: b :: x :: a :: b :: s
-  })
-  val Dup2X2 = ManipOpCode("Dup2X2")({
-    case a :: b :: x :: y :: s => a :: b :: x :: y :: a :: b :: s
-  })
-  val Swap = ManipOpCode("Swap")({ case x :: y :: s=> y :: x :: s })
+  val Pop = ManipStack("Pop"){ case _ :: s => s }
+  val Pop2 = ManipStack("Pop2"){ case _ :: _ :: s => s }
+  val Dup = ManipStack("Dup"){ case top :: s => top :: top :: s }
+  val DupX1 = ManipStack("DupX1"){ case top :: x :: s => top :: x :: top :: s }
+  val DupX2 = ManipStack("DupX2"){ case top :: y :: x :: s => top :: y :: x :: top :: s }
+  val Dup2 = ManipStack("Dup2"){ case y :: x :: s => y :: x :: y :: x :: s }
+  val Dup2X1 = ManipStack("Dup2X1"){ case a :: b :: x :: s => a :: b :: x :: a :: b :: s }
+  val Dup2X2 = ManipStack("Dup2X2"){ case a :: b :: x :: y :: s => a :: b :: x :: y :: a :: b :: s }
+  val Swap = ManipStack("Swap"){ case x :: y :: s=> y :: x :: s }
 
 
   val IAdd = BinOp("IAdd")(I, I, I)(_ + _)
@@ -165,7 +153,6 @@ object StackManip {
                          (label: Int, pred: (Int, Int) => Boolean) extends OpCode{
 
     def op(vt: Thread) =  {
-
       val (a, b) = (vt.pop, vt.pop)
       if(pred(b, a)) vt.frame.pc = label
     }
