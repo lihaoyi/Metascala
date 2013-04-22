@@ -22,6 +22,6 @@ class ClassesTest extends FreeSpec with Util{
     "shadowedInheritedGet" in tester.run("shadowedInheritedGet")
     "shadowedInheritedSet" in tester.run("shadowedInheritedSet")
     "superMethod" in tester.run("superMethod")
-   // "collections" in tester.run("collections", 10)
+    "collections" in tester.run("collections", 10)
   }
 }

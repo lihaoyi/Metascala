@@ -99,11 +99,9 @@ object StackManip {
                       (func: (B, A) => R) extends OpCode{
     def op(vt: Thread) = {
       val top = vt.popArgs(a.size + b.size)
-      println("BinOp " + top.toSeq)
       val first = a.read(reader(top, b.size))
       val second = b.read(reader(top, 0))
       val res = func(second, first)
-      println(s"BinOp $first $second $res")
       out.write(res, vt.push)
     }
   }

@@ -30,7 +30,7 @@ object Optimized {
   case class InvokeSpecial(mRef: rt.Method, argCount: Int) extends OpCode{
     def op(vt: Thread) = {
       val args = vt.popArgs(argCount+1)
-      if (args.head == 0) throwNPE(vt)
+      if (args.head == 0) vt.throwExWithTrace("java/lang/NullPointerException", "null")
       else vt.prepInvoke(mRef, args)
     }
   }
@@ -41,7 +41,7 @@ object Optimized {
       val args = vt.popArgs(argCount)
 
       args.head match{
-          case 0 => throwNPE(vt)
+          case 0 => vt.throwExWithTrace("java/lang/NullPointerException", "null")
           case a =>
             val objCls: rt.Cls =
               if (a.isObj) a.obj.cls
@@ -70,7 +70,7 @@ object Optimized {
       import vt.vm
 
       val addr = vt.pop
-      if (addr == 0) throwNPE(vt)
+      if (addr == 0) vt.throwExWithTrace("java/lang/NullPointerException", "null")
       else vt.pushFrom(addr.obj.members, index, size)
     }
   }
@@ -79,7 +79,7 @@ object Optimized {
       import vt.vm
 
       val addr = vt.frame.stack(vt.frame.index - size - 1)
-      if(addr == 0) throwNPE(vt)
+      if(addr == 0) vt.throwExWithTrace("java/lang/NullPointerException", "null")
       else {
         vt.popTo(addr.obj.members, index, size)
         vt.pop

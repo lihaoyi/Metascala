@@ -36,13 +36,28 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   final def step() = {
     val insnsList = frame.method.insns
     val node = insnsList(frame.pc)
-
+    frame.method.method.code.attachments(frame.pc).collectFirst{
+      case LineNumber(line, _) => frame.lineNum = line
+    }
 //    println(indent + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.stackDump)
 //    println(indent + "---------------------- " + frame.pc + "\t" + node )
 //    println(indent + vm.Heap.dump.replace("\n", "\n" + indent))
     frame.pc += 1
     opCount += 1
-    node.op(this)
+    try{
+      node.op(this)
+    }catch {case e: Throwable =>
+      /*val internal = Virtualizer.popVirtual("metascala/InternalVmException", () =>
+        vrt.Obj.allocate("metascala/InternalVmException",
+          "stackTrace" -> Virtualizer.pushVirtual(trace).apply(0),
+          "detailMessage" -> Virtualizer.pushVirtual("mooo").apply(0),
+          "cause" -> Virtualizer.pushVirtual(e).apply(0)
+        ).address
+      ).cast[Throwable]*/
+      throw e
+
+
+    }
   }
 
   def trace = {
@@ -52,7 +67,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         f.runningClass.name,
         f.method.method.name,
         f.runningClass.clsData.misc.sourceFile.getOrElse("<unknown file>"),
-        0
+        f.lineNum
       )
     ).toArray
   }
@@ -69,6 +84,14 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         returnedVal = Virtualizer.popVirtual(frame.method.method.desc.ret, reader(x, 0))
         this.threadStack.pop
     }
+  }
+  final def throwExWithTrace(clsName: String, detailMessage: String) = {
+    throwException(
+      vrt.Obj.allocate(clsName,
+        "stackTrace" -> Virtualizer.pushVirtual(trace).apply(0),
+        "detailMessage" -> Virtualizer.pushVirtual(detailMessage).apply(0)
+      )
+    )
   }
 
   @tailrec final def throwException(ex: vrt.Obj, print: Boolean = true): Unit = {
@@ -99,9 +122,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     }
   }
 
-
-
-
   final def prepInvoke(mRef: rt.Method,
                        args: Seq[Int]) = {
 //    println(indent + "PrepInvoke " + mRef + " with " + args)
@@ -111,7 +131,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         threadStack.headOption.map(f => args.map(f.push))
         op(this)
       case m @ rt.Method.Cls(cls, methodIndex, method) =>
-        assert((m.method.access & Access.Native) == 0, "method cannot be native: " + cls.name + " " + method.name)
+        assert((m.method.access & Access.Native) == 0, "method cannot be native: " + cls.name + " " + method.sig.unparse)
 
         val startFrame = new Frame(
           runningClass = cls,
@@ -138,7 +158,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       vm.resolveDirectRef(tpe.cast[imm.Type.Cls], sig).get,
       tmp
     )
-
 
   }
   def invoke(mRef: rt.Method, args: Seq[Int]): Any = {
@@ -172,12 +191,12 @@ case class FrameDump(clsName: String,
 class Frame(var pc: Int = 0,
             val runningClass: rt.Cls,
             val method: rt.Method.Cls,
+            var lineNum: Int = 0,
             val locals: mutable.Seq[Val] = mutable.Seq.empty){
 
   val stack = new Array[Int](method.method.misc.maxStack)
   var index = 0
   def push(n: Int) = {
-
     stack(index) = n
     index += 1
   }

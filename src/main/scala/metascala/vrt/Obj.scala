@@ -20,6 +20,7 @@ object Obj{
     for ((s, v) <- initMembers){
       obj(s) = v
     }
+
     obj
   }
   def unapply(x: Val)(implicit vm: VM) = new Obj(x)
@@ -55,14 +56,17 @@ class Obj(val address: Val)
     def iterator: Iterator[Val] = new Iterator[Val]{
       var index = 0
       def hasNext = index < members.length
-      def next() = vm.Heap(address + index + 2)
+      def next() = {
+        val x = vm.Heap(address + index + 2)
+        index += 1
+        x
+      }
     }
   }
 
   def tpe = cls.clsData.tpe
 
   def apply(name: String): Val = {
-
     members(tpe.fieldList.lastIndexWhere(_.name == name))
   }
 

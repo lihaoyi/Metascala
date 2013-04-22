@@ -50,7 +50,12 @@ object LoadStore {
       import vt.vm
       const match{
         case s: String => Virtualizer.pushVirtual(s, vt.push)
-        case t: asm.Type => vt.push(vrt.Obj.allocate("java/lang/Class").address)
+        case t: asm.Type =>
+          val clsObj = vrt.Obj.allocate("java/lang/Class",
+            "name" -> Virtualizer.pushVirtual(t.getInternalName).apply(0)
+          )
+          println("Allocating Cls " + clsObj.address)
+          vt.push(clsObj.address)
         case x: scala.Byte  => B.write(x, vt.push)
         case x: scala.Char  => C.write(x, vt.push)
         case x: scala.Short => S.write(x, vt.push)
@@ -187,9 +192,7 @@ object LoadStore {
     def op(vt: Thread) = {
       import vt.vm
       val top = vt.popArgs(p.size)
-      println(top.toList)
       val value = p.read(reader(top, 0))
-      println(value)
       val index = vt.pop
       val arr = vt.pop.arr
       checkBounds(index, arr, vt){

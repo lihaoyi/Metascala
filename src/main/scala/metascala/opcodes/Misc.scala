@@ -145,8 +145,8 @@ object Misc {
         Optimized.New(vt.vm.ClsTable(desc))
       )
     }
-
   }
+
   case class NewArray(typeCode: Int) extends OpCode{
     def op(vt: Thread) =  {
       val count = vt.pop
@@ -177,7 +177,7 @@ object Misc {
     def op(vt: Thread) =  {
       import vt.vm
       val addr = vt.pop
-      if (addr == 0) throwNPE(vt)
+      if (addr == 0) vt.throwExWithTrace("java/lang/NullPointerException", "null")
       else vt.push(addr.arr.length)
     }
   }
@@ -197,11 +197,7 @@ object Misc {
       top match{
         case 0 => ()
         case top if (top.isArr && !check(top.arr.tpe, desc)) || (top.isObj && !check(top.obj.tpe, desc)) =>
-          vt.throwException(
-            vrt.Obj.allocate("java/lang/ClassCastException"//,
-              //"detailMessage" -> vrt.virtString(s"${top.tpe.unparse} cannot be converted to ${desc.unparse}")
-            )
-          )
+          vt.throwExWithTrace("java/lang/ClassCastException", "")
         case _ => ()
       }
     }
@@ -269,8 +265,6 @@ object Misc {
   }
 
   val IfNull = StackManip.UnaryBranch("IfNull")(_: Int, _ == 0)
-
-
   val IfNonNull = StackManip.UnaryBranch("IfNull")(_: Int, _ != 0)
 
   // Not used, because ASM converts these to normal Goto()s and Jsr()s

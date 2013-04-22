@@ -73,7 +73,8 @@ package object metascala {
   }
 
   implicit def stringToClass(s: String)(implicit vm: VM) = vm.ClsTable(imm.Type.Cls(s))
-
+  implicit def stringToClsType(s: String) = imm.Type.Cls(s)
+  implicit def stringToDesc(x: String) = imm.Desc.read(x)
   def reader(src: Seq[Val], index: Int) = {
     var i = index
     () => {

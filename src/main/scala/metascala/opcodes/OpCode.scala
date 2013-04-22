@@ -20,8 +20,7 @@ object OpCode {
       Option(list).toVector.flatten
     }
   }
-  implicit def parseTypeCls(x: String) = imm.Type.Cls.read(x)
-  implicit def parseTypeDesc(x: String) = imm.Desc.read(x)
+
   def read(implicit labelMap: Map[Label, Int]): PartialFunction[Any, OpCode] = {
     case x: FieldInsnNode           => all(x.getOpcode).cast[(imm.Type.Cls, String, imm.Type) => OpCode].apply(x.owner, x.name, imm.Type.read(x.desc))
     case x: IincInsnNode            => all(x.getOpcode).cast[(Int, Int) => OpCode].apply(x.`var`, x.incr)

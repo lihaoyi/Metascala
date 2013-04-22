@@ -23,8 +23,5 @@ package object opcodes{
     def op(vt: Thread)  = ???
   }
   implicit def intToByte(n: Int) = n.toByte
-  def throwNPE(vt: Thread) = {
-    import vt.vm
-    vt.throwException(vrt.Obj.allocate("java/lang/NullPointerException"))
-  }
+
 }
