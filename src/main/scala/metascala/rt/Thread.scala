@@ -39,22 +39,23 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     frame.method.method.code.attachments(frame.pc).collectFirst{
       case LineNumber(line, _) => frame.lineNum = line
     }
-//    println(indent + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.stackDump)
-//    println(indent + "---------------------- " + frame.pc + "\t" + node )
+    vm.log(indent + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.stackDump)
+    vm.log(indent + "---------------------- " + frame.pc + "\t" + node )
 //    println(indent + vm.Heap.dump.replace("\n", "\n" + indent))
     frame.pc += 1
     opCount += 1
     try{
       node.op(this)
     }catch {case e: Throwable =>
-      /*val internal = Virtualizer.popVirtual("metascala/InternalVmException", () =>
+      val internal = Virtualizer.popVirtual("metascala/InternalVmException", () =>
         vrt.Obj.allocate("metascala/InternalVmException",
           "stackTrace" -> Virtualizer.pushVirtual(trace).apply(0),
           "detailMessage" -> Virtualizer.pushVirtual("mooo").apply(0),
           "cause" -> Virtualizer.pushVirtual(e).apply(0)
         ).address
-      ).cast[Throwable]*/
-      throw e
+      ).cast[Throwable]
+      throw internal
+      //throw e
 
 
     }

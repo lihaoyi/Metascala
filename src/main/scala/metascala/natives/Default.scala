@@ -20,30 +20,7 @@ trait Default extends Bindings{
     }
   }
 
-  val properties = Map[String, String](
-    /*"java.home" -> "C ->/java_home",
-    "sun.boot.class.path" -> "C ->/classes",
-    "file.encoding" ->"US_ASCII",
-    "java.ext.dirs" -> "",
-    "java.vendor" ->"Doppio",
-    "java.version" -> "1.6",
-    "java.vendor.url" -> "https ->//github.com/int3/doppio",
-    "java.class.version" -> "50.0",
-    "java.security.debug" -> "access,failure",
-    "java.security.auth.debug" -> "access,failure",
-    "java.specification.version" -> "1.6",
-    "jdk.map.althashing.threshold" -> "-1",
-    "line.separator" ->"\n",
-    "file.separator" ->"/",
-    "path.separator" ->":",
-    "user.dir" -> ".",
-    "user.home" ->".",
-    "user.name" ->"DoppioUser",
-    "os.name" ->"doppio",
-    "os.arch" -> "js",
-    "os.version" -> "0"*/
-
-  )
+  val properties = Map[String, String]()
 
 
   val trapped = {
@@ -57,14 +34,7 @@ trait Default extends Bindings{
               import vt.vm
               val public = vt.pop
               val obj = vt.pop.obj
-              println("====================")
-              println(obj.cls.name)
-              println(obj.address)
-              obj.members.zip(obj.cls.fieldList).map{ case (mem, field) =>
-                println(field.name + "\t" + mem)
-              }
 
-              println("obj " + obj("name"))
               val name = Virtualizer.popVirtual("java/lang/String", () => obj("name"))
               println()
               vrt.Arr.allocate("java/lang/reflect/Field",
@@ -115,11 +85,8 @@ trait Default extends Bindings{
 
               import vt.vm
               val obj = vt.pop.obj
-              val stringAddr = {
-                var a = 0
-                Virtualizer.pushVirtual(obj.cls.name.toDot, a = _)
-                a
-              }
+              val stringAddr = Virtualizer.pushVirtual(obj.cls.name.toDot).apply(0)
+
               val addr = vrt.Obj.allocate("java/lang/Class",
                 "name" -> stringAddr
               ).address
@@ -237,6 +204,4 @@ trait Default extends Bindings{
 
     ).toRoute()
   }
-
 }
-

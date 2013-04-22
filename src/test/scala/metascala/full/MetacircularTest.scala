@@ -6,7 +6,7 @@ import org.scalatest.FreeSpec
 import metascala.Util.{SingleClassVM}
 
 import collection.GenSeq
-/*
+
 object MetacircularTest{
 
   def sqrtFinder = {
@@ -56,9 +56,11 @@ class MetacircularTest extends FreeSpec with Util{
   val buffer = new BufferLog(8000)
   var count = 0
 
-  val tester = new Tester("metascala.full.MetacircularTest")
+  val tester = new Tester("metascala.full.MetacircularTest", buffer)
   "helloWorld" in {
+
     tester.run("helloWorld")
+
   }
   "sqrtFinder" in {
     tester.run("sqrtFinder")
@@ -91,4 +93,3 @@ class MetacircularTest extends FreeSpec with Util{
   }*/
 }
 
-*/

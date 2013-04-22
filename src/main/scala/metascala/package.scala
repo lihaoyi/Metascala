@@ -10,11 +10,11 @@ package object metascala {
     def isObj(implicit vm: VM) = vm.Heap(v) < 0
     def isArr(implicit vm: VM) = vm.Heap(v) >= 0
     def obj(implicit vm: VM) = {
-      assert(v != 0)
+      assert(isObj)
       new vrt.Obj(v)
     }
     def arr(implicit vm: VM) = {
-      assert(v != 0)
+      assert(isArr)
       new vrt.Arr(v)
     }
   }
