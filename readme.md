@@ -7,7 +7,7 @@ The point of Metascala is to have a toy platform to experiment with the JVM: a 3
 
 Updates
 -------
-- **23 April 2013**: Metascala is currently being migrated off the host-JVM's object model (see below) to use a custom binary heap (i.e. one huge Array[Byte]) and garbage collector. The MetacircularTests are broken, but the unit tests still pass
+- **23 April 2013**: Metascala is currently being migrated off the host-JVM's object model (see below) to use a custom binary heap (i.e. one huge Array[Byte]) and garbage collector. The MetacircularTests are broken, but the unit tests in `metascala/features` still pass
 
 Getting Started
 ---------------
