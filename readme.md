@@ -7,8 +7,8 @@ The point of Metascala is to have a toy platform to experiment with the JVM: a 3
 
 Updates
 -------
-
 - **23 April 2013**: Metascala is currently being migrated off the host-JVM's object model (see below) to use a custom binary heap (i.e. one huge Array[Byte]) and garbage collector. The MetacircularTests are broken, but the unit tests still pass
+
 Getting Started
 ---------------
 Metascala requires [Scala 2.10](http://www.scala-lang.org/downloads) and is built using [SBT 12](http://www.scala-sbt.org/). After checking out the repository, if you have SBT installed, all you need to do is run
