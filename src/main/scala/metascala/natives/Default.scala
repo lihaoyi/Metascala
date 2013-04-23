@@ -36,7 +36,7 @@ trait Default extends Bindings{
               val obj = vt.pop.obj
 
               val name = Virtualizer.popVirtual("java/lang/String", () => obj("name"))
-              println()
+
               vrt.Arr.allocate("java/lang/reflect/Field",
                 obj.cls.clsData.fields.zipWithIndex.map{ case (f, i) =>
                   vrt.Obj.allocate("java/lang/reflect/Field",
@@ -47,7 +47,6 @@ trait Default extends Bindings{
                 }.toArray
               )
               val newAddr = Virtualizer.pushVirtual(Class.forName(name.cast[String].toDot).getDeclaredFields).apply(0)
-              println("newAddr " + newAddr)
               vt.push(newAddr)
             },
             "getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;" x {vt =>
@@ -64,10 +63,26 @@ trait Default extends Bindings{
               val addr = vrt.Obj.allocate("java/lang/Class",
                 "name" -> vt.pop
               ).address
-              println("Allocating Cls " + addr)
               vt.push(addr)
             },
+            "isArray()Z" x { vt =>
+              import vt.vm
+              val res =
+                if(Virtualizer.popVirtual("java/lang/String", () => vt.pop.obj.apply("name")).cast[String].contains('[')) 1 else 0
+              vt.push(res)
+            },
+            "isAssignableFrom(Ljava/lang/Class;)Z" x { vt =>
+              import vt.vm
+              val clsA = vt.pop.obj
+              val clsB = vt.pop.obj
+              val nameA = Virtualizer.popVirtual("java/lang/String", () => clsA.apply("name")).cast[String]
+              val nameB = Virtualizer.popVirtual("java/lang/String", () => clsB.apply("name")).cast[String]
+              println("CHECKING ISASSIGNABLEFROM " + nameA + " " + nameB)
+
+              vt.push(if (opcodes.Misc.check(imm.Type.read(nameA), imm.Type.read(nameB))) 1 else 0)
+            },
             "registerNatives()V" x noOp(0)
+
 
           ),
           "ClassLoader"/(
@@ -84,13 +99,17 @@ trait Default extends Bindings{
             "getClass()Ljava/lang/Class;" x {vt =>
 
               import vt.vm
-              val obj = vt.pop.obj
-              val stringAddr = Virtualizer.pushVirtual(obj.cls.name.toDot).apply(0)
+              val value = vt.pop
+
+
+              val stringAddr = Virtualizer.pushVirtual(
+                if(value.isObj) value.obj.cls.name.toDot
+                else "[" + value.arr.innerType.name.toDot
+              ).apply(0)
 
               val addr = vrt.Obj.allocate("java/lang/Class",
                 "name" -> stringAddr
               ).address
-              println("Allocating Cls " + addr)
               vt.push(addr)
             },
             "getName0()Ljava/lang/String;" x {vt =>
@@ -100,7 +119,6 @@ trait Default extends Bindings{
               val addr = vrt.Obj.allocate("java/lang/Class",
                 "name" -> 1337
               ).address
-              println("Allocating Cls " + addr)
               vt.push(addr)
             },
             "hashCode()I" x noOp(0),
@@ -120,15 +138,15 @@ trait Default extends Bindings{
               vt.push(vt.pop)
             },
             "nanoTime()J" x value(J)(0, System.nanoTime()),
-            "currentTimeMillis()J" x value(J)(0, System.currentTimeMillis())
+            "currentTimeMillis()J" x value(J)(0, System.currentTimeMillis()),
+            "getProperty(Ljava/lang/String;)Ljava/lang/String;" x value(I)(1, 0),
+            "registerNatives()V" x noOp(0)
           ),
           "String"/(
             "<clinit>()V" x noOp(0),
             "intern()Ljava/lang/String;" x noOp(0)
           ),
-          "System"/(
-            "registerNatives()V" x noOp(0)
-          ),
+
           "Thread"/(
             "registerNatives()V" x noOp(0),
             "currentThread()Ljava/lang/Thread;" x {vt =>

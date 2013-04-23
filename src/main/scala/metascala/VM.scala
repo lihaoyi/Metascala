@@ -16,13 +16,16 @@ import metascala.natives.Bindings
 class VM(val natives: Bindings = Bindings.default, val log: ((=>String) => Unit) = s => ()) {
   private[this] implicit val vm = this
 
+  val internedStrings = mutable.Map[Int, Int]()
   object Heap{
     val memory = new Array[Int](4096 * 4096)
     var freePointer = 1
     def allocate(n: Int) = {
       val newFree = freePointer
+      println(s"Allocating $n words at $newFree")
       freePointer += n
       newFree
+
     }
     def apply(n: Int): Int = memory(n)
     def update(n: Int, v: Int) = memory.update(n, v)

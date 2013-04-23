@@ -54,7 +54,6 @@ object LoadStore {
           val clsObj = vrt.Obj.allocate("java/lang/Class",
             "name" -> Virtualizer.pushVirtual(t.getInternalName).apply(0)
           )
-          println("Allocating Cls " + clsObj.address)
           vt.push(clsObj.address)
         case x: scala.Byte  => B.write(x, vt.push)
         case x: scala.Char  => C.write(x, vt.push)
