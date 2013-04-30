@@ -69,6 +69,7 @@ trait Default extends Bindings{
               vt.vm.log("MEMBERZ "+vrtArr)
               vt.push(vrtArr.address)
 
+
             },
             "getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;" x {vt =>
               //private native Method[]      getDeclaredMethods0(boolean publicOnly);

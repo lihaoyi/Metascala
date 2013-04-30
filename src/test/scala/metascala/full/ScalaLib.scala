@@ -37,5 +37,7 @@ class ScalaLib extends FreeSpec with Util{
   }
   "bigFibonacci" in {
     tester.run("bigFibonacci", 100)
+}
+
   }
 }

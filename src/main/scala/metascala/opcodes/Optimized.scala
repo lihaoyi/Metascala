@@ -68,9 +68,6 @@ object Optimized {
     def op(vt: Thread) = {
       import vt.vm
       val addr = vt.pop
-      vm.log("GETFIELD " + index)
-      vm.log("DATA " + addr.obj.members)
-
 
       if (addr == 0) vt.throwExWithTrace("java/lang/NullPointerException", "null")
       else vt.pushFrom(addr.obj.members, index, size)
