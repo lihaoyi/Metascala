@@ -29,6 +29,7 @@ package object metascala {
     }
   }
 
+
   object Val{
     val Null = 0
     implicit def objToVal(x: vrt.Obj) = x.address
@@ -57,10 +58,7 @@ package object metascala {
     }
   }
 
-  implicit class pimpedString(val s: String){
-    def toDot = s.replace('/', '.')
-    def toSlash = s.replace('.', '/')
-  }
+
 
   def forNameBoxed(name: String) = {
     if(Prim.all.contains(name(0)))
@@ -86,6 +84,16 @@ package object metascala {
   implicit def stringToClass(s: String)(implicit vm: VM) = vm.ClsTable(imm.Type.Cls(s))
   implicit def stringToClsType(s: String) = imm.Type.Cls(s)
   implicit def stringToDesc(x: String) = imm.Desc.read(x)
+  implicit class pimpedString(val s: String){
+    def toDot = s.replace('/', '.')
+    def toSlash = s.replace('.', '/')
+    def allocObj(initMembers: (String, Val)*)(implicit vm: VM) = {
+      vrt.Obj.allocate(s, initMembers:_*).address
+    }
+    def allocArr(backing: Seq[Int])(implicit vm: VM) = {
+      vrt.Arr.allocate(s, backing.toArray).address
+    }
+  }
   def reader(src: Seq[Val], index: Int) = {
     var i = index
     () => {

@@ -5,6 +5,9 @@ package natives
 import java.io.{ByteArrayInputStream, DataInputStream}
 import vrt.Arr
 import collection.mutable
+import metascala.vrt
+import metascala.vrt
+
 trait Default extends Bindings{
 
   val fileLoader = (name: String) => {
@@ -34,9 +37,9 @@ trait Default extends Bindings{
               val boolean = vt.pop
               val name = vt.pop
               vt.push(
-                vrt.Obj.allocate("java/lang/Class",
+                "java/lang/Class".allocObj(
                   "name" -> name
-                ).address
+                )
               )
             },
             "getClassLoader0()Ljava/lang/ClassLoader;" x value(I)(1, 0),
@@ -51,10 +54,10 @@ trait Default extends Bindings{
                 else
                   shortNewName
 
-              val clsObj = vrt.Obj.allocate("java/lang/Class",
+              val clsObj = "java/lang/Class".allocObj(
                 "name" -> newName.toVirtObj
               )
-              vt.push(clsObj.address)
+              vt.push(clsObj)
             },
 
             "getDeclaredFields0(Z)[Ljava/lang/reflect/Field;" x {vt =>
@@ -64,23 +67,22 @@ trait Default extends Bindings{
 
               val name = obj("name").toRealObj[String]
               val realFields = vm.ClsTable(name).clsData.fields
-              val vrtArr = vrt.Arr.allocate("java/lang/reflect/Field",
-                realFields.zipWithIndex.map{ case (f, i) =>
-                  vrt.Obj.allocate("java/lang/reflect/Field",
-                    "clazz" -> obj.address,
-                    "slot" -> i,
-                    "name" -> vt.vm.internedStrings.getOrElseUpdate(f.name, f.name.toVirtObj)
-                  ).address
-                }.toArray
-              )
 
-              vt.push(vrtArr.address)
+              val vrtArr =
+                "java/lang/reflect/Field".allocArr(
+                  realFields.zipWithIndex.map{ case (f, i) =>
+                   "java/lang/reflect/Field".allocObj(
+                      "clazz" -> obj.address,
+                      "slot" -> i,
+                      "name" -> vt.vm.internedStrings.getOrElseUpdate(f.name, f.name.toVirtObj)
+                    )
+                  }
+                )
 
-
+              vt.push(vrtArr)
             },
             "getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;" x {vt =>
-              ???
-              //private native Method[]      getDeclaredMethods0(boolean publicOnly);
+              ???              //private native Method[]      getDeclaredMethods0(boolean publicOnly);
             },
             "getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;" x {vt =>
               import vt.vm
@@ -89,23 +91,22 @@ trait Default extends Bindings{
               val clsName = clsObj("name").toRealObj[String]
               val cls = vm.ClsTable(clsName)
               val realMethods = cls.clsData.methods.filter(_.name == "<init>")
-              val vrtArr = vrt.Arr.allocate("java/lang/reflect/Constructor",
+              val vrtArr = "java/lang/reflect/Constructor".allocArr(
                 realMethods .zipWithIndex.map{ case (f, i) =>
-                  vrt.Obj.allocate("java/lang/reflect/Constructor",
+                  "java/lang/reflect/Constructor".allocObj(
                     "clazz" -> clsObj.address,
                     "slot" -> i,
-                    "parameterTypes" -> vrt.Arr.allocate("java/lang/Class",
+                    "parameterTypes" -> "java/lang/Class".allocArr(
                       f.desc.args.map(t =>
-                        vrt.Obj.allocate("java/lang/Class",
+                        "java/lang/Class".allocObj(
                           "name" -> t.realCls.getName.toVirtObj
-                        ).address
-                      ).toArray
-                    ).address
-                  ).address
-                }.toArray
-              ).address
+                        )
+                      )
+                    )
+                  )
+                }
+              )
               vt.push(vrtArr)
-              //private native Constructor<T>[] getDeclaredConstructors0(boolean publicOnly);
             },
             "getDeclaredClasses0(Z)[Ljava/lang/Class;" x {vt =>
               ???
@@ -113,9 +114,9 @@ trait Default extends Bindings{
             },
             "getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;" x {vt =>
               import vt.vm
-              val addr = vrt.Obj.allocate("java/lang/Class",
+              val addr = "java/lang/Class".allocObj(
                 "name" -> vt.pop
-              ).address
+              )
               vt.push(addr)
             },
             "getSuperclass()Ljava/lang/Class;" x {vt =>
@@ -126,9 +127,10 @@ trait Default extends Bindings{
                   .clsData
                   .superType
                   .map{_.name}
-                  .map(name => vrt.Obj.allocate("java/lang/Class",
+                  .map(name =>
+                    "java/lang/Class".allocObj(
                       "name" -> name.toVirtObj
-                    ).address
+                    )
                   ).getOrElse(0)
               )
             },
@@ -168,8 +170,6 @@ trait Default extends Bindings{
               vt.push(if (res) 1 else 0)
             },
             "registerNatives()V" x noOp(0)
-
-
           ),
           "ClassLoader"/(
             "getCaller(I)Ljava/lang/Class;" x {vt =>
@@ -179,12 +179,11 @@ trait Default extends Bindings{
                 case 1 => vt.threadStack(0).runningClass.name
                 case 2 => vt.threadStack(1).runningClass.name
               }
-              vt.push(vrt.Obj.allocate("java/lang/Class", "name" -> name.toVirtObj).address)
+              vt.push("java/lang/Class".allocObj("name" -> name.toVirtObj))
             },
             "getSystemResourceAsStream(Ljava/lang/String;)Ljava/io/InputStream;" x {vt =>
               import vt.vm
 
-              //public static InputStream getSystemResourceAsStream(String name) {
               val name = vt.pop.toRealObj[String]
               val realResult = new DataInputStream(ClassLoader.getSystemResourceAsStream(name))
               val bytes = new Array[Byte](realResult.available())
@@ -203,9 +202,7 @@ trait Default extends Bindings{
             "floatToRawIntBits(F)I" x noOp(0)
           ),
           "Object"/(
-            "clone()Ljava/lang/Object;" x { vt =>
-
-            },
+            "clone()Ljava/lang/Object;" x noOp(0),
             "getClass()Ljava/lang/Class;" x {vt =>
 
               import vt.vm
@@ -216,20 +213,18 @@ trait Default extends Bindings{
                 else "[" + value.arr.innerType.name.toDot
               ).toVirtObj
 
-              vm.log("STRING ADDRESS " + stringAddr)
-
-              val addr = vrt.Obj.allocate("java/lang/Class",
+              val addr = "java/lang/Class".allocObj(
                 "name" -> stringAddr
-              ).address
+              )
               vt.push(addr)
             },
             "getName0()Ljava/lang/String;" x {vt =>
               vt.pop
               import vt.vm
               vm.ClsTable
-              val addr = vrt.Obj.allocate("java/lang/Class",
+              val addr = "java/lang/Class".allocObj(
                 "name" -> 1337
-              ).address
+              )
               vt.push(addr)
             },
             "hashCode()I" x noOp(0),
@@ -270,10 +265,12 @@ trait Default extends Bindings{
             "registerNatives()V" x noOp(0),
             "currentThread()Ljava/lang/Thread;" x {vt =>
               import vt.vm
-              vt.push(vrt.Obj.allocate("java/lang/Thread",
-                "group" -> vrt.Obj.allocate("java/lang/ThreadGroup").address,
-                "priority" -> 5
-              ).address)
+              vt.push(
+                "java/lang/Thread".allocObj(
+                  "group" -> "java/lang/ThreadGroup".allocObj(),
+                  "priority" -> 5
+                )
+              )
             },
             "setPriority0(I)V" x noOp(1),
             "isAlive()Z" x value(Z)(1, false),
@@ -360,7 +357,6 @@ trait Default extends Bindings{
             },
             "objectFieldOffset(Ljava/lang/reflect/Field;)J" x {vt =>
               import vt.vm
-
               val field = vt.pop.obj
               val unsafe = vt.pop
               J.write(field.apply("slot"), vt.push)
@@ -378,10 +374,10 @@ trait Default extends Bindings{
               import vt.vm
               val n = vt.pop
               val name = vt.threadStack(n).runningClass.name
-              val clsObj = vrt.Obj.allocate("java/lang/Class",
+              val clsObj = "java/lang/Class".allocObj(
                 "name" -> name.toVirtObj
               )
-              vt.push(clsObj.address)
+              vt.push(clsObj)
             },
             "getClassAccessFlags(Ljava/lang/Class;)I" x {vt =>
               import vt.vm
@@ -392,7 +388,6 @@ trait Default extends Bindings{
           )
         )
       )
-
     ).toRoute()
   }
 }

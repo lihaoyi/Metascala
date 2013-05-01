@@ -17,8 +17,6 @@ object Optimized {
     def op(vt: Thread) = {
       import vt.vm
       val obj = vrt.Obj.allocate(cls.name)
-      vm.log(vt.indent + "NEW")
-      vm.log(vt.indent + obj.view)
       vt.push(obj.address)
     }
   }
