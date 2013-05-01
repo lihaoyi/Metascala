@@ -49,7 +49,9 @@ object LoadStore {
 
       import vt.vm
       const match{
-        case s: String => Virtualizer.pushVirtual(s, vt.push)
+        case s: String =>
+          val top = Virtualizer.pushVirtual(s).apply(0)
+          vt.push(top)
         case t: asm.Type =>
           val clsObj = vrt.Obj.allocate("java/lang/Class",
             "name" -> Virtualizer.pushVirtual(t.getInternalName).apply(0)
@@ -63,8 +65,6 @@ object LoadStore {
         case x: scala.Long  => J.write(x, vt.push)
         case x: scala.Double => D.write(x, vt.push)
       }
-
-
     }
   }
 

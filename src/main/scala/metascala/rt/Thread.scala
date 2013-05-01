@@ -29,6 +29,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
   def swapOpCode(opcode: OpCode) = {
     val insnsList = frame.method.insns
+
     insnsList(frame.pc-1) = opcode
     opcode.op(this)
   }
@@ -96,6 +97,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   }
 
   @tailrec final def throwException(ex: vrt.Obj, print: Boolean = true): Unit = {
+    vm.log(indent + "THROWING EXCEPTION " + ex.cls.name)
     threadStack.headOption match{
       case Some(frame)=>
         val handler =
@@ -104,7 +106,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
             x.start <= frame.pc &&
               x.end >= frame.pc &&
               !x.blockType.isDefined ||
-              ex.cls.typeAncestry.contains(x.blockType.get)
+              x.blockType.map(ex.cls.typeAncestry.contains).getOrElse(false)
           }.headOption
 
         handler match{
@@ -125,7 +127,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
   final def prepInvoke(mRef: rt.Method,
                        args: Seq[Int]) = {
-//    println(indent + "PrepInvoke " + mRef + " with " + args)
+    vm.log(indent + "PrepInvoke " + mRef + " with " + args)
 
     mRef match{
       case rt.Method.Native(clsName, imm.Sig(name, desc), op) =>

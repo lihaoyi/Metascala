@@ -100,10 +100,10 @@ object Misc {
   case class InvokeSpecial(owner: Type.Cls, sig: imm.Sig) extends OpCode{
     def op(vt: Thread) = vt.swapOpCode{
       import vt.vm
-
       vm.resolveDirectRef(owner, sig) match{
         case None => StackManip.Pop
-        case Some(methodRef) => Optimized.InvokeSpecial(methodRef, sig.desc.argSize)
+        case Some(methodRef) =>
+          Optimized.InvokeSpecial(methodRef, sig.desc.argSize)
       }
 
     }
@@ -194,9 +194,11 @@ object Misc {
 
       val top = vt.pop
       vt.push(top)
+
       top match{
         case 0 => ()
         case top if (top.isArr && !check(top.arr.tpe, desc)) || (top.isObj && !check(top.obj.tpe, desc)) =>
+          vt.vm.log(vt.indent + "CHECKING CAST " + desc.unparse + " " + (if (top.isObj) top.obj.tpe else top.arr.tpe))
           vt.throwExWithTrace("java/lang/ClassCastException", "")
         case _ => ()
       }

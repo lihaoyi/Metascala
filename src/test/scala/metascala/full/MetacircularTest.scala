@@ -53,17 +53,18 @@ object MetacircularTest{
 
 class MetacircularTest extends FreeSpec with Util{
 
-  val buffer = new BufferLog(8000)
+  val buffer = new BufferLog(1900)
   var count = 0
 
-  val tester = new Tester("metascala.full.MetacircularTest", buffer)
+  val tester = new Tester("metascala.full.MetacircularTest")
   "helloWorld" in {
-
     tester.run("helloWorld")
+
 
   }
   "sqrtFinder" in {
     tester.run("sqrtFinder")
+
   }
 
   "fibonacci" in {

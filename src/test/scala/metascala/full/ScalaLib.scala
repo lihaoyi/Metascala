@@ -26,10 +26,14 @@ object ScalaLib{
 
     fs.view.takeWhile(_.toString.length < n).size
   }
+  def lol = {
+    val args2: String = java.security.AccessController.doPrivileged(new sun.security.action.GetPropertyAction("java.security.auth.debug"))
+    args2
+  }
 }
 class ScalaLib extends FreeSpec with Util{
   val buffer = new BufferLog(4000)
-  val tester = new Tester("metascala.full.ScalaLib")
+  val tester = new Tester("metascala.full.ScalaLib", buffer)
   "hello world" in tester.run("hello")
   "lists" in tester.run("lists", 5)
   "palindrome" in {
@@ -37,5 +41,12 @@ class ScalaLib extends FreeSpec with Util{
   }
   "bigFibonacci" in {
     tester.run("bigFibonacci", 100)
+  }
+  "lol" in{
+    try tester.run("lol")
+    catch{case e =>
+      buffer.lines.foreach(println)
+      throw e
+    }
   }
 }

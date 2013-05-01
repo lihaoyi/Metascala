@@ -18,11 +18,10 @@ class VM(val natives: Bindings = Bindings.default, val log: ((=>String) => Unit)
 
   val internedStrings = mutable.Map[Int, Int]()
   object Heap{
-    val memory = new Array[Int](4096 * 4096)
+    val memory = new Array[Int](64 * 1024 * 1024)
     var freePointer = 1
     def allocate(n: Int) = {
       val newFree = freePointer
-      println(s"Allocating $n words at $newFree")
       freePointer += n
       newFree
 

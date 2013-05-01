@@ -17,6 +17,8 @@ object Optimized {
     def op(vt: Thread) = {
       import vt.vm
       val obj = vrt.Obj.allocate(cls.name)
+      vm.log(vt.indent + "NEW")
+      vm.log(vt.indent + obj.view)
       vt.push(obj.address)
     }
   }
@@ -68,7 +70,8 @@ object Optimized {
     def op(vt: Thread) = {
       import vt.vm
       val addr = vt.pop
-
+      vm.log(vt.indent + "GETFIELD")
+      vm.log(vt.indent + addr.obj.view)
       if (addr == 0) vt.throwExWithTrace("java/lang/NullPointerException", "null")
       else vt.pushFrom(addr.obj.members, index, size)
     }
