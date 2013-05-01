@@ -21,7 +21,6 @@ trait Default extends Bindings{
   }
 
   val properties = Map[String, String]()
-  val stack = mutable.Map.empty[String, Int]
 
   val trapped = {
     Seq(
@@ -44,7 +43,7 @@ trait Default extends Bindings{
             "getComponentType()Ljava/lang/Class;" x { vt =>
               import vt.vm
               val obj = vt.pop.obj
-              val oldName = Virtualizer.popVirtual("java/lang/String", () => obj("name")).cast[String]
+              val oldName = obj("name").toRealObj[String]
               val shortNewName = oldName.substring(1)
               val newName =
                 if (Prim.all.keySet.map(""+_).contains(oldName))
@@ -53,7 +52,7 @@ trait Default extends Bindings{
                   shortNewName
 
               val clsObj = vrt.Obj.allocate("java/lang/Class",
-                "name" -> Virtualizer.pushVirtual(newName).apply(0)
+                "name" -> newName.toVirtObj
               )
               vt.push(clsObj.address)
             },
@@ -63,19 +62,18 @@ trait Default extends Bindings{
               val public = vt.pop
               val obj = vt.pop.obj
 
-              val name = Virtualizer.popVirtual("java/lang/String", () => obj("name")).cast[String]
+              val name = obj("name").toRealObj[String]
               val realFields = vm.ClsTable(name).clsData.fields
               val vrtArr = vrt.Arr.allocate("java/lang/reflect/Field",
                 realFields.zipWithIndex.map{ case (f, i) =>
                   vrt.Obj.allocate("java/lang/reflect/Field",
                     "clazz" -> obj.address,
                     "slot" -> i,
-                    "name" -> stack.getOrElseUpdate(f.name, Virtualizer.pushVirtual(f.name).apply(0))
+                    "name" -> vt.vm.internedStrings.getOrElseUpdate(f.name, f.name.toVirtObj)
                   ).address
                 }.toArray
               )
 
-              vt.vm.log("MEMBERZ "+vrtArr)
               vt.push(vrtArr.address)
 
 
@@ -88,7 +86,7 @@ trait Default extends Bindings{
               import vt.vm
               val bool = vt.pop
               val clsObj = vt.pop.obj
-              val clsName = Virtualizer.popVirtual("java/lang/String", () => clsObj("name")).cast[String]
+              val clsName = clsObj("name").toRealObj[String]
               val cls = vm.ClsTable(clsName)
               val realMethods = cls.clsData.methods.filter(_.name == "<init>")
               val vrtArr = vrt.Arr.allocate("java/lang/reflect/Constructor",
@@ -99,7 +97,7 @@ trait Default extends Bindings{
                     "parameterTypes" -> vrt.Arr.allocate("java/lang/Class",
                       f.desc.args.map(t =>
                         vrt.Obj.allocate("java/lang/Class",
-                          "name" -> Virtualizer.pushVirtual(t.realCls.getName).apply(0)
+                          "name" -> t.realCls.getName.toVirtObj
                         ).address
                       ).toArray
                     ).address
@@ -122,14 +120,14 @@ trait Default extends Bindings{
             },
             "getSuperclass()Ljava/lang/Class;" x {vt =>
               import vt.vm
-              val topClsName = Virtualizer.popVirtual("java/lang/String", () => vt.pop.obj.apply("name")).cast[String]
+              val topClsName = vt.pop.obj.apply("name").toRealObj[String]
               vt.push(
                 vm.ClsTable(topClsName)
                   .clsData
                   .superType
                   .map{_.name}
                   .map(name => vrt.Obj.allocate("java/lang/Class",
-                      "name" -> Virtualizer.pushVirtual(name).apply(0)
+                      "name" -> name.toVirtObj
                     ).address
                   ).getOrElse(0)
               )
@@ -138,15 +136,15 @@ trait Default extends Bindings{
             "isArray()Z" x { vt =>
               import vt.vm
               val res =
-                if(Virtualizer.popVirtual("java/lang/String", () => vt.pop.obj.apply("name")).cast[String].contains('[')) 1 else 0
+                if(vt.pop.obj.apply("name").toRealObj[String].contains('[')) 1 else 0
               vt.push(res)
             },
             "isAssignableFrom(Ljava/lang/Class;)Z" x { vt =>
               import vt.vm
               val clsA = vt.pop.obj
               val clsB = vt.pop.obj
-              val nameA = Virtualizer.popVirtual("java/lang/String", () => clsA.apply("name")).cast[String]
-              val nameB = Virtualizer.popVirtual("java/lang/String", () => clsB.apply("name")).cast[String]
+              val nameA = clsA("name").toRealObj[String]
+              val nameB = clsB("name").toRealObj[String]
 
               vt.push(if (opcodes.Misc.check(imm.Type.read(nameA), imm.Type.read(nameB))) 1 else 0)
             },
@@ -155,7 +153,7 @@ trait Default extends Bindings{
               val clsObj = vt.pop.obj
               vt.push(
                 vm.ClsTable(
-                  Virtualizer.popVirtual("java/lang/String", () => clsObj("name")).cast[String]
+                  clsObj("name").toRealObj[String]
                 ).clsData.access_flags & 0x0200
               )
             },
@@ -166,7 +164,7 @@ trait Default extends Bindings{
                             .values
                             .map(_.primClass.getName)
                             .toList
-                            .contains(Virtualizer.popVirtual("java/lang/String", () => clsObj("name")))
+                            .contains(clsObj("name").toRealObj[String])
               vt.push(if (res) 1 else 0)
             },
             "registerNatives()V" x noOp(0)
@@ -181,18 +179,18 @@ trait Default extends Bindings{
                 case 1 => vt.threadStack(0).runningClass.name
                 case 2 => vt.threadStack(1).runningClass.name
               }
-              vt.push(vrt.Obj.allocate("java/lang/Class", "name" -> Virtualizer.pushVirtual(name).apply(0)).address)
+              vt.push(vrt.Obj.allocate("java/lang/Class", "name" -> name.toVirtObj).address)
             },
             "getSystemResourceAsStream(Ljava/lang/String;)Ljava/io/InputStream;" x {vt =>
               import vt.vm
 
               //public static InputStream getSystemResourceAsStream(String name) {
-              val name = Virtualizer.popVirtual("java/lang/String", () => vt.pop).cast[String]
+              val name = vt.pop.toRealObj[String]
               val realResult = new DataInputStream(ClassLoader.getSystemResourceAsStream(name))
               val bytes = new Array[Byte](realResult.available())
               realResult.readFully(bytes)
               val byteStream = new ByteArrayInputStream(bytes)
-              vt.push(Virtualizer.pushVirtual(byteStream).apply(0))
+              vt.push(byteStream.toVirtObj)
             },
             "registerNatives()V" x noOp(0)
           ),
@@ -213,11 +211,13 @@ trait Default extends Bindings{
               import vt.vm
               val value = vt.pop
 
-              val stringAddr = Virtualizer.pushVirtual(
+              val stringAddr = (
                 if(value.isObj) value.obj.cls.name.toDot
                 else "[" + value.arr.innerType.name.toDot
-              ).apply(0)
+              ).toVirtObj
+
               vm.log("STRING ADDRESS " + stringAddr)
+
               val addr = vrt.Obj.allocate("java/lang/Class",
                 "name" -> stringAddr
               ).address
@@ -260,8 +260,8 @@ trait Default extends Bindings{
             "intern()Ljava/lang/String;" x {vt =>
               import vt.vm
               val addr = vt.pop
-              val str = Virtualizer.popVirtual("java/lang/String", () => addr).cast[String]
-              val result =  stack.getOrElseUpdate(str, addr)
+              val str = addr.toRealObj[String]
+              val result = vt.vm.internedStrings.getOrElseUpdate(str, addr)
               vt.push(result)
             }
           ),
@@ -285,7 +285,7 @@ trait Default extends Bindings{
               //vt.pop // pop dummy
               val throwable = vt.pop.obj
               val trace = vt.trace
-              throwable("stackTrace") = Virtualizer.pushVirtual(vt.trace).apply(0)
+              throwable("stackTrace") = vt.trace.toVirtObj
 
               vt.push(throwable.address)
             }
@@ -296,7 +296,7 @@ trait Default extends Bindings{
                 import vt.vm
                 val length = vt.pop
                 val clsObj = vt.pop.obj
-                val clsName = Virtualizer.popVirtual("java/lang/String", () => clsObj("name")).cast[String]
+                val clsName = clsObj("name").toRealObj[String]
                 vt.push(vrt.Arr.allocate(clsName, length).address)
               }
               )
@@ -308,14 +308,12 @@ trait Default extends Bindings{
             "doPrivileged(Ljava/security/PrivilegedExceptionAction;)Ljava/lang/Object;" x {vt =>
               import vt.vm
               val pa = vt.pop.obj
-              vm.log(vt.indent + "DOPRIVILEDGED " + pa.cls.clsData.tpe + "\t" + pa.address)
               val mRef = vt.vm.resolveDirectRef(pa.cls.clsData.tpe, pa.cls.clsData.methods.find(_.name == "run").get.sig).get
               vt.prepInvoke(mRef, Seq(pa.address))
             },
             "doPrivileged(L//PrivilegedAction;)L/lang/Object;" x { vt =>
               import vt.vm
               val pa = vt.pop.obj
-              vm.log(vt.indent + "DOPRIVILEDGED " + pa.cls.clsData.tpe + "\t" + pa.address)
               val mRef = vt.vm.resolveDirectRef(pa.cls.clsData.tpe, pa.cls.clsData.methods.find(_.name == "run").get.sig).get
               vt.prepInvoke(mRef, Seq(pa.address))
 
@@ -336,7 +334,7 @@ trait Default extends Bindings{
             import vt.vm
             val thing = vt.pop.obj
             val predef = vt.pop
-            println("Virtual\t" + Virtualizer.popVirtual("java/lang/Object", () => thing.address))
+            println("Virtual\t" + thing.address.toRealObj[Object])
           }
         )
       ),
@@ -381,14 +379,14 @@ trait Default extends Bindings{
               val n = vt.pop
               val name = vt.threadStack(n).runningClass.name
               val clsObj = vrt.Obj.allocate("java/lang/Class",
-                "name" -> Virtualizer.pushVirtual(name).apply(0)
+                "name" -> name.toVirtObj
               )
               vt.push(clsObj.address)
             },
             "getClassAccessFlags(Ljava/lang/Class;)I" x {vt =>
               import vt.vm
               val addr = vt.pop.obj.apply("name")
-              val str = Virtualizer.popVirtual("java/lang/String", () => addr).cast[String]
+              val str = addr.toRealObj[String]
               vt.push(vm.ClsTable(str).clsData.access_flags)
             }
           )

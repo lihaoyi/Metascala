@@ -16,20 +16,21 @@ import metascala.natives.Bindings
 class VM(val natives: Bindings = Bindings.default, val log: ((=>String) => Unit) = s => ()) {
   private[this] implicit val vm = this
 
-  val internedStrings = mutable.Map[Int, Int]()
+  val internedStrings = mutable.Map[String, Int]()
   object Heap{
-    val memory = new Array[Int](64 * 1024 * 1024)
+    val memory = new Array[Int](1 * 1024 * 1024)
+
     var freePointer = 1
+
     def allocate(n: Int) = {
       val newFree = freePointer
       freePointer += n
       newFree
-
     }
+
     def apply(n: Int): Int = memory(n)
     def update(n: Int, v: Int) = memory.update(n, v)
     def dump = {
-
       memory.take(freePointer)
             .grouped(10)
             .map(_.map(_+""))

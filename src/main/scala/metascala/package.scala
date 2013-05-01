@@ -1,11 +1,16 @@
 import metascala.rt.Thread
 import collection.mutable
+import scala.reflect.ClassTag
 
 package object metascala {
   private[metascala] implicit class castable(val x: Any) extends AnyVal{
     def cast[T] = x.asInstanceOf[T]
   }
-
+  implicit class pimpedAny(x: Any){
+    def toVirtObj(implicit vm: VM) = {
+      Virtualizer.pushVirtual(x).apply(0)
+    }
+  }
   implicit class pimpedVal(v: Val){
     def isObj(implicit vm: VM) = vm.Heap(v) < 0
     def isArr(implicit vm: VM) = vm.Heap(v) >= 0
@@ -17,7 +22,13 @@ package object metascala {
       assert(isArr)
       new vrt.Arr(v)
     }
+
+    def toRealObj[T](implicit vm: VM, ct: ClassTag[T]) = {
+      Virtualizer.popVirtual(imm.Type.Cls(ct.runtimeClass.getName.toSlash), () => v)
+                 .cast[T]
+    }
   }
+
   object Val{
     val Null = 0
     implicit def objToVal(x: vrt.Obj) = x.address

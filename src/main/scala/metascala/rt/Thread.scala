@@ -83,6 +83,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         this.pushFrom(x, 0, n)
       case None =>
         val x = this.popArgs(n)
+        println("RETURNING " + x.toList)
         returnedVal = Virtualizer.popVirtual(frame.method.method.desc.ret, reader(x, 0))
         this.threadStack.pop
     }
@@ -90,8 +91,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   final def throwExWithTrace(clsName: String, detailMessage: String) = {
     throwException(
       vrt.Obj.allocate(clsName,
-        "stackTrace" -> Virtualizer.pushVirtual(trace).apply(0),
-        "detailMessage" -> Virtualizer.pushVirtual(detailMessage).apply(0)
+        "stackTrace" -> trace.toVirtObj,
+        "detailMessage" -> detailMessage.toVirtObj
       )
     )
   }
@@ -120,7 +121,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         }
       case None =>
         throw new UncaughtVmException(
-          Virtualizer.popVirtual(ex.cls.clsData.tpe, () => ex.address).cast[Throwable]
+          ex.address.toRealObj[Throwable]
         )
     }
   }
