@@ -34,69 +34,68 @@ object StackManip {
   val Swap = ManipStack("Swap"){ case x :: y :: s=> y :: x :: s }
 
 
-  val IAdd = BinOp("IAdd")(I, I, I)(_ + _)
-  val LAdd = BinOp("LAdd")(J, J, J)(_ + _)
-  val FAdd = BinOp("FAdd")(F, F, F)(_ + _)
-  val DAdd = BinOp("DAdd")(D, D, D)(_ + _)
+  val IAdd = BinOp(I, I, I)(_ + _)("IAdd")
+  val LAdd = BinOp(J, J, J)(_ + _)("LAdd")
+  val FAdd = BinOp(F, F, F)(_ + _)("FAdd")
+  val DAdd = BinOp(D, D, D)(_ + _)("DAdd")
 
-  val ISub = BinOp("ISub")(I, I, I)(_ - _)
-  val LSub = BinOp("LSub")(J, J, J)(_ - _)
-  val FSub = BinOp("FSub")(F, F, F)(_ - _)
-  val DSub = BinOp("DSub")(D, D, D)(_ - _)
+  val ISub = BinOp(I, I, I)(_ - _)("ISub")
+  val LSub = BinOp(J, J, J)(_ - _)("LSub")
+  val FSub = BinOp(F, F, F)(_ - _)("FSub")
+  val DSub = BinOp(D, D, D)(_ - _)("DSub")
 
-  val IMul = BinOp("IMul")(I, I, I)(_ * _)
-  val LMul = BinOp("LMul")(J, J, J)(_ * _)
-  val FMul = BinOp("FMul")(F, F, F)(_ * _)
-  val DMul = BinOp("DMul")(D, D, D)(_ * _)
+  val IMul = BinOp(I, I, I)(_ * _)("IMul")
+  val LMul = BinOp(J, J, J)(_ * _)("LMul")
+  val FMul = BinOp(F, F, F)(_ * _)("FMul")
+  val DMul = BinOp(D, D, D)(_ * _)("DMul")
 
-  val IDiv = BinOp("IDiv")(I, I, I)(_ / _)
-  val LDiv = BinOp("LDiv")(J, J, J)(_ / _)
-  val FDiv = BinOp("FDiv")(F, F, F)(_ / _)
-  val DDiv = BinOp("DDiv")(D, D, D)(_ / _)
+  val IDiv = BinOp(I, I, I)(_ / _)("IDiv")
+  val LDiv = BinOp(J, J, J)(_ / _)("LDiv")
+  val FDiv = BinOp(F, F, F)(_ / _)("FDiv")
+  val DDiv = BinOp(D, D, D)(_ / _)("DDiv")
 
-  val IRem = BinOp("IRem")(I, I, I)(_ % _)
-  val LRem = BinOp("LRem")(J, J, J)(_ % _)
-  val FRem = BinOp("FRem")(F, F, F)(_ % _)
-  val DRem = BinOp("DRem")(D, D, D)(_ % _)
+  val IRem = BinOp(I, I, I)(_ % _)("IRem")
+  val LRem = BinOp(J, J, J)(_ % _)("LRem")
+  val FRem = BinOp(F, F, F)(_ % _)("FRem")
+  val DRem = BinOp(D, D, D)(_ % _)("DRem")
 
-  val INeg = UnaryOp("INeg")(I, I)(-_)
-  val LNeg = UnaryOp("LNeg")(J, J)(-_)
-  val FNeg = UnaryOp("FNeg")(F, F)(-_)
-  val DNeg = UnaryOp("DNeg")(D, D)(-_)
+  val INeg = UnaryOp(I, I)(-_)("INeg")
+  val LNeg = UnaryOp(J, J)(-_)("LNeg")
+  val FNeg = UnaryOp(F, F)(-_)("FNeg")
+  val DNeg = UnaryOp(D, D)(-_)("DNeg")
 
-  val IShl = BinOp("IShl")(I, I, I)(_ << _)
-  val LShl = BinOp("LShl")(I, J, J)(_ << _)
-  val IShr = BinOp("IShr")(I, I, I)(_ >> _)
-  val LShr = BinOp("LShr")(I, J, J)(_ >> _)
+  val IShl = BinOp(I, I, I)(_ << _)("IShl")
+  val LShl = BinOp(I, J, J)(_ << _)("LShl")
+  val IShr = BinOp(I, I, I)(_ >> _)("IShr")
+  val LShr = BinOp(I, J, J)(_ >> _)("LShr")
 
-  val IUShr = BinOp("IUShr")(I, I, I)(_ >>> _)
-  val LUShr = BinOp("LUShr")(I, J, J)(_ >>> _)
+  val IUShr = BinOp(I, I, I)(_ >>> _)("IUShr")
+  val LUShr = BinOp(I, J, J)(_ >>> _)("LUShr")
 
-  val IAnd = BinOp("IAnd")(I, I, I)(_ & _)
-  val LAnd = BinOp("LAnd")(J, J, J)(_ & _)
+  val IAnd = BinOp(I, I, I)(_ & _)("IAnd")
+  val LAnd = BinOp(J, J, J)(_ & _)("LAnd")
 
-  val IOr = BinOp("IOr")(I, I, I)(_ | _)
-  val LOr = BinOp("LOr")(J, J, J)(_ | _)
+  val IOr = BinOp(I, I, I)(_ | _)("IOr")
+  val LOr = BinOp(J, J, J)(_ | _)("LOr")
 
-  val IXOr = BinOp("IXOr")(I, I, I)(_ ^ _)
-  val LXOr = BinOp("LXOr")(J, J, J)(_ ^ _)
+  val IXOr = BinOp(I, I, I)(_ ^ _)("IXOr")
+  val LXOr = BinOp(J, J, J)(_ ^ _)("LXOr")
 
   case class IInc(varId: Int, amount: Int) extends OpCode{
     def op(vt: Thread) =  vt.frame.locals(varId) = (vt.frame.locals(varId)) + amount
   }
 
-  case class UnaryOp[A, R](override val toString: String)
-                     (a: Prim[A], out: Prim[R])
-                     (func: A => R) extends OpCode{
+  case class UnaryOp[A, R](a: Prim[A], out: Prim[R])
+                          (func: A => R)(override val toString: String) extends OpCode{
     def op(vt: Thread) = {
       val top = vt.popArgs(a.size)
       val x = func(a.read(reader(top, 0)))
       out.write(x, vt.push)
     }
   }
-  case class BinOp[A, B, R](override val toString: String)
-                      (a: Prim[A], b: Prim[B], out: Prim[R])
-                      (func: (B, A) => R) extends OpCode{
+  case class BinOp[A, B, R](a: Prim[A], b: Prim[B], out: Prim[R])
+                           (func: (B, A) => R)
+                           (override val toString: String)extends OpCode{
     def op(vt: Thread) = {
       val top = vt.popArgs(a.size + b.size)
       val first = a.read(reader(top, b.size))
@@ -105,66 +104,72 @@ object StackManip {
       out.write(res, vt.push)
     }
   }
-  val I2L = UnaryOp("I2L")(I, J)(_.toLong)
-  val I2F = UnaryOp("I2F")(I, F)(_.toFloat)
-  val I2D = UnaryOp("I2D")(I, D)(_.toDouble)
+  val I2L = UnaryOp(I, J)(_.toLong)  ("I2L")
+  val I2F = UnaryOp(I, F)(_.toFloat) ("I2F")
+  val I2D = UnaryOp(I, D)(_.toDouble)("I2D")
 
-  val L2I = UnaryOp("L2I")(J, I)(_.toInt)
-  val L2F = UnaryOp("L2F")(J, F)(_.toFloat)
-  val L2D = UnaryOp("L2D")(J, D)(_.toDouble)
+  val L2I = UnaryOp(J, I)(_.toInt)   ("L2I")
+  val L2F = UnaryOp(J, F)(_.toFloat) ("L2F")
+  val L2D = UnaryOp(J, D)(_.toDouble)("L2D")
 
-  val F2I = UnaryOp("F2I")(F, I)(_.toInt)
-  val F2L = UnaryOp("F2L")(F, J)(_.toLong)
-  val F2D = UnaryOp("F2D")(F, D)(_.toDouble)
+  val F2I = UnaryOp(F, I)(_.toInt)   ("F2I")
+  val F2L = UnaryOp(F, J)(_.toLong)  ("F2L")
+  val F2D = UnaryOp(F, D)(_.toDouble)("F2D")
 
-  val D2I = UnaryOp("D2I")(D, I)(_.toInt)
-  val D2L = UnaryOp("D2L")(D, F)(_.toLong)
-  val D2F = UnaryOp("D2F")(D, F)(_.toFloat)
+  val D2I = UnaryOp(D, I)(_.toInt)   ("D2I")
+  val D2L = UnaryOp(D, F)(_.toLong)  ("D2L")
+  val D2F = UnaryOp(D, F)(_.toFloat) ("D2F")
 
-  val I2B = UnaryOp("I2B")(I, B)(_.toByte)
-  val I2C = UnaryOp("I2C")(I, C)(_.toChar)
-  val I2S = UnaryOp("I2S")(I, S)(_.toShort)
+  val I2B = UnaryOp(I, B)(_.toByte)  ("I2B")
+  val I2C = UnaryOp(I, C)(_.toChar)  ("I2C")
+  val I2S = UnaryOp(I, S)(_.toShort) ("I2S")
 
-  val LCmp = BinOp("LCmp")(J, J, I)(_ compare _)
-  val FCmpl = BinOp("FCmpl")(F, F, I)(_ compare _)
-  val FCmpg = BinOp("FCmpg")(F, F, I)(_ compare _)
-  val DCmpl = BinOp("DCmpl")(D, D, I)(_ compare _)
-  val DCmpg = BinOp("DCmpG")(D, D, I)(_ compare _)
+  val LCmp = BinOp(J, J, I)(_ compare _)("LCmp")
+  val FCmpl = BinOp(F, F, I)(_ compare _)("FCmpl")
+  val FCmpg = BinOp(F, F, I)(_ compare _)("FCmpg")
+  val DCmpl = BinOp(D, D, I)(_ compare _)("DCmpl")
+  val DCmpg = BinOp(D, D, I)(_ compare _)("DCmpG")
 
 
-  case class UnaryBranch(override val toString: String)
-                        (label: Int, pred: Int => Boolean) extends OpCode{
+  case class UnaryBranch(label: Int)
+                        (pred: Int => Boolean)
+                        (name: String)extends OpCode{
 
     def op(vt: Thread) =  {
       if(pred(vt.pop)) vt.frame.pc = label
     }
+
+    override def toString = s"$name($label)"
   }
 
-  val IfEq = UnaryBranch("IfEq")(_: Int, _ == 0)
-  val IfNe = UnaryBranch("IfNe")(_: Int, _ != 0)
-  val IfLt = UnaryBranch("IfLt")(_: Int, _ < 0)
-  val IfGe = UnaryBranch("IfGe")(_: Int, _ >= 0)
-  val IfGt = UnaryBranch("IfGt")(_: Int, _ > 0)
-  val IfLe = UnaryBranch("IfLe")(_: Int, _ <= 0)
+  val IfEq = UnaryBranch(_: Int)(_ == 0)("IfEq")
+  val IfNe = UnaryBranch(_: Int)(_ != 0)("IfNe")
+  val IfLt = UnaryBranch(_: Int)(_ < 0) ("IfLt")
+  val IfGe = UnaryBranch(_: Int)(_ >= 0)("IfGe")
+  val IfGt = UnaryBranch(_: Int)(_ > 0) ("IfGt")
+  val IfLe = UnaryBranch(_: Int)(_ <= 0)("IfLe")
 
-  case class BinaryBranch(override val toString: String)
-                         (label: Int, pred: (Int, Int) => Boolean) extends OpCode{
+  case class BinaryBranch(label: Int)
+                         (pred: (Int, Int) => Boolean)
+                         (name: String)extends OpCode{
 
     def op(vt: Thread) =  {
       val (a, b) = (vt.pop, vt.pop)
       if(pred(b, a)) vt.frame.pc = label
     }
+    override def toString = s"$name($label)"
   }
 
-  val IfICmpEq = BinaryBranch("IfICmpEq")(_: Int, _ == _)
-  val IfICmpNe = BinaryBranch("IfICmpNe")(_: Int, _ != _)
-  val IfICmpLt = BinaryBranch("IfICmpLt")(_: Int, _ < _)
-  val IfICmpGe = BinaryBranch("IfICmpGe")(_: Int, _ >= _)
-  val IfICmpGt = BinaryBranch("IfICmpGt")(_: Int, _ > _)
-  val IfICmpLe = BinaryBranch("IfICmpLe")(_: Int, _ <= _)
+  val IfICmpEq = BinaryBranch(_: Int)(_ == _)("IfICmpEq")
+  val IfICmpNe = BinaryBranch(_: Int)(_ != _)("IfICmpNe")
+  val IfICmpLt = BinaryBranch(_: Int)(_ < _) ("IfICmpLt")
+  val IfICmpGe = BinaryBranch(_: Int)(_ >= _)("IfICmpGe")
+  val IfICmpGt = BinaryBranch(_: Int)(_ > _) ("IfICmpGt")
+  val IfICmpLe = BinaryBranch(_: Int)(_ <= _)("IfICmpLe")
 
-  case class BinaryBranchObj(override val toString: String)
-                            (label: Int, pred: Boolean => Boolean) extends OpCode{
+  case class BinaryBranchObj(label: Int)
+                            (pred: Boolean => Boolean)
+                            (name: String)extends OpCode{
     def op(vt: Thread) = {
 
       val res = (vt.pop, vt.pop) match{
@@ -174,8 +179,9 @@ object StackManip {
       }
       if(pred(res)) vt.frame.pc = label
     }
+    override def toString = s"$name($label)"
   }
-  val IfACmpEq= BinaryBranchObj("IfACmpEq")(_: Int, x => x)
-  val IfACmpNe= BinaryBranchObj("IfACmpNe")(_: Int, x => !x)
+  val IfACmpEq= BinaryBranchObj(_: Int)(x => x) ("IfACmpEq")
+  val IfACmpNe= BinaryBranchObj(_: Int)(x => !x)("IfACmpNe")
 
 }

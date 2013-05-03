@@ -15,7 +15,7 @@ object Prim extends {
     'J' -> J,
     'D' -> D
   )
-
+  def unapply(p: Prim[_]) = Some(p.size)
 }
 abstract class Prim[T: ClassTag](val size: Int){
   def read(x: () => Val): T

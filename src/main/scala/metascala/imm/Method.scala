@@ -64,7 +64,7 @@ case class Method(access: Int,
   def static = (access & Access.Static) != 0
   lazy val sig = Sig(name, desc)
   def argSize = {
-    val thisSize = if(static) 1 else 0
+    val thisSize = if(static) 0 else 1
     thisSize + desc.argSize
   }
 }

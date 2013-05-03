@@ -22,7 +22,7 @@ public class Loops {
         return c;
     }
     public static double sqrtFinder(double n){
-        double guess = n / 2;
+        double guess = n / 2 + 5;
         while(true){
             double errorSquared = guess*guess - n;
             errorSquared = errorSquared * errorSquared;

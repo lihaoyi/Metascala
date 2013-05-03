@@ -266,8 +266,8 @@ object Misc {
     }
   }
 
-  val IfNull = StackManip.UnaryBranch("IfNull")(_: Int, _ == 0)
-  val IfNonNull = StackManip.UnaryBranch("IfNull")(_: Int, _ != 0)
+  val IfNull = StackManip.UnaryBranch(_: Int)(_ == 0)("IfNull")
+  val IfNonNull = StackManip.UnaryBranch(_: Int)(_ != 0)("IfNull")
 
   // Not used, because ASM converts these to normal Goto()s and Jsr()s
   //===============================================================
