@@ -13,10 +13,7 @@ object LoadStore {
     def op(vt: Thread) = ()
   }
 
-  case class Const[A](b: Prim[A])(value: A)(name: String) extends OpCode{
-    def op(vt: Thread) = b.write(value, vt.push)
-    override def toString = s"$name($value)"
-  }
+  case class Const[A](b: Prim[A])(value: A)(name: String) extends OpCode
 
   val AConstNull = Const(I)(0)("AConstNull")
   val IConstM1 = Const(I)(-1)("IConstM1")
@@ -38,35 +35,12 @@ object LoadStore {
   val DConst0 = Const(D)(0)("DConst0")
   val DConst1 = Const(D)(1)("DConst1")
 
-  case class Push(override val toString: String)(value: Int) extends OpCode{
-    def op(vt: Thread) = vt.push(value)
-  }
+  case class Push(override val toString: String)(value: Int) extends OpCode
   val BiPush = Push("BiPush")(_: Int)
   val SiPush = Push("SiPush")(_: Int)
 
 
-  case class Ldc(const: Any) extends OpCode{
-    def op(vt: Thread) = {
-      import vt.vm
-      const match{
-        case s: String =>
-          val top = s.toVirtObj
-          vt.push(top)
-        case t: asm.Type =>
-          val clsObj = vrt.Obj.allocate("java/lang/Class",
-            "name" -> t.getInternalName.toVirtObj
-          )
-          vt.push(clsObj.address)
-        case x: scala.Byte  => B.write(x, vt.push)
-        case x: scala.Char  => C.write(x, vt.push)
-        case x: scala.Short => S.write(x, vt.push)
-        case x: scala.Int   => I.write(x, vt.push)
-        case x: scala.Float => F.write(x, vt.push)
-        case x: scala.Long  => J.write(x, vt.push)
-        case x: scala.Double => D.write(x, vt.push)
-      }
-    }
-  }
+  case class Ldc(const: Any) extends OpCode
 
   // Not used, because ASM converts these Ldc(const: Any)
   //===============================================================
@@ -75,13 +49,7 @@ object LoadStore {
   //===============================================================
 
 
-  case class Load[T](index: Int, p: Prim[T])(name: String) extends OpCode{
-    def op(vt: Thread) = {
-      vt.pushFrom(vt.frame.locals, index, p.size)
-    }
-    override def toString = s"$name($index)"
-
-  }
+  case class Load[T](index: Int, p: Prim[T])(name: String) extends OpCode
 
   val ILoad = Load(_: Int, I)("ILoad")
   val LLoad = Load(_: Int, J)("LLoad")
@@ -119,17 +87,7 @@ object LoadStore {
   val ALoad3 = UnusedOpCode
   //===============================================================
 
-  case class LoadArray[T](p: Prim[T])(override val toString: String) extends OpCode{
-    def op(vt: Thread) = {
-      import vt.vm
-      val index = vt.pop
-      val arr = vt.pop.arr
-      checkBounds(index, arr, vt){
-        vt.pushFrom(arr, index * p.size, p.size)
-      }
-    }
-  }
-
+  case class LoadArray[T](p: Prim[T])(override val toString: String) extends OpCode
   val IALoad = LoadArray(I)("IALoad")
   val LALoad = LoadArray(J)("LALoad")
   val FALoad = LoadArray(F)("FALoad")
@@ -139,10 +97,7 @@ object LoadStore {
   val CALoad = LoadArray(C)("CALoad")
   val SALoad = LoadArray(S)("SALoad")
 
-  case class Store[T](index: Int, p: Prim[T])(name: String) extends OpCode{
-    def op(vt: Thread) = vt.popTo(vt.frame.locals, index, p.size)
-    override def toString = s"$name($index)"
-  }
+  case class Store[T](index: Int, p: Prim[T])(name: String) extends OpCode
 
   val IStore = Store(_: Int, I)("IStore")
   val LStore = Store(_: Int, J)("LStore")
@@ -178,30 +133,8 @@ object LoadStore {
   val AStore3 = UnusedOpCode
   //===============================================================
 
-  def checkBounds(index: Int, arr: vrt.Arr, vt: Thread)(thunk: => Unit) = {
-    import vt.vm
-    if(0 <= index && index < arr.length){
-      thunk
-    }else{
 
-      vt.throwException(vrt.Obj.allocate("java/lang/ArrayIndexOutOfBoundsException",
-        "detailMessage" -> (""+index).toVirtObj
-      ))
-    }
-  }
-  case class StoreArray[T](p: Prim[T])(override val toString: String) extends OpCode{
-    def op(vt: Thread) = {
-      import vt.vm
-      val top = vt.popArgs(p.size)
-      val value = p.read(reader(top, 0))
-      val index = vt.pop
-      val arr = vt.pop.arr
-      checkBounds(index, arr, vt){
-        p.write(value, writer(arr, index * p.size))
-      }
-    }
-  }
-
+  case class StoreArray[T](p: Prim[T])(override val toString: String) extends OpCode
   val IAStore = StoreArray(I)("IAStore")
   val LAStore = StoreArray(J)("LAStore")
   val FAStore = StoreArray(F)("FAStore")

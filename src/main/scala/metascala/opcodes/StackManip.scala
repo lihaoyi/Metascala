@@ -10,19 +10,7 @@ import rt.Thread
 
 object StackManip {
 
-  case class ManipStack(override val toString: String)(transform: List[Val] => List[Val]) extends OpCode{
-    def op(vt: Thread) =  {
-      var i = vt.frame.stackDump.length min 4
-      var list: List[Val] = Nil
-      while(i > 0){
-        i -= 1
-        list = vt.pop :: list
-      }
-      val out = transform(list.reverse)
-      out.reverse.foreach(vt.push)
-    }
-  }
-
+  case class ManipStack(override val toString: String)(transform: List[Val] => List[Val]) extends OpCode
   val Pop = ManipStack("Pop"){ case _ :: s => s }
   val Pop2 = ManipStack("Pop2"){ case _ :: _ :: s => s }
   val Dup = ManipStack("Dup"){ case top :: s => top :: top :: s }
@@ -81,29 +69,14 @@ object StackManip {
   val IXOr = BinOp(I, I, I)(_ ^ _)("IXOr")
   val LXOr = BinOp(J, J, J)(_ ^ _)("LXOr")
 
-  case class IInc(varId: Int, amount: Int) extends OpCode{
-    def op(vt: Thread) =  vt.frame.locals(varId) = (vt.frame.locals(varId)) + amount
-  }
+  case class IInc(varId: Int, amount: Int) extends OpCode
 
   case class UnaryOp[A, R](a: Prim[A], out: Prim[R])
-                          (func: A => R)(override val toString: String) extends OpCode{
-    def op(vt: Thread) = {
-      val top = vt.popArgs(a.size)
-      val x = func(a.read(reader(top, 0)))
-      out.write(x, vt.push)
-    }
-  }
+                          (func: A => R)(override val toString: String) extends OpCode
   case class BinOp[A, B, R](a: Prim[A], b: Prim[B], out: Prim[R])
                            (func: (B, A) => R)
-                           (override val toString: String)extends OpCode{
-    def op(vt: Thread) = {
-      val top = vt.popArgs(a.size + b.size)
-      val first = a.read(reader(top, b.size))
-      val second = b.read(reader(top, 0))
-      val res = func(second, first)
-      out.write(res, vt.push)
-    }
-  }
+                           (override val toString: String)extends OpCode
+
   val I2L = UnaryOp(I, J)(_.toLong)  ("I2L")
   val I2F = UnaryOp(I, F)(_.toFloat) ("I2F")
   val I2D = UnaryOp(I, D)(_.toDouble)("I2D")
@@ -133,14 +106,7 @@ object StackManip {
 
   case class UnaryBranch(label: Int)
                         (pred: Int => Boolean)
-                        (name: String)extends OpCode{
-
-    def op(vt: Thread) =  {
-      if(pred(vt.pop)) vt.frame.pc = label
-    }
-
-    override def toString = s"$name($label)"
-  }
+                        (name: String)extends OpCode
 
   val IfEq = UnaryBranch(_: Int)(_ == 0)("IfEq")
   val IfNe = UnaryBranch(_: Int)(_ != 0)("IfNe")
@@ -151,14 +117,7 @@ object StackManip {
 
   case class BinaryBranch(label: Int)
                          (pred: (Int, Int) => Boolean)
-                         (name: String)extends OpCode{
-
-    def op(vt: Thread) =  {
-      val (a, b) = (vt.pop, vt.pop)
-      if(pred(b, a)) vt.frame.pc = label
-    }
-    override def toString = s"$name($label)"
-  }
+                         (name: String) extends OpCode
 
   val IfICmpEq = BinaryBranch(_: Int)(_ == _)("IfICmpEq")
   val IfICmpNe = BinaryBranch(_: Int)(_ != _)("IfICmpNe")
@@ -169,18 +128,8 @@ object StackManip {
 
   case class BinaryBranchObj(label: Int)
                             (pred: Boolean => Boolean)
-                            (name: String)extends OpCode{
-    def op(vt: Thread) = {
+                            (name: String) extends OpCode
 
-      val res = (vt.pop, vt.pop) match{
-        case (0, 0) => true
-        case (a, b) => a == b
-        case _ => false
-      }
-      if(pred(res)) vt.frame.pc = label
-    }
-    override def toString = s"$name($label)"
-  }
   val IfACmpEq= BinaryBranchObj(_: Int)(x => x) ("IfACmpEq")
   val IfACmpNe= BinaryBranchObj(_: Int)(x => !x)("IfACmpNe")
 

@@ -27,26 +27,22 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
   def indent = "\t" * threadStack.filter(_.method.sig.name != "Dummy").length
 
-  def swapOpCode(opcode: OpCode) = {
-    val insnsList = frame.method.insns
-
-    insnsList(frame.pc-1) = opcode
-    opcode.op(this)
-  }
 
   final def step() = {
     val insnsList = frame.method.insns
     val node = insnsList(frame.pc)
+
     frame.method.method.code.attachments(frame.pc).collectFirst{
       case LineNumber(line, _) => frame.lineNum = line
     }
-    vm.log(indent + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.stackDump)
-    vm.log(indent + "---------------------- " + frame.pc + "\t" + node )
+
+    println(indent + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.locals)
+    println(indent + frame.pc + "\t" + node )
     //vm.log(indent + vm.Heap.dump.replace("\n", "\n" + indent))
     frame.pc += 1
     opCount += 1
     try{
-      node.op(this)
+
     }catch {case e: Throwable =>
       /*val internal = Virtualizer.popVirtual("metascala/InternalVmException", () =>
         vrt.Obj.allocate("metascala/InternalVmException",
@@ -74,17 +70,12 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     ).toArray
   }
 
-  def returnVal(n: Int) = {
+  def returnVal(size: Int, index: Int) = {
 
     threadStack.lift(1) match{
       case Some(frame) =>
-        val x = this.popArgs(n)
-        this.threadStack.pop
-        this.pushFrom(x, 0, n)
       case None =>
-        val x = this.popArgs(n)
-        println("RETURNING " + x.toList)
-        returnedVal = Virtualizer.popVirtual(frame.method.method.desc.ret, reader(x, 0))
+        returnedVal = Virtualizer.popVirtual(frame.method.method.desc.ret, reader(frame.locals, index))
         this.threadStack.pop
     }
   }
@@ -116,8 +107,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
             throwException(ex, false)
           case Some(imm.TryCatchBlock(start, end, handler, blockType)) =>
             frame.pc = handler
-            frame.popAll
-            frame.push(ex.address)
+
         }
       case None =>
         throw new UncaughtVmException(
@@ -132,15 +122,15 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     mRef match{
       case rt.Method.Native(clsName, imm.Sig(name, desc), op) =>
-        threadStack.headOption.map(f => args.map(f.push))
-        op(this)
+        //threadStack.headOption.map(f => args.map(f.push))
+        //op(this)
       case m @ rt.Method.Cls(cls, methodIndex, method) =>
         assert((m.method.access & Access.Native) == 0, "method cannot be native: " + cls.name + " " + method.sig.unparse)
 
         val startFrame = new Frame(
           runningClass = cls,
           method = m,
-        locals = mutable.Seq(args:_*).padTo(m.method.misc.maxLocals, 0)
+          locals = mutable.Seq(args:_*).padTo(m.method.argSize, 0)
         )
 
         //log(indent + "locals " + startFrame.locals)
@@ -196,22 +186,6 @@ class Frame(var pc: Int = 0,
             val runningClass: rt.Cls,
             val method: rt.Method.Cls,
             var lineNum: Int = 0,
-            val locals: mutable.Seq[Val] = mutable.Seq.empty){
-
-  val stack = new Array[Int](method.method.misc.maxStack)
-  var index = 0
-  def push(n: Int) = {
-    stack(index) = n
-    index += 1
-  }
-  def pop = {
-    index -= 1
-    stack(index)
-  }
-  def popAll = {
-    index = 0
-  }
-  def stackDump = stack.take(index).toList
-}
+            val locals: mutable.Seq[Val] = mutable.Seq.empty)
 
 

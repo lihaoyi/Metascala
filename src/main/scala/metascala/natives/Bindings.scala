@@ -2,7 +2,9 @@ package metascala
 package natives
 
 object Bindings{
-  val default = new Default {}
+  val default = new Default {
+    override val trapped = Nil
+  }
 }
 
 /**

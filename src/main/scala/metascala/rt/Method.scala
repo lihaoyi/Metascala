@@ -23,7 +23,16 @@ object Method{
    */
   case class Cls(cls: rt.Cls, methodIndex: Int, method: imm.Method)(implicit vm: VM) extends Method{
     lazy val sig = method.sig
-    lazy val insns = Array(method.code.insns:_*)
+    lazy val (blockMap, localsSize) = ssa.Conversion.convertToSsa(method)
+    lazy val blockIndexes =
+      blockMap.toSeq
+              .sortBy(_._1)
+              .map(_._2.length)
+              .scanLeft(0)(_+_)
+    lazy val insns =
+      blockMap.toSeq
+              .sortBy(_._1)
+              .flatMap(_._2)
     override def toString = s"Method.Cls(${cls.name}, ${method.sig.unparse}})"
   }
 }

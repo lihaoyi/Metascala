@@ -23,7 +23,7 @@ trait Default extends Bindings{
     }
   }
 
-  val properties = Map[String, String]()
+  /*
 
   val trapped = {
     Seq(
@@ -148,7 +148,20 @@ trait Default extends Bindings{
               val nameA = clsA("name").toRealObj[String]
               val nameB = clsB("name").toRealObj[String]
 
-              vt.push(if (opcodes.Misc.check(imm.Type.read(nameA), imm.Type.read(nameB))) 1 else 0)
+              def check(s: imm.Type, t: imm.Type)(implicit vm: VM): Boolean = {
+
+                (s, t) match{
+
+                  case (s: imm.Type.Cls, t: imm.Type.Cls) => s.cls.typeAncestry.contains(t)
+                  case (s: imm.Type.Arr, imm.Type.Cls("java/lang/Object")) => true
+                  case (s: imm.Type.Arr, imm.Type.Cls("java/lang/Cloneable")) => true
+                  case (s: imm.Type.Arr, imm.Type.Cls("java/io/Serializable")) => true
+                  case (imm.Type.Arr(imm.Type.Prim(a)), imm.Type.Arr(imm.Type.Prim(b))) => a == b
+                  case (imm.Type.Arr(sc: imm.Type), imm.Type.Arr(tc: imm.Type)) => check(sc, tc)
+                  case _ => false
+                }
+              }
+              vt.push(if (check(imm.Type.read(nameA), imm.Type.read(nameB))) 1 else 0)
             },
             "isInterface()Z" x {vt =>
               import vt.vm
@@ -390,4 +403,5 @@ trait Default extends Bindings{
       )
     ).toRoute()
   }
+  */
 }

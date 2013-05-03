@@ -10,9 +10,7 @@ import collection.convert.wrapAsScala._
 import rt.Thread
 
 
-abstract class OpCode{
-  def op(vt: Thread): Any
-}
+abstract class OpCode
 
 object OpCode {
   private[this] implicit class nullSafeList[T](val list: java.util.List[T]) extends AnyVal{
@@ -36,9 +34,6 @@ object OpCode {
     case x: TypeInsnNode            => all(x.getOpcode).cast[imm.Type => OpCode].apply(imm.Type.read(x.desc))
     case x: VarInsnNode             => all(x.getOpcode).cast[Int => OpCode].apply(x.`var`)
   }
-
-
-
 
   def apply(n: Int): Any = all((n + 256) % 256)
   import Misc._

@@ -10,11 +10,11 @@ package metascala
  *
  */
 package object natives {
-  def value[T](p: Prim[T])(nPop: Int, x: => T)(vt: rt.Thread): Unit = {
+  /*def value[T](p: Prim[T])(nPop: Int, x: => T)(vt: rt.Thread): Unit = {
     for(i <- 0 until nPop)vt.pop
     p.write(x, vt.push)
   }
-  def noOp(nPop: Int) = (vt: rt.Thread) => for(i <- 0 until nPop) vt.pop
+  def noOp(nPop: Int) = (vt: rt.Thread) => for(i <- 0 until nPop) vt.pop*/
 
   /**
    * Implements a nice DSL to build the list of trapped method calls

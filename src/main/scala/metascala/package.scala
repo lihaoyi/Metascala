@@ -6,6 +6,14 @@ package object metascala {
   private[metascala] implicit class castable(val x: Any) extends AnyVal{
     def cast[T] = x.asInstanceOf[T]
   }
+  implicit class splitAllable[T](c: Seq[T]){
+    def splitAll(positions: List[Int], index: Int = 0): Seq[Seq[T]] = positions match{
+      case Nil => Seq(c)
+      case firstPos :: restPos =>
+        val (first, rest) = c.splitAt(firstPos - index)
+        first +: rest.splitAll(restPos, firstPos)
+    }
+  }
   implicit class pimpedAny(x: Any){
     def toVirtObj(implicit vm: VM) = {
       Virtualizer.pushVirtual(x).apply(0)
@@ -37,28 +45,6 @@ package object metascala {
   }
 
   type Val = Int
-
-  implicit class poppable(val vt: Thread) extends AnyVal{
-    def pop = vt.frame.pop
-    def popTo(dest: mutable.Seq[Val], index: Int, n: Int) = {
-      for(i <- (n-1) to 0 by -1){
-        dest(index + i) = pop
-      }
-    }
-    def push(x: Val): Unit = vt.frame.push(x)
-    def pushFrom(src: Seq[Val], index: Int, n: Int) = {
-      for(i <- 0 until n){
-        push(src(index + i))
-      }
-    }
-    def popArgs(n: Int) = {
-      val args = new Array[Val](n)
-      popTo(args, 0, n)
-      args
-    }
-  }
-
-
 
   def forNameBoxed(name: String) = {
     if(Prim.all.contains(name(0)))
