@@ -72,9 +72,10 @@ object StackManip {
   case class IInc(varId: Int, amount: Int) extends OpCode
 
   case class UnaryOp[A, R](a: Prim[A], out: Prim[R])
-                          (func: A => R)(override val toString: String) extends OpCode
+                          (val func: A => R)(override val toString: String) extends OpCode
+
   case class BinOp[A, B, R](a: Prim[A], b: Prim[B], out: Prim[R])
-                           (func: (B, A) => R)
+                           (val func: (B, A) => R)
                            (override val toString: String)extends OpCode
 
   val I2L = UnaryOp(I, J)(_.toLong)  ("I2L")

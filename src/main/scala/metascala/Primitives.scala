@@ -6,6 +6,7 @@ import scala.reflect.ClassTag
 object Prim extends {
 
   val all = Map(
+    'V' -> V,
     'Z' -> Z,
     'B' -> B,
     'C' -> C,
@@ -22,6 +23,14 @@ abstract class Prim[T: ClassTag](val size: Int){
   def write(x: T, out: Val => Unit): Unit
   def boxedClass: Class[_]
   val primClass: Class[_] = implicitly[ClassTag[T]].runtimeClass
+}
+
+object V extends Prim[Unit](0){
+  def apply(x: Val) = ???
+  def read(x: () => Val) = ()
+  def write(x: Unit, out: Val => Unit) = ()
+  def boxedClass = classOf[java.lang.Void]
+
 }
 
 object Z extends Prim[Boolean](1){

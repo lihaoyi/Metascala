@@ -36,6 +36,7 @@ object Type{
     def parent(implicit vm: VM) = Some(imm.Type.Cls("java/lang/Object"))
     def realCls = innerType.realCls
     def methodType = Type.Cls("java/lang/Object")
+    def prim = I
   }
   object Cls{
     def read(s: String) = Cls(s)
@@ -53,6 +54,7 @@ object Type{
     def parent(implicit vm: VM) = this.cls.clsData.superType
     def realCls = classOf[Object]
     def methodType: Type.Cls = this
+    def prim = I
     override val hashCode = name.hashCode
   }
 
@@ -85,6 +87,7 @@ object Type{
     def realCls = Class.forName(info.boxName.replace('/', '.'))
 
     def parent(implicit vm: VM) = ???
+    def prim = metascala.Prim.all(char)
   }
 
 
@@ -106,6 +109,7 @@ trait Type{
 
   def size: Int
   def name: String
+  def prim: Prim[_]
 }
 
 object Desc{

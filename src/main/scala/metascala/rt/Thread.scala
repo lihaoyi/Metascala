@@ -12,7 +12,14 @@ import metascala.UncaughtVmException
 import metascala.vrt
 import metascala.imm
 import metascala.imm.Access
-import metascala.ssa.Insn.{Push, InvokeStatic, ReturnVal}
+import metascala.ssa.Insn._
+import metascala.ssa.Insn.Ldc
+import metascala.imm.Attached.LineNumber
+import metascala.ssa.Insn.Push
+import metascala.ssa.Insn.InvokeStatic
+import scala.Some
+import metascala.UncaughtVmException
+import metascala.ssa.Insn.ReturnVal
 
 /**
  * A single thread within the Metascala VM.
@@ -44,15 +51,45 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     opCount += 1
     node match {
       case ReturnVal(sym) => returnVal(sym.length, sym.lift(0).map(_.n).getOrElse(0))
-      case Push(target, value) =>
-        value.copyToArray(frame.locals, target)
+      case Push(prim, target, value) =>
+        prim.write(value, writer(frame.locals, target))
+
       case InvokeStatic(target, sources, owner, sig) =>
         resolveDirectRef(owner, sig).map{ m =>
-
           val args = sources.flatMap(s => frame.locals.slice(s.n, s.n + s.size))
-
           prepInvoke(m, args)
         }
+      case Ldc(target, thing) =>
+        val w = writer(frame.locals, target)
+        thing match{
+          case s: String =>
+            val top = Virtualizer.pushVirtual(s).apply(0)
+            frame.locals(target) = top
+          case t: org.objectweb.asm.Type =>
+            val clsObj = vrt.Obj.allocate("java/lang/Class",
+              "name" -> Virtualizer.pushVirtual(t.getInternalName).apply(0)
+            )
+            frame.locals(target) = clsObj.address
+          case x: scala.Byte  => B.write(x, w)
+          case x: scala.Char  => C.write(x, w)
+          case x: scala.Short => S.write(x, w)
+          case x: scala.Int   => I.write(x, w)
+          case x: scala.Float => F.write(x, w)
+          case x: scala.Long  =>
+            println("WRITING " + x + "\t" + frame.locals.toSeq + "\t" + target)
+            J.write(x, w)
+          case x: scala.Double => D.write(x, w)
+        }
+      case UnaryOp(src, dest, op) =>
+        op.out.write(op.func(op.a.read(reader(frame.locals, src.n))), writer(frame.locals, dest.n))
+
+      case BinOp(a, b, dest, op) =>
+        op.out.write(
+          op.func(
+            op.b.read(reader(frame.locals, b.n)),
+            op.a.read(reader(frame.locals, a.n))
+          ), writer(frame.locals, dest.n)
+        )
     }
   }
 
