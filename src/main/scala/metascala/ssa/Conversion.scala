@@ -101,14 +101,14 @@ object Conversion {
     (regInsns, stackToSsa, ssaToStack, states)
   }
 
-  def op(state: State, op: OpCode, makeSymbol: Prim[_] => Symbol[_])(implicit vm: VM): (State, Option[Insn]) = op match {
+  def op(state: State, oc: OpCode, makeSymbol: Prim[_] => Symbol[_])(implicit vm: VM): (State, Seq[Insn]) = oc match {
     case InvokeStatic(cls, sig) =>
       val (args, newStack) = state.stack.splitAt(sig.desc.argSize)
       val target = makeSymbol(sig.desc.ret.prim)
-      state.copy(stack = target :: newStack) -> Some(Insn.InvokeStatic(target, args, cls, sig))
+      state.copy(stack = target :: newStack) -> List(Insn.InvokeStatic(target, args, cls, sig))
 
     case Load(index, _) =>
-      state.copy(stack = state.locals(index) :: state.stack) -> None
+      state.copy(stack = state.locals(index) :: state.stack) -> Nil
 
     case Ldc(thing) =>
 
@@ -118,60 +118,69 @@ object Conversion {
         case _ => makeSymbol(I)
       }
 
-      state.copy(stack = symbol :: state.stack) -> Some(Insn.Ldc(symbol.n, thing))
+      state.copy(stack = symbol :: state.stack) -> List(Insn.Ldc(symbol.n, thing))
 
     case BinOp(a, b, out) =>
       val symbol = makeSymbol(out)
 
       val first :: second :: newStack = state.stack
-      state.copy(stack = symbol :: newStack) -> Some(Insn.BinOp(first.cast[Symbol[Any]], second.cast[Symbol[Any]], symbol.cast[Symbol[Any]], op.cast[BinOp[Any, Any, Any]]))
+      state.copy(stack = symbol :: newStack) -> List(Insn.BinOp(first.cast[Symbol[Any]], second.cast[Symbol[Any]], symbol.cast[Symbol[Any]], oc.cast[BinOp[Any, Any, Any]]))
 
     case UnaryOp(a, prim) =>
       val symbol = makeSymbol(prim)
       val first :: newStack = state.stack
-      state.copy(stack = symbol :: newStack) -> Some(Insn.UnaryOp(first.cast[Symbol[Any]], symbol.cast[Symbol[Any]], op.cast[UnaryOp[Any, Any]]))
+      state.copy(stack = symbol :: newStack) -> List(Insn.UnaryOp(first.cast[Symbol[Any]], symbol.cast[Symbol[Any]], oc.cast[UnaryOp[Any, Any]]))
 
     case Store(index, Prim(size)) =>
-      state.copy(stack = state.stack.tail, locals = state.locals.patch(index, Seq.fill(size)(state.stack.head.cast[Symbol[Any]]), size)) -> None
+      state.copy(stack = state.stack.tail, locals = state.locals.patch(index, Seq.fill(size)(state.stack.head.cast[Symbol[Any]]), size)) -> Nil
 
     case UnaryBranch(index) =>
-      state.copy(stack = state.stack.tail) -> Some(Insn.UnaryBranch(state.stack.head, index, op.cast[UnaryBranch]))
+      state.copy(stack = state.stack.tail) -> List(Insn.UnaryBranch(state.stack.head, index, oc.cast[UnaryBranch]))
 
     case BinaryBranch(index) =>
       val first :: second :: newStack = state.stack
-      state.copy(stack = newStack) -> Some(Insn.BinaryBranch(first, second, index, op.cast[BinaryBranch]))
+      state.copy(stack = newStack) -> List(Insn.BinaryBranch(first, second, index, oc.cast[BinaryBranch]))
 
     case ReturnVal(n) =>
-      state.copy(stack = state.stack.drop(n)) -> Some(Insn.ReturnVal(state.stack.take(n)))
+      state.copy(stack = state.stack.drop(n)) -> List(Insn.ReturnVal(state.stack.take(n)))
 
     case Goto(index) =>
-      state -> Some(Insn.Goto(index))
+      state -> List(Insn.Goto(index))
 
     case Push(v) =>
       val symbol = makeSymbol(I)
-      state.copy(stack = symbol :: state.stack) -> Some(Insn.Push(symbol.cast[Symbol[Any]].prim, symbol.n, v))
+      state.copy(stack = symbol :: state.stack) -> List(Insn.Push(symbol.cast[Symbol[Any]].prim, symbol.n, v))
 
     case o @ Const(prim) =>
       val symbol = makeSymbol(prim)
-      state.copy(stack = symbol :: state.stack) -> Some(Insn.Push(symbol.cast[Symbol[Any]].prim, symbol.n, o.value))
+      state.copy(stack = symbol :: state.stack) -> List(Insn.Push(symbol.cast[Symbol[Any]].prim, symbol.n, o.value))
 
     case New(desc) =>
       state.copy(stack = makeSymbol(I) :: state.stack) ->
-        Some(Insn.New(vm.ClsTable(desc)))
+        List(Insn.New(vm.ClsTable(desc)))
 
     case PutStatic(owner, name, tpe) =>
       val index = owner.cls.staticList.indexWhere(_.name == name)
       val prim = owner.cls.staticList(index).desc.prim
 
       state.copy(stack = state.stack.tail) ->
-      Some(Insn.PutStatic(state.stack.head, owner.cls, index, prim))
+      List(Insn.PutStatic(state.stack.head, owner.cls, index, prim))
 
     case GetStatic(owner, name, tpe) =>
       val index = owner.cls.staticList.indexWhere(_.name == name)
       val prim = owner.cls.staticList(index).desc.prim
       val symbol = makeSymbol(prim)
       state.copy(stack = symbol :: state.stack) ->
-        Some(Insn.GetStatic(symbol, owner.cls, index, prim))
+        List(Insn.GetStatic(symbol, owner.cls, index, prim))
+
+    case IInc(varId, amount) =>
+      val replacements = List(ILoad(varId), SiPush(amount), IAdd)
+      val (outState, outInsns) = replacements.foldLeft((state, Seq[Insn]())){ case ((oldState, insns), oc) =>
+        val x = op(oldState, oc, makeSymbol)
+        x.copy(_2 = insns ++ x._2)
+      }
+
+      outState -> outInsns
   }
 
 }

@@ -26,7 +26,7 @@ public class Loops {
         while(true){
             double errorSquared = guess*guess - n;
             errorSquared = errorSquared * errorSquared;
-            if (errorSquared / n < 0.01) return guess;
+            if (errorSquared / n < 1) return guess;
             else{
                 guess = ((guess * guess) - n) / (2 * guess);
             }

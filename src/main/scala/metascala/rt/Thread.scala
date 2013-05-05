@@ -103,6 +103,12 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
       case UnaryBranch(sym, target, src, phi) =>
         if(src.pred(frame.locals(sym.n))) frame.pc = target
+
+      case Goto(target, phi) =>
+        for ((symA, symB) <- phi){
+          System.arraycopy(frame.locals, symA.n, frame.locals, symB.n, symA.size)
+        }
+        frame.pc = target
     }
   }
 
@@ -173,7 +179,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     mRef match{
       case rt.Method.Native(clsName, imm.Sig(name, desc), op) =>
         //threadStack.headOption.map(f => args.map(f.push))
-        //op(this)
+        //oc(this)
       case m @ rt.Method.Cls(cls, methodIndex, method) =>
 
         assert((m.method.access & Access.Native) == 0, "method cannot be native: " + cls.name + " " + method.sig.unparse)
