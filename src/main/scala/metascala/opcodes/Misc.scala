@@ -4,7 +4,7 @@ import metascala.imm.Type
 import collection.mutable
 import rt.Thread
 
-object Misc {
+trait  Misc {
   case class Goto(label: Int) extends OpCode
 
   // These guys are meant to be deprecated in java 6 and 7
@@ -59,8 +59,8 @@ object Misc {
   //===============================================================
 
   case class MultiANewArray(desc: Type.Arr, dims: Int) extends OpCode
-  val IfNull = StackManip.UnaryBranch(_: Int)(_ == 0)("IfNull")
-  val IfNonNull = StackManip.UnaryBranch(_: Int)(_ != 0)("IfNull")
+  val IfNull = opcodes.UnaryBranch(_: Int)(_ == 0)("IfNull")
+  val IfNonNull = opcodes.UnaryBranch(_: Int)(_ != 0)("IfNull")
 
   // Not used, because ASM converts these to normal Goto()s and Jsr()s
   //===============================================================

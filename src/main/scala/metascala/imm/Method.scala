@@ -80,7 +80,7 @@ object Code{
     for(node <- nodes){
       node match{
         case x: LabelNode => labelMapMaker(x.getLabel) = i
-        case y if OpCode.read(Map.empty[Label, Int]).isDefinedAt(y) => i += 1
+        case y if opcodes.read(Map.empty[Label, Int]).isDefinedAt(y) => i += 1
         case _ => ()
       }
     }
@@ -93,7 +93,7 @@ object Code{
     val allAttached = mutable.ArrayBuffer.empty[List[Attached]]
     var attached: List[Attached] = Nil
 
-    val f = OpCode.read.andThen{o =>
+    val f = opcodes.read.andThen{o =>
       instructions += o
       allAttached += attached
 

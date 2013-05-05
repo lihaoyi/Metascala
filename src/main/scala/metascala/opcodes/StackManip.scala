@@ -8,7 +8,7 @@ import scala.::
 import java.util
 import rt.Thread
 
-object StackManip {
+trait StackManip {
 
   case class ManipStack(override val toString: String)(transform: List[Val] => List[Val]) extends OpCode
   val Pop = ManipStack("Pop"){ case _ :: s => s }
@@ -106,7 +106,7 @@ object StackManip {
 
 
   case class UnaryBranch(label: Int)
-                        (pred: Int => Boolean)
+                        (val pred: Int => Boolean)
                         (name: String)extends OpCode
 
   val IfEq = UnaryBranch(_: Int)(_ == 0)("IfEq")
@@ -117,7 +117,7 @@ object StackManip {
   val IfLe = UnaryBranch(_: Int)(_ <= 0)("IfLe")
 
   case class BinaryBranch(label: Int)
-                         (pred: (Int, Int) => Boolean)
+                         (val pred: (Int, Int) => Boolean)
                          (name: String) extends OpCode
 
   val IfICmpEq = BinaryBranch(_: Int)(_ == _)("IfICmpEq")
@@ -127,11 +127,7 @@ object StackManip {
   val IfICmpGt = BinaryBranch(_: Int)(_ > _) ("IfICmpGt")
   val IfICmpLe = BinaryBranch(_: Int)(_ <= _)("IfICmpLe")
 
-  case class BinaryBranchObj(label: Int)
-                            (pred: Boolean => Boolean)
-                            (name: String) extends OpCode
-
-  val IfACmpEq= BinaryBranchObj(_: Int)(x => x) ("IfACmpEq")
-  val IfACmpNe= BinaryBranchObj(_: Int)(x => !x)("IfACmpNe")
+  val IfACmpEq= BinaryBranch(_: Int)(_ == _) ("IfACmpEq")
+  val IfACmpNe= BinaryBranch(_: Int)(_ != _)("IfACmpNe")
 
 }

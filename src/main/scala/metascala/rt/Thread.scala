@@ -90,6 +90,19 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
             op.a.read(reader(frame.locals, a.n))
           ), writer(frame.locals, dest.n)
         )
+
+      case PutStatic(src, cls, index, prim) =>
+        System.arraycopy(frame.locals, src.n, cls.statics, index, prim.size)
+
+      case GetStatic(src, cls, index, prim) =>
+        System.arraycopy(cls.statics, index, frame.locals, src.n, prim.size)
+
+      case BinaryBranch(symA, symB, target, src, phi) =>
+        val (a, b) = (frame.locals(symA.n), frame.locals(symB.n))
+        if(src.pred(b, a)) frame.pc = target
+
+      case UnaryBranch(sym, target, src, phi) =>
+        if(src.pred(frame.locals(sym.n))) frame.pc = target
     }
   }
 

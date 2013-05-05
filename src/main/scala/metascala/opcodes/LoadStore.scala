@@ -7,7 +7,7 @@ import metascala.imm.{Type}
 import metascala.vrt
 import rt.Thread
 
-object LoadStore {
+trait LoadStore {
 
   case object Nop extends OpCode{
     def op(vt: Thread) = ()

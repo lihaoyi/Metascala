@@ -3,9 +3,6 @@ package metascala
 import org.scalatest.FreeSpec
 import collection.mutable
 import Gen._
-import metascala.opcodes.LoadStore.{Store, Ldc, Load}
-import metascala.opcodes.StackManip.{BinaryBranch, UnaryBranch, BinOp, UnaryOp}
-import metascala.opcodes.Misc.{Goto, ReturnVal}
 import metascala.opcodes.OpCode
 import metascala.imm.Method
 

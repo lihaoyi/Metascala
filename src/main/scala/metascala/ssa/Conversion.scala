@@ -6,31 +6,16 @@ import scala.collection.mutable
 import metascala.opcodes.OpCode
 
 import metascala.Prim
-import metascala.opcodes.Misc._
 
-import metascala.opcodes.LoadStore.Ldc
-import metascala.opcodes.LoadStore.Load
-import metascala.opcodes.LoadStore.Push
-import metascala.opcodes.StackManip.UnaryBranch
-import scala.Some
-import metascala.opcodes.Misc.InvokeStatic
-import metascala.opcodes.Misc.ReturnVal
 import metascala.ssa.Symbol
-import metascala.opcodes.LoadStore.Store
-import metascala.opcodes.StackManip.BinaryBranch
-import metascala.opcodes.StackManip.BinOp
-import metascala.opcodes.LoadStore.Const
-import metascala.opcodes.Misc.Goto
-import metascala.opcodes.StackManip.BinaryBranchObj
-import metascala.opcodes.StackManip.UnaryOp
-
+import opcodes._
 case class Symbol[T](n: Int, prim: Prim[T]){
   override def toString = ""+n
   def size = prim.size
 }
 
 object Conversion {
-  def convertToSsa(method: Method)(implicit vt: rt.Thread): (Map[Int, Seq[Insn]], Int) = {
+  def convertToSsa(method: Method)(implicit vm: VM): (Map[Int, Seq[Insn]], Int) = {
     println("Converting: " + method)
     val insns = method.code.insns
     if (insns.isEmpty) {
@@ -94,7 +79,7 @@ object Conversion {
   }
   case class State(stack: List[Symbol[_]], locals: Vector[Symbol[_]])
 
-  def run(insns: Seq[OpCode], locals: Vector[Symbol[_]], makeSymbol: Prim[_] => Symbol[_])(implicit vt: rt.Thread) = {
+  def run(insns: Seq[OpCode], locals: Vector[Symbol[_]], makeSymbol: Prim[_] => Symbol[_])(implicit vm: VM) = {
     val regInsns = mutable.Buffer[Insn]()
     val stackToSsa = mutable.Buffer[Int]()
     val states = mutable.Buffer[State](State(List(), locals))
@@ -116,7 +101,7 @@ object Conversion {
     (regInsns, stackToSsa, ssaToStack, states)
   }
 
-  def op(state: State, op: OpCode, makeSymbol: Prim[_] => Symbol[_])(implicit vt: rt.Thread): (State, Option[Insn]) = op match {
+  def op(state: State, op: OpCode, makeSymbol: Prim[_] => Symbol[_])(implicit vm: VM): (State, Option[Insn]) = op match {
     case InvokeStatic(cls, sig) =>
       val (args, newStack) = state.stack.splitAt(sig.desc.argSize)
       val target = makeSymbol(sig.desc.ret.prim)
@@ -150,15 +135,11 @@ object Conversion {
       state.copy(stack = state.stack.tail, locals = state.locals.patch(index, Seq.fill(size)(state.stack.head.cast[Symbol[Any]]), size)) -> None
 
     case UnaryBranch(index) =>
-      state.copy(stack = state.stack.tail) -> Some(Insn.UnaryBranch(state.stack.head, index, op))
+      state.copy(stack = state.stack.tail) -> Some(Insn.UnaryBranch(state.stack.head, index, op.cast[UnaryBranch]))
 
     case BinaryBranch(index) =>
       val first :: second :: newStack = state.stack
-      state.copy(stack = newStack) -> Some(Insn.BinaryBranch(first, second, index, op))
-
-    case BinaryBranchObj(index) =>
-      val first :: second :: newStack = state.stack
-      state.copy(stack = newStack) -> Some(Insn.BinaryBranch(first, second, index, op))
+      state.copy(stack = newStack) -> Some(Insn.BinaryBranch(first, second, index, op.cast[BinaryBranch]))
 
     case ReturnVal(n) =>
       state.copy(stack = state.stack.drop(n)) -> Some(Insn.ReturnVal(state.stack.take(n)))
@@ -176,9 +157,21 @@ object Conversion {
 
     case New(desc) =>
       state.copy(stack = makeSymbol(I) :: state.stack) ->
-        Some(Insn.New(vt.vm.ClsTable(desc)))
+        Some(Insn.New(vm.ClsTable(desc)))
 
+    case PutStatic(owner, name, tpe) =>
+      val index = owner.cls.staticList.indexWhere(_.name == name)
+      val prim = owner.cls.staticList(index).desc.prim
 
+      state.copy(stack = state.stack.tail) ->
+      Some(Insn.PutStatic(state.stack.head, owner.cls, index, prim))
+
+    case GetStatic(owner, name, tpe) =>
+      val index = owner.cls.staticList.indexWhere(_.name == name)
+      val prim = owner.cls.staticList(index).desc.prim
+      val symbol = makeSymbol(prim)
+      state.copy(stack = symbol :: state.stack) ->
+        Some(Insn.GetStatic(symbol, owner.cls, index, prim))
   }
 
 }
