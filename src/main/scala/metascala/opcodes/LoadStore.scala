@@ -13,7 +13,13 @@ object LoadStore {
     def op(vt: Thread) = ()
   }
 
-  case class Const[A](b: Prim[A])(value: A)(name: String) extends OpCode
+  case class Const[A](b: Prim[A])(val value: A)(name: String) extends OpCode{
+    def words = {
+      var out = List[Int]()
+      b.write(value, out ::= _)
+      out
+    }
+  }
 
   val AConstNull = Const(I)(0)("AConstNull")
   val IConstM1 = Const(I)(-1)("IConstM1")
@@ -35,9 +41,9 @@ object LoadStore {
   val DConst0 = Const(D)(0)("DConst0")
   val DConst1 = Const(D)(1)("DConst1")
 
-  case class Push(override val toString: String)(value: Int) extends OpCode
-  val BiPush = Push("BiPush")(_: Int)
-  val SiPush = Push("SiPush")(_: Int)
+  case class Push(value: Int)(override val toString: String) extends OpCode
+  val BiPush = Push(_: Int)("BiPush")
+  val SiPush = Push(_: Int)("SiPush")
 
 
   case class Ldc(const: Any) extends OpCode

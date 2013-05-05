@@ -23,7 +23,7 @@ trait Default extends Bindings{
     }
   }
 
-  /*
+
 
   val trapped = {
     Seq(
@@ -32,7 +32,7 @@ trait Default extends Bindings{
           "Class"/(
             "desiredAssertionStatus0(Ljava/lang/Class;)Z" x value(I)(0, 0),
             "forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;" x {vt =>
-              import vt.vm
+              /*import vt.vm
               val clsLoader = vt.pop
               val boolean = vt.pop
               val name = vt.pop
@@ -40,11 +40,11 @@ trait Default extends Bindings{
                 "java/lang/Class".allocObj(
                   "name" -> name
                 )
-              )
+              )*/
             },
             "getClassLoader0()Ljava/lang/ClassLoader;" x value(I)(1, 0),
             "getComponentType()Ljava/lang/Class;" x { vt =>
-              import vt.vm
+              /*import vt.vm
               val obj = vt.pop.obj
               val oldName = obj("name").toRealObj[String]
               val shortNewName = oldName.substring(1)
@@ -57,11 +57,11 @@ trait Default extends Bindings{
               val clsObj = "java/lang/Class".allocObj(
                 "name" -> newName.toVirtObj
               )
-              vt.push(clsObj)
+              vt.push(clsObj)*/
             },
 
             "getDeclaredFields0(Z)[Ljava/lang/reflect/Field;" x {vt =>
-              import vt.vm
+              /*import vt.vm
               val public = vt.pop
               val obj = vt.pop.obj
 
@@ -79,13 +79,13 @@ trait Default extends Bindings{
                   }
                 )
 
-              vt.push(vrtArr)
+              vt.push(vrtArr)*/
             },
             "getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;" x {vt =>
               ???              //private native Method[]      getDeclaredMethods0(boolean publicOnly);
             },
             "getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;" x {vt =>
-              import vt.vm
+              /*import vt.vm
               val bool = vt.pop
               val clsObj = vt.pop.obj
               val clsName = clsObj("name").toRealObj[String]
@@ -106,21 +106,21 @@ trait Default extends Bindings{
                   )
                 }
               )
-              vt.push(vrtArr)
+              vt.push(vrtArr)*/
             },
             "getDeclaredClasses0(Z)[Ljava/lang/Class;" x {vt =>
               ???
               //private native Class<?>[]   getDeclaredClasses0();
             },
             "getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;" x {vt =>
-              import vt.vm
+             /* import vt.vm
               val addr = "java/lang/Class".allocObj(
                 "name" -> vt.pop
               )
-              vt.push(addr)
+              vt.push(addr)*/
             },
             "getSuperclass()Ljava/lang/Class;" x {vt =>
-              import vt.vm
+              /*import vt.vm
               val topClsName = vt.pop.obj.apply("name").toRealObj[String]
               vt.push(
                 vm.ClsTable(topClsName)
@@ -132,17 +132,17 @@ trait Default extends Bindings{
                       "name" -> name.toVirtObj
                     )
                   ).getOrElse(0)
-              )
+              )*/
             },
 
             "isArray()Z" x { vt =>
-              import vt.vm
+              /*import vt.vm
               val res =
                 if(vt.pop.obj.apply("name").toRealObj[String].contains('[')) 1 else 0
-              vt.push(res)
+              vt.push(res)*/
             },
             "isAssignableFrom(Ljava/lang/Class;)Z" x { vt =>
-              import vt.vm
+              /*import vt.vm
               val clsA = vt.pop.obj
               val clsB = vt.pop.obj
               val nameA = clsA("name").toRealObj[String]
@@ -161,48 +161,48 @@ trait Default extends Bindings{
                   case _ => false
                 }
               }
-              vt.push(if (check(imm.Type.read(nameA), imm.Type.read(nameB))) 1 else 0)
+              vt.push(if (check(imm.Type.read(nameA), imm.Type.read(nameB))) 1 else 0)*/
             },
             "isInterface()Z" x {vt =>
-              import vt.vm
+              /*import vt.vm
               val clsObj = vt.pop.obj
               vt.push(
                 vm.ClsTable(
                   clsObj("name").toRealObj[String]
                 ).clsData.access_flags & 0x0200
-              )
+              )*/
             },
             "isPrimitive()Z" x {vt =>
-              import vt.vm
+              /*import vt.vm
               val clsObj = vt.pop.obj
               val res = Prim.all
                             .values
                             .map(_.primClass.getName)
                             .toList
                             .contains(clsObj("name").toRealObj[String])
-              vt.push(if (res) 1 else 0)
+              vt.push(if (res) 1 else 0)*/
             },
             "registerNatives()V" x noOp(0)
           ),
           "ClassLoader"/(
             "getCaller(I)Ljava/lang/Class;" x {vt =>
-              import vt.vm
+              /*import vt.vm
               val name = vt.pop match{
                 case 0 => "java/lang/ClassLoader"
                 case 1 => vt.threadStack(0).runningClass.name
                 case 2 => vt.threadStack(1).runningClass.name
               }
-              vt.push("java/lang/Class".allocObj("name" -> name.toVirtObj))
+              vt.push("java/lang/Class".allocObj("name" -> name.toVirtObj))*/
             },
             "getSystemResourceAsStream(Ljava/lang/String;)Ljava/io/InputStream;" x {vt =>
-              import vt.vm
+              /*import vt.vm
 
               val name = vt.pop.toRealObj[String]
               val realResult = new DataInputStream(ClassLoader.getSystemResourceAsStream(name))
               val bytes = new Array[Byte](realResult.available())
               realResult.readFully(bytes)
               val byteStream = new ByteArrayInputStream(bytes)
-              vt.push(byteStream.toVirtObj)
+              vt.push(byteStream.toVirtObj)*/
             },
             "registerNatives()V" x noOp(0)
           ),
@@ -217,7 +217,7 @@ trait Default extends Bindings{
           "Object"/(
             "clone()Ljava/lang/Object;" x noOp(0),
             "getClass()Ljava/lang/Class;" x {vt =>
-
+/*
               import vt.vm
               val value = vt.pop
 
@@ -229,16 +229,16 @@ trait Default extends Bindings{
               val addr = "java/lang/Class".allocObj(
                 "name" -> stringAddr
               )
-              vt.push(addr)
+              vt.push(addr)*/
             },
             "getName0()Ljava/lang/String;" x {vt =>
-              vt.pop
+              /*vt.pop
               import vt.vm
               vm.ClsTable
               val addr = "java/lang/Class".allocObj(
                 "name" -> 1337
               )
-              vt.push(addr)
+              vt.push(addr)*/
             },
             "hashCode()I" x noOp(0),
             "registerNatives()V" x noOp(0)
@@ -250,12 +250,12 @@ trait Default extends Bindings{
 
           "System"/(
             "arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V" x { vt =>
-              val Seq(src, srcIndex, dest, destIndex, length) = Seq(vt.pop, vt.pop, vt.pop, vt.pop, vt.pop).reverse
-              System.arraycopy(vt.vm.Heap.memory, src + srcIndex + 2, vt.vm.Heap.memory, dest + destIndex + 2, length)
+              /*val Seq(src, srcIndex, dest, destIndex, length) = Seq(vt.pop, vt.pop, vt.pop, vt.pop, vt.pop).reverse
+              System.arraycopy(vt.vm.Heap.memory, src + srcIndex + 2, vt.vm.Heap.memory, dest + destIndex + 2, length)*/
             },
 
             "identityHashCode(Ljava/lang/Object;)I" x { vt =>
-              vt.push(vt.pop)
+              /*vt.push(vt.pop)*/
             },
             "nanoTime()J" x value(J)(0, System.nanoTime()),
             "currentTimeMillis()J" x value(J)(0, System.currentTimeMillis()),
@@ -266,24 +266,24 @@ trait Default extends Bindings{
           "String"/(
             "<clinit>()V" x noOp(0),
             "intern()Ljava/lang/String;" x {vt =>
-              import vt.vm
+              /*import vt.vm
               val addr = vt.pop
               val str = addr.toRealObj[String]
               val result = vt.vm.internedStrings.getOrElseUpdate(str, addr)
-              vt.push(result)
+              vt.push(result)*/
             }
           ),
 
           "Thread"/(
             "registerNatives()V" x noOp(0),
             "currentThread()Ljava/lang/Thread;" x {vt =>
-              import vt.vm
+              /*import vt.vm
               vt.push(
                 "java/lang/Thread".allocObj(
                   "group" -> "java/lang/ThreadGroup".allocObj(),
                   "priority" -> 5
                 )
-              )
+              )*/
             },
             "setPriority0(I)V" x noOp(1),
             "isAlive()Z" x value(Z)(1, false),
@@ -291,41 +291,41 @@ trait Default extends Bindings{
           ),
           "Throwable"/(
             "fillInStackTrace()Ljava/lang/Throwable;" x {vt =>
-              import vt.vm
+              /*import vt.vm
               //vt.pop // pop dummy
               val throwable = vt.pop.obj
               val trace = vt.trace
               throwable("stackTrace") = vt.trace.toVirtObj
 
-              vt.push(throwable.address)
+              vt.push(throwable.address)*/
             }
           ),
           "reflect"/(
             "Array"/(
               "newArray(Ljava/lang/Class;I)Ljava/lang/Object;" x {vt =>
-                import vt.vm
+                /*import vt.vm
                 val length = vt.pop
                 val clsObj = vt.pop.obj
                 val clsName = clsObj("name").toRealObj[String]
-                vt.push(vrt.Arr.allocate(clsName, length).address)
+                vt.push(vrt.Arr.allocate(clsName, length).address)*/
               }
-              )
             )
+          )
         ),
 
         "security"/(
           "AccessController"/(
             "doPrivileged(Ljava/security/PrivilegedExceptionAction;)Ljava/lang/Object;" x {vt =>
-              import vt.vm
+              /*import vt.vm
               val pa = vt.pop.obj
               val mRef = vt.vm.resolveDirectRef(pa.cls.clsData.tpe, pa.cls.clsData.methods.find(_.name == "run").get.sig).get
-              vt.prepInvoke(mRef, Seq(pa.address))
+              vt.prepInvoke(mRef, Seq(pa.address))*/
             },
             "doPrivileged(L//PrivilegedAction;)L/lang/Object;" x { vt =>
-              import vt.vm
+              /*import vt.vm
               val pa = vt.pop.obj
               val mRef = vt.vm.resolveDirectRef(pa.cls.clsData.tpe, pa.cls.clsData.methods.find(_.name == "run").get.sig).get
-              vt.prepInvoke(mRef, Seq(pa.address))
+              vt.prepInvoke(mRef, Seq(pa.address))*/
 
             },
             "getStackAccessControlContext()Ljava/security/AccessControlContext;" x value(I)(0, 0)
@@ -341,10 +341,10 @@ trait Default extends Bindings{
       "scala"/(
         "Predef$"/(
           "println(Ljava/lang/Object;)V" x { vt =>
-            import vt.vm
+            /*import vt.vm
             val thing = vt.pop.obj
             val predef = vt.pop
-            println("Virtual\t" + thing.address.toRealObj[Object])
+            println("Virtual\t" + thing.address.toRealObj[Object])*/
           }
         )
       ),
@@ -355,7 +355,7 @@ trait Default extends Bindings{
             "arrayIndexScale(Ljava/lang/Class;)I" x value(I)(2, 1),
             "addressSize()I" x value(I)(1, 4),
             "compareAndSwapInt(Ljava/lang/Object;JII)Z" x {vt =>
-              import vt.vm
+              /*import vt.vm
               val x = vt.pop
               val expected = vt.pop
               val (a, b) = (vt.pop, vt.pop)
@@ -366,13 +366,13 @@ trait Default extends Bindings{
               val fieldName = obj.cls.clsData.fields(slot.toInt).name
 
               obj(fieldName) = x
-              vt.push(1)
+              vt.push(1)*/
             },
             "objectFieldOffset(Ljava/lang/reflect/Field;)J" x {vt =>
-              import vt.vm
+              /*import vt.vm
               val field = vt.pop.obj
               val unsafe = vt.pop
-              J.write(field.apply("slot"), vt.push)
+              J.write(field.apply("slot"), vt.push)*/
             },
             "registerNatives()V" x noOp(0)
           ),
@@ -384,24 +384,23 @@ trait Default extends Bindings{
         "reflect"/(
           "Reflection"/(
             "getCallerClass(I)Ljava/lang/Class;" x { vt =>
-              import vt.vm
+              /*import vt.vm
               val n = vt.pop
               val name = vt.threadStack(n).runningClass.name
               val clsObj = "java/lang/Class".allocObj(
                 "name" -> name.toVirtObj
               )
-              vt.push(clsObj)
+              vt.push(clsObj)*/
             },
             "getClassAccessFlags(Ljava/lang/Class;)I" x {vt =>
-              import vt.vm
+              /*import vt.vm
               val addr = vt.pop.obj.apply("name")
               val str = addr.toRealObj[String]
-              vt.push(vm.ClsTable(str).clsData.access_flags)
+              vt.push(vm.ClsTable(str).clsData.access_flags)*/
             }
           )
         )
       )
     ).toRoute()
   }
-  */
 }

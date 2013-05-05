@@ -18,7 +18,6 @@ class MathTest extends FreeSpec with Util{
   "single precision" - {
     val tester = new Tester("metascala.features.math.HelloMath")
     "hello math" - {
-
       "imain" in tester.run("imain")
       "fmain" in tester.run("fmain")
     }

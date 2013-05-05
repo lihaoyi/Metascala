@@ -29,7 +29,7 @@ class Misc extends FreeSpec with Util{
     "testD" in test(D)(30 ** Gen.doubleAll)
   }
 
-  "hello" in {
+  /*"hello" in {
     val cls = imm.Cls.parse(natives.Bindings.default.fileLoader("metascala/features/controlflow/Loops.class").get)
     val (blocks, localsSize) = ssa.Conversion.convertToSsa(cls.methods.last)
     println(
@@ -38,7 +38,7 @@ class Misc extends FreeSpec with Util{
             .map(_._2.map(_.toString).reduce(_+"\n"+_))
             .reduce(_+"\n\n"+_)
     )
-  }
+  }*/
 
 
 

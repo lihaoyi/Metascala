@@ -12,6 +12,7 @@ import metascala.UncaughtVmException
 import metascala.vrt
 import metascala.imm
 import metascala.imm.Access
+import metascala.ssa.Insn.{Push, InvokeStatic, ReturnVal}
 
 /**
  * A single thread within the Metascala VM.
@@ -36,25 +37,22 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       case LineNumber(line, _) => frame.lineNum = line
     }
 
-    println(indent + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.locals)
+    println(indent + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.locals.toSeq)
     println(indent + frame.pc + "\t" + node )
     //vm.log(indent + vm.Heap.dump.replace("\n", "\n" + indent))
     frame.pc += 1
     opCount += 1
-    try{
+    node match {
+      case ReturnVal(sym) => returnVal(sym.length, sym.lift(0).map(_.n).getOrElse(0))
+      case Push(target, value) =>
+        value.copyToArray(frame.locals, target)
+      case InvokeStatic(target, sources, owner, sig) =>
+        resolveDirectRef(owner, sig).map{ m =>
 
-    }catch {case e: Throwable =>
-      /*val internal = Virtualizer.popVirtual("metascala/InternalVmException", () =>
-        vrt.Obj.allocate("metascala/InternalVmException",
-          "stackTrace" -> Virtualizer.pushVirtual(trace).apply(0),
-          "detailMessage" -> Virtualizer.pushVirtual("mooo").apply(0),
-          "cause" -> Virtualizer.pushVirtual(e).apply(0)
-        ).address
-      ).cast[Throwable]
-      throw internal*/
-      throw e
+          val args = sources.flatMap(s => frame.locals.slice(s.n, s.n + s.size))
 
-
+          prepInvoke(m, args)
+        }
     }
   }
 
@@ -75,6 +73,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     threadStack.lift(1) match{
       case Some(frame) =>
       case None =>
+        println("RETURNING")
+        println(frame.locals.toSeq)
         returnedVal = Virtualizer.popVirtual(frame.method.method.desc.ret, reader(frame.locals, index))
         this.threadStack.pop
     }
@@ -118,19 +118,20 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
   final def prepInvoke(mRef: rt.Method,
                        args: Seq[Int]) = {
-    vm.log(indent + "PrepInvoke " + mRef + " with " + args)
+    println(indent + "PrepInvoke " + mRef + " with " + args)
 
     mRef match{
       case rt.Method.Native(clsName, imm.Sig(name, desc), op) =>
         //threadStack.headOption.map(f => args.map(f.push))
         //op(this)
       case m @ rt.Method.Cls(cls, methodIndex, method) =>
-        assert((m.method.access & Access.Native) == 0, "method cannot be native: " + cls.name + " " + method.sig.unparse)
 
+        assert((m.method.access & Access.Native) == 0, "method cannot be native: " + cls.name + " " + method.sig.unparse)
+        println("NEW FRAME " + m.localsSize)
         val startFrame = new Frame(
           runningClass = cls,
           method = m,
-          locals = mutable.Seq(args:_*).padTo(m.method.argSize, 0)
+          locals = args.toArray.padTo(m.localsSize, 0)
         )
 
         //log(indent + "locals " + startFrame.locals)
@@ -186,6 +187,6 @@ class Frame(var pc: Int = 0,
             val runningClass: rt.Cls,
             val method: rt.Method.Cls,
             var lineNum: Int = 0,
-            val locals: mutable.Seq[Val] = mutable.Seq.empty)
+            val locals: Array[Val])
 
 

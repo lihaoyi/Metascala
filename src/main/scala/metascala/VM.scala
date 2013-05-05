@@ -95,6 +95,7 @@ class VM(val natives: Bindings = Bindings.default, val log: ((=>String) => Unit)
   println("Initialized VM")
 
   def resolveDirectRef(owner: Type.Cls, sig: imm.Sig)(implicit vm: VM): Option[rt.Method] = {
+
     val native =
       vm.natives
         .trapped
