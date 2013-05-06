@@ -100,7 +100,7 @@ trait Type{
    * Converts this object into a nice, human readable string
    */
   def unparse: String
-
+  override def toString = unparse
   /**
    * Retrieves the Class object in the host JVM which represents the
    * given Type inside the Metascala VM
@@ -110,6 +110,8 @@ trait Type{
   def size: Int
   def name: String
   def prim: Prim[_]
+
+
 }
 
 object Desc{
@@ -149,4 +151,5 @@ case class Desc(args: Seq[Type], ret: Type){
 
     baseArgSize + longArgSize
   }
+  override def toString = unparse
 }

@@ -94,4 +94,11 @@ package object metascala {
       src(i - 1) = x
     }
   }
+  def blit(src: Seq[Int], srcIndex: Int, dest: mutable.Seq[Int], destIndex: Int, length: Int) = {
+    var i = 0
+    while(i < length){
+      dest(destIndex + i) = src(srcIndex + i)
+      i+= 1
+    }
+  }
 }

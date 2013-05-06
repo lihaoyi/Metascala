@@ -31,7 +31,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   def getOpCount = opCount
   def frame = threadStack.top
 
-  var returnedVal: Any = 0
+  val returnedVal = Array(0, 0)
 
   def indent = "\t" * threadStack.filter(_.method.sig.name != "Dummy").length
 
@@ -44,21 +44,38 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       case LineNumber(line, _) => frame.lineNum = line
     }
 
-    println(indent + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.locals.toSeq)
-    println(indent + frame.pc + "\t" + node )
-    //vm.log(indent + vm.Heap.dump.replace("\n", "\n" + indent))
+    println(indent + ":: " + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.locals.toSeq)
+    println(indent + ":: " + frame.pc + "\t" + node )
+    println(indent + ":: " + vm.Heap.dump.replace("\n", "\n" + indent))
     frame.pc += 1
     opCount += 1
     node match {
-      case ReturnVal(sym) => returnVal(sym.length, sym.lift(0).map(_.n).getOrElse(0))
+      case ReturnVal(sym) => returnVal(sym.size, sym.n)
       case Push(prim, target, value) =>
         prim.write(value, writer(frame.locals, target))
+      case New(target, cls) =>
+        val obj = vrt.Obj.allocate(cls.name)
+        frame.locals(target.n) = obj.address
 
       case InvokeStatic(target, sources, owner, sig) =>
         resolveDirectRef(owner, sig).map{ m =>
           val args = sources.flatMap(s => frame.locals.slice(s.n, s.n + s.size))
-          prepInvoke(m, args)
+          prepInvoke(m, args, writer(frame.locals, target.n))
         }
+
+      case InvokeSpecial(target, sources, owner, sig) =>
+        resolveDirectRef(owner, sig).map{ m =>
+          val args = sources.flatMap(s => frame.locals.slice(s.n, s.n + s.size))
+          prepInvoke(m, args, writer(frame.locals, target.n))
+        }
+      case InvokeVirtual(target, sources, owner, sig) =>
+        val args = sources.flatMap(s => frame.locals.slice(s.n, s.n + s.size))
+        println("INVOKE VIRTUAL " + args)
+        println(args(0).obj.cls.clsData.tpe)
+        val mRef = args(0).obj.cls.vTableMap(sig)
+        prepInvoke(mRef, args, writer(frame.locals, target.n))
+
+
       case Ldc(target, thing) =>
         val w = writer(frame.locals, target)
         thing match{
@@ -97,6 +114,12 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       case GetStatic(src, cls, index, prim) =>
         System.arraycopy(cls.statics, index, frame.locals, src.n, prim.size)
 
+      case PutField(src, obj, index, prim) =>
+        blit(frame.locals, src.n, frame.locals(obj.n).obj.members, index, prim.size)
+
+      case GetField(src, obj, index, prim) =>
+        blit(frame.locals(obj.n).obj.members, index, frame.locals, src.n, prim.size)
+
       case BinaryBranch(symA, symB, target, src, phi) =>
         val (a, b) = (frame.locals(symA.n), frame.locals(symB.n))
         if(src.pred(b, a)) frame.pc = target
@@ -125,15 +148,11 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   }
 
   def returnVal(size: Int, index: Int) = {
-
-    threadStack.lift(1) match{
-      case Some(frame) =>
-      case None =>
-        println("RETURNING")
-        println(frame.locals.toSeq)
-        returnedVal = Virtualizer.popVirtual(frame.method.method.desc.ret, reader(frame.locals, index))
-        this.threadStack.pop
+    for (i <- 0 until size){
+      println("Returning " + frame.locals(index + i))
+      frame.returnTo(frame.locals(index + i))
     }
+    this.threadStack.pop
   }
   final def throwExWithTrace(clsName: String, detailMessage: String) = {
     throwException(
@@ -173,7 +192,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   }
 
   final def prepInvoke(mRef: rt.Method,
-                       args: Seq[Int]) = {
+                       args: Seq[Int],
+                       returnTo: Int => Unit) = {
     println(indent + "PrepInvoke " + mRef + " with " + args)
 
     mRef match{
@@ -183,10 +203,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       case m @ rt.Method.Cls(cls, methodIndex, method) =>
 
         assert((m.method.access & Access.Native) == 0, "method cannot be native: " + cls.name + " " + method.sig.unparse)
-        println("NEW FRAME " + m.localsSize)
         val startFrame = new Frame(
           runningClass = cls,
           method = m,
+          returnTo = returnTo,
           locals = args.toArray.padTo(m.localsSize, 0)
         )
 
@@ -196,7 +216,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   }
   final def prepInvoke(tpe: imm.Type,
                        sig: imm.Sig,
-                       args: Seq[Any])
+                       args: Seq[Any],
+                       returnTo: Int => Unit)
                        : Unit = {
 
     val tmp = mutable.Buffer.empty[Val]
@@ -207,26 +228,26 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     prepInvoke(
       vm.resolveDirectRef(tpe.cast[imm.Type.Cls], sig).get,
-      tmp
+      tmp,
+      returnTo
     )
 
   }
   def invoke(mRef: rt.Method, args: Seq[Int]): Any = {
     val startHeight = threadStack.length
-    prepInvoke(mRef, args)
+    prepInvoke(mRef, args, writer(returnedVal, 0))
 
     while(threadStack.length != startHeight) step()
 
-    returnedVal
+    Virtualizer.popVirtual(mRef.sig.desc.ret, reader(returnedVal, 0))
   }
 
   def invoke(cls: imm.Type.Cls, sig: imm.Sig, args: Seq[Any]): Any = {
     val startHeight = threadStack.length
-    prepInvoke(cls, sig, args)
+    prepInvoke(cls, sig, args, writer(returnedVal, 0))
 
     while(threadStack.length != startHeight) step()
-
-    returnedVal
+    Virtualizer.popVirtual(sig.desc.ret, reader(returnedVal, 0))
   }
 }
 
@@ -243,6 +264,7 @@ class Frame(var pc: Int = 0,
             val runningClass: rt.Cls,
             val method: rt.Method.Cls,
             var lineNum: Int = 0,
+            val returnTo: Int => Unit,
             val locals: Array[Val])
 
 

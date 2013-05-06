@@ -14,7 +14,7 @@ public class Statics {
     }
 
     public static int timesTwo2(int a, int b){
-        return a * b * 2;
+        return (a - b) * 2;
     }
 
     public static int tailFactorial(int n){

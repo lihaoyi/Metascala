@@ -11,8 +11,10 @@ object Method {
     implicit val labelMap = Code.makeLabelMap(mn.instructions)
     Method(
       mn.access,
-      mn.name,
-      Desc.read(mn.desc),
+      Sig(
+        mn.name,
+        Desc.read(mn.desc)
+      ),
       mn.exceptions.safeSeq,
       Code.read(mn.instructions),
       Misc(
@@ -50,19 +52,19 @@ object Method {
 case class Sig(name: String, desc: Desc){
   override lazy val hashCode = name.hashCode + desc.hashCode
   def unparse = name + desc.unparse
-  override def toString = s"Sig(${unparse})"
+  override def toString = unparse
 }
 
 case class Method(access: Int,
-                  name: String,
-                  desc: Desc,
+                  sig: Sig,
                   exceptions: Seq[String] = Nil,
                   code: Code = Code(),
                   misc: Method.Misc = Method.Misc(),
                   annotations: Method.Annotations = Method.Annotations()){
   def concrete = code != Code()
   def static = (access & Access.Static) != 0
-  lazy val sig = Sig(name, desc)
+  def name = sig.name
+  def desc = sig.desc
   def argSize = {
     val thisSize = if(static) 0 else 1
     thisSize + desc.argSize

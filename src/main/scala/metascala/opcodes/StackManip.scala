@@ -10,16 +10,16 @@ import rt.Thread
 
 trait StackManip {
 
-  case class ManipStack(override val toString: String)(transform: List[Val] => List[Val]) extends OpCode
-  val Pop = ManipStack("Pop"){ case _ :: s => s }
-  val Pop2 = ManipStack("Pop2"){ case _ :: _ :: s => s }
-  val Dup = ManipStack("Dup"){ case top :: s => top :: top :: s }
-  val DupX1 = ManipStack("DupX1"){ case top :: x :: s => top :: x :: top :: s }
-  val DupX2 = ManipStack("DupX2"){ case top :: y :: x :: s => top :: y :: x :: top :: s }
-  val Dup2 = ManipStack("Dup2"){ case y :: x :: s => y :: x :: y :: x :: s }
-  val Dup2X1 = ManipStack("Dup2X1"){ case a :: b :: x :: s => a :: b :: x :: a :: b :: s }
-  val Dup2X2 = ManipStack("Dup2X2"){ case a :: b :: x :: y :: s => a :: b :: x :: y :: a :: b :: s }
-  val Swap = ManipStack("Swap"){ case x :: y :: s=> y :: x :: s }
+  case class ManipStack(transform: List[Any] => List[Any])(override val toString: String) extends OpCode
+  val Pop = ManipStack{ case _ :: s => s }("Pop")
+  val Pop2 = ManipStack{ case _ :: _ :: s => s }("Pop2")
+  val Dup = ManipStack{ case top :: s => top :: top :: s }("Dup")
+  val DupX1 = ManipStack{ case top :: x :: s => top :: x :: top :: s }("DupX1")
+  val DupX2 = ManipStack{ case top :: y :: x :: s => top :: y :: x :: top :: s }("DupX2")
+  val Dup2 = ManipStack{ case y :: x :: s => y :: x :: y :: x :: s }("Dup2")
+  val Dup2X1 = ManipStack{ case a :: b :: x :: s => a :: b :: x :: a :: b :: s }("Dup2X1")
+  val Dup2X2 = ManipStack{ case a :: b :: x :: y :: s => a :: b :: x :: y :: a :: b :: s }("Dup2X2")
+  val Swap = ManipStack{ case x :: y :: s=> y :: x :: s }("Swap")
 
 
   val IAdd = BinOp(I, I, I)(_ + _)("IAdd")
