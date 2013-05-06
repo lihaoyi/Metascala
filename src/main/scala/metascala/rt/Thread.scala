@@ -44,9 +44,9 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       case LineNumber(line, _) => frame.lineNum = line
     }
 
-    println(indent + ":: " + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.locals.toSeq)
-    println(indent + ":: " + frame.pc + "\t" + node )
-    println(indent + ":: " + vm.Heap.dump.replace("\n", "\n" + indent))
+    println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.locals.toSeq)
+    println(indent + "::\t" + frame.pc + "\t" + node )
+    println(indent + "::\t" + vm.Heap.dump.replace("\n", "\n" + indent + "::\t"))
     frame.pc += 1
     opCount += 1
     node match {
@@ -63,12 +63,22 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
           prepInvoke(m, args, writer(frame.locals, target.n))
         }
 
+      case InvokeSpecial(target, sources, owner, sig) =>
+        resolveDirectRef(owner, sig).map{ m =>
+          val args = sources.flatMap(s => frame.locals.slice(s.n, s.n + s.size))
+          if(args(0) == 0) throwExWithTrace("java/lang/NullPointerException", "null")
+          else prepInvoke(m, args, writer(frame.locals, target.n))
+        }
       case InvokeVirtual(target, sources, owner, sig) =>
         val args = sources.flatMap(s => frame.locals.slice(s.n, s.n + s.size))
         println("INVOKE VIRTUAL " + args)
-        println(args(0).obj.cls.clsData.tpe)
-        val mRef = args(0).obj.cls.vTableMap(sig)
-        prepInvoke(mRef, args, writer(frame.locals, target.n))
+
+        if(args(0) == 0) throwExWithTrace("java/lang/NullPointerException", "null")
+        else {
+          println(args(0).obj.cls.clsData.tpe)
+          val mRef = args(0).obj.cls.vTableMap(sig)
+          prepInvoke(mRef, args, writer(frame.locals, target.n))
+        }
 
       case NewArray(src, dest, typeRef) =>
 
@@ -135,6 +145,13 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
           System.arraycopy(frame.locals, symA.n, frame.locals, symB.n, symA.size)
         }
         frame.pc = target
+      case CheckCast(src, desc) =>
+        frame.locals(src.n) match{
+          case 0 => ()
+          case top if (top.isArr && !check(top.arr.tpe, desc)) || (top.isObj && !check(top.obj.tpe, desc)) =>
+            throwExWithTrace("java/lang/ClassCastException", "")
+          case _ => ()
+        }
     }
   }
 

@@ -24,21 +24,20 @@ object Conversion {
       t.copy(_1 = t._1.head)
     }
   }
-  def convertToSsa(method: Method)(implicit vm: VM): (Map[Int, Seq[Insn]], Int) = {
-    println(s"-------------------Converting: ${method.sig}--------------------------")
+  def convertToSsa(method: Method, cls: String)(implicit vm: VM): (Map[Int, Seq[Insn]], Int) = {
+    println(s"-------------------Converting: $cls/${method.sig}--------------------------")
     val insns = method.code.insns
     if (insns.isEmpty) {
       Map() -> 0
     } else {
       val symbols = mutable.Buffer[Symbol[_]]()
-
       def makeSymbol[T](prim: Prim[T]): Symbol[T] = {
-        println("MAKE SYMBOL " + prim + " " + prim.size)
         val newSym = new Symbol(symbols.length, prim)
         for (i <- 0 until prim.size) symbols.append(newSym)
 
         newSym
       }
+
       val thisArg = if(method.static) Nil else Seq(imm.Type.Cls("java/lang/Object"))
       val locals: Vector[Symbol[_]] =
         method.desc.args
@@ -92,8 +91,7 @@ object Conversion {
   def run(insns: Seq[OpCode], locals: Vector[Symbol[_]], makeSymbol: Prim[_] => Symbol[_])(implicit vm: VM) = {
     val regInsns = mutable.Buffer[Insn]()
     val stackToSsa = mutable.Buffer[Int]()
-    val states = mutable.Buffer[State](State(List(), locals))
-
+    val states = mutable.Buffer[State](State(List(makeSymbol(I)), locals))
     for ((insn, i) <- insns.zipWithIndex){
       stackToSsa += regInsns.length
       println(i + "\t" + insn.toString.padTo(30, ' ') + states.last.stack.toString.padTo(20, ' ') + states.last.locals.toString.padTo(30, ' '))
@@ -118,13 +116,11 @@ object Conversion {
       state.copy(stack = target join newStack) -> List(Insn.InvokeStatic(target, args.reverse, cls, sig))
 
     case InvokeSpecial(cls, sig) =>
-      println("////////////////////////////////////////////////")
       val (args, newStack) = state.stack.splitAt(sig.desc.argSize + 1)
       val target = makeSymbol(sig.desc.ret.prim)
-      state.copy(stack = target join newStack) -> List(Insn.InvokeStatic(target, args.reverse, cls, sig))
+      state.copy(stack = target join newStack) -> List(Insn.InvokeSpecial(target, args.reverse, cls, sig))
 
     case InvokeVirtual(cls, sig) =>
-      println("++++++++++++++++++++++++++++++++++++++++++++++++")
       val (args, newStack) = state.stack.splitAt(sig.desc.argSize + 1)
       val target = makeSymbol(sig.desc.ret.prim)
       state.copy(stack = target join newStack) -> List(Insn.InvokeVirtual(target, args.reverse, cls.cast[imm.Type.Cls], sig))
@@ -192,7 +188,8 @@ object Conversion {
       state.copy(stack = newStack) -> List(Insn.BinaryBranch(first, second, index, oc.cast[BinaryBranch]))
 
     case ReturnVal(n) =>
-      state.copy(stack = state.stack.drop(n)) -> List(Insn.ReturnVal(state.stack.headOption.getOrElse(new Symbol(0, V))))
+      val returned = if (n == 0) new Symbol(0, V) else state.stack.head
+      state.copy(stack = state.stack.drop(n)) -> List(Insn.ReturnVal(returned))
 
     case Goto(index) =>
       state -> List(Insn.Goto(index))
@@ -254,6 +251,13 @@ object Conversion {
 
     case ManipStack(transform) =>
       state.copy(stack = transform(state.stack).cast[List[Symbol[_]]]) -> Nil
+
+    case AThrow =>
+      val ex :: rest = state.stack
+      state.copy(stack = rest) -> Seq(Insn.AThrow(ex))
+
+    case CheckCast(desc) =>
+      state -> Seq(Insn.CheckCast(state.stack.head, desc))
   }
 
 }
