@@ -63,11 +63,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
           prepInvoke(m, args, writer(frame.locals, target.n))
         }
 
-      case InvokeSpecial(target, sources, owner, sig) =>
-        resolveDirectRef(owner, sig).map{ m =>
-          val args = sources.flatMap(s => frame.locals.slice(s.n, s.n + s.size))
-          prepInvoke(m, args, writer(frame.locals, target.n))
-        }
       case InvokeVirtual(target, sources, owner, sig) =>
         val args = sources.flatMap(s => frame.locals.slice(s.n, s.n + s.size))
         println("INVOKE VIRTUAL " + args)
@@ -75,6 +70,14 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         val mRef = args(0).obj.cls.vTableMap(sig)
         prepInvoke(mRef, args, writer(frame.locals, target.n))
 
+      case NewArray(src, dest, typeRef) =>
+
+
+        val newArray = vrt.Arr.allocate(typeRef, frame.locals(src.n))
+        frame.locals(dest.n) = newArray.address
+      case StoreArray(src, index, array, prim) =>
+        val arr = frame.locals(array.n).arr
+        blit(frame.locals, src.n, arr, frame.locals(index.n), prim.size)
 
       case Ldc(target, thing) =>
         val w = writer(frame.locals, target)

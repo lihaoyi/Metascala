@@ -21,12 +21,12 @@ object Insn{
   case class Ldc(target: Int, thing: Any) extends Insn
   case class Push[T](prim: Prim[T], target: Int, value: T) extends Insn
   case class InvokeStatic(target: Symbol[_], sources: Seq[Symbol[_]], owner: Type.Cls, sig: imm.Sig) extends Insn
-  case class InvokeSpecial(target: Symbol[_], sources: Seq[Symbol[_]], owner: Type.Cls, sig: imm.Sig) extends Insn
   case class InvokeVirtual(target: Symbol[_], sources: Seq[Symbol[_]], owner: Type.Cls, sig: imm.Sig) extends Insn
   case class New(target: Symbol[_], cls: rt.Cls) extends Insn
   case class PutStatic(src: Symbol[_], cls: rt.Cls, index: Int, prim: Prim[_]) extends Insn
   case class GetStatic(src: Symbol[_], cls: rt.Cls, index: Int, prim: Prim[_]) extends Insn
   case class PutField(src: Symbol[_], obj: Symbol[_], index: Int, prim: Prim[_]) extends Insn
   case class GetField(src: Symbol[_], obj: Symbol[_], index: Int, prim: Prim[_]) extends Insn
-
+  case class NewArray(src: Symbol[_], dest: Symbol[_], typeRef: imm.Type) extends Insn
+  case class StoreArray[T](src: Symbol[_], index: Symbol[_], array: Symbol[_], prim: Prim[T]) extends Insn
 }

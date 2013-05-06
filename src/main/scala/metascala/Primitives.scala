@@ -25,7 +25,7 @@ abstract class Prim[T: ClassTag](val size: Int){
   val primClass: Class[_] = implicitly[ClassTag[T]].runtimeClass
 }
 
-object V extends Prim[Unit](0){
+case object V extends Prim[Unit](0){
   def apply(x: Val) = ???
   def read(x: () => Val) = ()
   def write(x: Unit, out: Val => Unit) = ()
@@ -33,49 +33,49 @@ object V extends Prim[Unit](0){
 
 }
 
-object Z extends Prim[Boolean](1){
+case object Z extends Prim[Boolean](1){
   def apply(x: Val) = x != 0
   def read(x: () => Val) = this(x())
   def write(x: Boolean, out: Val => Unit) = out(if (x) 1 else 0)
   def boxedClass = classOf[java.lang.Boolean]
 }
 
-object B extends Prim[Byte](1){
+case object B extends Prim[Byte](1){
   def apply(x: Val) = x.toByte
   def read(x: () => Val) = this(x())
   def write(x: Byte, out: Val => Unit) = out(x)
   def boxedClass = classOf[java.lang.Byte]
 }
 
-object C extends Prim[Char](1){
+case object C extends Prim[Char](1){
   def apply(x: Val) = x.toChar
   def read(x: () => Val) = this(x())
   def write(x: Char, out: Val => Unit) = out(x)
   def boxedClass = classOf[java.lang.Character]
 }
 
-object S extends Prim[Short](1){
+case object S extends Prim[Short](1){
   def apply(x: Val) = x.toShort
   def read(x: () => Val) = this(x())
   def write(x: Short, out: Val => Unit) = out(x)
   def boxedClass = classOf[java.lang.Short]
 }
 
-object I extends Prim[Int](1){
+case object I extends Prim[Int](1){
   def apply(x: Val) = x
   def read(x: () => Val) = this(x())
   def write(x: Int, out: Val => Unit) = out(x)
   def boxedClass = classOf[java.lang.Integer]
 }
 
-object F extends Prim[Float](1){
+case object F extends Prim[Float](1){
   def apply(x: Val) = java.lang.Float.intBitsToFloat(x)
   def read(x: () => Val) = this(x())
   def write(x: Float, out: Val => Unit) = out(java.lang.Float.floatToRawIntBits(x))
   def boxedClass = classOf[java.lang.Float]
 }
 
-object J extends Prim[Long](2){
+case object J extends Prim[Long](2){
   def apply(v1: Val, v2: Val) = v1.toLong << 32 | v2 & 0xFFFFFFFFL
   def read(x: () => Val) = {
     this(x(), x())
@@ -87,7 +87,7 @@ object J extends Prim[Long](2){
   def boxedClass = classOf[java.lang.Long]
 }
 
-object D extends Prim[Double](2){
+case object D extends Prim[Double](2){
   def apply(v1: Val, v2: Val) = java.lang.Double.longBitsToDouble(J(v1, v2))
   def read(x: () => Val) = java.lang.Double.longBitsToDouble(J.read(x))
   def write(x: Double, out: Val => Unit) = J.write(java.lang.Double.doubleToRawLongBits(x), out)

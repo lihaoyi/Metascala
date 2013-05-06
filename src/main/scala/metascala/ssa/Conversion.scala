@@ -121,7 +121,7 @@ object Conversion {
       println("////////////////////////////////////////////////")
       val (args, newStack) = state.stack.splitAt(sig.desc.argSize + 1)
       val target = makeSymbol(sig.desc.ret.prim)
-      state.copy(stack = target join newStack) -> List(Insn.InvokeSpecial(target, args.reverse, cls, sig))
+      state.copy(stack = target join newStack) -> List(Insn.InvokeStatic(target, args.reverse, cls, sig))
 
     case InvokeVirtual(cls, sig) =>
       println("++++++++++++++++++++++++++++++++++++++++++++++++")
@@ -129,6 +129,34 @@ object Conversion {
       val target = makeSymbol(sig.desc.ret.prim)
       state.copy(stack = target join newStack) -> List(Insn.InvokeVirtual(target, args.reverse, cls.cast[imm.Type.Cls], sig))
 
+    case NewArray(typeCode) =>
+      val length :: rest = state.stack
+      val symbol = makeSymbol(I)
+      val typeRef = imm.Type.Prim(
+        typeCode match{
+          case 4  => 'Z'
+          case 5  => 'C'
+          case 6  => 'F'
+          case 7  => 'D'
+          case 8  => 'B'
+          case 9  => 'S'
+          case 10 => 'I'
+          case 11 => 'J'
+        }
+      )
+      state.copy(stack = symbol :: rest) -> List(Insn.NewArray(length, symbol, typeRef))
+    case MonitorEnter | MonitorExit =>
+      val monitor :: rest = state.stack
+      state.copy(stack = rest) -> Nil
+
+    case ANewArray(typeRef) =>
+      val length :: rest = state.stack
+      val symbol = makeSymbol(I)
+      state.copy(stack = symbol :: rest) -> List(Insn.NewArray(length, symbol, typeRef))
+
+    case StoreArray(prim) =>
+      val (value, index :: array :: base) = state.stack.pop(prim)
+      state.copy(stack = base) -> List(Insn.StoreArray(value, index, array, prim))
     case Load(index, _) =>
       state.copy(stack = state.locals(index) join state.stack) -> Nil
 
