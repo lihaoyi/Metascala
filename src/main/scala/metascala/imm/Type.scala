@@ -60,31 +60,18 @@ object Type{
 
   object Prim{
     def read(s: String) = Prim(s(0))
-    class Info(val name: String,
-               val boxName: String)
-    val info = Map(
-      'Z' -> new Info("boolean", "java/lang/Boolean"  ),
-      'B' -> new Info("byte",    "java/lang/Byte"     ),
-      'C' -> new Info("char",    "java/lang/Character"),
-      'S' -> new Info("short",   "java/lang/Short"    ),
-      'I' -> new Info("int",     "java/lang/Integer"  ),
-      'F' -> new Info("float",   "java/lang/Float"    ),
-      'L' -> new Info("long",    "java/lang/Long"     ),
-      'D' -> new Info("double",  "java/lang/Double"   ),
-      'V' -> new Info("void",    "java/lang/Void"     )
-    )
   }
 
   /**
    * Primitive Types
    */
   case class Prim(char: Char) extends Type{
-    def size = if (char == 'D' || char == 'J') 2 else 1
-    def info = Prim.info(char)
+    def size = metascala.Prim.all(char).size
+    def info = metascala.Prim.all(char)
     def unparse = ""+char
-    def name = info.name
+    def name = info.primClass.getName
 
-    def realCls = Class.forName(info.boxName.replace('/', '.'))
+    def realCls = Class.forName(info.boxedClass.getName.replace('/', '.'))
 
     def parent(implicit vm: VM) = ???
     def prim = metascala.Prim.all(char)

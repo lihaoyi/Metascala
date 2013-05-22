@@ -16,10 +16,10 @@ sealed trait Insn
 object Insn{
 
 
-  case class BinOp[A, B, R](a: Symbol[A], b: Symbol[B], out: Symbol[R], src: opcodes.BinOp[A, B, R]) extends Insn
-  case class UnaryOp[A, R](a: Symbol[A], out: Symbol[R], src: opcodes.UnaryOp[A, R]) extends Insn
-  case class UnaryBranch[A](a: Symbol[A], target: Int, src: opcodes.UnaryBranch, phi: Seq[(Sym, Sym)] = Nil) extends Insn with Jump
-  case class BinaryBranch[A, B](a: Symbol[A], b: Symbol[B], target: Int, src: opcodes.BinaryBranch, phi: Seq[(Sym, Sym)] = Nil) extends Insn with Jump
+  case class BinOp[A, B, R](a: Sym, b: Sym, out: Sym, src: opcodes.BinOp[A, B, R]) extends Insn
+  case class UnaryOp[A, R](a: Sym, out: Sym, src: opcodes.UnaryOp[A, R]) extends Insn
+  case class UnaryBranch[A](a: Sym, target: Int, src: opcodes.UnaryBranch, phi: Seq[(Sym, Sym)] = Nil) extends Insn with Jump
+  case class BinaryBranch[A, B](a: Sym, b: Sym, target: Int, src: opcodes.BinaryBranch, phi: Seq[(Sym, Sym)] = Nil) extends Insn with Jump
   case class ReturnVal(a: Sym) extends Insn
   case class Goto(target: Int, phi: Seq[(Sym, Sym)] = Nil) extends Insn with Jump
   case class Ldc(target: Int, thing: Any) extends Insn

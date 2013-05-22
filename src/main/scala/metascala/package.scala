@@ -3,7 +3,7 @@ import collection.mutable
 import scala.reflect.ClassTag
 
 package object metascala {
-  type Sym = ssa.Symbol[_]
+  type Sym = Int
   private[metascala] implicit class castable(val x: Any) extends AnyVal{
     def cast[T] = x.asInstanceOf[T]
   }

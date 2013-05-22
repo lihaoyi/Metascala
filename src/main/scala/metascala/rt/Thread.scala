@@ -36,7 +36,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   def indent = "\t" * threadStack.filter(_.method.sig.name != "Dummy").length
 
 
-  final def step() = {
+  final def step(): Unit = {
     val insnsList = frame.method.insns
     val node = insnsList(frame.pc)
 
@@ -49,49 +49,58 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     opCount += 1
     node match {
       case ReturnVal(sym) =>
-
-        returnVal(sym.size, sym.n)
+        println("ReturnVal " + frame.method.method.sig.desc.ret)
+        returnVal(frame.method.method.sig.desc.ret.size, sym)
       case Push(prim, target, value) =>
         prim.write(value, writer(frame.locals, target))
       case New(target, cls) =>
         val obj = vrt.Obj.allocate(cls.name)
-        frame.locals(target.n) = obj.address
+        frame.locals(target) = obj.address
 
       case InvokeStatic(target, sources, owner, sig) =>
         resolveDirectRef(owner, sig).map{ m =>
-          val args = sources.flatMap(s => frame.locals.slice(s.n, s.n + s.size))
-          prepInvoke(m, args, writer(frame.locals, target.n))
+          val args = sources.zip(sig.desc.args)
+                            .flatMap{case (s, t) =>
+            frame.locals.slice(s, s + t.size)
+          }
+          prepInvoke(m, args, writer(frame.locals, target))
         }
 
       case InvokeSpecial(target, sources, owner, sig) =>
         resolveDirectRef(owner, sig).map{ m =>
-          val args = sources.flatMap(s => frame.locals.slice(s.n, s.n + s.size))
+          val args = sources.zip(1 +: sig.desc.args.map(_.size))
+            .flatMap{case (s, t) =>
+            frame.locals.slice(s, s + t)
+          }
           if(args(0) == 0) throwExWithTrace("java/lang/NullPointerException", "null")
-          else prepInvoke(m, args, writer(frame.locals, target.n))
+          else prepInvoke(m, args, writer(frame.locals, target))
         }
       case InvokeVirtual(target, sources, owner, sig) =>
-        val args = sources.flatMap(s => frame.locals.slice(s.n, s.n + s.size))
+        val args = sources.zip(1 +: sig.desc.args.map(_.size))
+          .flatMap{case (s, t) =>
+          frame.locals.slice(s, s + t)
+        }
         ///println("INVOKE VIRTUAL " + args)
 
         if(args(0) == 0) throwExWithTrace("java/lang/NullPointerException", "null")
         else {
           //println(args(0).obj.cls.clsData.tpe)
           val mRef = args(0).obj.cls.vTableMap(sig)
-          prepInvoke(mRef, args, writer(frame.locals, target.n))
+          prepInvoke(mRef, args, writer(frame.locals, target))
         }
 
       case ArrayLength(src, dest) =>
-        frame.locals(dest.n) = frame.locals(src.n).arr.length
+        frame.locals(dest) = frame.locals(src).arr.length
       case NewArray(src, dest, typeRef) =>
-        val newArray = vrt.Arr.allocate(typeRef, frame.locals(src.n))
-        frame.locals(dest.n) = newArray.address
+        val newArray = vrt.Arr.allocate(typeRef, frame.locals(src))
+        frame.locals(dest) = newArray.address
       case StoreArray(src, index, array, prim) =>
-        val arr = frame.locals(array.n).arr
-        blit(frame.locals, src.n, arr, frame.locals(index.n) * prim.size, prim.size)
+        val arr = frame.locals(array).arr
+        blit(frame.locals, src, arr, frame.locals(index) * prim.size, prim.size)
       case LoadArray(dest, index, array, prim) =>
-        val arr = frame.locals(array.n).arr
+        val arr = frame.locals(array).arr
 
-        blit(arr, frame.locals(index.n) * prim.size, frame.locals, dest.n, prim.size)
+        blit(arr, frame.locals(index) * prim.size, frame.locals, dest, prim.size)
       case Ldc(target, thing) =>
         val w = writer(frame.locals, target)
         thing match{
@@ -112,56 +121,57 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
           case x: scala.Double => D.write(x, w)
         }
       case UnaryOp(src, dest, op) =>
-        op.out.write(op.func(op.a.read(reader(frame.locals, src.n))), writer(frame.locals, dest.n))
+        op.out.write(op.func(op.a.read(reader(frame.locals, src))), writer(frame.locals, dest))
 
       case BinOp(a, b, dest, op) =>
         op.out.write(
           op.func(
-            op.b.read(reader(frame.locals, b.n)),
-            op.a.read(reader(frame.locals, a.n))
-          ), writer(frame.locals, dest.n)
+            op.b.read(reader(frame.locals, b)),
+            op.a.read(reader(frame.locals, a))
+          ), writer(frame.locals, dest)
         )
 
       case PutStatic(src, cls, index, prim) =>
-        System.arraycopy(frame.locals, src.n, cls.statics, index, prim.size)
+        System.arraycopy(frame.locals, src, cls.statics, index, prim.size)
 
       case GetStatic(src, cls, index, prim) =>
-        System.arraycopy(cls.statics, index, frame.locals, src.n, prim.size)
+        System.arraycopy(cls.statics, index, frame.locals, src, prim.size)
 
       case PutField(src, obj, index, prim) =>
-        blit(frame.locals, src.n, frame.locals(obj.n).obj.members, index, prim.size)
+        blit(frame.locals, src, frame.locals(obj).obj.members, index, prim.size)
 
       case GetField(src, obj, index, prim) =>
-        blit(frame.locals(obj.n).obj.members, index, frame.locals, src.n, prim.size)
+        blit(frame.locals(obj).obj.members, index, frame.locals, src, prim.size)
 
       case BinaryBranch(symA, symB, target, src, phi) =>
-        val (a, b) = (frame.locals(symA.n), frame.locals(symB.n))
+        val (a, b) = (frame.locals(symA), frame.locals(symB))
         if(src.pred(b, a)) {
-          for ((src, dest) <- phi) frame.locals(dest.n) = frame.locals(src.n)
+          for ((src, dest) <- phi) frame.locals(dest) = frame.locals(src)
           frame.pc = target
         }
 
       case UnaryBranch(sym, target, src, phi) =>
-        if(src.pred(frame.locals(sym.n))) {
-          for ((src, dest) <- phi) frame.locals(dest.n) = frame.locals(src.n)
+        if(src.pred(frame.locals(sym))) {
+          for ((src, dest) <- phi) frame.locals(dest) = frame.locals(src)
 
           frame.pc = target
         }
 
       case Goto(target, phi) =>
         for ((symA, symB) <- phi){
-          System.arraycopy(frame.locals, symA.n, frame.locals, symB.n, symA.size)
+          frame.locals(symB) = frame.locals(symA)
+
         }
         frame.pc = target
       case CheckCast(src, desc) =>
-        frame.locals(src.n) match{
+        frame.locals(src) match{
           case 0 => ()
           case top if (top.isArr && !check(top.arr.tpe, desc)) || (top.isObj && !check(top.obj.tpe, desc)) =>
             throwExWithTrace("java/lang/ClassCastException", "")
           case _ => ()
         }
       case InstanceOf(src, dest, desc) =>
-        frame.locals(dest.n) = frame.locals(src.n) match{
+        frame.locals(dest) = frame.locals(src) match{
           case 0 => 1
           case top if (top.isArr && !check(top.arr.tpe, desc)) || (top.isObj && !check(top.obj.tpe, desc)) =>
             0
@@ -182,10 +192,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
               vrt.Arr.allocate(innerType, size).address
           }
         }
-        val dimValues = dims.map(_.n).map(frame.locals).toList
+        val dimValues = dims.map(frame.locals).toList
 
         val array = rec(dimValues, desc)
-        frame.locals(symbol.n) = array
+        frame.locals(symbol) = array
     }
   }
 
@@ -202,6 +212,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   }
 
   def returnVal(size: Int, index: Int) = {
+    println("RETURNING " + size + " "  + index)
     for (i <- 0 until size){
       frame.returnTo(frame.locals(index + i))
     }
