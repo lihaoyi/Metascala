@@ -56,13 +56,16 @@ object Conversion {
           val postState = states(ssaToStack(i + 1) + 1)
           val targetState = states(x.target)
           val fullZipped =
-            postState.locals.++(postState.stack).flatMap(_.slots)
-                     .zip(targetState.locals.++(targetState.stack).flatMap(_.slots))
+            postState.locals.++(postState.stack)
+                     .zip(targetState.locals.++(targetState.stack))
 
           val culled =
             fullZipped.distinct
-              .filter{case (a, b) => (a != -1) && (b != -1) && (a != b)}
+              .filter{case (a, b) => (a.n != -1) && (b.n != -1) && (a.n != b.n)}
               .toList
+              .flatMap{case (a, b) =>
+              a.slots.zip(b.slots)
+            }
 
           x match{
             case x: Insn.UnaryBranch[_]     => x.copy(target = stackToSsa(x.target), phi = culled)
