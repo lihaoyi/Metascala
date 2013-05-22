@@ -123,12 +123,12 @@ class Arr(val address: scala.Int)(implicit vm: VM) extends mutable.Seq[Int]{
   def innerType = Arr.arrayTypeCache(vm.Heap(address))
   def tpe = imm.Type.Arr(innerType)
   def length = vm.Heap(address + 1)
-  def apply(index: scala.Int) = vm.Heap(address + index + 2)
-  def update(index: scala.Int, value: Val) = vm.Heap(address + index + 2) = value
+  def apply(index: scala.Int) = vm.Heap(address + index * innerType.size + 2)
+  def update(index: scala.Int, value: Val) = vm.Heap(address + index * innerType.size + 2) = value
 
   override def toString = ""+vm.Heap.memory.slice(address, address + length * innerType.size + 2).toList
 
-  def iterator: Iterator[Int] = vm.Heap.memory.view(address, address + length + 2).iterator
+  def iterator: Iterator[Int] = vm.Heap.memory.view(address, address + length * innerType.size + 2).iterator
 }
 
 

@@ -298,9 +298,9 @@ trait Default extends Bindings{
               val pa = a.obj
               val mRef = vt.vm.resolveDirectRef(pa.cls.clsData.tpe, pa.cls.clsData.methods.find(_.name == "run").get.sig).get
               var x = 0
-              val ret = vt.invoke(mRef, Seq(pa.address))
-              println("RET IS " + ret)
-              Virtualizer.pushVirtual(ret).apply(0)
+              vt.invoke(mRef, Seq(pa.address))
+
+              vt.returnedVal(0)
             },
             "doPrivileged(L//PrivilegedAction;)L/lang/Object;".func(I, I){ (vt, a) =>
 
@@ -309,8 +309,9 @@ trait Default extends Bindings{
               val mRef = vt.vm.resolveDirectRef(pa.cls.clsData.tpe, pa.cls.clsData.methods.find(_.name == "run").get.sig).get
               var x = 0
               val ret = vt.invoke(mRef, Seq(pa.address))
-              Virtualizer.pushVirtual(ret).apply(0)
 
+
+              vt.returnedVal(0)
             },
             "getStackAccessControlContext()Ljava/security/AccessControlContext;".value(I)(0)
 

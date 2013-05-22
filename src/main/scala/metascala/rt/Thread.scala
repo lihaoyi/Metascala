@@ -40,13 +40,11 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     val insnsList = frame.method.insns
     val node = insnsList(frame.pc)
 
-    frame.method.method.code.attachments(frame.pc).collectFirst{
-      case LineNumber(line, _) => frame.lineNum = line
-    }
-
-    //println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.locals.toSeq)
-    //println(indent + "::\t" + frame.pc + "\t" + node )
-    //println(indent + "::\t" + vm.Heap.dump.replace("\n", "\n" + indent + "::\t"))
+//  //
+//
+    println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.locals.toSeq)
+    println(indent + "::\t" + frame.pc + "\t" + node )
+    println(indent + "::\t" + vm.Heap.dump.replace("\n", "\n" + indent + "::\t"))
     frame.pc += 1
     opCount += 1
     node match {
@@ -90,7 +88,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       case StoreArray(src, index, array, prim) =>
         val arr = frame.locals(array.n).arr
         blit(frame.locals, src.n, arr, frame.locals(index.n), prim.size)
+      case LoadArray(dest, index, array, prim) =>
+        val arr = frame.locals(array.n).arr
 
+        blit(arr, frame.locals(index.n), frame.locals, dest.n, prim.size)
       case Ldc(target, thing) =>
         val w = writer(frame.locals, target)
         thing match{
@@ -159,6 +160,13 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
             throwExWithTrace("java/lang/ClassCastException", "")
           case _ => ()
         }
+      case InstanceOf(src, dest, desc) =>
+        frame.locals(dest.n) = frame.locals(src.n) match{
+          case 0 => 1
+          case top if (top.isArr && !check(top.arr.tpe, desc)) || (top.isObj && !check(top.obj.tpe, desc)) =>
+            0
+          case _ => 1
+        }
     }
   }
 
@@ -219,7 +227,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   final def prepInvoke(mRef: rt.Method,
                        args: Seq[Int],
                        returnTo: Int => Unit) = {
-    //println(indent + "PrepInvoke " + mRef + " with " + args)
+    println(indent + "PrepInvoke " + mRef + " with " + args)
 
     mRef match{
       case rt.Method.Native(clsName, imm.Sig(name, desc), op) =>
