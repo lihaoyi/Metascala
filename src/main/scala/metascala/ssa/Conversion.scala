@@ -25,7 +25,7 @@ object Conversion {
     }
   }
   def convertToSsa(method: Method, cls: String)(implicit vm: VM): (Map[Int, Seq[Insn]], Int) = {
-//    println(s"-------------------Converting: $cls/${method.sig}--------------------------")
+    println(s"-------------------Converting: $cls/${method.sig}--------------------------")
     val insns = method.code.insns
     if (insns.isEmpty) {
       Map() -> 0
@@ -48,13 +48,15 @@ object Conversion {
               .toVector
 
       val (regInsns, stackToSsa, ssaToStack, states) = run(insns, locals, x => makeSymbol(x))
-
+      println(ssaToStack)
+      println(states.length)
       val newInsns = regInsns.zipWithIndex.map{
         case (x: Jump, i) =>
-
-          val postState = states(ssaToStack(i + 1) + 1)
+          println(i + "-> " + ssaToStack(i))
+          val postState = states((ssaToStack(i + 1) + 1) min (states.length - 1))
           val targetState = states(x.target)
-
+          println("postState\t"+postState)
+          println("targetState\t"+targetState)
           val fullZipped = (postState.locals ++ postState.stack).zip(targetState.locals ++ targetState.stack)
 
           val culled =
@@ -78,8 +80,8 @@ object Conversion {
           .distinct
           .sorted
 
-      //newInsns.map("| " + _).foreach(println)
-      //println(s"-------------------Completed: ${method.sig}--------------------------")
+      newInsns.map("| " + _).foreach(println)
+      println(s"-------------------Completed: ${method.sig}--------------------------")
       newInsns.zipWithIndex
         .splitAll(breaks.toList.sorted)
         .filter(_.length > 0)
@@ -93,10 +95,10 @@ object Conversion {
   def run(insns: Seq[OpCode], locals: Vector[Symbol[_]], makeSymbol: Prim[_] => Symbol[_])(implicit vm: VM) = {
     val regInsns = mutable.Buffer[Insn]()
     val stackToSsa = mutable.Buffer[Int]()
-    val states = mutable.Buffer[State](State(List(makeSymbol(I)), locals))
+    val states = mutable.Buffer[State](State(List.fill(10)(makeSymbol(I).cast[Symbol[Int]]), locals))
     for ((insn, i) <- insns.zipWithIndex){
       stackToSsa += regInsns.length
-      //println(i + "\t" + insn.toString.padTo(30, ' ') + states.last.stack.toString.padTo(20, ' ') + states.last.locals.toString.padTo(30, ' '))
+      println(i + "\t" + insn.toString.padTo(30, ' ') + states.last.stack.toString.padTo(20, ' ') + states.last.locals.toString.padTo(30, ' '))
       val (newState, newInsn) = op(states.last, insn, makeSymbol)
 
       states.append(newState)

@@ -44,13 +44,15 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       case LineNumber(line, _) => frame.lineNum = line
     }
 
-//    println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.locals.toSeq)
-  //  println(indent + "::\t" + frame.pc + "\t" + node )
+    //println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.locals.toSeq)
+    //println(indent + "::\t" + frame.pc + "\t" + node )
     //println(indent + "::\t" + vm.Heap.dump.replace("\n", "\n" + indent + "::\t"))
     frame.pc += 1
     opCount += 1
     node match {
-      case ReturnVal(sym) => returnVal(sym.size, sym.n)
+      case ReturnVal(sym) =>
+
+        returnVal(sym.size, sym.n)
       case Push(prim, target, value) =>
         prim.write(value, writer(frame.locals, target))
       case New(target, cls) =>
@@ -217,7 +219,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   final def prepInvoke(mRef: rt.Method,
                        args: Seq[Int],
                        returnTo: Int => Unit) = {
-//    println(indent + "PrepInvoke " + mRef + " with " + args)
+    //println(indent + "PrepInvoke " + mRef + " with " + args)
 
     mRef match{
       case rt.Method.Native(clsName, imm.Sig(name, desc), op) =>

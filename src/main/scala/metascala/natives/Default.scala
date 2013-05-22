@@ -293,20 +293,24 @@ trait Default extends Bindings{
         "security"/(
           "AccessController"/(
             "doPrivileged(Ljava/security/PrivilegedExceptionAction;)Ljava/lang/Object;".func(I, I){ (vt, a) =>
+
               import vt.vm
               val pa = a.obj
               val mRef = vt.vm.resolveDirectRef(pa.cls.clsData.tpe, pa.cls.clsData.methods.find(_.name == "run").get.sig).get
               var x = 0
-              vt.prepInvoke(mRef, Seq(pa.address), x = _)
-              x
+              val ret = vt.invoke(mRef, Seq(pa.address))
+              println("RET IS " + ret)
+              Virtualizer.pushVirtual(ret).apply(0)
             },
             "doPrivileged(L//PrivilegedAction;)L/lang/Object;".func(I, I){ (vt, a) =>
+
               import vt.vm
               val pa = a.obj
               val mRef = vt.vm.resolveDirectRef(pa.cls.clsData.tpe, pa.cls.clsData.methods.find(_.name == "run").get.sig).get
               var x = 0
-              vt.prepInvoke(mRef, Seq(pa.address), x = _)
-              x
+              val ret = vt.invoke(mRef, Seq(pa.address))
+              Virtualizer.pushVirtual(ret).apply(0)
+
             },
             "getStackAccessControlContext()Ljava/security/AccessControlContext;".value(I)(0)
 
