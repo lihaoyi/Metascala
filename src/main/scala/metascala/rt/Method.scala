@@ -12,7 +12,7 @@ trait Method{
 object Method{
   case class Native(clsName: String,
                      sig: imm.Sig,
-                     func: rt.Thread => Unit)
+                     func: (rt.Thread, () => Int, Int => Unit) => Unit)
                      extends Method{
     override def toString = s"Method.Native(${clsName}, ${sig.unparse}})"
   }

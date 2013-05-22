@@ -6,8 +6,10 @@ public class ClassStuff {
         return c.moo().length();
     }
     public static String inheritence(){
-        Bull b = new Bull();
-        return b.mooTwice();
+        int x = 1 + 2;
+        return "omg" + x;
+//        Bull b = new Bull();
+//        return b.mooTwice();
     }
     public static float constructor(){
         Matrix m = new Matrix(5, 7, -1, 3);

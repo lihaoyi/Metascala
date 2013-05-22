@@ -46,7 +46,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.locals.toSeq)
     println(indent + "::\t" + frame.pc + "\t" + node )
-    println(indent + "::\t" + vm.Heap.dump.replace("\n", "\n" + indent + "::\t"))
+    //println(indent + "::\t" + vm.Heap.dump.replace("\n", "\n" + indent + "::\t"))
     frame.pc += 1
     opCount += 1
     node match {
@@ -71,18 +71,18 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         }
       case InvokeVirtual(target, sources, owner, sig) =>
         val args = sources.flatMap(s => frame.locals.slice(s.n, s.n + s.size))
-        println("INVOKE VIRTUAL " + args)
+        ///println("INVOKE VIRTUAL " + args)
 
         if(args(0) == 0) throwExWithTrace("java/lang/NullPointerException", "null")
         else {
-          println(args(0).obj.cls.clsData.tpe)
+          //println(args(0).obj.cls.clsData.tpe)
           val mRef = args(0).obj.cls.vTableMap(sig)
           prepInvoke(mRef, args, writer(frame.locals, target.n))
         }
 
+      case ArrayLength(src, dest) =>
+        frame.locals(dest.n) = frame.locals(src.n).arr.length
       case NewArray(src, dest, typeRef) =>
-
-
         val newArray = vrt.Arr.allocate(typeRef, frame.locals(src.n))
         frame.locals(dest.n) = newArray.address
       case StoreArray(src, index, array, prim) =>
@@ -105,9 +105,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
           case x: scala.Short => S.write(x, w)
           case x: scala.Int   => I.write(x, w)
           case x: scala.Float => F.write(x, w)
-          case x: scala.Long  =>
-            println("WRITING " + x + "\t" + frame.locals.toSeq + "\t" + target)
-            J.write(x, w)
+          case x: scala.Long  => J.write(x, w)
           case x: scala.Double => D.write(x, w)
         }
       case UnaryOp(src, dest, op) =>
@@ -169,7 +167,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
   def returnVal(size: Int, index: Int) = {
     for (i <- 0 until size){
-      println("Returning " + frame.locals(index + i))
       frame.returnTo(frame.locals(index + i))
     }
     this.threadStack.pop
@@ -184,7 +181,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   }
 
   @tailrec final def throwException(ex: vrt.Obj, print: Boolean = true): Unit = {
-    vm.log(indent + "THROWING EXCEPTION " + ex.cls.name)
     threadStack.headOption match{
       case Some(frame)=>
         val handler =
@@ -218,8 +214,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     mRef match{
       case rt.Method.Native(clsName, imm.Sig(name, desc), op) =>
-        //threadStack.headOption.map(f => args.map(f.push))
-        //oc(this)
+        op(this, reader(args, 0), returnTo)
       case m @ rt.Method.Cls(cls, methodIndex, method) =>
 
         assert((m.method.access & Access.Native) == 0, "method cannot be native: " + cls.name + " " + method.sig.unparse)

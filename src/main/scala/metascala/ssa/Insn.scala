@@ -32,4 +32,5 @@ object Insn{
   case class StoreArray[T](src: Symbol[_], index: Symbol[_], array: Symbol[_], prim: Prim[T]) extends Insn
   case class AThrow(src: Symbol[_]) extends Insn
   case class CheckCast(src: Symbol[_], desc: Type) extends Insn
+  case class ArrayLength(src: Symbol[_], dest: Symbol[_]) extends Insn
 }

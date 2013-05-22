@@ -110,6 +110,7 @@ object Conversion {
   }
 
   def op(state: State, oc: OpCode, makeSymbol: Prim[_] => Symbol[_])(implicit vm: VM): (State, Seq[Insn]) = oc match {
+
     case InvokeStatic(cls, sig) =>
       val (args, newStack) = state.stack.splitAt(sig.desc.argSize)
       val target = makeSymbol(sig.desc.ret.prim)
@@ -144,7 +145,10 @@ object Conversion {
     case MonitorEnter | MonitorExit =>
       val monitor :: rest = state.stack
       state.copy(stack = rest) -> Nil
-
+    case ArrayLength =>
+      val arr :: rest = state.stack
+      val symbol = makeSymbol(I)
+      state.copy(stack = symbol :: rest) -> List(Insn.ArrayLength(arr, symbol))
     case ANewArray(typeRef) =>
       val length :: rest = state.stack
       val symbol = makeSymbol(I)
@@ -153,6 +157,7 @@ object Conversion {
     case StoreArray(prim) =>
       val (value, index :: array :: base) = state.stack.pop(prim)
       state.copy(stack = base) -> List(Insn.StoreArray(value, index, array, prim))
+
     case Load(index, _) =>
       state.copy(stack = state.locals(index) join state.stack) -> Nil
 

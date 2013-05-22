@@ -5,16 +5,16 @@ import scala.reflect.ClassTag
 
 object Prim extends {
 
-  val all = Map(
-    'V' -> V,
-    'Z' -> Z,
-    'B' -> B,
-    'C' -> C,
-    'S' -> S,
-    'I' -> I,
-    'F' -> F,
-    'J' -> J,
-    'D' -> D
+  val all: Map[Char, Prim[_]] = Map(
+    'V' -> (V: Prim[_]),
+    'Z' -> (Z: Prim[_]),
+    'B' -> (B: Prim[_]),
+    'C' -> (C: Prim[_]),
+    'S' -> (S: Prim[_]),
+    'I' -> (I: Prim[_]),
+    'F' -> (F: Prim[_]),
+    'J' -> (J: Prim[_]),
+    'D' -> (D: Prim[_])
   )
   def unapply(p: Prim[_]) = Some(p.size)
 }

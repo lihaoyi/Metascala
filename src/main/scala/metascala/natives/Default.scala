@@ -24,28 +24,23 @@ trait Default extends Bindings{
   }
 
 
-
   val trapped = {
     Seq(
       "java"/(
         "lang"/(
           "Class"/(
-            "desiredAssertionStatus0(Ljava/lang/Class;)Z" x value(I)(0, 0),
-            "forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;" x {vt =>
-              /*import vt.vm
-              val clsLoader = vt.pop
-              val boolean = vt.pop
-              val name = vt.pop
-              vt.push(
+            "desiredAssertionStatus0(Ljava/lang/Class;)Z".value(I)(0),
+            "forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;".func(I, I, I, I){
+              (vt, clsloader, boolean, name) =>
+                import vt.vm
                 "java/lang/Class".allocObj(
                   "name" -> name
                 )
-              )*/
             },
-            "getClassLoader0()Ljava/lang/ClassLoader;" x value(I)(1, 0),
-            "getComponentType()Ljava/lang/Class;" x { vt =>
-              /*import vt.vm
-              val obj = vt.pop.obj
+            "getClassLoader0()Ljava/lang/ClassLoader;".value(I)(0),
+            "getComponentType()Ljava/lang/Class;".func(I, I){ (vt, o) =>
+              import vt.vm
+              val obj = o.obj
               val oldName = obj("name").toRealObj[String]
               val shortNewName = oldName.substring(1)
               val newName =
@@ -54,40 +49,39 @@ trait Default extends Bindings{
                 else
                   shortNewName
 
-              val clsObj = "java/lang/Class".allocObj(
+              "java/lang/Class".allocObj(
                 "name" -> newName.toVirtObj
               )
-              vt.push(clsObj)*/
             },
 
-            "getDeclaredFields0(Z)[Ljava/lang/reflect/Field;" x {vt =>
-              /*import vt.vm
-              val public = vt.pop
-              val obj = vt.pop.obj
+            "getDeclaredFields0(Z)[Ljava/lang/reflect/Field;".func(I, I, I){ (vt, public, o) =>
+              import vt.vm
+
+              val obj = o.obj
 
               val name = obj("name").toRealObj[String]
               val realFields = vm.ClsTable(name).clsData.fields
 
-              val vrtArr =
-                "java/lang/reflect/Field".allocArr(
-                  realFields.zipWithIndex.map{ case (f, i) =>
-                   "java/lang/reflect/Field".allocObj(
-                      "clazz" -> obj.address,
-                      "slot" -> i,
-                      "name" -> vt.vm.internedStrings.getOrElseUpdate(f.name, f.name.toVirtObj)
-                    )
-                  }
-                )
 
-              vt.push(vrtArr)*/
-            },
+              "java/lang/reflect/Field".allocArr(
+                realFields.zipWithIndex.map{ case (f, i) =>
+                 "java/lang/reflect/Field".allocObj(
+                    "clazz" -> obj.address,
+                    "slot" -> i,
+                    "name" -> vt.vm.internedStrings.getOrElseUpdate(f.name, f.name.toVirtObj)
+                  )
+                }
+              )
+
+
+            }/*,
             "getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;" x {vt =>
               ???              //private native Method[]      getDeclaredMethods0(boolean publicOnly);
-            },
-            "getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;" x {vt =>
-              /*import vt.vm
-              val bool = vt.pop
-              val clsObj = vt.pop.obj
+            }*/,
+            "getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;".func(I, I, I){ (vt, bool, o) =>
+              import vt.vm
+
+              val clsObj = o.obj
               val clsName = clsObj("name").toRealObj[String]
               val cls = vm.ClsTable(clsName)
               val realMethods = cls.clsData.methods.filter(_.name == "<init>")
@@ -106,45 +100,45 @@ trait Default extends Bindings{
                   )
                 }
               )
-              vt.push(vrtArr)*/
+              vrtArr
             },
-            "getDeclaredClasses0(Z)[Ljava/lang/Class;" x {vt =>
+            /*"getDeclaredClasses0(Z)[Ljava/lang/Class;" x {vt =>
               ???
               //private native Class<?>[]   getDeclaredClasses0();
-            },
-            "getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;" x {vt =>
-             /* import vt.vm
+            },*/
+            "getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;".func(I, I){ (vt, o) =>
+              import vt.vm
               val addr = "java/lang/Class".allocObj(
-                "name" -> vt.pop
+                "name" -> o
               )
-              vt.push(addr)*/
+              addr
             },
-            "getSuperclass()Ljava/lang/Class;" x {vt =>
-              /*import vt.vm
-              val topClsName = vt.pop.obj.apply("name").toRealObj[String]
-              vt.push(
-                vm.ClsTable(topClsName)
-                  .clsData
-                  .superType
-                  .map{_.name}
-                  .map(name =>
-                    "java/lang/Class".allocObj(
-                      "name" -> name.toVirtObj
-                    )
-                  ).getOrElse(0)
-              )*/
+            "getSuperclass()Ljava/lang/Class;".func(I, I){ (vt, o) =>
+              import vt.vm
+              val topClsName = o.obj.apply("name").toRealObj[String]
+
+              vm.ClsTable(topClsName)
+                .clsData
+                .superType
+                .map{_.name}
+                .map(name =>
+                  "java/lang/Class".allocObj(
+                    "name" -> name.toVirtObj
+                  )
+                ).getOrElse(0)
+
             },
 
-            "isArray()Z" x { vt =>
-              /*import vt.vm
-              val res =
-                if(vt.pop.obj.apply("name").toRealObj[String].contains('[')) 1 else 0
-              vt.push(res)*/
+            "isArray()Z".func(I, I){ (vt, o) =>
+              import vt.vm
+
+              if(o.obj.apply("name").toRealObj[String].contains('[')) 1 else 0
+
             },
-            "isAssignableFrom(Ljava/lang/Class;)Z" x { vt =>
-              /*import vt.vm
-              val clsA = vt.pop.obj
-              val clsB = vt.pop.obj
+            "isAssignableFrom(Ljava/lang/Class;)Z".func(I, I, I){ (vt, a, b) =>
+              import vt.vm
+              val clsA = a.obj
+              val clsB = b.obj
               val nameA = clsA("name").toRealObj[String]
               val nameB = clsB("name").toRealObj[String]
 
@@ -161,65 +155,63 @@ trait Default extends Bindings{
                   case _ => false
                 }
               }
-              vt.push(if (check(imm.Type.read(nameA), imm.Type.read(nameB))) 1 else 0)*/
+              if (check(imm.Type.read(nameA), imm.Type.read(nameB))) 1 else 0
             },
-            "isInterface()Z" x {vt =>
-              /*import vt.vm
-              val clsObj = vt.pop.obj
-              vt.push(
-                vm.ClsTable(
-                  clsObj("name").toRealObj[String]
-                ).clsData.access_flags & 0x0200
-              )*/
+            "isInterface()Z".func(I, I){ (vt, o) =>
+              import vt.vm
+              val clsObj = o.obj
+              vm.ClsTable(
+                clsObj("name").toRealObj[String]
+              ).clsData.access_flags & 0x0200
             },
-            "isPrimitive()Z" x {vt =>
-              /*import vt.vm
-              val clsObj = vt.pop.obj
+            "isPrimitive()Z".func(I, I){ (vt, o) =>
+              import vt.vm
+              val clsObj = o.obj
               val res = Prim.all
                             .values
                             .map(_.primClass.getName)
                             .toList
                             .contains(clsObj("name").toRealObj[String])
-              vt.push(if (res) 1 else 0)*/
+              if (res) 1 else 0
             },
-            "registerNatives()V" x noOp(0)
+            "registerNatives()V".value(V)(())
           ),
           "ClassLoader"/(
-            "getCaller(I)Ljava/lang/Class;" x {vt =>
-              /*import vt.vm
-              val name = vt.pop match{
+            "getCaller(I)Ljava/lang/Class;".func(I, I){ (vt, o) =>
+              import vt.vm
+              val name = o match{
                 case 0 => "java/lang/ClassLoader"
                 case 1 => vt.threadStack(0).runningClass.name
                 case 2 => vt.threadStack(1).runningClass.name
               }
-              vt.push("java/lang/Class".allocObj("name" -> name.toVirtObj))*/
+              "java/lang/Class".allocObj("name" -> name.toVirtObj)
             },
-            "getSystemResourceAsStream(Ljava/lang/String;)Ljava/io/InputStream;" x {vt =>
-              /*import vt.vm
+            "getSystemResourceAsStream(Ljava/lang/String;)Ljava/io/InputStream;".func(I, I){ (vt, o) =>
+              import vt.vm
 
-              val name = vt.pop.toRealObj[String]
+              val name = o.toRealObj[String]
               val realResult = new DataInputStream(ClassLoader.getSystemResourceAsStream(name))
               val bytes = new Array[Byte](realResult.available())
               realResult.readFully(bytes)
               val byteStream = new ByteArrayInputStream(bytes)
-              vt.push(byteStream.toVirtObj)*/
+              byteStream.toVirtObj
             },
-            "registerNatives()V" x noOp(0)
+            "registerNatives()V".value(V)(())
           ),
           "Double"/(
-            "doubleToRawLongBits(D)J" x noOp(0),
-            "longBitsToDouble(J)D" x noOp(0)
+            "doubleToRawLongBits(D)J".func(J, J){(vt, l) => l},
+            "longBitsToDouble(J)D".func(J, J){(vt, l) => l}
           ),
           "Float"/(
-            "intBitsToFloat(I)F" x noOp(0),
-            "floatToRawIntBits(F)I" x noOp(0)
+            "intBitsToFloat(I)F".func(I, I){(vt, l) => l},
+            "floatToRawIntBits(F)I".func(I, I){(vt, l) => l}
           ),
           "Object"/(
-            "clone()Ljava/lang/Object;" x noOp(0),
-            "getClass()Ljava/lang/Class;" x {vt =>
-/*
+            "clone()Ljava/lang/Object;".func(I, I){(vt, l) => l},
+            "getClass()Ljava/lang/Class;".func(I, I){ (vt, value) =>
+
               import vt.vm
-              val value = vt.pop
+
 
               val stringAddr = (
                 if(value.isObj) value.obj.cls.name.toDot
@@ -229,85 +221,70 @@ trait Default extends Bindings{
               val addr = "java/lang/Class".allocObj(
                 "name" -> stringAddr
               )
-              vt.push(addr)*/
+              addr
             },
-            "getName0()Ljava/lang/String;" x {vt =>
-              /*vt.pop
-              import vt.vm
-              vm.ClsTable
-              val addr = "java/lang/Class".allocObj(
-                "name" -> 1337
-              )
-              vt.push(addr)*/
-            },
-            "hashCode()I" x noOp(0),
-            "registerNatives()V" x noOp(0)
+
+            "hashCode()I".func(I, I){(vt, l) => l},
+            "registerNatives()V".value(V){()}
           ),
 
           "Runtime"/(
-            "freeMemory()J" x value(J)(1, 4*1024*1024)
+            "freeMemory()J".value(J)(4*1024*1024)
           ),
 
           "System"/(
-            "arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V" x { vt =>
-              /*val Seq(src, srcIndex, dest, destIndex, length) = Seq(vt.pop, vt.pop, vt.pop, vt.pop, vt.pop).reverse
-              System.arraycopy(vt.vm.Heap.memory, src + srcIndex + 2, vt.vm.Heap.memory, dest + destIndex + 2, length)*/
+            "arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V".func(I, I, I, I, I, V){ (vt, src, srcIndex, dest, destIndex, length) =>
+              System.arraycopy(vt.vm.Heap.memory, src + srcIndex + 2, vt.vm.Heap.memory, dest + destIndex + 2, length)
             },
 
-            "identityHashCode(Ljava/lang/Object;)I" x { vt =>
-              /*vt.push(vt.pop)*/
-            },
-            "nanoTime()J" x value(J)(0, System.nanoTime()),
-            "currentTimeMillis()J" x value(J)(0, System.currentTimeMillis()),
-            "getProperty(Ljava/lang/String;)Ljava/lang/String;" x value(I)(1, 0),
-            "getProperty(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;" x value(I)(2, 0),
-            "registerNatives()V" x noOp(0)
+            "identityHashCode(Ljava/lang/Object;)I".func(I, I){(vt, l) => l},
+            "nanoTime()J".value(J)(System.nanoTime()),
+            "currentTimeMillis()J".value(J)(System.currentTimeMillis()),
+            "getProperty(Ljava/lang/String;)Ljava/lang/String;".value(I)(0),
+            "getProperty(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;".value(I)(0),
+            "registerNatives()V".value(V)(())
           ),
           "String"/(
-            "<clinit>()V" x noOp(0),
-            "intern()Ljava/lang/String;" x {vt =>
-              /*import vt.vm
-              val addr = vt.pop
+            "<clinit>()V".value(V)(()),
+            "intern()Ljava/lang/String;".func(I, I){ (vt, addr) =>
+              import vt.vm
               val str = addr.toRealObj[String]
               val result = vt.vm.internedStrings.getOrElseUpdate(str, addr)
-              vt.push(result)*/
+              result
             }
           ),
 
           "Thread"/(
-            "registerNatives()V" x noOp(0),
-            "currentThread()Ljava/lang/Thread;" x {vt =>
-              /*import vt.vm
-              vt.push(
-                "java/lang/Thread".allocObj(
-                  "group" -> "java/lang/ThreadGroup".allocObj(),
-                  "priority" -> 5
-                )
-              )*/
+            "registerNatives()V".value(V)(()),
+            "currentThread()Ljava/lang/Thread;".func(I){ vt =>
+              import vt.vm
+
+              "java/lang/Thread".allocObj(
+                "group" -> "java/lang/ThreadGroup".allocObj(),
+                "priority" -> 5
+              )
             },
-            "setPriority0(I)V" x noOp(1),
-            "isAlive()Z" x value(Z)(1, false),
-            "start0()V" x noOp(1)
+            "setPriority0(I)V".value(V)(()),
+            "isAlive()Z".value(Z)(false),
+            "start0()V".value(V)(())
           ),
           "Throwable"/(
-            "fillInStackTrace()Ljava/lang/Throwable;" x {vt =>
-              /*import vt.vm
-              //vt.pop // pop dummy
-              val throwable = vt.pop.obj
+            "fillInStackTrace()Ljava/lang/Throwable;".func(I, I){ (vt, addr) =>
+              import vt.vm
+              val throwable = addr.obj
               val trace = vt.trace
               throwable("stackTrace") = vt.trace.toVirtObj
 
-              vt.push(throwable.address)*/
+              throwable.address
             }
           ),
           "reflect"/(
             "Array"/(
-              "newArray(Ljava/lang/Class;I)Ljava/lang/Object;" x {vt =>
-                /*import vt.vm
-                val length = vt.pop
-                val clsObj = vt.pop.obj
+              "newArray(Ljava/lang/Class;I)Ljava/lang/Object;".func(I, I, I){ (vt, cls, length) =>
+                import vt.vm
+                val clsObj = cls.obj
                 val clsName = clsObj("name").toRealObj[String]
-                vt.push(vrt.Arr.allocate(clsName, length).address)*/
+                vrt.Arr.allocate(clsName, length).address
               }
             )
           )
@@ -315,88 +292,84 @@ trait Default extends Bindings{
 
         "security"/(
           "AccessController"/(
-            "doPrivileged(Ljava/security/PrivilegedExceptionAction;)Ljava/lang/Object;" x {vt =>
-              /*import vt.vm
-              val pa = vt.pop.obj
+            "doPrivileged(Ljava/security/PrivilegedExceptionAction;)Ljava/lang/Object;".func(I, I){ (vt, a) =>
+              import vt.vm
+              val pa = a.obj
               val mRef = vt.vm.resolveDirectRef(pa.cls.clsData.tpe, pa.cls.clsData.methods.find(_.name == "run").get.sig).get
-              vt.prepInvoke(mRef, Seq(pa.address))*/
+              var x = 0
+              vt.prepInvoke(mRef, Seq(pa.address), x = _)
+              x
             },
-            "doPrivileged(L//PrivilegedAction;)L/lang/Object;" x { vt =>
-              /*import vt.vm
-              val pa = vt.pop.obj
+            "doPrivileged(L//PrivilegedAction;)L/lang/Object;".func(I, I){ (vt, a) =>
+              import vt.vm
+              val pa = a.obj
               val mRef = vt.vm.resolveDirectRef(pa.cls.clsData.tpe, pa.cls.clsData.methods.find(_.name == "run").get.sig).get
-              vt.prepInvoke(mRef, Seq(pa.address))*/
-
+              var x = 0
+              vt.prepInvoke(mRef, Seq(pa.address), x = _)
+              x
             },
-            "getStackAccessControlContext()Ljava/security/AccessControlContext;" x value(I)(0, 0)
+            "getStackAccessControlContext()Ljava/security/AccessControlContext;".value(I)(0)
 
           )
         ),
         "util"/(
           "Hashtable"/(
-            "<clinit>()V" x noOp(0)
+            "<clinit>()V".value(V)(())
           )
         )
       ),
       "scala"/(
         "Predef$"/(
-          "println(Ljava/lang/Object;)V" x { vt =>
-            /*import vt.vm
-            val thing = vt.pop.obj
-            val predef = vt.pop
-            println("Virtual\t" + thing.address.toRealObj[Object])*/
+          "println(Ljava/lang/Object;)V".func(I, I, V){ (vt, predef, o) =>
+            import vt.vm
+            val thing = o.obj
+            println("Virtual\t" + thing.address.toRealObj[Object])
           }
         )
       ),
       "sun"/(
         "misc"/(
           "Unsafe"/(
-            "arrayBaseOffset(Ljava/lang/Class;)I" x value(I)(2, 2),
-            "arrayIndexScale(Ljava/lang/Class;)I" x value(I)(2, 1),
-            "addressSize()I" x value(I)(1, 4),
-            "compareAndSwapInt(Ljava/lang/Object;JII)Z" x {vt =>
-              /*import vt.vm
-              val x = vt.pop
-              val expected = vt.pop
-              val (a, b) = (vt.pop, vt.pop)
-              val slot = J(b, a)
-              val obj = vt.pop.obj
-              val unsafe = vt.pop.obj
+            "arrayBaseOffset(Ljava/lang/Class;)I".value(I)(2),
+            "arrayIndexScale(Ljava/lang/Class;)I".value(I)(1),
+            "addressSize()I".value(I)(4),
+            "compareAndSwapInt(Ljava/lang/Object;JII)Z".func(I, I, J, I, I, Z){ (vt, unsafe, o, slot, expected ,x) =>
+              import vt.vm
+
+              val obj = o.obj
 
               val fieldName = obj.cls.clsData.fields(slot.toInt).name
 
               obj(fieldName) = x
-              vt.push(1)*/
+              true
             },
-            "objectFieldOffset(Ljava/lang/reflect/Field;)J" x {vt =>
-              /*import vt.vm
-              val field = vt.pop.obj
-              val unsafe = vt.pop
-              J.write(field.apply("slot"), vt.push)*/
+            "objectFieldOffset(Ljava/lang/reflect/Field;)J".func(I, I, I){(vt, unsafe, f) =>
+              import vt.vm
+              val field = f.obj
+              field.apply("slot")
             },
-            "registerNatives()V" x noOp(0)
+            "registerNatives()V".value(V)(())
           ),
           "VM"/(
-            "getSavedProperty(Ljava/lang/String;)Ljava/lang/String;" x value(I)(1, 0),
-            "initialize()V" x noOp(0)
+            "getSavedProperty(Ljava/lang/String;)Ljava/lang/String;".value(I)(0),
+            "initialize()V".value(V)(())
           )
         ),
         "reflect"/(
           "Reflection"/(
-            "getCallerClass(I)Ljava/lang/Class;" x { vt =>
-              /*import vt.vm
-              val n = vt.pop
+            "getCallerClass(I)Ljava/lang/Class;".func(I, I){ (vt, n) =>
+              import vt.vm
               val name = vt.threadStack(n).runningClass.name
               val clsObj = "java/lang/Class".allocObj(
                 "name" -> name.toVirtObj
               )
-              vt.push(clsObj)*/
+              clsObj
             },
-            "getClassAccessFlags(Ljava/lang/Class;)I" x {vt =>
-              /*import vt.vm
-              val addr = vt.pop.obj.apply("name")
+            "getClassAccessFlags(Ljava/lang/Class;)I".func(I, I){ (vt, o) =>
+              import vt.vm
+              val addr = o.obj.apply("name")
               val str = addr.toRealObj[String]
-              vt.push(vm.ClsTable(str).clsData.access_flags)*/
+              vm.ClsTable(str).clsData.access_flags
             }
           )
         )
