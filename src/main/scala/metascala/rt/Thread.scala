@@ -136,6 +136,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         if(src.pred(b, a)) frame.pc = target
 
       case UnaryBranch(sym, target, src, phi) =>
+
         if(src.pred(frame.locals(sym.n))) frame.pc = target
 
       case Goto(target, phi) =>

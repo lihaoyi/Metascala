@@ -25,7 +25,7 @@ object Conversion {
     }
   }
   def convertToSsa(method: Method, cls: String)(implicit vm: VM): (Map[Int, Seq[Insn]], Int) = {
-    println(s"-------------------Converting: $cls/${method.sig}--------------------------")
+//    println(s"-------------------Converting: $cls/${method.sig}--------------------------")
     val insns = method.code.insns
     if (insns.isEmpty) {
       Map() -> 0
@@ -51,10 +51,12 @@ object Conversion {
 
       val newInsns = regInsns.zipWithIndex.map{
         case (x: Jump, i) =>
-          val postState = states(ssaToStack(i+1))
+
+          val postState = states(ssaToStack(i + 1) + 1)
           val targetState = states(x.target)
 
           val fullZipped = (postState.locals ++ postState.stack).zip(targetState.locals ++ targetState.stack)
+
           val culled =
             fullZipped.distinct
               .filter{case (a, b) => (a.n != -1) && (b.n != -1) && (a != b)}
@@ -76,8 +78,8 @@ object Conversion {
           .distinct
           .sorted
 
-      newInsns.map("| " + _).foreach(println)
-      println(s"-------------------Completed: ${method.sig}--------------------------")
+      //newInsns.map("| " + _).foreach(println)
+      //println(s"-------------------Completed: ${method.sig}--------------------------")
       newInsns.zipWithIndex
         .splitAll(breaks.toList.sorted)
         .filter(_.length > 0)
