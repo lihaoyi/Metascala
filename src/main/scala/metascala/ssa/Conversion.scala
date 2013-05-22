@@ -96,7 +96,7 @@ object Conversion {
     val states = mutable.Buffer[State](State(List(makeSymbol(I)), locals))
     for ((insn, i) <- insns.zipWithIndex){
       stackToSsa += regInsns.length
-      println(i + "\t" + insn.toString.padTo(30, ' ') + states.last.stack.toString.padTo(20, ' ') + states.last.locals.toString.padTo(30, ' '))
+      //println(i + "\t" + insn.toString.padTo(30, ' ') + states.last.stack.toString.padTo(20, ' ') + states.last.locals.toString.padTo(30, ' '))
       val (newState, newInsn) = op(states.last, insn, makeSymbol)
 
       states.append(newState)

@@ -44,8 +44,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       case LineNumber(line, _) => frame.lineNum = line
     }
 
-    println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.locals.toSeq)
-    println(indent + "::\t" + frame.pc + "\t" + node )
+//    println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.locals.toSeq)
+  //  println(indent + "::\t" + frame.pc + "\t" + node )
     //println(indent + "::\t" + vm.Heap.dump.replace("\n", "\n" + indent + "::\t"))
     frame.pc += 1
     opCount += 1
@@ -133,11 +133,17 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
       case BinaryBranch(symA, symB, target, src, phi) =>
         val (a, b) = (frame.locals(symA.n), frame.locals(symB.n))
-        if(src.pred(b, a)) frame.pc = target
+        if(src.pred(b, a)) {
+          for ((src, dest) <- phi) frame.locals(dest.n) = frame.locals(src.n)
+          frame.pc = target
+        }
 
       case UnaryBranch(sym, target, src, phi) =>
+        if(src.pred(frame.locals(sym.n))) {
+          for ((src, dest) <- phi) frame.locals(dest.n) = frame.locals(src.n)
 
-        if(src.pred(frame.locals(sym.n))) frame.pc = target
+          frame.pc = target
+        }
 
       case Goto(target, phi) =>
         for ((symA, symB) <- phi){
@@ -211,7 +217,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   final def prepInvoke(mRef: rt.Method,
                        args: Seq[Int],
                        returnTo: Int => Unit) = {
-    println(indent + "PrepInvoke " + mRef + " with " + args)
+//    println(indent + "PrepInvoke " + mRef + " with " + args)
 
     mRef match{
       case rt.Method.Native(clsName, imm.Sig(name, desc), op) =>
