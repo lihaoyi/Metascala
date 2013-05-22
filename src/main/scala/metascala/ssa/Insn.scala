@@ -1,7 +1,7 @@
 package metascala
 package ssa
 
-import metascala.opcodes.{StackManip, OpCode}
+import metascala.opcodes.{OpCode}
 import metascala.imm.Type
 import metascala.imm
 

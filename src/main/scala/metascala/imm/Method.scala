@@ -117,9 +117,34 @@ case class Code(insns: Seq[OpCode] = Nil,
 
 trait Attached
 object Attached{
-  case class Frame(frameType: Int,
-                   local: Seq[Any],
-                   stack: Seq[Any]) extends Attached
+  object Frame{
+    object Type{
+      def read(x: AnyRef) = x match{
+        case s: String => Class(s)
+        case x: java.lang.Integer => all(x)
+      }
+    }
+    class Type(val size: Int)
+    case class Class(v: String) extends Type(1)
+    case object Top extends Type(1)
+    case object Integer extends Type(1)
+    case object Float extends Type(1)
+    case object Double extends Type(2)
+    case object Long extends Type(1)
+    case object Null extends Type(1)
+    case object UninitializedThis extends Type(1)
+    val all = Seq(
+      Top,
+      Integer,
+      Float,
+      Double,
+      Long,
+      Null,
+      UninitializedThis
+    )
+  }
+  case class Frame(locals: Seq[Attached.Frame.Type],
+                   stack: Seq[Attached.Frame.Type]) extends Attached
 
   case class LineNumber(line: Int,
                         start: Int) extends Attached
@@ -127,8 +152,12 @@ object Attached{
 
 
   def read(implicit labelMap: Map[Label, Int]): PartialFunction[Any, Attached] = {
-    case x: FrameNode       => Frame(x.`type`, x.local.safeSeq, x.stack.safeSeq)
+    case x: FrameNode       =>
+      assert(x.`type` == -1)
+      Frame(
+        x.local.safeSeq.map(Frame.Type.read),
+        x.stack.safeSeq.map(Frame.Type.read)
+      )
     case x: LineNumberNode  => LineNumber(x.line, x.start.getLabel)
-
   }
 }

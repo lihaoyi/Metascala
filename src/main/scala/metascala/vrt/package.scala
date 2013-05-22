@@ -1,6 +1,5 @@
 package metascala
 
-import imm.Type.Prim.Info
 import reflect.ClassTag
 
 
