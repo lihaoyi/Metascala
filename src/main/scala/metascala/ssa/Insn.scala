@@ -39,4 +39,5 @@ object Insn{
   case class CheckCast(src: Sym, desc: Type) extends Insn
   case class ArrayLength(src: Sym, dest: Sym) extends Insn
   case class InstanceOf(src: Sym, dest: Sym, desc: Type) extends Insn
+  case class MultiANewArray(desc: Type, target: Sym, dims: Seq[Sym]) extends Insn
 }

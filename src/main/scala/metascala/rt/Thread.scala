@@ -42,9 +42,9 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
 //  //
 //
-    println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.locals.toSeq)
-    println(indent + "::\t" + frame.pc + "\t" + node )
-    println(indent + "::\t" + vm.Heap.dump.replace("\n", "\n" + indent + "::\t"))
+//    println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.locals.toSeq)
+//    println(indent + "::\t" + frame.pc + "\t" + node )
+//    println(indent + "::\t" + vm.Heap.dump.replace("\n", "\n" + indent + "::\t"))
     frame.pc += 1
     opCount += 1
     node match {
@@ -87,11 +87,11 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         frame.locals(dest.n) = newArray.address
       case StoreArray(src, index, array, prim) =>
         val arr = frame.locals(array.n).arr
-        blit(frame.locals, src.n, arr, frame.locals(index.n), prim.size)
+        blit(frame.locals, src.n, arr, frame.locals(index.n) * prim.size, prim.size)
       case LoadArray(dest, index, array, prim) =>
         val arr = frame.locals(array.n).arr
 
-        blit(arr, frame.locals(index.n), frame.locals, dest.n, prim.size)
+        blit(arr, frame.locals(index.n) * prim.size, frame.locals, dest.n, prim.size)
       case Ldc(target, thing) =>
         val w = writer(frame.locals, target)
         thing match{
@@ -167,6 +167,25 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
             0
           case _ => 1
         }
+      case MultiANewArray(desc, symbol, dims) =>
+        def rec(dims: List[Int], tpe: imm.Type): Val = {
+
+          (dims, tpe) match {
+            case (size :: tail, imm.Type.Arr(innerType: imm.Type.Ref)) =>
+              val newArr = vrt.Arr.allocate(innerType, size)
+              for(i <- 0 until size){
+                newArr(i) = rec(tail, innerType)
+              }
+              newArr.address
+
+            case (size :: Nil, imm.Type.Arr(innerType)) =>
+              vrt.Arr.allocate(innerType, size).address
+          }
+        }
+        val dimValues = dims.map(_.n).map(frame.locals).toList
+
+        val array = rec(dimValues, desc)
+        frame.locals(symbol.n) = array
     }
   }
 

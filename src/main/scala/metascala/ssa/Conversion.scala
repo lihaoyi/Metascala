@@ -25,7 +25,7 @@ object Conversion {
     }
   }
   def convertToSsa(method: Method, cls: String)(implicit vm: VM): (Map[Int, Seq[Insn]], Int) = {
-    println(s"-------------------Converting: $cls/${method.sig}--------------------------")
+//    println(s"-------------------Converting: $cls/${method.sig}--------------------------")
     val insns = method.code.insns
     if (insns.isEmpty) {
       Map() -> 0
@@ -80,10 +80,10 @@ object Conversion {
           .distinct
           .sorted
 
-      newInsns.zipWithIndex
-              .map{case (x, i) => "| " + i + "\t" + x}
-              .foreach(println)
-      println(s"-------------------Completed: ${method.sig}--------------------------")
+//      newInsns.zipWithIndex
+//              .map{case (x, i) => "| " + i + "\t" + x}
+//              .foreach(println)
+//      println(s"-------------------Completed: ${method.sig}--------------------------")
       newInsns.zipWithIndex
         .splitAll(breaks.toList.sorted)
         .filter(_.length > 0)
@@ -300,6 +300,11 @@ object Conversion {
       val head :: rest = state.stack
       val symbol = makeSymbol(I)
       state.copy(stack = symbol :: rest) -> Seq(Insn.InstanceOf(head, symbol, desc))
+
+    case MultiANewArray(desc, dims) =>
+      val (dimsX, rest) = state.stack.splitAt(dims)
+      val symbol = makeSymbol(I)
+      state.copy(stack = symbol :: rest) -> Seq(Insn.MultiANewArray(desc, symbol, dimsX))
   }
 
 }
