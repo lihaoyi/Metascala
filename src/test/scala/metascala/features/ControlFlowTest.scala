@@ -1,8 +1,8 @@
-  package metascala
+package metascala
 package features
 
 
-import org.scalatest.FreeSpec
+import org.scalatest.{Tag, FreeSpec}
 
 import metascala.Util
 import Gen.chk

@@ -6,20 +6,21 @@ import collection.mutable.ArrayBuffer
 import metascala._
 import imm.Attached.LineNumber
 import metascala.imm.Attached.LineNumber
-import metascala.opcodes.OpCode
+import metascala.StackOps.OpCode
 import scala.Some
 import metascala.UncaughtVmException
 import metascala.vrt
 import metascala.imm
 import metascala.imm.Access
-import metascala.ssa.Insn._
-import metascala.ssa.Insn.Ldc
+import metascala.opcodes.Insn
+import Insn._
+import Insn.Ldc
 import metascala.imm.Attached.LineNumber
-import metascala.ssa.Insn.Push
-import metascala.ssa.Insn.InvokeStatic
+import Insn.Push
+import Insn.InvokeStatic
 import scala.Some
 import metascala.UncaughtVmException
-import metascala.ssa.Insn.ReturnVal
+import Insn.ReturnVal
 
 /**
  * A single thread within the Metascala VM.
@@ -40,16 +41,15 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     val insnsList = frame.method.insns
     val node = insnsList(frame.pc)
 
-//  //
-//
 //    println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.locals.toSeq)
 //    println(indent + "::\t" + frame.pc + "\t" + node )
 //    println(indent + "::\t" + vm.Heap.dump.replace("\n", "\n" + indent + "::\t"))
     frame.pc += 1
     opCount += 1
+
     node match {
       case ReturnVal(sym) =>
-        println("ReturnVal " + frame.method.method.sig.desc.ret)
+
         returnVal(frame.method.method.sig.desc.ret.size, sym)
       case Push(prim, target, value) =>
         prim.write(value, writer(frame.locals, target))
@@ -257,7 +257,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   final def prepInvoke(mRef: rt.Method,
                        args: Seq[Int],
                        returnTo: Int => Unit) = {
-    println(indent + "PrepInvoke " + mRef + " with " + args)
+//    println(indent + "PrepInvoke " + mRef + " with " + args)
 
     mRef match{
       case rt.Method.Native(clsName, imm.Sig(name, desc), op) =>

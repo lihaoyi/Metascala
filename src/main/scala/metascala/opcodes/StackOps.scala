@@ -1,6 +1,6 @@
 package metascala
 
-import opcodes._
+import StackOps._
 import rt.Thread
 import org.objectweb.asm.Label
 import org.objectweb.asm.tree._
@@ -8,19 +8,19 @@ import collection.convert.wrapAsScala._
 import metascala.imm.Type
 
 /**
- * `opcodes` contains the stack manipulating behavior of each individual
+ * `StackOps` contains the stack manipulating behavior of each individual
  * opcode. Each opcode is a case class or case object extending the trait
- * [[metascala.opcodes.OpCode]]. These are split into three separate files to help keep
+ * [[metascala.StackOps.OpCode]]. These are split into three separate files to help keep
  * compile times down.
  *
- * A large number of the opcodes are unused (they extend [[metascala.opcodes.UnusedOpCode]])
- * as ASM folds these into other opcodes for us automatically. For example,
+ * A large number of the StackOps are unused (they extend [[metascala.StackOps.UnusedOpCode]])
+ * as ASM folds these into other StackOps for us automatically. For example,
  * `LDC`, `LDC_W` and `LDC_2W` all get folded into `LDC` by ASM before being
- * made available to Metascala. Furthermore, some opcodes are immediately
+ * made available to Metascala. Furthermore, some StackOps are immediately
  * converted into optimized variants living in Optimized.scala, for example with
  * pre-computed method or field offsets.
  */
-package object opcodes {
+object StackOps {
 
   abstract class OpCode
 
@@ -366,8 +366,8 @@ package object opcodes {
   //===============================================================
 
   case class MultiANewArray(desc: Type.Arr, dims: Int) extends OpCode
-  val IfNull = opcodes.UnaryBranch(_: Int)(_ == 0)("IfNull")
-  val IfNonNull = opcodes.UnaryBranch(_: Int)(_ != 0)("IfNull")
+  val IfNull = StackOps.UnaryBranch(_: Int)(_ == 0)("IfNull")
+  val IfNonNull = StackOps.UnaryBranch(_: Int)(_ != 0)("IfNull")
 
   // Not used, because ASM converts these to normal Goto()s and Jsr()s
   //===============================================================

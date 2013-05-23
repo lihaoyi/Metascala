@@ -1,14 +1,12 @@
 package metascala
-package ssa
+package opcodes
 
 import metascala.imm.{Type, Method}
 import scala.collection.mutable
-import metascala.opcodes.OpCode
+import metascala.StackOps.OpCode
 
 import metascala.Prim
 
-import metascala.ssa.Symbol
-import opcodes._
 case class Symbol(n: Int, size: Int){
   override def toString = ""+n
 
@@ -49,15 +47,27 @@ object Conversion {
               .toVector
 
       val (regInsns, stackToSsa, ssaToStack, states) = run(insns, method.code.attachments.map(_.collect{case x: imm.Attached.Frame => x}.headOption), locals, x => makeSymbol(x))
+//      println(ssaToStack)
+//      println(states.length)
       println(ssaToStack)
-      println(states.length)
-      val newInsns = regInsns.zipWithIndex.map{
+      val phiInsns = regInsns.zipWithIndex.map{
         case (x: Jump, i) =>
-          val postState = states(ssaToStack(i + 1) + 1)
+          println("JUMP " + i + " " + x)
+          val postIndex = x match{
+            case Insn.Goto(_, _) => ssaToStack(i+1)
+            case _ => ssaToStack(i+1)+1
+          }
+          println("Post Index " + postIndex)
+          val postState = states(postIndex)
+          println("Post State " + postState)
+
           val targetState = states(x.target)
+          println("Target State " + targetState)
           val fullZipped =
             postState.locals.++(postState.stack)
                      .zip(targetState.locals.++(targetState.stack))
+
+//          println("FULL ZIPPED" + fullZipped)
 
           val culled =
             fullZipped.distinct
@@ -66,14 +76,20 @@ object Conversion {
               .flatMap{case (a, b) =>
               a.slots.zip(b.slots)
             }
-
+//          println("CULLED " + culled)
           x match{
-            case x: Insn.UnaryBranch[_]     => x.copy(target = stackToSsa(x.target), phi = culled)
-            case x: Insn.BinaryBranch[_, _] => x.copy(target = stackToSsa(x.target), phi = culled)
-            case x: Insn.Goto               => x.copy(target = stackToSsa(x.target), phi = culled)
+            case x: Insn.UnaryBranch[_]     => x.copy(phi = culled)
+            case x: Insn.BinaryBranch[_, _] => x.copy(phi = culled)
+            case x: Insn.Goto               => x.copy(phi = culled)
             case x => x
           }
         case (x, i) => x
+      }
+      val newInsns = phiInsns.map{
+        case x: Insn.UnaryBranch[_]     => x.copy(target = stackToSsa(x.target))
+        case x: Insn.BinaryBranch[_, _] => x.copy(target = stackToSsa(x.target))
+        case x: Insn.Goto               => x.copy(target = stackToSsa(x.target))
+        case x => x
       }
 
       val breaks =
@@ -100,29 +116,38 @@ object Conversion {
       symbols.map(_.size).sum
     }
   }
-  case class State(stack: List[Symbol], locals: Vector[Symbol])
+  case class State(stack: List[Symbol], locals: Vector[Symbol]) extends imm.Attached
 
   def run(insns: Seq[OpCode], attached: Seq[Option[imm.Attached.Frame]], locals: Vector[Symbol], makeSymbol: Int => Symbol)(implicit vm: VM) = {
+    def anyToState(x: Any) = {
+      println(x)
+      x match{
+        case imm.Attached.Frame.Double | imm.Attached.Frame.Long => Seq.fill(2)(makeSymbol(2))
+        case _ => Seq(makeSymbol(1))
+      }
+    }
     val regInsns = mutable.Buffer[Insn]()
     val stackToSsa = mutable.Buffer[Int]()
     val states = mutable.Buffer[State](State(Nil, locals))
-    for (((insn, attached), i) <- insns.zip(attached).zipWithIndex){
+    println(insns.length)
+    for ((insn, i) <- insns.zipWithIndex){
       stackToSsa += regInsns.length
-      println(i + "\t" + insn.toString.padTo(30, ' ') + states.last.stack.toString.padTo(20, ' ') + states.last.locals.toString.padTo(30, ' ') + attached)
-      val preState = attached match{
-        case Some(frame)
-          if states.last.stack.distinct.filter(_.size != null).map(_.size).sum != frame.stack.map(_.size)
-          && states.last.locals.distinct.filter(_.size != null).map(_.size).sum != frame.locals.map(_.size) =>
-          State(
-            frame.stack.map(x => makeSymbol(x.size)).toList.flatMap(x => List.fill(x.size)(x)),
-            frame.locals.map(x => makeSymbol(x.size)).toVector.flatMap(x => List.fill(x.size)(x))
-          )
-        case _ => states.last
-      }
 
+      val preState = states.last
+
+      println(i + "\t" + insn.toString.padTo(30, ' ') + preState.stack.toString.padTo(20, ' ') + preState.locals.toString.padTo(30, ' ') + attached(i))
       val (newState, newInsn) = op(preState, insn, makeSymbol)
 
-      states.append(newState)
+      states.append(insn match {
+        case _: StackOps.ReturnVal | StackOps.AThrow | _: StackOps.Goto
+          if i < insns.length - 1 =>
+          State(
+            attached(i+1).get.stack.flatMap(anyToState).toList,
+            attached(i+1).get.locals.flatMap(anyToState).toVector
+          )
+
+        case _ => newState
+      })
       newInsn.map{ regInsns.append(_) }
     }
 
@@ -136,7 +161,7 @@ object Conversion {
 
 
 
-
+  import StackOps._
   def op(state: State, oc: OpCode, makeSymbol: Int => Symbol)(implicit vm: VM): (State, Seq[Insn]) = oc match {
 
     case InvokeStatic(cls, sig) =>
@@ -216,8 +241,9 @@ object Conversion {
       val (symA, stack1) = state.stack.pop(a)
       state.copy(stack = symbol join stack1) -> List(Insn.UnaryOp(symA.n, symbol.n, oc.cast[UnaryOp[Any, Any]]))
 
-    case Store(index, Prim(size)) =>
-      state.copy(stack = state.stack.tail, locals = state.locals.patch(index, Seq.fill(size)(state.stack.head), size)) -> Nil
+    case Store(index, p) =>
+      val (popped, rest) = state.stack.pop(p)
+      state.copy(stack = rest, locals = state.locals.padTo(index, Symbol(-1, 1)).patch(index, Seq.fill(p.size)(popped), p.size)) -> Nil
 
     case UnaryBranch(index) =>
       val head :: tail = state.stack
@@ -304,7 +330,7 @@ object Conversion {
         val symbol = makeSymbol(1)
         Seq(
           Insn.Ldc(symbol.n, k),
-          Insn.BinaryBranch(state.stack.head.n, symbol.n, t, IfICmpEq(t).cast[opcodes.BinaryBranch])
+          Insn.BinaryBranch(state.stack.head.n, symbol.n, t, IfICmpEq(t).cast[StackOps.BinaryBranch])
         )
       }.:+(Insn.Goto(default))
     case TableSwitch(min, max, default, targets) =>
@@ -312,7 +338,7 @@ object Conversion {
         val symbol = makeSymbol(1)
         Seq(
           Insn.Ldc(symbol.n, k),
-          Insn.BinaryBranch(state.stack.head.n, symbol.n, t, IfICmpEq(t).cast[opcodes.BinaryBranch])
+          Insn.BinaryBranch(state.stack.head.n, symbol.n, t, IfICmpEq(t).cast[StackOps.BinaryBranch])
         )
       }.:+(Insn.Goto(default))
 

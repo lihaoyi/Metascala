@@ -3,7 +3,7 @@ package metascala
 import org.scalatest.FreeSpec
 import collection.mutable
 import Gen._
-import metascala.opcodes.OpCode
+
 import metascala.imm.Method
 
 

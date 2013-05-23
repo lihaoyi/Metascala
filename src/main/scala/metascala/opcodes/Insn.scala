@@ -1,7 +1,7 @@
 package metascala
-package ssa
+package opcodes
 
-import metascala.opcodes.{OpCode}
+import metascala.StackOps.OpCode
 import metascala.imm.Type
 import metascala.imm
 
@@ -16,10 +16,10 @@ sealed trait Insn
 object Insn{
 
 
-  case class BinOp[A, B, R](a: Sym, b: Sym, out: Sym, src: opcodes.BinOp[A, B, R]) extends Insn
-  case class UnaryOp[A, R](a: Sym, out: Sym, src: opcodes.UnaryOp[A, R]) extends Insn
-  case class UnaryBranch[A](a: Sym, target: Int, src: opcodes.UnaryBranch, phi: Seq[(Sym, Sym)] = Nil) extends Insn with Jump
-  case class BinaryBranch[A, B](a: Sym, b: Sym, target: Int, src: opcodes.BinaryBranch, phi: Seq[(Sym, Sym)] = Nil) extends Insn with Jump
+  case class BinOp[A, B, R](a: Sym, b: Sym, out: Sym, src: StackOps.BinOp[A, B, R]) extends Insn
+  case class UnaryOp[A, R](a: Sym, out: Sym, src: StackOps.UnaryOp[A, R]) extends Insn
+  case class UnaryBranch[A](a: Sym, target: Int, src: StackOps.UnaryBranch, phi: Seq[(Sym, Sym)] = Nil) extends Insn with Jump
+  case class BinaryBranch[A, B](a: Sym, b: Sym, target: Int, src: StackOps.BinaryBranch, phi: Seq[(Sym, Sym)] = Nil) extends Insn with Jump
   case class ReturnVal(a: Sym) extends Insn
   case class Goto(target: Int, phi: Seq[(Sym, Sym)] = Nil) extends Insn with Jump
   case class Ldc(target: Int, thing: Any) extends Insn

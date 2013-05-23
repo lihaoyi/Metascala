@@ -4,7 +4,7 @@ package imm
 import org.objectweb.asm.tree._
 import org.objectweb.asm.Label
 import collection.mutable
-import metascala.opcodes.OpCode
+import metascala.StackOps.OpCode
 
 object Method {
   def read(mn: MethodNode) = {
@@ -82,7 +82,7 @@ object Code{
     for(node <- nodes){
       node match{
         case x: LabelNode => labelMapMaker(x.getLabel) = i
-        case y if opcodes.read(Map.empty[Label, Int]).isDefinedAt(y) => i += 1
+        case y if StackOps.read(Map.empty[Label, Int]).isDefinedAt(y) => i += 1
         case _ => ()
       }
     }
@@ -95,7 +95,7 @@ object Code{
     val allAttached = mutable.ArrayBuffer.empty[List[Attached]]
     var attached: List[Attached] = Nil
 
-    val f = opcodes.read.andThen{o =>
+    val f = StackOps.read.andThen{o =>
       instructions += o
       allAttached += attached
 
@@ -143,11 +143,12 @@ object Attached{
       UninitializedThis
     )
   }
-  case class Frame(locals: Seq[Attached.Frame.Type],
-                   stack: Seq[Attached.Frame.Type]) extends Attached
+  case class Frame(stack: List[Attached.Frame.Type],
+                   locals: Vector[Attached.Frame.Type]) extends Attached
 
   case class LineNumber(line: Int,
                         start: Int) extends Attached
+
 
 
 
@@ -155,8 +156,8 @@ object Attached{
     case x: FrameNode       =>
       assert(x.`type` == -1)
       Frame(
-        x.local.safeSeq.map(Frame.Type.read),
-        x.stack.safeSeq.map(Frame.Type.read)
+        x.stack.safeSeq.map(Frame.Type.read).reverse.toList,
+        x.local.safeSeq.map(Frame.Type.read).toVector
       )
     case x: LineNumberNode  => LineNumber(x.line, x.start.getLabel)
   }
