@@ -24,7 +24,7 @@ object Method{
    */
   case class Cls(cls: rt.Cls, methodIndex: Int, method: imm.Method)(implicit vm: VM) extends Method{
     lazy val sig = method.sig
-    lazy val (blockMap, localsSize) = Conversion.convertToSsa(method, cls.name)(vm)
+    lazy val (blockMap, localsSize, lineNumbers) = Conversion.convertToSsa(method, cls.name)(vm)
     lazy val blockIndexes =
       blockMap.toSeq
               .sortBy(_._1)

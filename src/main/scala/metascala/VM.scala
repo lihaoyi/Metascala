@@ -127,8 +127,9 @@ class VM(val natives: Bindings = Bindings.default, val log: ((=>String) => Unit)
   }
 }
 
-case class UncaughtVmException(wrapped: Throwable) extends Exception(wrapped)
-case class InternalVmException(wrapped: Throwable) extends Exception(wrapped)
+class WrappedVmException(wrapped: Throwable) extends Exception(wrapped)
+case class UncaughtVmException(wrapped: Throwable) extends WrappedVmException(wrapped)
+case class InternalVmException(wrapped: Throwable) extends WrappedVmException(wrapped)
 
 /**
  * A generic cache, which provides pre-processing of keys and post processing of values.

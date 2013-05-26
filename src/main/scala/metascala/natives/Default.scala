@@ -30,6 +30,7 @@ trait Default extends Bindings{
         "lang"/(
           "Class"/(
             "desiredAssertionStatus0(Ljava/lang/Class;)Z".value(I)(0),
+            "desiredAssertionStatus()Z".value(I)(0),
             "forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;".func(I, I, I, I){
               (vt, clsloader, boolean, name) =>
                 import vt.vm

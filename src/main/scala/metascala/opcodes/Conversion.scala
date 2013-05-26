@@ -23,11 +23,12 @@ object Conversion {
       t.copy(_1 = t._1.head)
     }
   }
-  def convertToSsa(method: Method, cls: String)(implicit vm: VM): (Map[Int, Seq[Insn]], Int) = {
+  def convertToSsa(method: Method, cls: String)(implicit vm: VM): (Map[Int, Seq[Insn]], Int, Seq[Int]) = {
     println(s"-------------------Converting: $cls/${method.sig}--------------------------")
     val insns = method.code.insns
+    val attached = method.code.attachments
     if (insns.isEmpty) {
-      Map() -> 0
+      (Map(), 0, Seq())
     } else {
       val symbols = mutable.Buffer[Symbol]()
       def makeSymbol(size: Int): Symbol = {
@@ -46,28 +47,34 @@ object Conversion {
               .padTo(method.misc.maxLocals, new Symbol(-1, 1))
               .toVector
 
-      val (regInsns, stackToSsa, ssaToStack, states) = run(insns, method.code.attachments.map(_.collect{case x: imm.Attached.Frame => x}.headOption), locals, x => makeSymbol(x))
+      val (regInsns, stackToSsa, ssaToStack, states) = run(insns, attached, locals, x => makeSymbol(x))
+
 //      println(ssaToStack)
 //      println(states.length)
-      println(ssaToStack)
+//      println(ssaToStack)
+      regInsns.zipWithIndex
+        .map{case (x, i) => "| " + i + "\t" + x}
+        .foreach(println)
+      /**
+       * Fill in Phi nodes
+       */
       val phiInsns = regInsns.zipWithIndex.map{
         case (x: Jump, i) =>
           println("JUMP " + i + " " + x)
-          val postIndex = x match{
-            case Insn.Goto(_, _) => ssaToStack(i+1)
-            case _ => ssaToStack(i+1)+1
+          val postState = x match{
+            case Insn.Goto(_, _) => states(ssaToStack(i+1))
+            case _ => states(ssaToStack(i+1)+1)
           }
-          println("Post Index " + postIndex)
-          val postState = states(postIndex)
           println("Post State " + postState)
 
           val targetState = states(x.target)
           println("Target State " + targetState)
+          assert (postState.stack.length == targetState.stack.length)
           val fullZipped =
             postState.locals.++(postState.stack)
                      .zip(targetState.locals.++(targetState.stack))
 
-//          println("FULL ZIPPED" + fullZipped)
+          println("FULL ZIPPED" + fullZipped)
 
           val culled =
             fullZipped.distinct
@@ -76,7 +83,7 @@ object Conversion {
               .flatMap{case (a, b) =>
               a.slots.zip(b.slots)
             }
-//          println("CULLED " + culled)
+          println("CULLED " + culled)
           x match{
             case x: Insn.UnaryBranch[_]     => x.copy(phi = culled)
             case x: Insn.BinaryBranch[_, _] => x.copy(phi = culled)
@@ -85,6 +92,9 @@ object Conversion {
           }
         case (x, i) => x
       }
+      /**
+       * Correct Jump offsets
+       */
       val newInsns = phiInsns.map{
         case x: Insn.UnaryBranch[_]     => x.copy(target = stackToSsa(x.target))
         case x: Insn.BinaryBranch[_, _] => x.copy(target = stackToSsa(x.target))
@@ -96,31 +106,44 @@ object Conversion {
         newInsns.toSeq
           .zipWithIndex
           .flatMap{
-            case (x: Jump, i) => Seq(x.target, i);
+            case (x: Jump, i) => Seq(x.target, i)
             case _ => Nil
           }
           .distinct
           .sorted
 
+
+      val outLineNumbers = new Array[Int](regInsns.length)
+      attached.map(_.collect{case l: imm.Attached.LineNumber => l.line})
+              .zipWithIndex
+              .collect{case (Seq(a), i) => outLineNumbers(stackToSsa(i)) = a}
+
+      val filledLineNumbers = outLineNumbers.scan(0){case (a, b) => if (b > 0) b else a }.drop(1)
+//      println("WORKING LINE NUMBERS")
+//      println(attached.map(_.collect{case l: imm.Attached.LineNumber => l.line}).toList)
+//      println(filledLineNumbers.toList)
       newInsns.zipWithIndex
               .map{case (x, i) => "| " + i + "\t" + x}
               .foreach(println)
       println(s"-------------------Completed: ${method.sig}--------------------------")
       println(symbols)
       println(symbols.map(_.size))
-      newInsns.zipWithIndex
-        .splitAll(breaks.toList.sorted)
-        .filter(_.length > 0)
-        .map(s => (s(0)._2, s.map(_._1)))
-        .toMap ->
-      symbols.map(_.size).sum
+      (
+        newInsns.zipWithIndex
+          .splitAll(breaks.toList.sorted)
+          .filter(_.length > 0)
+          .map(s => (s(0)._2, s.map(_._1)))
+          .toMap,
+        symbols.map(_.size).sum,
+        filledLineNumbers
+      )
     }
   }
   case class State(stack: List[Symbol], locals: Vector[Symbol]) extends imm.Attached
 
-  def run(insns: Seq[OpCode], attached: Seq[Option[imm.Attached.Frame]], locals: Vector[Symbol], makeSymbol: Int => Symbol)(implicit vm: VM) = {
+  def run(insns: Seq[OpCode], attached: Seq[Seq[imm.Attached]], locals: Vector[Symbol], makeSymbol: Int => Symbol)(implicit vm: VM) = {
     def anyToState(x: Any) = {
-      println(x)
+//      println(x)
       x match{
         case imm.Attached.Frame.Double | imm.Attached.Frame.Long => Seq.fill(2)(makeSymbol(2))
         case _ => Seq(makeSymbol(1))
@@ -129,7 +152,9 @@ object Conversion {
     val regInsns = mutable.Buffer[Insn]()
     val stackToSsa = mutable.Buffer[Int]()
     val states = mutable.Buffer[State](State(Nil, locals))
-    println(insns.length)
+
+
+//    println(insns.length)
     for ((insn, i) <- insns.zipWithIndex){
       stackToSsa += regInsns.length
 
@@ -139,22 +164,25 @@ object Conversion {
       val (newState, newInsn) = op(preState, insn, makeSymbol)
 
       states.append(insn match {
-        case _: StackOps.ReturnVal | StackOps.AThrow | _: StackOps.Goto
+        case _: StackOps.ReturnVal | StackOps.AThrow | _: StackOps.Goto | _: StackOps.LookupSwitch | _: StackOps.TableSwitch
           if i < insns.length - 1 =>
+          val frame = attached(i+1).collect{case x: imm.Attached.Frame => x}.head
           State(
-            attached(i+1).get.stack.flatMap(anyToState).toList,
-            attached(i+1).get.locals.flatMap(anyToState).toVector
+            frame.stack.flatMap(anyToState).toList,
+            frame.locals.flatMap(anyToState).toVector
           )
 
         case _ => newState
       })
       newInsn.map{ regInsns.append(_) }
+
     }
 
     val ssaToStack =
       0.to(stackToSsa.max)
         .map(stackToSsa.drop(1).indexOf(_))
         .:+(stackToSsa.length-1)
+
 
     (regInsns, stackToSsa, ssaToStack, states)
   }

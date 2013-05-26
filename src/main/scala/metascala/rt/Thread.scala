@@ -37,12 +37,13 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   def indent = "\t" * threadStack.filter(_.method.sig.name != "Dummy").length
 
 
-  final def step(): Unit = {
+  final def step(): Unit = try {
     val insnsList = frame.method.insns
     val node = insnsList(frame.pc)
-
-//    println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.locals.toSeq)
-//    println(indent + "::\t" + frame.pc + "\t" + node )
+    if (frame.runningClass.name.contains("metascala/features/controlflow/Switches")){
+      println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.locals.toSeq)
+      println(indent + "::\t" + frame.pc + "\t" + node )
+    }
 //    println(indent + "::\t" + vm.Heap.dump.replace("\n", "\n" + indent + "::\t"))
     frame.pc += 1
     opCount += 1
@@ -196,23 +197,29 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
         val array = rec(dimValues, desc)
         frame.locals(symbol) = array
+      case AThrow(src) =>
+        this.throwException(frame.locals(src).obj)
     }
+  }catch{case e: Throwable if !e.isInstanceOf[WrappedVmException] =>
+    val newEx = new InternalVmException(e)
+    newEx.setStackTrace(trace)
+    throw newEx
   }
 
   def trace = {
 
     threadStack.map( f =>
       new StackTraceElement(
-        f.runningClass.name,
+        f.runningClass.name.toDot,
         f.method.method.name,
         f.runningClass.clsData.misc.sourceFile.getOrElse("<unknown file>"),
-        f.lineNum
+        f.method.lineNumbers(f.pc-1)
       )
     ).toArray
   }
 
   def returnVal(size: Int, index: Int) = {
-    println("RETURNING " + size + " "  + index)
+//    println("RETURNING " + size + " "  + index)
     for (i <- 0 until size){
       frame.returnTo(frame.locals(index + i))
     }
@@ -257,7 +264,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   final def prepInvoke(mRef: rt.Method,
                        args: Seq[Int],
                        returnTo: Int => Unit) = {
-//    println(indent + "PrepInvoke " + mRef + " with " + args)
+    println(indent + "PrepInvoke " + mRef + " with " + args)
 
     mRef match{
       case rt.Method.Native(clsName, imm.Sig(name, desc), op) =>
@@ -300,6 +307,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     prepInvoke(mRef, args, writer(returnedVal, 0))
 
     while(threadStack.length != startHeight) step()
+
 
     Virtualizer.popVirtual(mRef.sig.desc.ret, reader(returnedVal, 0))
   }
