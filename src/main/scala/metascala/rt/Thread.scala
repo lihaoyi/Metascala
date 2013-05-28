@@ -242,7 +242,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   }
 
   def returnVal(size: Int, index: Int) = {
-    println("RETURNING " + size + " "  + index)
+    //println("RETURNING " + size + " "  + index)
     for (i <- 0 until size){
       frame.returnTo(frame.locals(index + i))
     }
@@ -287,7 +287,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   final def prepInvoke(mRef: rt.Method,
                        args: Seq[Int],
                        returnTo: Int => Unit) = {
-    println(indent + "PrepInvoke " + mRef + " with " + args)
+    //println(indent + "PrepInvoke " + mRef + " with " + args)
 
     mRef match{
       case rt.Method.Native(clsName, imm.Sig(name, desc), op) =>

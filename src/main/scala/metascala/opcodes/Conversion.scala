@@ -19,23 +19,71 @@ case class Symbol(n: Int, tpe: imm.Type){
 }
 
 object Conversion {
+  type Blocks = Seq[(State, Seq[Insn], State, Seq[Type])]
 
-  implicit class poppable[T](val l: List[T]){
-    def pop(p: Prim[_]) = {
-      val t = l.splitAt(p.size)
-      t.copy(_1 = t._1.head)
-    }
-  }
+
   def convertToSsa(method: Method, cls: String)(implicit vm: VM): Code = {
     println(s"-------------------Converting: $cls/${method.sig}--------------------------")
+    val blocks = walkBlocks(method)
 
+    for((x, i) <- blocks.zipWithIndex){
+      println()
+      println(i + "\t" + x._1)
+      x._2.foreach(println)
+    }
+    println("============================================")
+
+    val phis = makePhis(blocks)
+    println("PHIS")
+    phis.foreach(println)
+
+
+    val basicBlocks =
+      blocks.map(b => b._2 -> b._4)
+            .zip(phis)
+            .map{ case ((buff, types), phis) => BasicBlock(buff, phis, types) }
+
+    println("----------------------------------------------")
+    for ((block, i) <- basicBlocks.zipWithIndex){
+      println()
+      println(i + "\t" + block.phi.toList)
+      block.insns.foreach(println)
+    }
+    println("----------------------------------------------")
+    Code(basicBlocks)
+  }
+
+  /**
+   * Calculates the phi node movements required at the top of each basic block
+   * to complete the SSA code.
+   */
+  def makePhis(blocks: Blocks): Seq[Seq[Seq[(Sym, Sym)]]] =
+    for{((destState, buffer, _, _), i) <- blocks.zipWithIndex} yield {
+      for{((_, srcBuffer, srcState, _), j) <- blocks.zipWithIndex} yield {
+        if (!srcBuffer.last.targets.contains(i) && j + 1 != i) Nil else {
+          val zipped = (srcState.locals zip destState.locals) ++
+            (srcState.stack.reverse zip destState.stack.reverse)
+          for {
+            (src, dest)<- zipped.distinct
+            if src != dest
+            pairs <- src.slots zip dest.slots
+          } yield pairs
+        }
+      }
+    }
+
+  /**
+   * Takes a method and breaks up the bytecode from a flat list of stack
+   * operations into a list of basic blocks of register operations
+   */
+  def walkBlocks(method: imm.Method)(implicit vm: VM): Blocks = {
     val thisArg = if(method.static) Nil else Seq(imm.Type.
       Cls("java/lang/Object"))
 
 
     val locals: Vector[imm.Type] = method.desc.args
-                                         .++:(thisArg)
-                                         .toVector
+      .++:(thisArg)
+      .toVector
 
     var insns = method.code.insns.toList
     val restAttached = method.code.attachments.toList
@@ -45,6 +93,7 @@ object Conversion {
     val blockMap = new Array[Int](insns.length)
     val blocks = mutable.Buffer.empty[(State, Seq[Insn], State, Seq[Type])]
     var maxSyms = 0
+
     while (insns != Nil){
       var symCount = 0
       val types = mutable.Buffer.empty[Type]
@@ -59,6 +108,7 @@ object Conversion {
           .collectFirst{case f: imm.Attached.Frame => f}
           .map(State(_, makeSymbol _))
           .getOrElse(state)
+
       val (regInsns, newInsns, newAttached, newState) = run(insns, attached, state, makeSymbol _)
       val index = method.code.insns.length - insns.length
       blockMap(index) = blocks.length
@@ -69,7 +119,7 @@ object Conversion {
       state = newState
     }
     println("Block Map " + blockMap.toList)
-    val rewiredBlocks = blocks.map{ case (before, buffer, after, types) =>
+    blocks.map{ case (before, buffer, after, types) =>
       val newBuffer = buffer.map{
         case x: Insn.UnaryBranch  => x.copy(target = blockMap(x.target))
         case x: Insn.BinaryBranch => x.copy(target = blockMap(x.target))
@@ -78,44 +128,6 @@ object Conversion {
       }
       (before, newBuffer, after, types)
     }
-
-    for((x, i) <- rewiredBlocks.zipWithIndex){
-      println()
-      println(i + "\t" + x._1)
-      x._2.foreach(println)
-    }
-    println("============================================")
-
-    val phis: Seq[Seq[Seq[(Sym, Sym)]]] =
-      for{((destState, buffer, _, _), i) <- rewiredBlocks.zipWithIndex} yield {
-        for{((_, srcBuffer, srcState, _), j) <- rewiredBlocks.zipWithIndex} yield {
-          if (!srcBuffer.last.targets.contains(i) && j + 1 != i) Nil else {
-            val zipped = (srcState.locals zip destState.locals) ++
-                     (srcState.stack.reverse zip destState.stack.reverse)
-            for {
-              (src, dest)<- zipped.distinct
-              if src != dest
-              pairs <- src.slots zip dest.slots
-            } yield pairs
-          }
-        }
-      }
-    println("PHIS")
-    phis.foreach(println)
-
-
-    val basicBlocks =
-      rewiredBlocks.map(b => b._2 -> b._4)
-            .zip(phis)
-            .map{ case ((buff, types), phis) => BasicBlock(buff, phis, types) }
-    println("----------------------------------------------")
-    for ((block, i) <- basicBlocks.zipWithIndex){
-      println()
-      println(i + "\t" + block.phi.toList)
-      block.insns.foreach(println)
-    }
-    println("----------------------------------------------")
-    Code(basicBlocks, maxSyms)
   }
   @tailrec
   def run(insns: List[OpCode],
@@ -133,20 +145,13 @@ object Conversion {
         val outInsns = regInsns ++ newInsn
         import StackOps._
         (i, as) match{
-          case (_, a :: _) if a.exists(_.isInstanceOf[Attached.Frame]) =>
-            println("A")
-            (outInsns, is, as, newState)
-          case (_: Jump, _) =>
-            println("B")
-            (outInsns, is, as, newState)
+          case (_, a :: _) if a.exists(_.isInstanceOf[Attached.Frame]) => (outInsns, is, as, newState)
+          case (_: Jump, _) => (outInsns, is, as, newState)
           case _ => run(is, as, newState, makeSymbol, outInsns)
         }
-      case _ =>
-        println("C")
-        (regInsns, insns, attached, state)
+      case _ => (regInsns, insns, attached, state)
     }
   }
-
 
   case class State(stack: List[Symbol], locals: Vector[Symbol]) extends imm.Attached
   object State{
@@ -159,6 +164,19 @@ object Conversion {
   }
 
   import StackOps._
+
+  implicit class poppable[T](val l: List[T]){
+    def pop(p: Prim[_]) = {
+      val t = l.splitAt(p.size)
+      t.copy(_1 = t._1.head)
+    }
+  }
+  /**
+   * Performs a single step in the symbolic interpretation of a method; does
+   * everything pure-functional style, taking the old state in and spitting
+   * the new state out the other end, togther with any register instructions
+   * that are needed.
+   */
   def op(state: State, oc: OpCode, makeSymbol: Type => Symbol)(implicit vm: VM): (State, Seq[Insn]) = oc match {
 
     case InvokeStatic(cls, sig) =>
@@ -347,5 +365,4 @@ object Conversion {
       val symbol = makeSymbol(I)
       state.copy(stack = symbol :: rest) -> Seq(Insn.MultiANewArray(desc, symbol.n, dimsX.map(_.n)))
   }
-
 }
