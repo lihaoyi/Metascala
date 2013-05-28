@@ -10,7 +10,7 @@ class Jump(override val targets: Seq[Int]) extends Insn
 
 
 case class Code(blocks: Seq[BasicBlock] = Nil, localSize: Int = 0)
-case class BasicBlock(insns: Seq[Insn], phi: Seq[Seq[(Sym, Sym)]])
+case class BasicBlock(insns: Seq[Insn], phi: Seq[Seq[(Sym, Sym)]], locals: Seq[imm.Type])
 case class Step(insn: Insn, line: Int)
 
 sealed trait Insn{

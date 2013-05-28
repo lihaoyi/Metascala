@@ -43,11 +43,13 @@ object Conversion {
     var state: State = null
 
     val blockMap = new Array[Int](insns.length)
-    val blocks = mutable.Buffer.empty[(State, Seq[Insn], State)]
+    val blocks = mutable.Buffer.empty[(State, Seq[Insn], State, Seq[Type])]
     var maxSyms = 0
     while (insns != Nil){
       var symCount = 0
+      val types = mutable.Buffer.empty[Type]
       def makeSymbol(t: Type) = {
+        types.append(t)
         val sym = Symbol(symCount, t)
         symCount += t.size
         sym
@@ -60,19 +62,22 @@ object Conversion {
       val (regInsns, newInsns, newAttached, newState) = run(insns, attached, state, makeSymbol _)
       val index = method.code.insns.length - insns.length
       blockMap(index) = blocks.length
-      blocks.append((state, regInsns, newState))
+      blocks.append((state, regInsns, newState, types))
       maxSyms = maxSyms max symCount
       insns = newInsns
       attached = newAttached
       state = newState
     }
     println("Block Map " + blockMap.toList)
-    val rewiredBlocks = blocks.map{ case (before, buffer, after) => (before, buffer.map{
-      case x: Insn.UnaryBranch  => x.copy(target = blockMap(x.target))
-      case x: Insn.BinaryBranch => x.copy(target = blockMap(x.target))
-      case x: Insn.Goto         => x.copy(target = blockMap(x.target))
-      case x => x
-    }, after)}
+    val rewiredBlocks = blocks.map{ case (before, buffer, after, types) =>
+      val newBuffer = buffer.map{
+        case x: Insn.UnaryBranch  => x.copy(target = blockMap(x.target))
+        case x: Insn.BinaryBranch => x.copy(target = blockMap(x.target))
+        case x: Insn.Goto         => x.copy(target = blockMap(x.target))
+        case x => x
+      }
+      (before, newBuffer, after, types)
+    }
 
     for((x, i) <- rewiredBlocks.zipWithIndex){
       println()
@@ -82,8 +87,8 @@ object Conversion {
     println("============================================")
 
     val phis: Seq[Seq[Seq[(Sym, Sym)]]] =
-      for{((destState, buffer, _), i) <- rewiredBlocks.zipWithIndex} yield {
-        for{((_, srcBuffer, srcState), j) <- rewiredBlocks.zipWithIndex} yield {
+      for{((destState, buffer, _, _), i) <- rewiredBlocks.zipWithIndex} yield {
+        for{((_, srcBuffer, srcState, _), j) <- rewiredBlocks.zipWithIndex} yield {
           if (!srcBuffer.last.targets.contains(i) && j + 1 != i) Nil else {
             val zipped = (srcState.locals zip destState.locals) ++
                      (srcState.stack.reverse zip destState.stack.reverse)
@@ -97,12 +102,12 @@ object Conversion {
       }
     println("PHIS")
     phis.foreach(println)
-    //case class Code(blocks: Seq[BasicBlock] = Nil, localSize: Int = 0)
-    //case class BasicBlock(insns: Seq[Insn], phi: Seq[Seq[(Sym, Sym)]])
+
+
     val basicBlocks =
-      rewiredBlocks.map(_._2)
+      rewiredBlocks.map(b => b._2 -> b._4)
             .zip(phis)
-            .map(BasicBlock.tupled)
+            .map{ case ((buff, types), phis) => BasicBlock(buff, phis, types) }
     println("----------------------------------------------")
     for ((block, i) <- basicBlocks.zipWithIndex){
       println()

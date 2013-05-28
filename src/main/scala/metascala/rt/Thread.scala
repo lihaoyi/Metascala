@@ -32,10 +32,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
 
   def doPhi(oldBlock: Int, newBlock: Int) = {
-    println("doPhi")
-    println(oldBlock + "\t" + newBlock)
+//    println("doPhi")
+//    println(oldBlock + "\t" + newBlock)
     val (srcs, dests) = frame.method.code.blocks(newBlock).phi(oldBlock).unzip
-    println(srcs, dests)
+//    println(srcs, dests)
     val temp = srcs.map(frame.locals)
     for ((i, dest) <- temp.zip(dests)){
       frame.locals(dest) = i
@@ -47,17 +47,19 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     val code = frame.method.code
     val node = code.blocks(frame.pc._1).insns(frame.pc._2)
 
+    val r = reader(frame.locals, 0)
+    val localSnapshot =
+      code.blocks(frame.pc._1)
+          .locals
+          .map(_.prim)
+          .flatMap(x => Seq(x.read(r).toString).padTo(x.size, "~"))
+          .toList
+          .toString
 
-    println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.locals.toList)
-    println(indent + "::\t" + frame.pc + "\t" + node )
-    frame.pc =
-      if (frame.pc._2 + 1 < code.blocks(frame.pc._1).insns.length){
-        (frame.pc._1, frame.pc._2 + 1)
-      }else if(frame.pc._1 + 1 < code.blocks.length){
-        doPhi(frame.pc._1, frame.pc._1+1)
-        (frame.pc._1+1, 0)
-      }else frame.pc
-
+//    println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + localSnapshot)
+//    println(indent + "::\t" + frame.pc + "\t" + node )
+    val stackH = threadStack.length
+    val prevPc = frame.pc
     //    println(indent + "::\t" + vm.Heap.dump.replace("\n", "\n" + indent + "::\t"))
 
 
@@ -210,7 +212,15 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         this.throwException(frame.locals(src).obj)
     }
 
-
+    if (threadStack.length == stackH && frame.pc == prevPc){
+      frame.pc =
+        if (frame.pc._2 + 1 < code.blocks(frame.pc._1).insns.length){
+          (frame.pc._1, frame.pc._2 + 1)
+        }else if(frame.pc._1 + 1 < code.blocks.length){
+          doPhi(frame.pc._1, frame.pc._1+1)
+          (frame.pc._1+1, 0)
+        }else frame.pc
+    }
     opCount += 1
 
   }catch{case e: Throwable if !e.isInstanceOf[WrappedVmException] =>
