@@ -1,12 +1,13 @@
 package metascala
 
 import scala.collection.mutable
-
+import imm.Type.Prim
+import imm.Type.Prim._
 object Virtualizer {
   def popVirtual(tpe: imm.Type, src: () => Val, refs: mutable.Map[Int, Any] = mutable.Map.empty)(implicit vm: VM): Any = {
     tpe match {
-      case imm.Type.Prim('V') => ()
-      case imm.Type.Prim(c) => Prim.all(c).read(src)
+      case V => ()
+      case p: imm.Type.Prim[_] => p.read(src)
       case _ => //reference type
         val address = src()
         if(address == 0) null
@@ -35,7 +36,7 @@ object Virtualizer {
             for(i <- 0 until address.arr.length){
 
               val cooked = tpe match{
-                case imm.Type.Prim(c) => Prim.all(c).read(reader(vm.Heap.memory, address + 2 + i * tpe.size))
+                case p: imm.Type.Prim[_] => p.read(reader(vm.Heap.memory, address + 2 + i * tpe.size))
                 case x => popVirtual(tpe, reader(vm.Heap.memory, address + 2 + i * tpe.size))
               }
               java.lang.reflect.Array.set(newArr, i, cooked)

@@ -7,6 +7,8 @@ import vrt.Arr
 import collection.mutable
 import metascala.vrt
 import metascala.vrt
+import imm.Type.Prim._
+import metascala.imm.Type.Prim
 
 trait Default extends Bindings{
 
@@ -208,6 +210,7 @@ trait Default extends Bindings{
             "floatToRawIntBits(F)I".func(I, I){(vt, l) => l}
           ),
           "Object"/(
+            "<clinit>()V".value(V)(()),
             "clone()Ljava/lang/Object;".func(I, I){(vt, l) => l},
             "getClass()Ljava/lang/Class;".func(I, I){ (vt, value) =>
 

@@ -36,7 +36,7 @@ object Type{
     def parent(implicit vm: VM) = Some(imm.Type.Cls("java/lang/Object"))
     def realCls = innerType.realCls
     def methodType = Type.Cls("java/lang/Object")
-    def prim = I
+    def prim = Prim.I
   }
   object Cls{
     def read(s: String) = Cls(s)
@@ -54,27 +54,104 @@ object Type{
     def parent(implicit vm: VM) = this.cls.clsData.superType
     def realCls = classOf[Object]
     def methodType: Type.Cls = this
-    def prim = I
+    def prim = Prim.I
     override val hashCode = name.hashCode
   }
 
-  object Prim{
-    def read(s: String) = Prim(s(0))
+  abstract class Prim[T: ClassTag](val size: Int) extends imm.Type{
+    def read(x: () => Val): T
+    def write(x: T, out: Val => Unit): Unit
+    def boxedClass: Class[_]
+    val primClass: Class[_] = implicitly[ClassTag[T]].runtimeClass
+    def realCls = Class.forName(boxedClass.getName.replace('/', '.'))
+    def name = primClass.getName
+    def prim = this
+    def productPrefix: String
+    def unparse = productPrefix
+
   }
+  object Prim extends {
+    def read(s: String) = all(s(0))
+    val all: Map[Char, Prim[_]] = Map(
+      'V' -> (V: Prim[_]),
+      'Z' -> (Z: Prim[_]),
+      'B' -> (B: Prim[_]),
+      'C' -> (C: Prim[_]),
+      'S' -> (S: Prim[_]),
+      'I' -> (I: Prim[_]),
+      'F' -> (F: Prim[_]),
+      'J' -> (J: Prim[_]),
+      'D' -> (D: Prim[_])
+    )
+    def unapply(p: Prim[_]) = Some(p.size)
 
-  /**
-   * Primitive Types
-   */
-  case class Prim(char: Char) extends Type{
-    def size = metascala.Prim.all(char).size
-    def info = metascala.Prim.all(char)
-    def unparse = ""+char
-    def name = info.primClass.getName
-
-    def realCls = Class.forName(info.boxedClass.getName.replace('/', '.'))
-
-    def parent(implicit vm: VM) = ???
-    def prim = metascala.Prim.all(char)
+    case object V extends Prim[Unit](0){
+      def apply(x: Val) = ???
+      def read(x: () => Val) = ()
+      def write(x: Unit, out: Val => Unit) = ()
+      def boxedClass = classOf[java.lang.Void]
+    }
+    type Z = Boolean
+    case object Z extends Prim[Boolean](1){
+      def apply(x: Val) = x != 0
+      def read(x: () => Val) = this(x())
+      def write(x: Boolean, out: Val => Unit) = out(if (x) 1 else 0)
+      def boxedClass = classOf[java.lang.Boolean]
+    }
+    type B = Byte
+    case object B extends Prim[Byte](1){
+      def apply(x: Val) = x.toByte
+      def read(x: () => Val) = this(x())
+      def write(x: Byte, out: Val => Unit) = out(x)
+      def boxedClass = classOf[java.lang.Byte]
+    }
+    type C = Char
+    case object C extends Prim[Char](1){
+      def apply(x: Val) = x.toChar
+      def read(x: () => Val) = this(x())
+      def write(x: Char, out: Val => Unit) = out(x)
+      def boxedClass = classOf[java.lang.Character]
+    }
+    type S = Short
+    case object S extends Prim[Short](1){
+      def apply(x: Val) = x.toShort
+      def read(x: () => Val) = this(x())
+      def write(x: Short, out: Val => Unit) = out(x)
+      def boxedClass = classOf[java.lang.Short]
+    }
+    type I = Int
+    case object I extends Prim[Int](1){
+      def apply(x: Val) = x
+      def read(x: () => Val) = this(x())
+      def write(x: Int, out: Val => Unit) = out(x)
+      def boxedClass = classOf[java.lang.Integer]
+    }
+    type F = Float
+    case object F extends Prim[Float](1){
+      def apply(x: Val) = java.lang.Float.intBitsToFloat(x)
+      def read(x: () => Val) = this(x())
+      def write(x: Float, out: Val => Unit) = out(java.lang.Float.floatToRawIntBits(x))
+      def boxedClass = classOf[java.lang.Float]
+    }
+    type J = Long
+    case object J extends Prim[Long](2){
+      def apply(v1: Val, v2: Val) = v1.toLong << 32 | v2 & 0xFFFFFFFFL
+      def read(x: () => Val) = {
+        this(x(), x())
+      }
+      def write(x: Long, out: Val => Unit) = {
+        out((x >> 32).toInt)
+        out(x.toInt)
+      }
+      def boxedClass = classOf[java.lang.Long]
+    }
+    type D = Double
+    case object D extends Prim[Double](2){
+      def apply(v1: Val, v2: Val) = java.lang.Double.longBitsToDouble(J(v1, v2))
+      def read(x: () => Val) = java.lang.Double.longBitsToDouble(J.read(x))
+      def write(x: Double, out: Val => Unit) = J.write(java.lang.Double.doubleToRawLongBits(x), out)
+      def boxedClass = classOf[java.lang.Double]
+    }
   }
 
 
@@ -96,7 +173,7 @@ trait Type{
 
   def size: Int
   def name: String
-  def prim: Prim[_]
+  def prim: Type.Prim[_]
 
 
 }
@@ -134,7 +211,7 @@ case class Desc(args: Seq[Type], ret: Type){
   def unparse = "(" + args.map(Desc.unparse).foldLeft("")(_+_) + ")" + Desc.unparse(ret)
   def argSize = {
     val baseArgSize = args.length
-    val longArgSize = args.count(x => x == Type.Prim('J') || x == Type.Prim('D'))
+    val longArgSize = args.count(x => x == Type.Prim.J || x == Type.Prim.D)
 
     baseArgSize + longArgSize
   }

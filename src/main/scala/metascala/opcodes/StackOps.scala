@@ -5,7 +5,10 @@ import rt.Thread
 import org.objectweb.asm.Label
 import org.objectweb.asm.tree._
 import collection.convert.wrapAsScala._
-import metascala.imm.Type
+
+import imm.Type
+import imm.Type.Prim
+import imm.Type.Prim._
 
 /**
  * `StackOps` contains the stack manipulating behavior of each individual
@@ -25,8 +28,17 @@ object StackOps {
   abstract class OpCode
 
   object OpCode
-
-
+  object UnusedOpCode extends OpCode{
+    def op(vt: Thread)  = ???
+  }
+  implicit def intToByte(n: Int) = n.toByte
+  trait Jump
+  case class F1[A, B](a: A => B, override val toString: String) extends Function1[A, B]{
+    def apply(x: A) = a(x)
+  }
+  case class F2[A, B, C](a: (A, B) => C, override val toString: String) extends Function2[A, B, C]{
+    def apply(x: A, y: B) = a(x, y)
+  }
 
   private[this] implicit class nullSafeList[T](val list: java.util.List[T]) extends AnyVal{
     def safeList: Seq[T] = {
@@ -55,7 +67,7 @@ object StackOps {
     def op(vt: Thread) = ()
   }
 
-  case class Const[A](b: Prim[A])(val value: A)(name: String) extends OpCode{
+  case class Const[A](b: Prim[A], value: A) extends OpCode{
     def words = {
       var out = List[Int]()
       b.write(value, out ::= _)
@@ -63,29 +75,29 @@ object StackOps {
     }
   }
 
-  val AConstNull = Const(I)(0)("AConstNull")
-  val IConstM1 = Const(I)(-1)("IConstM1")
+  val AConstNull = Const[I](I, 0)
+  val IConstM1 = Const[I](I, -1)
 
-  val IConst0 = Const(I)(0)("IConst0")
-  val IConst1 = Const(I)(1)("IConst1")
-  val IConst2 = Const(I)(2)("IConst2")
-  val IConst3 = Const(I)(3)("IConst3")
-  val IConst4 = Const(I)(4)("IConst4")
-  val IConst5 = Const(I)(5)("IConst5")
+  val IConst0 = Const[I](I, 0)
+  val IConst1 = Const[I](I, 1)
+  val IConst2 = Const[I](I, 2)
+  val IConst3 = Const[I](I, 3)
+  val IConst4 = Const[I](I, 4)
+  val IConst5 = Const[I](I, 5)
 
-  val LConst0 = Const(J)(0)("LConst0")
-  val LConst1 = Const(J)(1)("LConst1")
+  val LConst0 = Const[J](J, 0)
+  val LConst1 = Const[J](J, 1)
 
-  val FConst0 = Const(F)(0)("FConst0")
-  val FConst1 = Const(F)(1)("FConst1")
-  val FConst2 = Const(F)(2)("FConst2")
+  val FConst0 = Const[F](F, 0)
+  val FConst1 = Const[F](F, 1)
+  val FConst2 = Const[F](F, 2)
 
-  val DConst0 = Const(D)(0)("DConst0")
-  val DConst1 = Const(D)(1)("DConst1")
+  val DConst0 = Const[D](D, 0)
+  val DConst1 = Const[D](D, 1)
 
-  case class Push(value: Int)(override val toString: String) extends OpCode
-  val BiPush = Push(_: Int)("BiPush")
-  val SiPush = Push(_: Int)("SiPush")
+  case class Push(value: Int) extends OpCode
+  val BiPush = Push(_: Int)
+  val SiPush = Push(_: Int)
 
 
   case class Ldc(const: Any) extends OpCode
@@ -97,13 +109,13 @@ object StackOps {
   //===============================================================
 
 
-  case class Load[T](index: Int, p: Prim[T])(name: String) extends OpCode
+  case class Load[T](index: Int, p: Prim[T]) extends OpCode
 
-  val ILoad = Load(_: Int, I)("ILoad")
-  val LLoad = Load(_: Int, J)("LLoad")
-  val FLoad = Load(_: Int, F)("FLoad")
-  val DLoad = Load(_: Int, D)("DLoad")
-  val ALoad = Load(_: Int, I)("ALoad")
+  val ILoad = Load(_: Int, I)
+  val LLoad = Load(_: Int, J)
+  val FLoad = Load(_: Int, F)
+  val DLoad = Load(_: Int, D)
+  val ALoad = Load(_: Int, I)
 
 
 
@@ -135,23 +147,23 @@ object StackOps {
   val ALoad3 = UnusedOpCode
   //===============================================================
 
-  case class LoadArray[T](p: Prim[T])(override val toString: String) extends OpCode
-  val IALoad = LoadArray(I)("IALoad")
-  val LALoad = LoadArray(J)("LALoad")
-  val FALoad = LoadArray(F)("FALoad")
-  val DALoad = LoadArray(D)("DALoad")
-  val AALoad = LoadArray(I)("AALoad")
-  val BALoad = LoadArray(B)("BALoad")
-  val CALoad = LoadArray(C)("CALoad")
-  val SALoad = LoadArray(S)("SALoad")
+  case class LoadArray[T](p: Prim[T]) extends OpCode
+  val IALoad = LoadArray(I)
+  val LALoad = LoadArray(J)
+  val FALoad = LoadArray(F)
+  val DALoad = LoadArray(D)
+  val AALoad = LoadArray(I)
+  val BALoad = LoadArray(B)
+  val CALoad = LoadArray(C)
+  val SALoad = LoadArray(S)
 
-  case class Store[T](index: Int, p: Prim[T])(name: String) extends OpCode
+  case class Store[T](index: Int, p: Prim[T]) extends OpCode
 
-  val IStore = Store(_: Int, I)("IStore")
-  val LStore = Store(_: Int, J)("LStore")
-  val FStore = Store(_: Int, F)("FStore")
-  val DStore = Store(_: Int, D)("DStore")
-  val AStore = Store(_: Int, I)("AStore")
+  val IStore = Store[I](_: Int, I)
+  val LStore = Store[J](_: Int, J)
+  val FStore = Store[F](_: Int, F)
+  val DStore = Store[D](_: Int, D)
+  val AStore = Store[I](_: Int, I)
 
   // Not used, because ASM converts these to raw XStore(index: Int)s
   //===============================================================
@@ -182,15 +194,15 @@ object StackOps {
   //===============================================================
 
 
-  case class StoreArray[T](p: Prim[T])(override val toString: String) extends OpCode
-  val IAStore = StoreArray(I)("IAStore")
-  val LAStore = StoreArray(J)("LAStore")
-  val FAStore = StoreArray(F)("FAStore")
-  val DAStore = StoreArray(D)("DAStore")
-  val AAStore = StoreArray(I)("AAStore")
-  val BAStore = StoreArray(B)("BAStore")
-  val CAStore = StoreArray(C)("CAStore")
-  val SAStore = StoreArray(S)("SAStore")
+  case class StoreArray[T](p: Prim[T]) extends OpCode
+  val IAStore = StoreArray(I)
+  val LAStore = StoreArray(J)
+  val FAStore = StoreArray(F)
+  val DAStore = StoreArray(D)
+  val AAStore = StoreArray(I)
+  val BAStore = StoreArray(B)
+  val CAStore = StoreArray(C)
+  val SAStore = StoreArray(S)
 
   case class ManipStack(transform: List[Any] => List[Any])(override val toString: String) extends OpCode
   val Pop = ManipStack{ case _ :: s => s }("Pop")
@@ -204,115 +216,108 @@ object StackOps {
   val Swap = ManipStack{ case x :: y :: s=> y :: x :: s }("Swap")
 
 
-  val IAdd = BinOp(I, I, I)(_ + _)("IAdd")
-  val LAdd = BinOp(J, J, J)(_ + _)("LAdd")
-  val FAdd = BinOp(F, F, F)(_ + _)("FAdd")
-  val DAdd = BinOp(D, D, D)(_ + _)("DAdd")
+  val IAdd = BinOp[I, I, I](I, I, I, F2(_ + _, "IAdd"))
+  val LAdd = BinOp[J, J, J](J, J, J, F2(_ + _, "LAdd"))
+  val FAdd = BinOp[F, F, F](F, F, F, F2(_ + _, "FAdd"))
+  val DAdd = BinOp[D, D, D](D, D, D, F2(_ + _, "DAdd"))
 
-  val ISub = BinOp(I, I, I)(_ - _)("ISub")
-  val LSub = BinOp(J, J, J)(_ - _)("LSub")
-  val FSub = BinOp(F, F, F)(_ - _)("FSub")
-  val DSub = BinOp(D, D, D)(_ - _)("DSub")
+  val ISub = BinOp[I, I, I](I, I, I, F2(_ - _, "ISub"))
+  val LSub = BinOp[J, J, J](J, J, J, F2(_ - _, "LSub"))
+  val FSub = BinOp[F, F, F](F, F, F, F2(_ - _, "FSub"))
+  val DSub = BinOp[D, D, D](D, D, D, F2(_ - _, "DSub"))
 
-  val IMul = BinOp(I, I, I)(_ * _)("IMul")
-  val LMul = BinOp(J, J, J)(_ * _)("LMul")
-  val FMul = BinOp(F, F, F)(_ * _)("FMul")
-  val DMul = BinOp(D, D, D)(_ * _)("DMul")
+  val IMul = BinOp[I, I, I](I, I, I, F2(_ * _, "IMul"))
+  val LMul = BinOp[J, J, J](J, J, J, F2(_ * _, "LMul"))
+  val FMul = BinOp[F, F, F](F, F, F, F2(_ * _, "FMul"))
+  val DMul = BinOp[D, D, D](D, D, D, F2(_ * _, "DMul"))
 
-  val IDiv = BinOp(I, I, I)(_ / _)("IDiv")
-  val LDiv = BinOp(J, J, J)(_ / _)("LDiv")
-  val FDiv = BinOp(F, F, F)(_ / _)("FDiv")
-  val DDiv = BinOp(D, D, D)(_ / _)("DDiv")
+  val IDiv = BinOp[I, I, I](I, I, I, F2(_ / _, "IDiv"))
+  val LDiv = BinOp[J, J, J](J, J, J, F2(_ / _, "LDiv"))
+  val FDiv = BinOp[F, F, F](F, F, F, F2(_ / _, "FDiv"))
+  val DDiv = BinOp[D, D, D](D, D, D, F2(_ / _, "DDiv"))
 
-  val IRem = BinOp(I, I, I)(_ % _)("IRem")
-  val LRem = BinOp(J, J, J)(_ % _)("LRem")
-  val FRem = BinOp(F, F, F)(_ % _)("FRem")
-  val DRem = BinOp(D, D, D)(_ % _)("DRem")
+  val IRem = BinOp[I, I, I](I, I, I, F2(_ % _, "IRem"))
+  val LRem = BinOp[J, J, J](J, J, J, F2(_ % _, "LRem"))
+  val FRem = BinOp[F, F, F](F, F, F, F2(_ % _, "FRem"))
+  val DRem = BinOp[D, D, D](D, D, D, F2(_ % _, "DRem"))
 
-  val INeg = UnaryOp(I, I)(-_)("INeg")
-  val LNeg = UnaryOp(J, J)(-_)("LNeg")
-  val FNeg = UnaryOp(F, F)(-_)("FNeg")
-  val DNeg = UnaryOp(D, D)(-_)("DNeg")
+  val INeg = UnaryOp[I, I](I, I, F1(-_, "INeg"))
+  val LNeg = UnaryOp[J, J](J, J, F1(-_, "LNeg"))
+  val FNeg = UnaryOp[F, F](F, F, F1(-_, "FNeg"))
+  val DNeg = UnaryOp[D, D](D, D, F1(-_, "DNeg"))
 
-  val IShl = BinOp(I, I, I)(_ << _)("IShl")
-  val LShl = BinOp(I, J, J)(_ << _)("LShl")
-  val IShr = BinOp(I, I, I)(_ >> _)("IShr")
-  val LShr = BinOp(I, J, J)(_ >> _)("LShr")
+  val IShl = BinOp[I, I, I](I, I, I, F2(_ << _, "IShl"))
+  val LShl = BinOp[I, J, J](I, J, J, F2(_ << _, "LShl"))
+  val IShr = BinOp[I, I, I](I, I, I, F2(_ >> _, "IShr"))
+  val LShr = BinOp[I, J, J](I, J, J, F2(_ >> _, "LShr"))
 
-  val IUShr = BinOp(I, I, I)(_ >>> _)("IUShr")
-  val LUShr = BinOp(I, J, J)(_ >>> _)("LUShr")
+  val IUShr = BinOp[I, I, I](I, I, I, F2(_ >>> _, "IUShr"))
+  val LUShr = BinOp[I, J, J](I, J, J, F2(_ >>> _, "LUShr"))
 
-  val IAnd = BinOp(I, I, I)(_ & _)("IAnd")
-  val LAnd = BinOp(J, J, J)(_ & _)("LAnd")
+  val IAnd = BinOp[I, I, I](I, I, I, F2(_ & _, "IAnd"))
+  val LAnd = BinOp[J, J, J](J, J, J, F2(_ & _, "LAnd"))
 
-  val IOr = BinOp(I, I, I)(_ | _)("IOr")
-  val LOr = BinOp(J, J, J)(_ | _)("LOr")
+  val IOr = BinOp[I, I, I](I, I, I, F2(_ | _, "IOr"))
+  val LOr = BinOp[J, J, J](J, J, J, F2(_ | _, "LOr"))
 
-  val IXOr = BinOp(I, I, I)(_ ^ _)("IXOr")
-  val LXOr = BinOp(J, J, J)(_ ^ _)("LXOr")
+  val IXOr = BinOp[I, I, I](I, I, I, F2(_ ^ _, "IXOr"))
+  val LXOr = BinOp[J, J, J](J, J, J, F2(_ ^ _, "LXOr"))
 
   case class IInc(varId: Int, amount: Int) extends OpCode
 
-  case class UnaryOp[A, R](a: Prim[A], out: Prim[R])
-                          (val func: A => R)(override val toString: String) extends OpCode
+  case class UnaryOp[A, R](a: Prim[A], out: Prim[R], func: A => R) extends OpCode
 
-  case class BinOp[A, B, R](a: Prim[A], b: Prim[B], out: Prim[R])
-                           (val func: (B, A) => R)
-                           (override val toString: String)extends OpCode
+  case class BinOp[A, B, R](a: Prim[A], b: Prim[B], out: Prim[R], func: (B, A) => R) extends OpCode
 
-  val I2L = UnaryOp(I, J)(_.toLong)  ("I2L")
-  val I2F = UnaryOp(I, F)(_.toFloat) ("I2F")
-  val I2D = UnaryOp(I, D)(_.toDouble)("I2D")
+  val I2L = UnaryOp[I, J](I, J, F1(_.toLong,  "I2L"))
+  val I2F = UnaryOp[I, F](I, F, F1(_.toFloat, "I2F"))
+  val I2D = UnaryOp[I, D](I, D, F1(_.toDouble,"I2D"))
 
-  val L2I = UnaryOp(J, I)(_.toInt)   ("L2I")
-  val L2F = UnaryOp(J, F)(_.toFloat) ("L2F")
-  val L2D = UnaryOp(J, D)(_.toDouble)("L2D")
+  val L2I = UnaryOp[J, I](J, I, F1(_.toInt,   "L2I"))
+  val L2F = UnaryOp[J, F](J, F, F1(_.toFloat, "L2F"))
+  val L2D = UnaryOp[J, D](J, D, F1(_.toDouble,"L2D"))
 
-  val F2I = UnaryOp(F, I)(_.toInt)   ("F2I")
-  val F2L = UnaryOp(F, J)(_.toLong)  ("F2L")
-  val F2D = UnaryOp(F, D)(_.toDouble)("F2D")
+  val F2I = UnaryOp[F, I](F, I, F1(_.toInt,   "F2I"))
+  val F2L = UnaryOp[F, J](F, J, F1(_.toLong,  "F2L"))
+  val F2D = UnaryOp[F, D](F, D, F1(_.toDouble,"F2D"))
 
-  val D2I = UnaryOp(D, I)(_.toInt)   ("D2I")
-  val D2L = UnaryOp(D, F)(_.toLong)  ("D2L")
-  val D2F = UnaryOp(D, F)(_.toFloat) ("D2F")
+  val D2I = UnaryOp[D, I](D, I, F1(_.toInt,   "D2I"))
+  val D2L = UnaryOp[D, F](D, F, F1(_.toLong,  "D2L"))
+  val D2F = UnaryOp[D, F](D, F, F1(_.toFloat, "D2F"))
 
-  val I2B = UnaryOp(I, B)(_.toByte)  ("I2B")
-  val I2C = UnaryOp(I, C)(_.toChar)  ("I2C")
-  val I2S = UnaryOp(I, S)(_.toShort) ("I2S")
+  val I2B = UnaryOp[I, B](I, B, F1(_.toByte,  "I2B"))
+  val I2C = UnaryOp[I, C](I, C, F1(_.toChar,  "I2C"))
+  val I2S = UnaryOp[I, S](I, S, F1(_.toShort, "I2S"))
 
-  val LCmp = BinOp(J, J, I)(_ compare _)("LCmp")
-  val FCmpl = BinOp(F, F, I)(_ compare _)("FCmpl")
-  val FCmpg = BinOp(F, F, I)(_ compare _)("FCmpg")
-  val DCmpl = BinOp(D, D, I)(_ compare _)("DCmpl")
-  val DCmpg = BinOp(D, D, I)(_ compare _)("DCmpG")
+  val LCmp =  BinOp[J, J, I](J, J, I, F2(_ compare _, "LCmp"))
+  val FCmpl = BinOp[F, F, I](F, F, I, F2(_ compare _, "FCmpl"))
+  val FCmpg = BinOp[F, F, I](F, F, I, F2(_ compare _, "FCmpg"))
+  val DCmpl = BinOp[D, D, I](D, D, I, F2(_ compare _, "DCmpl"))
+  val DCmpg = BinOp[D, D, I](D, D, I, F2(_ compare _, "DCmpG"))
 
 
-  case class UnaryBranch(label: Int)
-                        (val pred: Int => Boolean)
-                        (name: String)extends OpCode
+  case class UnaryBranch(label: Int, pred: Int => Boolean) extends OpCode with Jump
 
-  val IfEq = UnaryBranch(_: Int)(_ == 0)("IfEq")
-  val IfNe = UnaryBranch(_: Int)(_ != 0)("IfNe")
-  val IfLt = UnaryBranch(_: Int)(_ < 0) ("IfLt")
-  val IfGe = UnaryBranch(_: Int)(_ >= 0)("IfGe")
-  val IfGt = UnaryBranch(_: Int)(_ > 0) ("IfGt")
-  val IfLe = UnaryBranch(_: Int)(_ <= 0)("IfLe")
+  val IfEq = UnaryBranch(_: Int, F1(_ == 0, "IfEq"))
+  val IfNe = UnaryBranch(_: Int, F1(_ != 0, "IfNe"))
+  val IfLt = UnaryBranch(_: Int, F1(_ < 0,  "IfLt"))
+  val IfGe = UnaryBranch(_: Int, F1(_ >= 0, "IfGe"))
+  val IfGt = UnaryBranch(_: Int, F1(_ > 0,  "IfGt"))
+  val IfLe = UnaryBranch(_: Int, F1(_ <= 0, "IfLe"))
 
-  case class BinaryBranch(label: Int)
-                         (val pred: (Int, Int) => Boolean)
-                         (name: String) extends OpCode
+  case class BinaryBranch(label: Int, pred: (Int, Int) => Boolean) extends OpCode with Jump
 
-  val IfICmpEq = BinaryBranch(_: Int)(_ == _)("IfICmpEq")
-  val IfICmpNe = BinaryBranch(_: Int)(_ != _)("IfICmpNe")
-  val IfICmpLt = BinaryBranch(_: Int)(_ < _) ("IfICmpLt")
-  val IfICmpGe = BinaryBranch(_: Int)(_ >= _)("IfICmpGe")
-  val IfICmpGt = BinaryBranch(_: Int)(_ > _) ("IfICmpGt")
-  val IfICmpLe = BinaryBranch(_: Int)(_ <= _)("IfICmpLe")
+  val IfICmpEq = BinaryBranch(_: Int, F2(_ == _, "IfICmpEq"))
+  val IfICmpNe = BinaryBranch(_: Int, F2(_ != _, "IfICmpNe"))
+  val IfICmpLt = BinaryBranch(_: Int, F2(_ < _,  "IfICmpLt"))
+  val IfICmpGe = BinaryBranch(_: Int, F2(_ >= _, "IfICmpGe"))
+  val IfICmpGt = BinaryBranch(_: Int, F2(_ > _,  "IfICmpGt"))
+  val IfICmpLe = BinaryBranch(_: Int, F2(_ <= _, "IfICmpLe"))
 
-  val IfACmpEq= BinaryBranch(_: Int)(_ == _) ("IfACmpEq")
-  val IfACmpNe= BinaryBranch(_: Int)(_ != _)("IfACmpNe")
+  val IfACmpEq= BinaryBranch(_: Int, F2(_ == _, "IfACmpEq"))
+  val IfACmpNe= BinaryBranch(_: Int, F2(_ != _, "IfACmpNe"))
 
-  case class Goto(label: Int) extends OpCode
+  case class Goto(label: Int) extends OpCode with Jump
 
   // These guys are meant to be deprecated in java 6 and 7
   //===============================================================
@@ -320,10 +325,10 @@ object StackOps {
   val Jsr = UnusedOpCode
   //===============================================================
 
-  case class TableSwitch(min: Int, max: Int, defaultTarget: Int, targets: Seq[Int]) extends OpCode
+  case class TableSwitch(min: Int, max: Int, defaultTarget: Int, targets: Seq[Int]) extends OpCode with Jump
 
-  case class LookupSwitch(defaultTarget: Int, keys: Seq[Int], targets: Seq[Int]) extends OpCode
-  case class ReturnVal(n: Int) extends OpCode
+  case class LookupSwitch(defaultTarget: Int, keys: Seq[Int], targets: Seq[Int]) extends OpCode with Jump
+  case class ReturnVal(n: Int) extends OpCode with Jump
 
   val IReturn = ReturnVal(1)
   val LReturn = ReturnVal(2)
@@ -366,8 +371,8 @@ object StackOps {
   //===============================================================
 
   case class MultiANewArray(desc: Type.Arr, dims: Int) extends OpCode
-  val IfNull = StackOps.UnaryBranch(_: Int)(_ == 0)("IfNull")
-  val IfNonNull = StackOps.UnaryBranch(_: Int)(_ != 0)("IfNull")
+  val IfNull    = StackOps.UnaryBranch(_: Int, F1(_ == 0, "IfNull"))
+  val IfNonNull = StackOps.UnaryBranch(_: Int, F1(_ != 0, "IfNonNull"))
 
   // Not used, because ASM converts these to normal Goto()s and Jsr()s
   //===============================================================
@@ -618,9 +623,9 @@ object StackOps {
     GotoW,
     JsrW
   )
-  object UnusedOpCode extends OpCode{
-    def op(vt: Thread)  = ???
-  }
-  implicit def intToByte(n: Int) = n.toByte
+
+
+
+
 
 }

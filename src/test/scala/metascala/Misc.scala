@@ -6,7 +6,8 @@ import Gen._
 
 import metascala.imm.Method
 
-
+import imm.Type.Prim
+import imm.Type.Prim._
 
 class Misc extends FreeSpec with Util{
   val arr = new Array[Int](2)

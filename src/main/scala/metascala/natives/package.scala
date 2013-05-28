@@ -1,5 +1,5 @@
 package metascala
-
+import imm.Type.Prim
 /**
  * `natives` contains the bindings between method calls internal to the Metascala
  * VM and external functionality of the host JVM. It defines bindings in a

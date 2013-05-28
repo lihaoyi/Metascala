@@ -1,11 +1,10 @@
 package metascala
 package imm
-
+import Type.Prim._
 import org.objectweb.asm.tree._
 import org.objectweb.asm.Label
 import collection.mutable
 import metascala.StackOps.OpCode
-
 object Method {
   def read(mn: MethodNode) = {
     implicit val labelMap = Code.makeLabelMap(mn.instructions)
@@ -118,33 +117,26 @@ case class Code(insns: Seq[OpCode] = Nil,
 trait Attached
 object Attached{
   object Frame{
-    object Type{
-      def read(x: AnyRef) = x match{
-        case s: String => Class(s)
-        case x: java.lang.Integer => all(x)
-      }
+    
+    def readType(x: AnyRef) = x match{
+      case s: String => imm.Type.Cls(s)
+      case x: java.lang.Integer => typeMap(x)
     }
-    class Type(val size: Int)
-    case class Class(v: String) extends Type(1)
-    case object Top extends Type(1)
-    case object Integer extends Type(1)
-    case object Float extends Type(1)
-    case object Double extends Type(2)
-    case object Long extends Type(1)
-    case object Null extends Type(1)
-    case object UninitializedThis extends Type(1)
-    val all = Seq(
-      Top,
-      Integer,
-      Float,
-      Double,
-      Long,
-      Null,
-      UninitializedThis
+    
+    val typeMap = Seq(
+      imm.Type.Cls("java/lang/Object"),
+      I,
+      F,
+      D,
+      J,
+      imm.Type.Cls("java/lang/Object"),
+      imm.Type.Cls("java/lang/Object")
     )
+    
+
   }
-  case class Frame(stack: List[Attached.Frame.Type],
-                   locals: Vector[Attached.Frame.Type]) extends Attached
+  case class Frame(stack: List[imm.Type],
+                   locals: Vector[imm.Type]) extends Attached
 
   case class LineNumber(line: Int,
                         start: Int) extends Attached
@@ -156,8 +148,8 @@ object Attached{
     case x: FrameNode       =>
       assert(x.`type` == -1)
       Frame(
-        x.stack.safeSeq.map(Frame.Type.read).reverse.toList,
-        x.local.safeSeq.map(Frame.Type.read).toVector
+        x.stack.safeSeq.map(Frame.readType).reverse.toList,
+        x.local.safeSeq.map(Frame.readType).toVector
       )
     case x: LineNumberNode  => LineNumber(x.line, x.start.getLabel)
   }
