@@ -23,19 +23,19 @@ object Conversion {
 
 
   def convertToSsa(method: Method, cls: String)(implicit vm: VM): Code = {
-    println(s"-------------------Converting: $cls/${method.sig}--------------------------")
+//    println(s"-------------------Converting: $cls/${method.sig}--------------------------")
     val blocks = walkBlocks(method)
 
-    for((x, i) <- blocks.zipWithIndex){
-      println()
-      println(i + "\t" + x._1)
-      x._2.foreach(println)
-    }
-    println("============================================")
+//    for((x, i) <- blocks.zipWithIndex){
+//      println()
+//      println(i + "\t" + x._1)
+//      x._2.foreach(println)
+//    }
+//    println("============================================")
 
     val phis = makePhis(blocks)
-    println("PHIS")
-    phis.foreach(println)
+//    println("PHIS")
+//    phis.foreach(println)
 
 
     val basicBlocks =
@@ -43,13 +43,13 @@ object Conversion {
             .zip(phis)
             .map{ case ((buff, types), phis) => BasicBlock(buff, phis, types) }
 
-    println("----------------------------------------------")
-    for ((block, i) <- basicBlocks.zipWithIndex){
-      println()
-      println(i + "\t" + block.phi.toList)
-      block.insns.foreach(println)
-    }
-    println("----------------------------------------------")
+//    println("----------------------------------------------")
+//    for ((block, i) <- basicBlocks.zipWithIndex){
+//      println()
+//      println(i + "\t" + block.phi.toList)
+//      block.insns.foreach(println)
+//    }
+//    println("----------------------------------------------")
     Code(basicBlocks)
   }
 
@@ -59,8 +59,9 @@ object Conversion {
    */
   def makePhis(blocks: Blocks): Seq[Seq[Seq[(Sym, Sym)]]] =
     for{((destState, buffer, _, _), i) <- blocks.zipWithIndex} yield {
+
       for{((_, srcBuffer, srcState, _), j) <- blocks.zipWithIndex} yield {
-        if (!srcBuffer.last.targets.contains(i) && j + 1 != i) Nil else {
+        def stuff = {
           val zipped = (srcState.locals zip destState.locals) ++
             (srcState.stack.reverse zip destState.stack.reverse)
           for {
@@ -69,6 +70,9 @@ object Conversion {
             pairs <- src.slots zip dest.slots
           } yield pairs
         }
+        if (j + 1 == i) stuff
+        else if(!srcBuffer.isEmpty && srcBuffer.last.targets.contains(i)) stuff
+        else Nil
       }
     }
 
@@ -86,6 +90,7 @@ object Conversion {
       .toVector
 
     var insns = method.code.insns.toList
+    insns.foreach(println)
     val restAttached = method.code.attachments.toList
     var attached = (restAttached.head :+ imm.Attached.Frame(Nil, locals)) +: restAttached.tail
     var state: State = null
@@ -112,13 +117,15 @@ object Conversion {
       val (regInsns, newInsns, newAttached, newState) = run(insns, attached, state, makeSymbol _)
       val index = method.code.insns.length - insns.length
       blockMap(index) = blocks.length
+
       blocks.append((state, regInsns, newState, types))
       maxSyms = maxSyms max symCount
       insns = newInsns
       attached = newAttached
       state = newState
     }
-    println("Block Map " + blockMap.toList)
+
+//    println("Block Map " + blockMap.toList)
     blocks.map{ case (before, buffer, after, types) =>
       val newBuffer = buffer.map{
         case x: Insn.UnaryBranch  => x.copy(target = blockMap(x.target))
@@ -140,7 +147,7 @@ object Conversion {
     (insns, attached) match {
       case (i :: is, a :: as) =>
 
-        println(i + "\t" + i.toString.padTo(30, ' ') + state.stack.toString.padTo(20, ' ') + state.locals.toString.padTo(30, ' '))
+//        println(i + "\t" + i.toString.padTo(30, ' ') + state.stack.toString.padTo(20, ' ') + state.locals.toString.padTo(30, ' '))
         val (newState, newInsn) = op(state, i, makeSymbol)
         val outInsns = regInsns ++ newInsn
         import StackOps._

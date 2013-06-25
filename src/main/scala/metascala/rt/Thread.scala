@@ -32,10 +32,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
 
   def doPhi(oldBlock: Int, newBlock: Int) = {
-//    println("doPhi")
-//    println(oldBlock + "\t" + newBlock)
+    println("doPhi")
+    println(oldBlock + "\t" + newBlock)
     val (srcs, dests) = frame.method.code.blocks(newBlock).phi(oldBlock).unzip
-//    println(srcs, dests)
+    println(srcs, dests)
     val temp = srcs.map(frame.locals)
     for ((i, dest) <- temp.zip(dests)){
       frame.locals(dest) = i
@@ -45,9 +45,17 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   final def step(): Unit = try {
     //  println(frame.pc)
     val code = frame.method.code
-    val node = code.blocks(frame.pc._1).insns(frame.pc._2)
+
+    val block = code.blocks(frame.pc._1)
+    if (block.insns.length == 0){
+      frame.pc = frame.pc.copy(_1 = frame.pc._1 + 1)
+      step()
+      return
+    }
+    val node = block.insns(frame.pc._2)
 
     val r = reader(frame.locals, 0)
+
     val localSnapshot =
       code.blocks(frame.pc._1)
           .locals
@@ -56,12 +64,12 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
           .toList
           .toString
 
-//    println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + localSnapshot)
-//    println(indent + "::\t" + frame.pc + "\t" + node )
+    println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + localSnapshot)
+    println(indent + "::\t" + frame.pc + "\t" + node )
     val stackH = threadStack.length
     val prevPc = frame.pc
     //    println(indent + "::\t" + vm.Heap.dump.replace("\n", "\n" + indent + "::\t"))
-
+    val currentFrame = frame
 
     node match {
       case ReturnVal(sym) =>
@@ -212,14 +220,14 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         this.throwException(frame.locals(src).obj)
     }
 
-    if (threadStack.length == stackH && frame.pc == prevPc){
-      frame.pc =
-        if (frame.pc._2 + 1 < code.blocks(frame.pc._1).insns.length){
-          (frame.pc._1, frame.pc._2 + 1)
-        }else if(frame.pc._1 + 1 < code.blocks.length){
-          doPhi(frame.pc._1, frame.pc._1+1)
-          (frame.pc._1+1, 0)
-        }else frame.pc
+    if (currentFrame.pc == prevPc){
+      currentFrame.pc =
+        if (currentFrame.pc._2 + 1 < code.blocks(currentFrame.pc._1).insns.length){
+          (currentFrame.pc._1, currentFrame.pc._2 + 1)
+        }else if(currentFrame.pc._1 + 1 < code.blocks.length){
+          doPhi(currentFrame.pc._1, currentFrame.pc._1+1)
+          (currentFrame.pc._1+1, 0)
+        }else currentFrame.pc
     }
     opCount += 1
 
@@ -242,7 +250,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   }
 
   def returnVal(size: Int, index: Int) = {
-    //println("RETURNING " + size + " "  + index)
+//    println("RETURNING " + size + " "  + index)
     for (i <- 0 until size){
       frame.returnTo(frame.locals(index + i))
     }
@@ -287,7 +295,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   final def prepInvoke(mRef: rt.Method,
                        args: Seq[Int],
                        returnTo: Int => Unit) = {
-    //println(indent + "PrepInvoke " + mRef + " with " + args)
+    println(indent + "PrepInvoke " + mRef + " with " + args)
 
     mRef match{
       case rt.Method.Native(clsName, imm.Sig(name, desc), op) =>
