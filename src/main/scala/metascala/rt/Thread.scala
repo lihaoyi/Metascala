@@ -6,7 +6,7 @@ import annotation.tailrec
 
 
 import imm.Access
-import opcodes.Insn
+import metascala.opcodes.{Jump, Insn}
 import Insn._
 import Insn.Ldc
 import metascala.imm.Attached.LineNumber
@@ -32,10 +32,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
 
   def doPhi(oldBlock: Int, newBlock: Int) = {
-    println("doPhi")
-    println(oldBlock + "\t" + newBlock)
+//    println("doPhi")
+//    println(oldBlock + "\t" + newBlock)
     val (srcs, dests) = frame.method.code.blocks(newBlock).phi(oldBlock).unzip
-    println(srcs, dests)
+//    println(srcs, dests)
     val temp = srcs.map(frame.locals)
     for ((i, dest) <- temp.zip(dests)){
       frame.locals(dest) = i
@@ -64,16 +64,26 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
           .toList
           .toString
 
-    println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + localSnapshot)
-    println(indent + "::\t" + frame.pc + "\t" + node )
-    val stackH = threadStack.length
-    val prevPc = frame.pc
+//    println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + localSnapshot)
+//    println(indent + "::\t" + frame.pc + "\t" + node )
+//    val stackH = threadStack.length
+
     //    println(indent + "::\t" + vm.Heap.dump.replace("\n", "\n" + indent + "::\t"))
     val currentFrame = frame
 
+    def advancePc() = {
+      currentFrame.pc =
+        if (currentFrame.pc._2 + 1 < code.blocks(currentFrame.pc._1).insns.length){
+          (currentFrame.pc._1, currentFrame.pc._2 + 1)
+        }else if(currentFrame.pc._1 + 1 < code.blocks.length){
+          doPhi(currentFrame.pc._1, currentFrame.pc._1+1)
+          (currentFrame.pc._1+1, 0)
+        }else currentFrame.pc
+    }
+
+    if (!node.isInstanceOf[Jump]) advancePc()
     node match {
       case ReturnVal(sym) =>
-
         returnVal(frame.method.method.sig.desc.ret.size, sym)
       case Push(prim, target, value) =>
         prim.write(value, writer(frame.locals, target))
@@ -172,12 +182,16 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         if(func(b, a)) {
           doPhi(frame.pc._1, target)
           frame.pc = (target, 0)
+        }else{
+          advancePc()
         }
 
       case UnaryBranch(sym, target, func) =>
         if(func(frame.locals(sym))) {
           doPhi(frame.pc._1, target)
           frame.pc = (target, 0)
+        }else{
+          advancePc()
         }
 
       case Goto(target) =>
@@ -220,15 +234,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         this.throwException(frame.locals(src).obj)
     }
 
-    if (currentFrame.pc == prevPc){
-      currentFrame.pc =
-        if (currentFrame.pc._2 + 1 < code.blocks(currentFrame.pc._1).insns.length){
-          (currentFrame.pc._1, currentFrame.pc._2 + 1)
-        }else if(currentFrame.pc._1 + 1 < code.blocks.length){
-          doPhi(currentFrame.pc._1, currentFrame.pc._1+1)
-          (currentFrame.pc._1+1, 0)
-        }else currentFrame.pc
-    }
+
     opCount += 1
 
   }catch{case e: Throwable if !e.isInstanceOf[WrappedVmException] =>
