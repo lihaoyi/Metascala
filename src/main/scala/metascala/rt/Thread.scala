@@ -32,10 +32,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
 
   def doPhi(oldBlock: Int, newBlock: Int) = {
-    println(indent + "doPhi")
-    println(indent + oldBlock + "\t" + newBlock)
+//    println(indent + "doPhi")
+//    println(indent + oldBlock + "\t" + newBlock)
     val (srcs, dests) = frame.method.code.blocks(newBlock).phi(oldBlock).unzip
-    println(indent + (srcs, dests))
+//    println(indent + (srcs, dests))
     val temp = srcs.map(frame.locals)
     for ((i, dest) <- temp.zip(dests)){
       frame.locals(dest) = i
@@ -66,11 +66,11 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
           .toList
           .toString
 
-    println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + localSnapshot)
-    println(indent + "::\t" + frame.pc + "\t" + node )
+//    println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + localSnapshot)
+//    println(indent + "::\t" + frame.pc + "\t" + node )
 //    val stackH = threadStack.length
 
-    println(indent + "::\t" + vm.Heap.dump.replace("\n", "\n" + indent + "::\t"))
+//    println(indent + "::\t" + vm.Heap.dump.replace("\n", "\n" + indent + "::\t"))
     val currentFrame = frame
 
     def advancePc() = {
@@ -303,7 +303,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   final def prepInvoke(mRef: rt.Method,
                        args: Seq[Int],
                        returnTo: Int => Unit) = {
-    println(indent + "PrepInvoke " + mRef + " with " + args)
+//    println(indent + "PrepInvoke " + mRef + " with " + args)
 
     mRef match{
       case rt.Method.Native(clsName, imm.Sig(name, desc), op) =>

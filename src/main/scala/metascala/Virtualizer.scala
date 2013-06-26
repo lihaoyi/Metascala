@@ -5,13 +5,13 @@ import imm.Type.Prim
 import imm.Type.Prim._
 object Virtualizer {
   def popVirtual(tpe: imm.Type, src: () => Val, refs: mutable.Map[Int, Any] = mutable.Map.empty)(implicit vm: VM): Any = {
-    println("POPPING VIRTUAL "  + tpe)
+
     val x = tpe match {
       case V => ()
       case p: imm.Type.Prim[_] => p.read(src)
       case _ => //reference type
         val address = src()
-        println("Address "+  address)
+
         if(address == 0) null
         else if (refs.contains(address)) refs(address)
         else tpe match{
@@ -25,7 +25,7 @@ object Virtualizer {
               else{
                 val f = getAllFields(obj.getClass).find(_.getName == field.name).get
                 f.setAccessible(true)
-                println("Field " + f.getName + ": " + address + " " + 2 + " " +  index)
+
                 f.set(obj, popVirtual(field.desc, reader(vm.Heap.memory, address + 2 + index), refs))
                 index += field.desc.size
               }
@@ -35,7 +35,7 @@ object Virtualizer {
 
             val clsObj = forName(tpe.unparse.toDot)
             val newArr = java.lang.reflect.Array.newInstance(clsObj, address.arr.length)
-            println("Length " + address.arr.length)
+
             for(i <- 0 until address.arr.length){
 
               val cooked = tpe match{
@@ -44,11 +44,11 @@ object Virtualizer {
               }
               java.lang.reflect.Array.set(newArr, i, cooked)
             }
-            println(newArr.cast[Array[_]].toList)
+
             newArr
         }
     }
-    println("Popped " + x)
+
     x
   }
 

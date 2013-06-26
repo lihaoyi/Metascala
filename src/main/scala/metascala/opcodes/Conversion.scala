@@ -23,19 +23,19 @@ object Conversion {
 
 
   def convertToSsa(method: Method, cls: String)(implicit vm: VM): Code = {
-    println(s"-------------------Converting: $cls/${method.sig}--------------------------")
+//    println(s"-------------------Converting: $cls/${method.sig}--------------------------")
     val blocks = walkBlocks(method)
-    method.code.insns.foreach(println)
-    for((x, i) <- blocks.zipWithIndex){
-      println()
-      println(i + "\t" + x._1)
-      x._2.foreach(println)
-    }
-    println("============================================")
+//    insns.foreach(println)
+//    for((x, i) <- blocks.zipWithIndex){
+//      println()
+//      println(i + "\t" + x._1)
+//      x._2.foreach(println)
+//    }
+//    println("============================================")
 
     val phis = makePhis(blocks)
-    println("PHIS")
-    phis.foreach(println)
+//    println("PHIS")
+//    phis.foreach(println)
 
 
     val basicBlocks =
