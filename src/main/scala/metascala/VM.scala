@@ -33,9 +33,9 @@ class VM(val natives: Bindings = Bindings.default, val log: ((=>String) => Unit)
     def dump = {
       memory.take(freePointer)
             .grouped(10)
-            .map(_.map(_+""))
-            .map(_.reduce(_+"\t"+_))
-            .reduce(_+"\n"+_)
+            .map(_.map(_.toString.padTo(4, ' ')))
+            .map(_.mkString)
+            .mkString("\n")
     }
   }
 

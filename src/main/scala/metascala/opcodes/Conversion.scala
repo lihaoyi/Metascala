@@ -23,19 +23,19 @@ object Conversion {
 
 
   def convertToSsa(method: Method, cls: String)(implicit vm: VM): Code = {
-//    println(s"-------------------Converting: $cls/${method.sig}--------------------------")
+    println(s"-------------------Converting: $cls/${method.sig}--------------------------")
     val blocks = walkBlocks(method)
-
-//    for((x, i) <- blocks.zipWithIndex){
-//      println()
-//      println(i + "\t" + x._1)
-//      x._2.foreach(println)
-//    }
-//    println("============================================")
+    method.code.insns.foreach(println)
+    for((x, i) <- blocks.zipWithIndex){
+      println()
+      println(i + "\t" + x._1)
+      x._2.foreach(println)
+    }
+    println("============================================")
 
     val phis = makePhis(blocks)
-//    println("PHIS")
-//    phis.foreach(println)
+    println("PHIS")
+    phis.foreach(println)
 
 
     val basicBlocks =
@@ -81,16 +81,14 @@ object Conversion {
    * operations into a list of basic blocks of register operations
    */
   def walkBlocks(method: imm.Method)(implicit vm: VM): Blocks = {
-    val thisArg = if(method.static) Nil else Seq(imm.Type.
-      Cls("java/lang/Object"))
-
+    val thisArg = if(method.static) Nil else Seq(imm.Type.Cls("java/lang/Object"))
 
     val locals: Vector[imm.Type] = method.desc.args
       .++:(thisArg)
       .toVector
 
     var insns = method.code.insns.toList
-    insns.foreach(println)
+
     val restAttached = method.code.attachments.toList
     var attached = (restAttached.head :+ imm.Attached.Frame(Nil, locals)) +: restAttached.tail
     var state: State = null
@@ -98,16 +96,17 @@ object Conversion {
     val blockMap = new Array[Int](insns.length)
     val blocks = mutable.Buffer.empty[(State, Seq[Insn], State, Seq[Type])]
     var maxSyms = 0
-
+    var symCount = 0
+    val types = mutable.Buffer.empty[Type]
+    def makeSymbol(t: Type) = {
+      types.append(t)
+      val sym = Symbol(symCount, t)
+      symCount += t.size
+      sym
+    }
     while (insns != Nil){
-      var symCount = 0
-      val types = mutable.Buffer.empty[Type]
-      def makeSymbol(t: Type) = {
-        types.append(t)
-        val sym = Symbol(symCount, t)
-        symCount += t.size
-        sym
-      }
+
+
       state =
         attached.head
           .collectFirst{case f: imm.Attached.Frame => f}

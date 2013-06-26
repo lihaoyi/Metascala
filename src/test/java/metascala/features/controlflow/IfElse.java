@@ -31,4 +31,7 @@ public class IfElse {
         else if (b == 312) return 7;
         else return 8;
     }
+    public static int mathMin(){
+        return Math.min(16, 1);
+    }
 }

@@ -8,7 +8,8 @@ class ClassesTest extends FreeSpec with Util{
   "classes" - {
     val tester = new Tester("metascala.features.classes.ClassStuff")
     "customClass" in tester.run("customClass")
-    "inheritence" in tester.run("inheritence")
+    "stringConcat" in tester.run("stringConcat")
+    "inheritance" in tester.run("inheritance")
     "constructor" in tester.run("constructor")
     "superConstructor" in tester.run("superConstructor")
     "override" in tester.run("override")

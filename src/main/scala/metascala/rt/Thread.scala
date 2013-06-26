@@ -32,10 +32,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
 
   def doPhi(oldBlock: Int, newBlock: Int) = {
-//    println("doPhi")
-//    println(oldBlock + "\t" + newBlock)
+    println(indent + "doPhi")
+    println(indent + oldBlock + "\t" + newBlock)
     val (srcs, dests) = frame.method.code.blocks(newBlock).phi(oldBlock).unzip
-//    println(srcs, dests)
+    println(indent + (srcs, dests))
     val temp = srcs.map(frame.locals)
     for ((i, dest) <- temp.zip(dests)){
       frame.locals(dest) = i
@@ -48,7 +48,9 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     val block = code.blocks(frame.pc._1)
     if (block.insns.length == 0){
+      doPhi(frame.pc._1, frame.pc._1 + 1)
       frame.pc = frame.pc.copy(_1 = frame.pc._1 + 1)
+
       step()
       return
     }
@@ -64,11 +66,11 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
           .toList
           .toString
 
-//    println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + localSnapshot)
-//    println(indent + "::\t" + frame.pc + "\t" + node )
+    println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + localSnapshot)
+    println(indent + "::\t" + frame.pc + "\t" + node )
 //    val stackH = threadStack.length
 
-    //    println(indent + "::\t" + vm.Heap.dump.replace("\n", "\n" + indent + "::\t"))
+    println(indent + "::\t" + vm.Heap.dump.replace("\n", "\n" + indent + "::\t"))
     val currentFrame = frame
 
     def advancePc() = {

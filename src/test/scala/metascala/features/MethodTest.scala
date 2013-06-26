@@ -24,6 +24,7 @@ class MethodTest extends FreeSpec with Util{
     "intBitsToFloat" in chk(tester.run("intBitsToFloat", _: Int))
     "currentTimeMillis" in tester.run("currentTimeMillis")
     "inheritedNative" in tester.run("inheritedNative")
+    "arrayCopy" in tester.run("arrayCopy")
   }
   "objects" - {
     val tester = new Tester("metascala.features.methods.Objects")

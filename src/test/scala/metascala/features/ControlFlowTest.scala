@@ -16,6 +16,7 @@ class ControlFlowTest extends FreeSpec with Util{
     "ifNonIntBinary" in tester.run("ifNonIntBinary")
     "ifElseIf" in tester.run("ifElseIf")
     "ifElseIfBig" in tester.run("ifElseIfBig")
+    "mathMin" in tester.run("mathMin")
   }
   "loops" - {
     val tester = new Tester("metascala.features.controlflow.Loops")

@@ -2,10 +2,16 @@ package metascala.features.classes;
 
 public class ClassStuff {
     public static int customClass(){
-        Cow c = new Cow();
-        return c.moo().length();
+        Cow c1 = new Cow();
+        Cow c2 = new Cow();
+        return c1.moo().length() + c2.moo().length();
     }
-    public static String inheritence(){
+    public static String stringConcat(){
+        StringBuilder x = new StringBuilder();
+        x.append('a');
+        return x.toString();
+    }
+    public static String inheritance(){
         Bull b = new Bull();
         return b.mooTwice();
     }
@@ -23,7 +29,7 @@ public class ClassStuff {
     }
     public static int innerClass(){
         LinkedList l = new LinkedList();
-        for(int i = 0; i < 10; i++){
+        for(int i = 0; i < 2; i++){
             l.push(i);
         }
         return l.sum();
