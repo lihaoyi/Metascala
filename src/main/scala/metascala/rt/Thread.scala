@@ -31,7 +31,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   def indent = "\t" * threadStack.filter(_.method.sig.name != "Dummy").length
 
 
-  def doPhi(oldBlock: Int, newBlock: Int) = {
+  def doPhi(frame: Frame, oldBlock: Int, newBlock: Int) = {
 //    println(indent + "doPhi")
 //    println(indent + oldBlock + "\t" + newBlock)
     val (srcs, dests) = frame.method.code.blocks(newBlock).phi(oldBlock).unzip
@@ -48,7 +48,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     val block = code.blocks(frame.pc._1)
     if (block.insns.length == 0){
-      doPhi(frame.pc._1, frame.pc._1 + 1)
+      doPhi(frame, frame.pc._1, frame.pc._1 + 1)
       frame.pc = frame.pc.copy(_1 = frame.pc._1 + 1)
 
       step()
@@ -78,12 +78,12 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         if (currentFrame.pc._2 + 1 < code.blocks(currentFrame.pc._1).insns.length){
           (currentFrame.pc._1, currentFrame.pc._2 + 1)
         }else if(currentFrame.pc._1 + 1 < code.blocks.length){
-          doPhi(currentFrame.pc._1, currentFrame.pc._1+1)
+          doPhi(currentFrame, currentFrame.pc._1, currentFrame.pc._1+1)
           (currentFrame.pc._1+1, 0)
         }else currentFrame.pc
     }
 
-    if (!node.isInstanceOf[Jump]) advancePc()
+
     node match {
       case ReturnVal(sym) =>
         returnVal(frame.method.method.sig.desc.ret.size, sym)
@@ -182,7 +182,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       case BinaryBranch(symA, symB, target, func) =>
         val (a, b) = (frame.locals(symA), frame.locals(symB))
         if(func(b, a)) {
-          doPhi(frame.pc._1, target)
+          doPhi(frame, frame.pc._1, target)
           frame.pc = (target, 0)
         }else{
           advancePc()
@@ -190,14 +190,14 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
       case UnaryBranch(sym, target, func) =>
         if(func(frame.locals(sym))) {
-          doPhi(frame.pc._1, target)
+          doPhi(frame, frame.pc._1, target)
           frame.pc = (target, 0)
         }else{
           advancePc()
         }
 
       case Goto(target) =>
-        doPhi(frame.pc._1, target)
+        doPhi(frame, frame.pc._1, target)
         frame.pc = (target, 0)
       case CheckCast(src, desc) =>
         frame.locals(src) match{
@@ -236,7 +236,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         this.throwException(frame.locals(src).obj)
     }
 
-
+    if (!node.isInstanceOf[Jump]) advancePc()
     opCount += 1
 
   }catch{case e: Throwable if !e.isInstanceOf[WrappedVmException] =>

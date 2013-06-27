@@ -25,7 +25,7 @@ object Conversion {
   def convertToSsa(method: Method, cls: String)(implicit vm: VM): Code = {
 //    println(s"-------------------Converting: $cls/${method.sig}--------------------------")
     val blocks = walkBlocks(method)
-//    insns.foreach(println)
+//    method.code.insns.foreach(println)
 //    for((x, i) <- blocks.zipWithIndex){
 //      println()
 //      println(i + "\t" + x._1)
