@@ -31,5 +31,12 @@ public class Statics {
             return fibonacci(n-1) + fibonacci(n-2);
         }
     }
+    public static int call(int x) {
+        return x+1;
+    }
+    public static int callAtPhiBoundary(int i){
 
+        int size = (i < 0) ? 1  : call(i);
+        return size;
+    }
 }

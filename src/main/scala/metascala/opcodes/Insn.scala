@@ -7,7 +7,7 @@ import metascala.imm.Type
 import metascala.imm
 
 class Jump(override val targets: Seq[Int]) extends Insn
-
+class Invoke extends Insn
 
 case class Code(blocks: Seq[BasicBlock] = Nil){
   lazy val localSize = blocks.map(_.locals.map(_.size).sum).max
@@ -29,9 +29,9 @@ object Insn{
   case class Goto(target: Int) extends Jump(Seq(target))
   case class Ldc(target: Int, thing: Any) extends Insn
   case class Push[T](prim: Prim[T], target: Int, value: T) extends Insn
-  case class InvokeStatic(target: Sym, sources: Seq[Sym], owner: Type.Cls, sig: imm.Sig) extends Insn
-  case class InvokeSpecial(target: Sym, sources: Seq[Sym], owner: Type.Cls, sig: imm.Sig) extends Insn
-  case class InvokeVirtual(target: Sym, sources: Seq[Sym], owner: Type.Cls, sig: imm.Sig) extends Insn
+  case class InvokeStatic(target: Sym, sources: Seq[Sym], owner: Type.Cls, sig: imm.Sig) extends Invoke
+  case class InvokeSpecial(target: Sym, sources: Seq[Sym], owner: Type.Cls, sig: imm.Sig) extends Invoke
+  case class InvokeVirtual(target: Sym, sources: Seq[Sym], owner: Type.Cls, sig: imm.Sig) extends Invoke
   case class New(target: Sym, cls: rt.Cls) extends Insn
   case class PutStatic(src: Sym, cls: rt.Cls, index: Int, prim: Prim[_]) extends Insn
   case class GetStatic(src: Sym, cls: rt.Cls, index: Int, prim: Prim[_]) extends Insn

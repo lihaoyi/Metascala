@@ -17,7 +17,7 @@ class MethodTest extends FreeSpec with Util{
     "helloWorld2" in chk(tester.run("helloWorld2", _: Int, _: Int))
     "tailFactorial" in chk(tester.run("tailFactorial", _: Int))(Seq(2, 5, 10, 20, 50))
     "fibonacci" in chk(tester.run("fibonacci", _: Int))(Seq(2, 5, 10))
-
+    "callAtPhiBoundary" in tester.run("callAtPhiBoundary", 0)
   }
   "natives" - {
     val tester = new Tester("metascala.features.methods.Natives")

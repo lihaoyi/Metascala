@@ -6,7 +6,7 @@ import annotation.tailrec
 
 
 import imm.Access
-import metascala.opcodes.{Jump, Insn}
+import metascala.opcodes.{Invoke, Jump, Insn}
 import Insn._
 import Insn.Ldc
 import metascala.imm.Attached.LineNumber
@@ -40,6 +40,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     for ((i, dest) <- temp.zip(dests)){
       frame.locals(dest) = i
     }
+    (srcs, dests)
   }
 
   final def step(): Unit = try {
@@ -58,7 +59,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     val r = reader(frame.locals, 0)
 
-    val localSnapshot =
+    lazy val localSnapshot =
       code.blocks(frame.pc._1)
           .locals
           .map(_.prim)
@@ -74,13 +75,17 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     val currentFrame = frame
 
     def advancePc() = {
-      currentFrame.pc =
-        if (currentFrame.pc._2 + 1 < code.blocks(currentFrame.pc._1).insns.length){
-          (currentFrame.pc._1, currentFrame.pc._2 + 1)
-        }else if(currentFrame.pc._1 + 1 < code.blocks.length){
-          doPhi(currentFrame, currentFrame.pc._1, currentFrame.pc._1+1)
-          (currentFrame.pc._1+1, 0)
-        }else currentFrame.pc
+
+      if (currentFrame.pc._2 + 1 < code.blocks(currentFrame.pc._1).insns.length){
+        currentFrame.pc =(currentFrame.pc._1, currentFrame.pc._2 + 1)
+        Nil
+      }else if(currentFrame.pc._1 + 1 < code.blocks.length){
+        val phis = doPhi(currentFrame, currentFrame.pc._1, currentFrame.pc._1+1)
+        currentFrame.pc = (currentFrame.pc._1+1, 0)
+        phis._1.zip(phis._2)
+      }else {
+        Nil
+      }
     }
 
 
@@ -99,7 +104,9 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
                             .flatMap{case (s, t) =>
             frame.locals.slice(s, s + t.size)
           }
-          prepInvoke(m, args, writer(frame.locals, target))
+          val phis = advancePc()
+          val ptarget = phis.toMap.getOrElse(target, target)
+          prepInvoke(m, args, writer(frame.locals, ptarget))
         }
 
       case InvokeSpecial(target, sources, owner, sig) =>
@@ -108,8 +115,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
             .flatMap{case (s, t) =>
             frame.locals.slice(s, s + t)
           }
+          val phis = advancePc()
+          val ptarget = phis.toMap.getOrElse(target, target)
           if(args(0) == 0) throwExWithTrace("java/lang/NullPointerException", "null")
-          else prepInvoke(m, args, writer(frame.locals, target))
+          else prepInvoke(m, args, writer(frame.locals, ptarget))
         }
       case InvokeVirtual(target, sources, owner, sig) =>
         val args = sources.zip(1 +: sig.desc.args.map(_.size))
@@ -117,12 +126,13 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
           frame.locals.slice(s, s + t)
         }
         ///println("INVOKE VIRTUAL " + args)
-
+        val phis = advancePc()
+        val ptarget = phis.toMap.getOrElse(target, target)
         if(args(0) == 0) throwExWithTrace("java/lang/NullPointerException", "null")
         else {
           //println(args(0).obj.cls.clsData.tpe)
           val mRef = args(0).obj.cls.vTableMap(sig)
-          prepInvoke(mRef, args, writer(frame.locals, target))
+          prepInvoke(mRef, args, writer(frame.locals, ptarget))
         }
 
       case ArrayLength(src, dest) =>
@@ -236,7 +246,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         this.throwException(frame.locals(src).obj)
     }
 
-    if (!node.isInstanceOf[Jump]) advancePc()
+    if (!node.isInstanceOf[Jump] && !node.isInstanceOf[Invoke]) advancePc()
     opCount += 1
 
   }catch{case e: Throwable if !e.isInstanceOf[WrappedVmException] =>
@@ -258,7 +268,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   }
 
   def returnVal(size: Int, index: Int) = {
-//    println("RETURNING " + size + " "  + index)
+//    println(indent + "RETURNING " + size + " "  + index)
     for (i <- 0 until size){
       frame.returnTo(frame.locals(index + i))
     }
