@@ -25,7 +25,7 @@ object Conversion {
   def convertToSsa(method: Method, cls: String)(implicit vm: VM): Code = {
 //    println(s"-------------------Converting: $cls/${method.sig}--------------------------")
     val blocks = walkBlocks(method)
-//    meinsns.foreach(println)
+//    method.code.insns.foreach(println)
 //    for((x, i) <- blocks.zipWithIndex){
 //      println()
 //      println(i + "\t" + x._1)
@@ -59,7 +59,6 @@ object Conversion {
    */
   def makePhis(blocks: Blocks): Seq[Seq[Seq[(Sym, Sym)]]] =
     for{((destState, buffer, _, _), i) <- blocks.zipWithIndex} yield {
-
       for{((_, srcBuffer, srcState, _), j) <- blocks.zipWithIndex} yield {
         def stuff = {
           val zipped = (srcState.locals zip destState.locals) ++
@@ -130,6 +129,8 @@ object Conversion {
         case x: Insn.UnaryBranch  => x.copy(target = blockMap(x.target))
         case x: Insn.BinaryBranch => x.copy(target = blockMap(x.target))
         case x: Insn.Goto         => x.copy(target = blockMap(x.target))
+        case x: Insn.LookupSwitch => x.copy(targetList = x.targetList.map(blockMap), default = blockMap(x.default))
+        case x: Insn.TableSwitch  => x.copy(targetList = x.targetList.map(blockMap), default = blockMap(x.default))
         case x => x
       }
       (before, newBuffer, after, types)
@@ -345,21 +346,13 @@ object Conversion {
       state -> Seq(Insn.CheckCast(state.stack.head.n, desc))
 
     case LookupSwitch(default: Int, keys: Seq[Int], targets: Seq[Int]) =>
-      state.copy(stack = state.stack.tail) -> keys.zip(targets).flatMap{ case (k, t) =>
-        val symbol = makeSymbol(I)
-        Seq(
-          Insn.Ldc(symbol.n, k),
-          Insn.BinaryBranch(state.stack.head.n, symbol.n, t, _ == _)
-        )
-      }.:+(Insn.Goto(default))
+      state.copy(stack = state.stack.tail) -> Seq(
+        Insn.LookupSwitch(state.stack.head.n, default, keys, targets)
+      )
     case TableSwitch(min, max, default, targets) =>
-      state.copy(stack = state.stack.tail) -> min.to(max).zip(targets).flatMap{ case (k, t) =>
-        val symbol = makeSymbol(I)
-        Seq(
-          Insn.Ldc(symbol.n, k),
-          Insn.BinaryBranch(state.stack.head.n, symbol.n, t, _ == _)
-        )
-      }.:+(Insn.Goto(default))
+      state.copy(stack = state.stack.tail) -> Seq(
+        Insn.TableSwitch(state.stack.head.n, min, max, default, targets)
+      )
 
     case InstanceOf(desc) =>
       val head :: rest = state.stack

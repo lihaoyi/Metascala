@@ -26,6 +26,8 @@ object Insn{
   case class UnaryBranch(a: Sym, target: Int, func: Int => Boolean) extends Jump(Seq(target))
   case class BinaryBranch(a: Sym, b: Sym, target: Int, func: (Int, Int) => Boolean) extends Jump(Seq(target))
   case class ReturnVal(a: Sym) extends Insn
+  case class TableSwitch(src: Sym, min: Int, max: Int, default: Int, targetList: Seq[Int]) extends Jump(targetList :+ default)
+  case class LookupSwitch(src: Sym, default: Int, keys: Seq[Int], targetList: Seq[Int]) extends Jump(targetList :+ default)
   case class Goto(target: Int) extends Jump(Seq(target))
   case class Ldc(target: Int, thing: Any) extends Insn
   case class Push[T](prim: Prim[T], target: Int, value: T) extends Insn

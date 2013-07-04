@@ -209,6 +209,32 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       case Goto(target) =>
         doPhi(frame, frame.pc._1, target)
         frame.pc = (target, 0)
+      case TableSwitch(src, min, max, default, targets) =>
+        var done = false
+        val res = for ((k, t) <- min to max zip targets) yield {
+          if (frame.locals(src) == k){
+            doPhi(frame, frame.pc._1, t)
+            frame.pc = (t, 0)
+            done = true
+          }
+        }
+        if (!done) {
+          doPhi(frame, frame.pc._1, default)
+          frame.pc = (default, 0)
+        }
+      case LookupSwitch(src, default, keys, targets) =>
+        var done = false
+        val res = for ((k, t) <- keys zip targets) yield {
+          if (frame.locals(src) == k){
+            doPhi(frame, frame.pc._1, t)
+            frame.pc = (t, 0)
+            done = true
+          }
+        }
+        if (!done) {
+          doPhi(frame, frame.pc._1, default)
+          frame.pc = (default, 0)
+        }
       case CheckCast(src, desc) =>
         frame.locals(src) match{
           case 0 => ()
@@ -268,13 +294,13 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   }
 
   def returnVal(size: Int, index: Int) = {
-//    println(indent + "RETURNING " + size + " "  + index)
     for (i <- 0 until size){
       frame.returnTo(frame.locals(index + i))
     }
     this.threadStack.pop
   }
   final def throwExWithTrace(clsName: String, detailMessage: String) = {
+    System.exit(0)
     throwException(
       vrt.Obj.allocate(clsName,
         "stackTrace" -> trace.toVirtObj,
@@ -288,12 +314,12 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       case Some(frame)=>
         val handler =
           frame.method.method.misc.tryCatchBlocks
-            .filter{x =>
+            .find{x =>
             x.start <= frame.pc._1 &&
               x.end >= frame.pc._1 &&
               !x.blockType.isDefined ||
               x.blockType.map(ex.cls.typeAncestry.contains).getOrElse(false)
-          }.headOption
+          }
 
         handler match{
           case None =>
