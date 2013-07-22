@@ -57,7 +57,7 @@ trait Default extends Bindings{
               )
             },
 
-            "getDeclaredFields0(Z)[Ljava/lang/reflect/Field;".func(I, I, I){ (vt, public, o) =>
+            "getDeclaredFields0(Z)[Ljava/lang/reflect/Field;".func(I, I, I){ (vt, o, public) =>
               import vt.vm
 
               val obj = o.obj
@@ -320,11 +320,6 @@ trait Default extends Bindings{
             "getStackAccessControlContext()Ljava/security/AccessControlContext;".value(I)(0)
 
           )
-        ),
-        "util"/(
-          "Hashtable"/(
-            "<clinit>()V".value(V)(())
-          )
         )
       ),
       "scala"/(
@@ -338,6 +333,9 @@ trait Default extends Bindings{
       ),
       "sun"/(
         "misc"/(
+          "Hashing"/(
+            "randomHashSeed(Ljava/lang/Object;)I".value(I)(2)
+          ),
           "Unsafe"/(
             "arrayBaseOffset(Ljava/lang/Class;)I".value(I)(2),
             "arrayIndexScale(Ljava/lang/Class;)I".value(I)(1),
@@ -352,16 +350,21 @@ trait Default extends Bindings{
               obj(fieldName) = x
               true
             },
+
             "objectFieldOffset(Ljava/lang/reflect/Field;)J".func(I, I, I){(vt, unsafe, f) =>
               import vt.vm
               val field = f.obj
+
               field.apply("slot")
             },
-            "registerNatives()V".value(V)(())
+            "registerNatives()V".value(V)(()),
+            "getUnsafe()Lsun/misc/Unsafe;".func(I){vt => vt.vm.theUnsafe.address},
+            "<clinit>()V".value(V)(())
           ),
           "VM"/(
             "getSavedProperty(Ljava/lang/String;)Ljava/lang/String;".value(I)(0),
-            "initialize()V".value(V)(())
+            "initialize()V".value(V)(()),
+            "<clinit>()V".value(V)(())
           )
         ),
         "reflect"/(
@@ -379,7 +382,8 @@ trait Default extends Bindings{
               val addr = o.obj.apply("name")
               val str = addr.toRealObj[String]
               vm.ClsTable(str).clsData.access_flags
-            }
+            },
+            "<clinit>()V".value(V)(())
           )
         )
       )

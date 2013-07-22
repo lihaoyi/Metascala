@@ -24,51 +24,13 @@ object Conversion {
 
   def convertToSsa(method: Method, cls: String)(implicit vm: VM): Code = {
 //    println(s"-------------------Converting: $cls/${method.sig}--------------------------")
-    if (method.name == "XXX") {
-      method.code.insns.zipWithIndex.foreach{ case (x, i) =>
-        println(s"$i\t$x")
-      }
-      println("---TryCatch---")
-      method.misc.tryCatchBlocks.foreach{ b =>
-        println(b.start + " - " + b.end + ":\t" + b.handler)
-      }
-    }
-
 
     val (blocks, tryCatchBlocks) = walkBlocks(method)
-    if (method.name == "XXX") {
-      for((x, i) <- blocks.zipWithIndex){
-        println()
-        println(i + "\t" + x._1)
-        x._2.foreach(println)
-      }
-    }
-    val phis = makePhis(blocks)
-    if (method.name == "XXX"){
-      println("============================================")
-
-
-      println("PHIS")
-      phis.foreach(println)
-    }
-
 
     val basicBlocks =
       blocks.map(b => b._2 -> b._4)
-            .zip(phis)
+            .zip(makePhis(blocks))
             .map{ case ((buff, types), phis) => BasicBlock(buff, phis, types) }
-
-    if(method.name == "XXX"){
-      println("----------------------------------------------")
-      for ((block, i) <- basicBlocks.zipWithIndex){
-        println()
-        println(i + "\t" + block.phi.toList)
-        block.insns.foreach(println)
-      }
-      println("---TryCatch---")
-      tryCatchBlocks.foreach(println)
-      println("----------------------------------------------")
-    }
 
     Code(basicBlocks, tryCatchBlocks)
   }
@@ -100,61 +62,70 @@ object Conversion {
    * operations into a list of basic blocks of register operations
    */
   def walkBlocks(method: imm.Method)(implicit vm: VM): (Blocks, Seq[opcodes.TryCatchBlock]) = {
-    val thisArg = if(method.static) Nil else Seq(imm.Type.Cls("java/lang/Object"))
 
-    val locals: Vector[imm.Type] =
+
+    val locals: Vector[imm.Type] ={
+      val thisArg =
+        if(method.static) Nil
+        else Seq(imm.Type.Cls("java/lang/Object"))
+
       method.desc
-            .args
-            .++:(thisArg)
-            .toVector
+        .args
+        .++:(thisArg)
+        .toVector
+    }
 
     var insns = method.code.insns.toList
 
-    val restAttached = method.code.attachments.toList
-    var attached = (restAttached.head :+ imm.Attached.Frame(Nil, locals)) +: restAttached.tail
+    var attached = {
+      val restAttached = method.code.attachments.toList
+      (restAttached.head :+ imm.Attached.Frame(Nil, locals)) +: restAttached.tail
+    }
+
     var state: State = null
-    var allStates = mutable.Buffer.empty[State]
+    val allStates = mutable.Buffer.empty[State]
+
     val blockMap = new Array[Int](insns.length)
     val blocks = mutable.Buffer.empty[(State, Seq[Insn], State, Seq[Type])]
-    var maxSyms = 0
-    var symCount = 0
-    val types = mutable.Buffer.empty[Type]
-    def makeSymbol(t: Type) = {
-      types.append(t)
-      val sym = Symbol(symCount, t)
-      symCount += t.size
-      sym
-    }
     var sections: Seq[Seq[Int]] =  Nil
+
+    object makeSymbol{
+      var symCount = 0
+      val types = mutable.Buffer.empty[Type]
+      def apply(t: Type) = {
+        types.append(t)
+        val sym = Symbol(symCount, t)
+        symCount += t.size
+        sym
+      }
+    }
+
     while (insns != Nil){
-      state =
+      allStates.append(
         attached.head
           .collectFirst{case f: imm.Attached.Frame => f}
-          .map(State(_, makeSymbol _))
+          .map(State(_, makeSymbol.apply _))
           .getOrElse(state)
-      allStates.append(state)
-      val (regInsns, newInsns, newAttached, newState) = run(insns, attached, state, makeSymbol _)
+      )
+
+      val (regInsns, newInsns, newAttached, newState) = run(insns, attached, allStates.last, makeSymbol.apply)
       sections = sections :+ regInsns.map(_.length).scan(0)(_+_)
-      val index = method.code.insns.length - insns.length
 
-      blockMap(index) = blocks.length
+      blockMap(method.code.insns.length - insns.length) = blocks.length
 
-      blocks.append((state, regInsns.flatten, newState, types))
-      maxSyms = maxSyms max symCount
+      blocks.append((allStates.last, regInsns.flatten, newState, makeSymbol.types))
       insns = newInsns
       attached = newAttached
       state = newState
     }
+
+
     var current = 0
     for (i <- 0 until blockMap.length){
       current = current max blockMap(i)
       blockMap(i) = current
     }
-    if(method.name == "XXX"){
-      allStates.zipWithIndex.foreach{case (x, i) =>
-        println(i + "\t" + x)
-      }
-    }
+
     val tryCatchBlocks = method.misc.tryCatchBlocks.map{b =>
       val (startBlock, endBlock) = (blockMap(b.start), blockMap(b.end))
       opcodes.TryCatchBlock(

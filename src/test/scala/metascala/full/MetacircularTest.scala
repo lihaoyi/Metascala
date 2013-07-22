@@ -57,11 +57,13 @@ class MetacircularTest extends FreeSpec with Util{
   var count = 0
 
   val tester = new Tester("metascala.full.MetacircularTest")
+  /*
   "helloWorld" in {
   //  tester.run("helloWorld")
 
 
   }
+
   "sqrtFinder" in {
     tester.run("sqrtFinder")
 
@@ -71,7 +73,6 @@ class MetacircularTest extends FreeSpec with Util{
     tester.run("fibonacci")
   }
 
-/*
   "innerClass" in {
     tester.run("innerClass")
   }
