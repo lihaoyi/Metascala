@@ -16,6 +16,7 @@ case class BasicBlock(insns: Seq[Insn], phi: Seq[Seq[(Sym, Sym)]], locals: Seq[i
 case class TryCatchBlock(start: (Sym, Sym),
                          end: (Sym, Sym),
                          handler: Int,
+                         destReg: Int,
                          blockType: Option[Type.Cls])
 case class Step(insn: Insn, line: Int)
 
@@ -23,8 +24,6 @@ sealed trait Insn{
   def targets: Seq[Int] = Nil
 }
 object Insn{
-
-
   case class BinOp[A, B, R](a: Sym, pa: Prim[A], b: Sym, pb: Prim[B], out: Sym, pout: Prim[R], func: (A, B) => R) extends Insn
   case class UnaryOp[A, R](a: Sym, pa: Prim[A], out: Sym, pout: Prim[R], func: A => R) extends Insn
   case class UnaryBranch(a: Sym, target: Int, func: Int => Boolean) extends Jump(Seq(target))

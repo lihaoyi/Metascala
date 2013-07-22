@@ -23,8 +23,8 @@ object Conversion {
 
 
   def convertToSsa(method: Method, cls: String)(implicit vm: VM): Code = {
-    println(s"-------------------Converting: $cls/${method.sig}--------------------------")
-    if (method.name == "throwCatchX") {
+//    println(s"-------------------Converting: $cls/${method.sig}--------------------------")
+    if (method.name == "XXX") {
       method.code.insns.zipWithIndex.foreach{ case (x, i) =>
         println(s"$i\t$x")
       }
@@ -36,7 +36,7 @@ object Conversion {
 
 
     val (blocks, tryCatchBlocks) = walkBlocks(method)
-    if (method.name == "throwCatchX") {
+    if (method.name == "XXX") {
       for((x, i) <- blocks.zipWithIndex){
         println()
         println(i + "\t" + x._1)
@@ -44,7 +44,7 @@ object Conversion {
       }
     }
     val phis = makePhis(blocks)
-    if (method.name == "throwCatchX"){
+    if (method.name == "XXX"){
       println("============================================")
 
 
@@ -58,7 +58,7 @@ object Conversion {
             .zip(phis)
             .map{ case ((buff, types), phis) => BasicBlock(buff, phis, types) }
 
-    if(method.name == "throwCatchX"){
+    if(method.name == "XXX"){
       println("----------------------------------------------")
       for ((block, i) <- basicBlocks.zipWithIndex){
         println()
@@ -68,7 +68,6 @@ object Conversion {
       println("---TryCatch---")
       tryCatchBlocks.foreach(println)
       println("----------------------------------------------")
-      System.exit(0)
     }
 
     Code(basicBlocks, tryCatchBlocks)
@@ -114,7 +113,7 @@ object Conversion {
     val restAttached = method.code.attachments.toList
     var attached = (restAttached.head :+ imm.Attached.Frame(Nil, locals)) +: restAttached.tail
     var state: State = null
-
+    var allStates = mutable.Buffer.empty[State]
     val blockMap = new Array[Int](insns.length)
     val blocks = mutable.Buffer.empty[(State, Seq[Insn], State, Seq[Type])]
     var maxSyms = 0
@@ -133,7 +132,7 @@ object Conversion {
           .collectFirst{case f: imm.Attached.Frame => f}
           .map(State(_, makeSymbol _))
           .getOrElse(state)
-
+      allStates.append(state)
       val (regInsns, newInsns, newAttached, newState) = run(insns, attached, state, makeSymbol _)
       sections = sections :+ regInsns.map(_.length).scan(0)(_+_)
       val index = method.code.insns.length - insns.length
@@ -151,31 +150,18 @@ object Conversion {
       current = current max blockMap(i)
       blockMap(i) = current
     }
-    if (method.name == "throwCatchX"){
-      println("SECTIONS")
-      sections.foreach(println)
-      println("BLOCKMAP")
-      println(blockMap.toList)
+    if(method.name == "XXX"){
+      allStates.zipWithIndex.foreach{case (x, i) =>
+        println(i + "\t" + x)
+      }
     }
-
-    //(0, 2) -> (5, 1)
     val tryCatchBlocks = method.misc.tryCatchBlocks.map{b =>
       val (startBlock, endBlock) = (blockMap(b.start), blockMap(b.end))
-      if (method.name == "throwCatchX"){
-        println("LOL")
-        println("startBlock\t" + startBlock)
-        println("endBlock\t" + endBlock)
-        println("startBlockIndex\t" + blockMap.indexOf(startBlock))
-        println("endBlockIndex\t" + blockMap.indexOf(endBlock))
-        println("b.start\t" + b.start)
-        println("b.end\t" + b.end)
-        println("sections(startBlock)\t" + sections(startBlock))
-        println("sections(endBlock)\t" + sections(endBlock))
-      }
       opcodes.TryCatchBlock(
         startBlock -> sections(startBlock)(b.start - blockMap.indexOf(startBlock)),
         endBlock -> sections(endBlock)(b.end - blockMap.indexOf(endBlock)),
         blockMap(b.handler),
+        allStates(blockMap(b.handler)).stack(0).n,
         b.blockType
       )
     }

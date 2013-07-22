@@ -146,12 +146,21 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         advancePc()
       case StoreArray(src, index, array, prim) =>
         val arr = frame.locals(array).arr
-        blit(frame.locals, src, arr, frame.locals(index) * prim.size, prim.size)
-        advancePc()
+        if (0 <= frame.locals(index) && frame.locals(index) < arr.length){
+          blit(frame.locals, src, arr, frame.locals(index) * prim.size, prim.size)
+          advancePc()
+        }else{
+          throwExWithTrace("java/lang/ArrayIndexOutOfBoundsException", frame.locals(index).toString)
+        }
+
       case LoadArray(dest, index, array, prim) =>
         val arr = frame.locals(array).arr
-        blit(arr, frame.locals(index) * prim.size, frame.locals, dest, prim.size)
-        advancePc()
+        if (0 <= frame.locals(index) && frame.locals(index) < arr.length){
+          blit(arr, frame.locals(index) * prim.size, frame.locals, dest, prim.size)
+          advancePc()
+        }else{
+          throwExWithTrace("java/lang/ArrayIndexOutOfBoundsException", frame.locals(index).toString)
+        }
       case Ldc(target, thing) =>
         val w = writer(frame.locals, target)
         thing match{
@@ -319,6 +328,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
   @tailrec final def throwException(ex: vrt.Obj, print: Boolean = true): Unit = {
     import math.Ordering.Implicits._
+
     threadStack.headOption match{
       case Some(frame)=>
         val handler =
@@ -333,8 +343,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
           case None =>
             threadStack.pop()
             throwException(ex, false)
-          case Some(TryCatchBlock(start, end, handler, blockType)) =>
-
+          case Some(TryCatchBlock(start, end, handler, dest, blockType)) =>
+            frame.locals(dest) = ex.address
             frame.pc = (handler, 0)
 
         }
