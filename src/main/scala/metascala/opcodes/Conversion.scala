@@ -1,7 +1,7 @@
 package metascala
 package opcodes
 
-import metascala.imm.{Attached, Type, Method}
+import metascala.imm.{TryCatchBlock, Attached, Type, Method}
 import scala.collection.mutable
 import metascala.StackOps.OpCode
 import org.objectweb.asm.commons.AdviceAdapter
@@ -23,19 +23,34 @@ object Conversion {
 
 
   def convertToSsa(method: Method, cls: String)(implicit vm: VM): Code = {
-//    println(s"-------------------Converting: $cls/${method.sig}--------------------------")
-    val blocks = walkBlocks(method)
-//    method.code.insns.foreach(println)
-//    for((x, i) <- blocks.zipWithIndex){
-//      println()
-//      println(i + "\t" + x._1)
-//      x._2.foreach(println)
-//    }
-//    println("============================================")
+    println(s"-------------------Converting: $cls/${method.sig}--------------------------")
+    if (method.name == "throwCatchX") {
+      method.code.insns.zipWithIndex.foreach{ case (x, i) =>
+        println(s"$i\t$x")
+      }
+      println("---TryCatch---")
+      method.misc.tryCatchBlocks.foreach{ b =>
+        println(b.start + " - " + b.end + ":\t" + b.handler)
+      }
+    }
 
+
+    val (blocks, tryCatchBlocks) = walkBlocks(method)
+    if (method.name == "throwCatchX") {
+      for((x, i) <- blocks.zipWithIndex){
+        println()
+        println(i + "\t" + x._1)
+        x._2.foreach(println)
+      }
+    }
     val phis = makePhis(blocks)
-//    println("PHIS")
-//    phis.foreach(println)
+    if (method.name == "throwCatchX"){
+      println("============================================")
+
+
+      println("PHIS")
+      phis.foreach(println)
+    }
 
 
     val basicBlocks =
@@ -43,14 +58,20 @@ object Conversion {
             .zip(phis)
             .map{ case ((buff, types), phis) => BasicBlock(buff, phis, types) }
 
-//    println("----------------------------------------------")
-//    for ((block, i) <- basicBlocks.zipWithIndex){
-//      println()
-//      println(i + "\t" + block.phi.toList)
-//      block.insns.foreach(println)
-//    }
-//    println("----------------------------------------------")
-    Code(basicBlocks)
+    if(method.name == "throwCatchX"){
+      println("----------------------------------------------")
+      for ((block, i) <- basicBlocks.zipWithIndex){
+        println()
+        println(i + "\t" + block.phi.toList)
+        block.insns.foreach(println)
+      }
+      println("---TryCatch---")
+      tryCatchBlocks.foreach(println)
+      println("----------------------------------------------")
+      System.exit(0)
+    }
+
+    Code(basicBlocks, tryCatchBlocks)
   }
 
   /**
@@ -79,12 +100,14 @@ object Conversion {
    * Takes a method and breaks up the bytecode from a flat list of stack
    * operations into a list of basic blocks of register operations
    */
-  def walkBlocks(method: imm.Method)(implicit vm: VM): Blocks = {
+  def walkBlocks(method: imm.Method)(implicit vm: VM): (Blocks, Seq[opcodes.TryCatchBlock]) = {
     val thisArg = if(method.static) Nil else Seq(imm.Type.Cls("java/lang/Object"))
 
-    val locals: Vector[imm.Type] = method.desc.args
-      .++:(thisArg)
-      .toVector
+    val locals: Vector[imm.Type] =
+      method.desc
+            .args
+            .++:(thisArg)
+            .toVector
 
     var insns = method.code.insns.toList
 
@@ -103,9 +126,8 @@ object Conversion {
       symCount += t.size
       sym
     }
+    var sections: Seq[Seq[Int]] =  Nil
     while (insns != Nil){
-
-
       state =
         attached.head
           .collectFirst{case f: imm.Attached.Frame => f}
@@ -113,18 +135,52 @@ object Conversion {
           .getOrElse(state)
 
       val (regInsns, newInsns, newAttached, newState) = run(insns, attached, state, makeSymbol _)
+      sections = sections :+ regInsns.map(_.length).scan(0)(_+_)
       val index = method.code.insns.length - insns.length
+
       blockMap(index) = blocks.length
 
-      blocks.append((state, regInsns, newState, types))
+      blocks.append((state, regInsns.flatten, newState, types))
       maxSyms = maxSyms max symCount
       insns = newInsns
       attached = newAttached
       state = newState
     }
+    var current = 0
+    for (i <- 0 until blockMap.length){
+      current = current max blockMap(i)
+      blockMap(i) = current
+    }
+    if (method.name == "throwCatchX"){
+      println("SECTIONS")
+      sections.foreach(println)
+      println("BLOCKMAP")
+      println(blockMap.toList)
+    }
 
+    //(0, 2) -> (5, 1)
+    val tryCatchBlocks = method.misc.tryCatchBlocks.map{b =>
+      val (startBlock, endBlock) = (blockMap(b.start), blockMap(b.end))
+      if (method.name == "throwCatchX"){
+        println("LOL")
+        println("startBlock\t" + startBlock)
+        println("endBlock\t" + endBlock)
+        println("startBlockIndex\t" + blockMap.indexOf(startBlock))
+        println("endBlockIndex\t" + blockMap.indexOf(endBlock))
+        println("b.start\t" + b.start)
+        println("b.end\t" + b.end)
+        println("sections(startBlock)\t" + sections(startBlock))
+        println("sections(endBlock)\t" + sections(endBlock))
+      }
+      opcodes.TryCatchBlock(
+        startBlock -> sections(startBlock)(b.start - blockMap.indexOf(startBlock)),
+        endBlock -> sections(endBlock)(b.end - blockMap.indexOf(endBlock)),
+        blockMap(b.handler),
+        b.blockType
+      )
+    }
 //    println("Block Map " + blockMap.toList)
-    blocks.map{ case (before, buffer, after, types) =>
+    val finalBlocks = blocks.map{ case (before, buffer, after, types) =>
       val newBuffer = buffer.map{
         case x: Insn.UnaryBranch  => x.copy(target = blockMap(x.target))
         case x: Insn.BinaryBranch => x.copy(target = blockMap(x.target))
@@ -135,26 +191,28 @@ object Conversion {
       }
       (before, newBuffer, after, types)
     }
+    (finalBlocks, tryCatchBlocks)
   }
   @tailrec
   def run(insns: List[OpCode],
           attached: List[Seq[Attached]],
           state: State,
           makeSymbol: Type => Symbol,
-          regInsns: Seq[Insn] = Seq())
-         (implicit vm: VM): (Seq[Insn], List[OpCode], List[Seq[Attached]], State) = {
+          regInsns: Seq[Seq[Insn]] = Seq(),
+          index: Int = 0)
+         (implicit vm: VM): (Seq[Seq[Insn]], List[OpCode], List[Seq[Attached]], State) = {
 
     (insns, attached) match {
       case (i :: is, a :: as) =>
 
 //        println(i + "\t" + i.toString.padTo(30, ' ') + state.stack.toString.padTo(20, ' ') + state.locals.toString.padTo(30, ' '))
         val (newState, newInsn) = op(state, i, makeSymbol)
-        val outInsns = regInsns ++ newInsn
+        val outInsns = regInsns ++ Seq(newInsn)
         import StackOps._
         (i, as) match{
           case (_, a :: _) if a.exists(_.isInstanceOf[Attached.Frame]) => (outInsns, is, as, newState)
           case (_: Jump, _) => (outInsns, is, as, newState)
-          case _ => run(is, as, newState, makeSymbol, outInsns)
+          case _ => run(is, as, newState, makeSymbol, outInsns, index + 1)
         }
       case _ => (regInsns, insns, attached, state)
     }

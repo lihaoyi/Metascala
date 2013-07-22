@@ -5,9 +5,8 @@ import java.awt.geom.Point2D;
 public class Casting {
     public static int basicCast(Object x){
         try{
-            String s = (String)x;
-            return s.length();
-        }catch(ClassCastException e){
+            throw new Exception();
+        }catch(Exception e){
             return -1;
         }
     }

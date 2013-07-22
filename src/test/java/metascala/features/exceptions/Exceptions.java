@@ -3,12 +3,23 @@ package metascala.features.exceptions;
 import java.io.IOException;
 
 public class Exceptions {
+    public static int get(){
+        return 0;
+    }
     public static int throwCatch(){
+        int a = get();
+        int kk = 1;
+        if (a >= 1) kk += 1;
+        else        kk += 2;
+
         try{
-            throw new Exception();
+            int j = a + 1;
+            if(a > 0) throw new Exception();
+            kk += j;
         }catch(Exception e){
-            return 0;
+            return kk - 1;
         }
+        return kk;
     }
 
     public static int multiCatch(int in){

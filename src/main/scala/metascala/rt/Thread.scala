@@ -6,7 +6,7 @@ import annotation.tailrec
 
 
 import imm.Access
-import metascala.opcodes.{Invoke, Jump, Insn}
+import metascala.opcodes.{TryCatchBlock, Invoke, Jump, Insn}
 import Insn._
 import Insn.Ldc
 import metascala.imm.Attached.LineNumber
@@ -37,6 +37,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     val (srcs, dests) = frame.method.code.blocks(newBlock).phi(oldBlock).unzip
 //    println(indent + (srcs, dests))
     val temp = srcs.map(frame.locals)
+
     for ((i, dest) <- temp.zip(dests)){
       frame.locals(dest) = i
     }
@@ -59,14 +60,14 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     val r = reader(frame.locals, 0)
 
-    lazy val localSnapshot =
-      code.blocks(frame.pc._1)
-          .locals
-          .map(_.prim)
-          .flatMap(x => Seq(x.read(r).toString).padTo(x.size, "~"))
-          .toList
-          .toString
-
+//    lazy val localSnapshot =
+//      code.blocks(frame.pc._1)
+//          .locals
+//          .map(_.prim)
+//          .flatMap(x => Seq(x.read(r).toString).padTo(x.size, "~"))
+//          .toList
+//          .toString
+//
 //    println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + localSnapshot)
 //    println(indent + "::\t" + frame.pc + "\t" + node )
 //    val stackH = threadStack.length
@@ -94,10 +95,11 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         returnVal(frame.method.method.sig.desc.ret.size, sym)
       case Push(prim, target, value) =>
         prim.write(value, writer(frame.locals, target))
+        advancePc()
       case New(target, cls) =>
         val obj = vrt.Obj.allocate(cls.name)
         frame.locals(target) = obj.address
-
+        advancePc()
       case InvokeStatic(target, sources, owner, sig) =>
         resolveDirectRef(owner, sig).map{ m =>
           val args = sources.zip(sig.desc.args)
@@ -137,16 +139,19 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
       case ArrayLength(src, dest) =>
         frame.locals(dest) = frame.locals(src).arr.length
+        advancePc()
       case NewArray(src, dest, typeRef) =>
         val newArray = vrt.Arr.allocate(typeRef, frame.locals(src))
         frame.locals(dest) = newArray.address
+        advancePc()
       case StoreArray(src, index, array, prim) =>
         val arr = frame.locals(array).arr
         blit(frame.locals, src, arr, frame.locals(index) * prim.size, prim.size)
+        advancePc()
       case LoadArray(dest, index, array, prim) =>
         val arr = frame.locals(array).arr
-
         blit(arr, frame.locals(index) * prim.size, frame.locals, dest, prim.size)
+        advancePc()
       case Ldc(target, thing) =>
         val w = writer(frame.locals, target)
         thing match{
@@ -166,9 +171,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
           case x: scala.Long  => J.write(x, w)
           case x: scala.Double => D.write(x, w)
         }
+        advancePc()
       case UnaryOp(src, psrc, dest, pout, func) =>
         pout.write(func(psrc.read(reader(frame.locals, src))), writer(frame.locals, dest))
-
+        advancePc()
       case BinOp(a, pa, b, pb, dest, pout, func) =>
         pout.write(
           func(
@@ -176,19 +182,19 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
             pa.read(reader(frame.locals, a))
           ), writer(frame.locals, dest)
         )
-
+        advancePc()
       case PutStatic(src, cls, index, prim) =>
         System.arraycopy(frame.locals, src, cls.statics, index, prim.size)
-
+        advancePc()
       case GetStatic(src, cls, index, prim) =>
         System.arraycopy(cls.statics, index, frame.locals, src, prim.size)
-
+        advancePc()
       case PutField(src, obj, index, prim) =>
         blit(frame.locals, src, frame.locals(obj).obj.members, index, prim.size)
-
+        advancePc()
       case GetField(src, obj, index, prim) =>
         blit(frame.locals(obj).obj.members, index, frame.locals, src, prim.size)
-
+        advancePc()
       case BinaryBranch(symA, symB, target, func) =>
         val (a, b) = (frame.locals(symA), frame.locals(symB))
         if(func(b, a)) {
@@ -237,10 +243,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         }
       case CheckCast(src, desc) =>
         frame.locals(src) match{
-          case 0 => ()
+          case 0 => advancePc()
           case top if (top.isArr && !check(top.arr.tpe, desc)) || (top.isObj && !check(top.obj.tpe, desc)) =>
             throwExWithTrace("java/lang/ClassCastException", "")
-          case _ => ()
+          case _ => advancePc()
         }
       case InstanceOf(src, dest, desc) =>
         frame.locals(dest) = frame.locals(src) match{
@@ -249,6 +255,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
             0
           case _ => 1
         }
+        advancePc()
       case MultiANewArray(desc, symbol, dims) =>
         def rec(dims: List[Int], tpe: imm.Type): Val = {
 
@@ -268,11 +275,12 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
         val array = rec(dimValues, desc)
         frame.locals(symbol) = array
+        advancePc()
       case AThrow(src) =>
         this.throwException(frame.locals(src).obj)
     }
 
-    if (!node.isInstanceOf[Jump] && !node.isInstanceOf[Invoke]) advancePc()
+
     opCount += 1
 
   }catch{case e: Throwable if !e.isInstanceOf[WrappedVmException] =>
@@ -300,7 +308,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     this.threadStack.pop
   }
   final def throwExWithTrace(clsName: String, detailMessage: String) = {
-    System.exit(0)
+
     throwException(
       vrt.Obj.allocate(clsName,
         "stackTrace" -> trace.toVirtObj,
@@ -310,13 +318,13 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   }
 
   @tailrec final def throwException(ex: vrt.Obj, print: Boolean = true): Unit = {
+    import math.Ordering.Implicits._
     threadStack.headOption match{
       case Some(frame)=>
         val handler =
-          frame.method.method.misc.tryCatchBlocks
-            .find{x =>
-            x.start <= frame.pc._1 &&
-              x.end >= frame.pc._1 &&
+          frame.method.code.tryCatches.find{x =>
+            (x.start <= frame.pc) &&
+              (x.end >= frame.pc) &&
               !x.blockType.isDefined ||
               x.blockType.map(ex.cls.typeAncestry.contains).getOrElse(false)
           }
@@ -325,7 +333,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
           case None =>
             threadStack.pop()
             throwException(ex, false)
-          case Some(imm.TryCatchBlock(start, end, handler, blockType)) =>
+          case Some(TryCatchBlock(start, end, handler, blockType)) =>
+
             frame.pc = (handler, 0)
 
         }
