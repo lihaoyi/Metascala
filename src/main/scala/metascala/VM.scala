@@ -62,11 +62,6 @@ class VM(val natives: Bindings = Bindings.default, val log: ((=>String) => Unit)
     override def post(cls: rt.Cls) = {
       clsIndex.append(cls)
 
-      val initMethod = cls.clsData
-                          .methods
-                          .find(m => m.name == "<clinit>" && m.desc == imm.Desc.read("()V"))
-
-      initMethod.foreach( m => threads(0).invoke(cls.clsData.tpe, imm.Sig("<clinit>", imm.Desc.read("()V")), Nil))
     }
   }
 

@@ -5,7 +5,7 @@ import collection.mutable
 
 
 import  metascala.{vrt, VM, imm}
-import metascala.imm.{Access, Type}
+import metascala.imm.{Sig, Access, Type}
 
 /**
  * A handle to a readable and writable value.
@@ -24,7 +24,18 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
   import vm._
 
   var initialized = false
+  def checkInitialized(): Unit = {
+    if (!initialized){
+      initialized = true
+      methods.find(_.method.sig == Sig("<clinit>", imm.Desc.read("()V")))
+             .foreach(threads(0).invoke(_, Nil))
 
+      clsData.superType.foreach{ cls =>
+        vm.ClsTable(cls).checkInitialized()
+      }
+
+    }
+  }
   /**
    * Mutable representations of all the methods this class has
    */

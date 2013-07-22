@@ -17,7 +17,6 @@ class FullTest extends FreeSpec with Util{
     "sorting" in tester.run("sorting")
     "collections" in tester.run("collections", 10)
     "sudoku" in tester.run("sudoku")
-    "fasta" in tester.run("fasta")
   }
 }
 

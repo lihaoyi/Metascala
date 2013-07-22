@@ -68,8 +68,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
           .toList
           .toString
 
-    println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + localSnapshot)
-    println(indent + "::\t" + frame.pc + "\t" + node )
+//    println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + localSnapshot)
+//    println(indent + "::\t" + frame.pc + "\t" + node )
 //    val stackH = threadStack.length
 
 //    println(indent + "::\t" + vm.Heap.dump.replace("\n", "\n" + indent + "::\t"))
@@ -96,10 +96,12 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         prim.write(value, writer(frame.locals, target))
         advancePc()
       case New(target, cls) =>
+        cls.checkInitialized()
         val obj = vrt.Obj.allocate(cls.name)
         frame.locals(target) = obj.address
         advancePc()
       case InvokeStatic(target, sources, owner, sig) =>
+        owner.checkInitialized()
         resolveDirectRef(owner, sig).map{ m =>
           val args = sources.zip(sig.desc.args)
                             .flatMap{case (s, t) =>
@@ -127,10 +129,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
           frame.locals.slice(s, s + t)
         }
 
-        println(indent + "INVOKEVIRTUAL")
-        println(indent + args)
-        println(indent + sources)
-        println(indent + frame.locals.toList)
+//        println(indent + "INVOKEVIRTUAL")
+//        println(indent + args)
+//        println(indent + sources)
+//        println(indent + frame.locals.toList)
         val phis = advancePc()
         val ptarget = phis.toMap.getOrElse(target, target)
         if(args(0) == 0) throwExWithTrace("java/lang/NullPointerException", "null")
@@ -211,9 +213,11 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         )
         advancePc()
       case PutStatic(src, cls, index, prim) =>
+        cls.checkInitialized()
         System.arraycopy(frame.locals, src, cls.statics, index, prim.size)
         advancePc()
       case GetStatic(src, cls, index, prim) =>
+        cls.checkInitialized()
         System.arraycopy(cls.statics, index, frame.locals, src, prim.size)
 
         advancePc()
