@@ -345,9 +345,7 @@ trait Default extends Bindings{
 
               val obj = o.obj
 
-              val fieldName = obj.cls.clsData.fields(slot.toInt).name
-
-              obj(fieldName) = x
+              obj.members(slot.toInt) = x
               true
             },
 

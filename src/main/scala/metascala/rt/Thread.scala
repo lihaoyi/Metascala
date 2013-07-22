@@ -67,7 +67,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 //          .flatMap(x => Seq(x.read(r).toString).padTo(x.size, "~"))
 //          .toList
 //          .toString
-//
+
 //    println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + localSnapshot)
 //    println(indent + "::\t" + frame.pc + "\t" + node )
 //    val stackH = threadStack.length
@@ -123,10 +123,11 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         }
       case InvokeVirtual(target, sources, owner, sig) =>
         val args = sources.zip(1 +: sig.desc.args.map(_.size))
-          .flatMap{case (s, t) =>
+                          .flatMap{case (s, t) =>
           frame.locals.slice(s, s + t)
         }
-        ///println("INVOKE VIRTUAL " + args)
+
+
         val phis = advancePc()
         val ptarget = phis.toMap.getOrElse(target, target)
         if(args(0) == 0) throwExWithTrace("java/lang/NullPointerException", "null")

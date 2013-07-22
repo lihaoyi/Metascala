@@ -3,11 +3,15 @@ package metascala.full
 import metascala.{BufferLog, Util}
 import org.scalatest.FreeSpec
 import org.scalatest._
+import scala.collection.immutable.Range.Inclusive
+import scala.collection.immutable.Range
+import scala.runtime.RichInt
+
 
 object ScalaLib{
   def hello = "hello"
-  def lists(n: Int) = {
-    0 to n
+  def predef(n: Int) = {
+    Predef
   }
   def palindrome(min: Int, max: Int) = {
     def isPalindrome(s: String): Boolean = s.reverse.mkString == s
@@ -35,7 +39,7 @@ class ScalaLib extends FreeSpec with Util{
   val buffer = new BufferLog(4000)
   val tester = new Tester("metascala.full.ScalaLib", buffer)
   "hello world" in tester.run("hello")
-  "lists" in tester.run("lists", 5)
+  "predef" in tester.run("predef", 5)
   "palindrome" in {
     tester.run("palindrome", 100, 130)
   }
