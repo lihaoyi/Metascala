@@ -60,16 +60,16 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     val r = reader(frame.locals, 0)
 
-//    lazy val localSnapshot =
-//      code.blocks(frame.pc._1)
-//          .locals
-//          .map(_.prim)
-//          .flatMap(x => Seq(x.read(r).toString).padTo(x.size, "~"))
-//          .toList
-//          .toString
+    lazy val localSnapshot =
+      code.blocks(frame.pc._1)
+          .locals
+          .map(_.prim)
+          .flatMap(x => Seq(x.read(r).toString).take(x.size).padTo(x.size, "~"))
+          .toList
+          .toString
 
-//    println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + localSnapshot)
-//    println(indent + "::\t" + frame.pc + "\t" + node )
+    println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + localSnapshot)
+    println(indent + "::\t" + frame.pc + "\t" + node )
 //    val stackH = threadStack.length
 
 //    println(indent + "::\t" + vm.Heap.dump.replace("\n", "\n" + indent + "::\t"))
@@ -127,7 +127,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
           frame.locals.slice(s, s + t)
         }
 
-
+        println(indent + "INVOKEVIRTUAL")
+        println(indent + args)
+        println(indent + sources)
+        println(indent + frame.locals.toList)
         val phis = advancePc()
         val ptarget = phis.toMap.getOrElse(target, target)
         if(args(0) == 0) throwExWithTrace("java/lang/NullPointerException", "null")
@@ -212,6 +215,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         advancePc()
       case GetStatic(src, cls, index, prim) =>
         System.arraycopy(cls.statics, index, frame.locals, src, prim.size)
+
         advancePc()
       case PutField(src, obj, index, prim) =>
         blit(frame.locals, src, frame.locals(obj).obj.members, index, prim.size)
@@ -447,3 +451,7 @@ class Frame(var pc: (Int, Int) = (0, 0),
             val locals: Array[Val])
 
 
+
+object Cow{
+
+}

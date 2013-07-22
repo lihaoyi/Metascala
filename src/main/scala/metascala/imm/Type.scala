@@ -36,7 +36,7 @@ object Type{
     def parent(implicit vm: VM) = Some(imm.Type.Cls("java/lang/Object"))
     def realCls = innerType.realCls
     def methodType = Type.Cls("java/lang/Object")
-    def prim = Prim.I
+    def prim = Prim.A
   }
   object Cls{
     def read(s: String) = Cls(s)
@@ -54,7 +54,7 @@ object Type{
     def parent(implicit vm: VM) = this.cls.clsData.superType
     def realCls = classOf[Object]
     def methodType: Type.Cls = this
-    def prim = Prim.I
+    def prim = Prim.A
     override val hashCode = name.hashCode
   }
 
@@ -85,6 +85,13 @@ object Type{
     )
     def unapply(p: Prim[_]) = Some(p.size)
 
+    type A = Any
+    case object A extends Prim[Any](1){
+      def apply(x: Val) = ???
+      def read(x: () => Val) = "@" + x()
+      def write(x: Any, out: Val => Unit) = ???
+      def boxedClass = classOf[Any]
+    }
     case object V extends Prim[Unit](0){
       def apply(x: Val) = ???
       def read(x: () => Val) = ()

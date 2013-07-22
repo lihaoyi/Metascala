@@ -23,6 +23,8 @@ class Var(var x: Val){
 class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
   import vm._
 
+  var initialized = false
+
   /**
    * Mutable representations of all the methods this class has
    */
@@ -121,6 +123,10 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
    * by method signature
    */
   lazy val vTableMap = vTable.map(m => m.sig -> m).toMap
+
+  override def toString() = {
+    s"Cls($index, ${clsData.tpe.name})"
+  }
 }
 
 

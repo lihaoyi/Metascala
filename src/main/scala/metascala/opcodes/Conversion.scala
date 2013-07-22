@@ -21,7 +21,6 @@ case class Symbol(n: Int, tpe: imm.Type){
 object Conversion {
   type Blocks = Seq[(State, Seq[Insn], State, Seq[Type])]
 
-
   def convertToSsa(method: Method, cls: String)(implicit vm: VM): Code = {
 //    println(s"-------------------Converting: $cls/${method.sig}--------------------------")
 
@@ -103,9 +102,9 @@ object Conversion {
     while (insns != Nil){
       allStates.append(
         attached.head
-          .collectFirst{case f: imm.Attached.Frame => f}
-          .map(State(_, makeSymbol.apply _))
-          .getOrElse(state)
+                .collectFirst{case f: imm.Attached.Frame => f}
+                .map(State(_, makeSymbol.apply _))
+                .getOrElse(state)
       )
 
       val (regInsns, newInsns, newAttached, newState) = run(insns, attached, allStates.last, makeSymbol.apply)
@@ -223,7 +222,7 @@ object Conversion {
 
     case NewArray(typeCode) =>
       val length :: rest = state.stack
-      val symbol = makeSymbol(I)
+      val symbol = makeSymbol(A)
       val typeRef: imm.Type = typeCode match{
         case 4  => Z: imm.Type
         case 5  => C: imm.Type
@@ -244,7 +243,7 @@ object Conversion {
       state.copy(stack = symbol :: rest) -> List(Insn.ArrayLength(arr.n, symbol.n))
     case ANewArray(typeRef) =>
       val length :: rest = state.stack
-      val symbol = makeSymbol(I)
+      val symbol = makeSymbol(A)
       state.copy(stack = symbol :: rest) -> List(Insn.NewArray(length.n, symbol.n, typeRef))
 
     case LoadArray(prim) =>
@@ -264,7 +263,7 @@ object Conversion {
       val symbol = thing match{
         case _: Long => makeSymbol(J)
         case _: Double => makeSymbol(D)
-        case _ => makeSymbol(I)
+        case _ => makeSymbol(A)
       }
 
       state.copy(stack = symbol join state.stack) -> List(Insn.Ldc(symbol.n, thing))
@@ -304,12 +303,12 @@ object Conversion {
       val symbol = makeSymbol(I)
       state.copy(stack = symbol join state.stack) -> List(Insn.Push(I, symbol.n, v))
 
-    case o @ Const(prim, value) =>
+    case Const(prim, value) =>
       val symbol = makeSymbol(prim)
-      state.copy(stack = symbol join state.stack) -> List(Insn.Push(prim, symbol.n, o.value))
+      state.copy(stack = symbol join state.stack) -> List(Insn.Push(prim, symbol.n, value))
 
     case New(desc) =>
-      val symbol = makeSymbol(I)
+      val symbol = makeSymbol(A)
       state.copy(stack = symbol join state.stack) ->
         List(Insn.New(symbol.n, vm.ClsTable(desc)))
 
@@ -381,7 +380,7 @@ object Conversion {
 
     case MultiANewArray(desc, dims) =>
       val (dimsX, rest) = state.stack.splitAt(dims)
-      val symbol = makeSymbol(I)
+      val symbol = makeSymbol(A)
       state.copy(stack = symbol :: rest) -> Seq(Insn.MultiANewArray(desc, symbol.n, dimsX.map(_.n)))
   }
 }
