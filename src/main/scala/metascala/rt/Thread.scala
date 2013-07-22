@@ -68,8 +68,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
           .toList
           .toString
 
-//    println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + localSnapshot)
-//    println(indent + "::\t" + frame.pc + "\t" + node )
+//    if (frame.method.method.name != "<clinit>") {
+//      println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + localSnapshot)
+//      println(indent + "::\t" + frame.pc + "\t" + node )
+//    }
 //    val stackH = threadStack.length
 
 //    println(indent + "::\t" + vm.Heap.dump.replace("\n", "\n" + indent + "::\t"))
@@ -107,6 +109,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
                             .flatMap{case (s, t) =>
             frame.locals.slice(s, s + t.size)
           }
+
           val phis = advancePc()
           val ptarget = phis.toMap.getOrElse(target, target)
           prepInvoke(m, args, writer(frame.locals, ptarget))

@@ -49,6 +49,17 @@ public class ArrayStuff {
         return total;
     }
 
+    public static char getSet(){
+        char[] buf = new char[10];
+        char[] digits = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+        int charPos = buf.length;
+        int r = 10;
+        while(charPos > 0){
+            r--;
+            buf[--charPos] = digits[r];
+        }
+        return buf[r + 5];
+    }
     public static int[] bubbleSort(int[] arr){
         for(int i = 1; i < arr.length; i++){
             for(int j = 1; j < arr.length; j++){
@@ -62,4 +73,6 @@ public class ArrayStuff {
         }
         return arr;
     }
+
+
 }

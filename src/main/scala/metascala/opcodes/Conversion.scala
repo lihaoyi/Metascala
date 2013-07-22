@@ -22,8 +22,9 @@ object Conversion {
   type Blocks = Seq[(State, Seq[Insn], State, Seq[Type])]
 
   def convertToSsa(method: Method, cls: String)(implicit vm: VM): Code = {
-    println(s"-------------------Converting: $cls/${method.sig}--------------------------")
-    if (method.name == "copy") {
+
+    if (method.name == "XXX") {
+      println(s"-------------------Converting: $cls/${method.sig}--------------------------")
       method.code.insns.zipWithIndex.foreach{ case (x, i) =>
         println(s"$i\t$x")
       }
@@ -40,7 +41,7 @@ object Conversion {
             .zip(makePhis(blocks))
             .map{ case ((buff, types), phis) => BasicBlock(buff, phis, types) }
 
-    if(method.name == "copy"){
+    if(method.name == "XXX"){
       println("----------------------------------------------")
       for ((block, i) <- basicBlocks.zipWithIndex){
         println()
@@ -213,6 +214,11 @@ object Conversion {
       t.copy(_1 = t._1.head)
     }
   }
+
+  def collapseReverse(in: List[Symbol], out: List[Symbol] = Nil): List[Symbol] = in match{
+    case Nil => out
+    case head :: rest => collapseReverse(rest.drop(head.size - 1), head :: out)
+  }
   /**
    * Performs a single step in the symbolic interpretation of a method; does
    * everything pure-functional style, taking the old state in and spitting
@@ -223,23 +229,24 @@ object Conversion {
 
     case InvokeStatic(cls, sig) =>
       val (args, newStack) = state.stack.splitAt(sig.desc.argSize)
+
       val target = makeSymbol(sig.desc.ret)
-      state.copy(stack = target join newStack) -> List(Insn.InvokeStatic(target.n, args.reverse.map(_.n), cls, sig))
+      state.copy(stack = target join newStack) -> List(Insn.InvokeStatic(target.n, collapseReverse(args).map(_.n), cls, sig))
 
     case InvokeSpecial(cls, sig) =>
       val (args, newStack) = state.stack.splitAt(sig.desc.argSize + 1)
       val target = makeSymbol(sig.desc.ret)
-      state.copy(stack = target join newStack) -> List(Insn.InvokeSpecial(target.n, args.reverse.map(_.n), cls, sig))
+      state.copy(stack = target join newStack) -> List(Insn.InvokeSpecial(target.n, collapseReverse(args).map(_.n), cls, sig))
 
     case InvokeVirtual(cls, sig) =>
       val (args, newStack) = state.stack.splitAt(sig.desc.argSize + 1)
       val target = makeSymbol(sig.desc.ret)
-      state.copy(stack = target join newStack) -> List(Insn.InvokeVirtual(target.n, args.reverse.map(_.n), cls.cast[imm.Type.Cls], sig))
+      state.copy(stack = target join newStack) -> List(Insn.InvokeVirtual(target.n, collapseReverse(args).map(_.n), cls.cast[imm.Type.Cls], sig))
 
     case InvokeInterface(cls, sig) =>
       val (args, newStack) = state.stack.splitAt(sig.desc.argSize + 1)
       val target = makeSymbol(sig.desc.ret)
-      state.copy(stack = target join newStack) -> List(Insn.InvokeInterface(target.n, args.reverse.map(_.n), cls.cast[imm.Type.Cls], sig))
+      state.copy(stack = target join newStack) -> List(Insn.InvokeInterface(target.n, collapseReverse(args).map(_.n), cls.cast[imm.Type.Cls], sig))
 
     case NewArray(typeCode) =>
       val length :: rest = state.stack
@@ -371,8 +378,8 @@ object Conversion {
       val symbol = makeSymbol(I)
       val out = makeSymbol(I)
       state.copy(locals = state.locals.updated(varId, out)) -> Seq(
-        Insn.Ldc(symbol.n, amount),
-        Insn.BinOp[I, I, I](symbol.n, I, state.locals(varId).n, I, out.n, I, _+_)
+        Insn.Push(I, symbol.n, amount),
+        Insn.BinOp[I, I, I](symbol.n, I, state.locals(varId).n, I, out.n, I, F2[Int, Int, Int](_+_, "IInc"))
       )
 
     case ManipStack(transform) =>

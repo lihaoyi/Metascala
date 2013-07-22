@@ -22,6 +22,7 @@ class ArrayTest extends FreeSpec with Util{
     "arrayLength" in tester.run("arrayLength")
     "arraySet" in tester.run("arraySet")
     "arrayGet" in tester.run("arrayGet")
+    "getSet" in tester.run("getSet")
     "bubbleSort" in chk{ src: Array[Int] =>
       tester.run("bubbleSort", src.clone())
     }(Seq(
