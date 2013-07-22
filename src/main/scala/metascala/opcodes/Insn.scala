@@ -37,6 +37,7 @@ object Insn{
   case class InvokeStatic(target: Sym, sources: Seq[Sym], owner: Type.Cls, sig: imm.Sig) extends Invoke
   case class InvokeSpecial(target: Sym, sources: Seq[Sym], owner: Type.Cls, sig: imm.Sig) extends Invoke
   case class InvokeVirtual(target: Sym, sources: Seq[Sym], owner: Type.Cls, sig: imm.Sig) extends Invoke
+  case class InvokeInterface(target: Sym, sources: Seq[Sym], owner: Type.Cls, sig: imm.Sig) extends Invoke
   case class New(target: Sym, cls: rt.Cls) extends Insn
   case class PutStatic(src: Sym, cls: rt.Cls, index: Int, prim: Prim[_]) extends Insn
   case class GetStatic(src: Sym, cls: rt.Cls, index: Int, prim: Prim[_]) extends Insn

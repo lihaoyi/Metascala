@@ -89,7 +89,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       }
     }
 
-
     node match {
       case ReturnVal(sym) =>
         returnVal(frame.method.method.sig.desc.ret.size, sym)
@@ -123,6 +122,21 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
           else prepInvoke(m, args, writer(frame.locals, ptarget))
         }
       case InvokeVirtual(target, sources, owner, sig) =>
+        val args = sources.zip(1 +: sig.desc.args.map(_.size))
+          .flatMap{case (s, t) =>
+          frame.locals.slice(s, s + t)
+        }
+        ///println("INVOKE VIRTUAL " + args)
+        val phis = advancePc()
+        val ptarget = phis.toMap.getOrElse(target, target)
+        if(args(0) == 0) throwExWithTrace("java/lang/NullPointerException", "null")
+        else {
+          //println(args(0).obj.cls.clsData.tpe)
+          val mRef = args(0).obj.cls.vTableMap(sig)
+          prepInvoke(mRef, args, writer(frame.locals, ptarget))
+        }
+
+      case InvokeInterface(target, sources, owner, sig) =>
         val args = sources.zip(1 +: sig.desc.args.map(_.size))
           .flatMap{case (s, t) =>
           frame.locals.slice(s, s + t)

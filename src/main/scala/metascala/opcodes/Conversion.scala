@@ -245,6 +245,11 @@ object Conversion {
       val target = makeSymbol(sig.desc.ret)
       state.copy(stack = target join newStack) -> List(Insn.InvokeVirtual(target.n, args.reverse.map(_.n), cls.cast[imm.Type.Cls], sig))
 
+    case InvokeInterface(cls, sig) =>
+      val (args, newStack) = state.stack.splitAt(sig.desc.argSize + 1)
+      val target = makeSymbol(sig.desc.ret)
+      state.copy(stack = target join newStack) -> List(Insn.InvokeInterface(target.n, args.reverse.map(_.n), cls.cast[imm.Type.Cls], sig))
+
     case NewArray(typeCode) =>
       val length :: rest = state.stack
       val symbol = makeSymbol(I)
