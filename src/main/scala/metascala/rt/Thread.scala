@@ -133,12 +133,19 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 //        println(indent + args)
 //        println(indent + sources)
 //        println(indent + frame.locals.toList)
+
         val phis = advancePc()
         val ptarget = phis.toMap.getOrElse(target, target)
         if(args(0) == 0) throwExWithTrace("java/lang/NullPointerException", "null")
         else {
           //println(args(0).obj.cls.clsData.tpe)
-          val mRef = args(0).obj.cls.vTableMap(sig)
+          val mRef =
+            if (args(0).isArr){
+              resolveDirectRef(imm.Type.Cls("java/lang/Object"), sig).get
+            }else{
+              args(0).obj.cls.vTableMap(sig)
+            }
+
           prepInvoke(mRef, args, writer(frame.locals, ptarget))
         }
 

@@ -12,6 +12,7 @@ object ScalaLib{
   def hello = "hello"
   def predef(n: Int) = {
     Predef
+    0
   }
   def palindrome(min: Int, max: Int) = {
     def isPalindrome(s: String): Boolean = s.reverse.mkString == s

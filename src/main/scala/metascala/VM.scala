@@ -112,12 +112,12 @@ class VM(val natives: Bindings = Bindings.default, val log: ((=>String) => Unit)
 
     val method =
       owner.cls
-        .methods
-        .find(_.sig == sig)
+           .methods
+           .find(_.sig == sig)
 
     Some(
       native.orElse(method)
-        .getOrElse(throw new Exception(s"Can't find method ${owner.unparse} ${sig.name} ${sig.desc.unparse}"))
+            .getOrElse(throw new Exception(s"Can't find method ${owner.unparse} ${sig.name} ${sig.desc.unparse}"))
     )
   }
 }

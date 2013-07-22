@@ -22,7 +22,16 @@ object Conversion {
   type Blocks = Seq[(State, Seq[Insn], State, Seq[Type])]
 
   def convertToSsa(method: Method, cls: String)(implicit vm: VM): Code = {
-//    println(s"-------------------Converting: $cls/${method.sig}--------------------------")
+    println(s"-------------------Converting: $cls/${method.sig}--------------------------")
+    if (method.name == "copy") {
+      method.code.insns.zipWithIndex.foreach{ case (x, i) =>
+        println(s"$i\t$x")
+      }
+      println("---TryCatch---")
+      method.misc.tryCatchBlocks.foreach{ b =>
+        println(b.start + " - " + b.end + ":\t" + b.handler)
+      }
+    }
 
     val (blocks, tryCatchBlocks) = walkBlocks(method)
 
@@ -30,6 +39,18 @@ object Conversion {
       blocks.map(b => b._2 -> b._4)
             .zip(makePhis(blocks))
             .map{ case ((buff, types), phis) => BasicBlock(buff, phis, types) }
+
+    if(method.name == "copy"){
+      println("----------------------------------------------")
+      for ((block, i) <- basicBlocks.zipWithIndex){
+        println()
+        println(i + "\t" + block.phi.toList)
+        block.insns.foreach(println)
+      }
+      println("---TryCatch---")
+      tryCatchBlocks.foreach(println)
+      println("----------------------------------------------")
+    }
 
     Code(basicBlocks, tryCatchBlocks)
   }

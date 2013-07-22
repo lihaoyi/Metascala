@@ -121,6 +121,7 @@ object Attached{
     def readType(x: AnyRef) = x match{
       case s: String => imm.Type.Cls(s)
       case x: java.lang.Integer => typeMap(x)
+      case x: org.objectweb.asm.tree.LabelNode => imm.Type.Cls("java/lang/Object")
     }
     
     val typeMap = Seq(
