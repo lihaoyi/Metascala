@@ -31,28 +31,40 @@ sealed trait Insn{
 object Insn{
   case class BinOp[A, B, R](a: Sym, pa: Prim[A], b: Sym, pb: Prim[B], out: Sym, pout: Prim[R], func: (A, B) => R) extends Insn
   case class UnaryOp[A, R](a: Sym, pa: Prim[A], out: Sym, pout: Prim[R], func: A => R) extends Insn
+
   case class UnaryBranch(a: Sym, target: Int, func: Int => Boolean) extends Jump(Seq(target))
   case class BinaryBranch(a: Sym, b: Sym, target: Int, func: (Int, Int) => Boolean) extends Jump(Seq(target))
   case class ReturnVal(a: Sym) extends Insn
+  case class AThrow(src: Sym) extends Insn
+
   case class TableSwitch(src: Sym, min: Int, max: Int, default: Int, targetList: Seq[Int]) extends Jump(targetList :+ default)
   case class LookupSwitch(src: Sym, default: Int, keys: Seq[Int], targetList: Seq[Int]) extends Jump(targetList :+ default)
   case class Goto(target: Int) extends Jump(Seq(target))
-  case class Ldc(target: Int, thing: Any) extends Insn
-  case class Push[T](prim: Prim[T], target: Int, value: T) extends Insn
-  case class InvokeStatic(target: Sym, sources: Seq[Sym], owner: Type.Cls, method: rt.Method) extends Invoke
-  case class InvokeVirtual(target: Sym, sources: Seq[Sym], owner: Type.Cls, sig: imm.Sig, methodIndex: Int) extends Invoke
-  case class InvokeInterface(target: Sym, sources: Seq[Sym], owner: Type.Cls, sig: imm.Sig) extends Invoke
-  case class New(target: Sym, cls: rt.Cls) extends Insn
-  case class PutStatic(src: Sym, cls: rt.Cls, index: Int, prim: Prim[_]) extends Insn
-  case class GetStatic(src: Sym, cls: rt.Cls, index: Int, prim: Prim[_]) extends Insn
-  case class PutField(src: Sym, obj: Sym, index: Int, prim: Prim[_]) extends Insn
-  case class GetField(src: Sym, obj: Sym, index: Int, prim: Prim[_]) extends Insn
-  case class NewArray(src: Sym, dest: Sym, typeRef: imm.Type) extends Insn
-  case class StoreArray[T](src: Sym, index: Sym, array: Sym, prim: Prim[T]) extends Insn
-  case class LoadArray[T](dest: Sym, index: Sym, array: Sym, prim: Prim[T]) extends Insn
-  case class AThrow(src: Sym) extends Insn
+
   case class CheckCast(src: Sym, desc: Type) extends Insn
   case class ArrayLength(src: Sym, dest: Sym) extends Insn
   case class InstanceOf(src: Sym, dest: Sym, desc: Type) extends Insn
+
+  case class Push[T](prim: Prim[T], target: Int, value: T) extends Insn
+
+  case class InvokeStatic(target: Sym, sources: Seq[Sym], owner: Type.Cls, method: rt.Method) extends Invoke
+  case class InvokeVirtual(target: Sym, sources: Seq[Sym], owner: Type.Cls, sig: imm.Sig, methodIndex: Int) extends Invoke
+  case class InvokeInterface(target: Sym, sources: Seq[Sym], owner: Type.Cls, sig: imm.Sig) extends Invoke
+
+  case class New(target: Sym, cls: rt.Cls) extends Insn
+  case class NewArray(src: Sym, dest: Sym, typeRef: imm.Type) extends Insn
   case class MultiANewArray(desc: Type, target: Sym, dims: Seq[Sym]) extends Insn
+
+  case class PutStatic(src: Sym, cls: rt.Cls, index: Int, prim: Prim[_]) extends Insn
+  case class GetStatic(src: Sym, cls: rt.Cls, index: Int, prim: Prim[_]) extends Insn
+
+  case class PutField(src: Sym, obj: Sym, index: Int, prim: Prim[_]) extends Insn
+  case class GetField(src: Sym, obj: Sym, index: Int, prim: Prim[_]) extends Insn
+
+  case class StoreArray[T](src: Sym, index: Sym, array: Sym, prim: Prim[T]) extends Insn
+  case class LoadArray[T](dest: Sym, index: Sym, array: Sym, prim: Prim[T]) extends Insn
+
+
+
+
 }

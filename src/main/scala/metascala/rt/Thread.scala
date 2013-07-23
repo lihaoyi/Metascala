@@ -8,7 +8,7 @@ import annotation.tailrec
 import imm.Access
 import metascala.opcodes.{TryCatchBlock, Invoke, Jump, Insn}
 import Insn._
-import Insn.Ldc
+
 import metascala.imm.Attached.LineNumber
 import Insn.Push
 import Insn.InvokeStatic
@@ -181,26 +181,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         }else{
           throwExWithTrace("java/lang/ArrayIndexOutOfBoundsException", frame.locals(index).toString)
         }
-      case Ldc(target, thing) =>
-        val w = writer(frame.locals, target)
-        thing match{
-          case s: String =>
-            val top = Virtualizer.pushVirtual(s).apply(0)
-            frame.locals(target) = top
-          case t: org.objectweb.asm.Type =>
-            val clsObj = vrt.Obj.allocate("java/lang/Class",
-              "name" -> Virtualizer.pushVirtual(t.getInternalName).apply(0)
-            )
-            frame.locals(target) = clsObj.address
-          case x: scala.Byte  => B.write(x, w)
-          case x: scala.Char  => C.write(x, w)
-          case x: scala.Short => S.write(x, w)
-          case x: scala.Int   => I.write(x, w)
-          case x: scala.Float => F.write(x, w)
-          case x: scala.Long  => J.write(x, w)
-          case x: scala.Double => D.write(x, w)
-        }
-        advancePc()
+
       case UnaryOp(src, psrc, dest, pout, func) =>
         pout.write(func(psrc.read(reader(frame.locals, src))), writer(frame.locals, dest))
         advancePc()

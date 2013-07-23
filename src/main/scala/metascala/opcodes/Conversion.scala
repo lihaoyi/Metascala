@@ -303,13 +303,28 @@ object Conversion {
       state.copy(stack = state.locals(index) join state.stack) -> Nil
 
     case Ldc(thing) =>
-      val symbol = thing match{
-        case _: Long => makeSymbol(J)
-        case _: Double => makeSymbol(D)
-        case _ => makeSymbol(A)
+      def handle[T, U](t: Prim[T], u: Prim[U], value: U) = {
+        val symbol = makeSymbol(t)
+        Insn.Push[U](u, symbol.n, value) -> symbol
+      }
+      val (opcode: Insn, symbol: Symbol) = thing match {
+        case t: org.objectweb.asm.Type =>
+          val clsObj = vrt.Obj.allocate("java/lang/Class",
+            "name" -> Virtualizer.pushVirtual(t.getInternalName).apply(0)
+          )
+          handle(A, I, clsObj.address)
+        case s: String =>       handle(A, I, Virtualizer.pushVirtual(s).apply(0))
+        case x: scala.Byte   => handle(B, B, x)
+        case x: scala.Char   => handle(C, C, x)
+        case x: scala.Short  => handle(S, S, x)
+        case x: scala.Int    => handle(I, I, x)
+        case x: scala.Float  => handle(F, F, x)
+        case x: scala.Long   => handle(J, J, x)
+        case x: scala.Double => handle(D, D, x)
+
       }
 
-      state.copy(stack = symbol join state.stack) -> List(Insn.Ldc(symbol.n, thing))
+      state.copy(stack = symbol join state.stack) -> List(opcode)
 
     case BinOp(a, b, out, func) =>
       val symbol = makeSymbol(out)
