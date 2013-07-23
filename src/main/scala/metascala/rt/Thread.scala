@@ -95,7 +95,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       case ReturnVal(sym) =>
         returnVal(frame.method.method.sig.desc.ret.size, sym)
 
-      case Push(prim, target, value) =>
+      case Push(target, prim, value) =>
         prim.write(value, writer(frame.locals, target))
         advancePc()
 
@@ -164,7 +164,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         val newArray = vrt.Arr.allocate(typeRef, frame.locals(src))
         frame.locals(dest) = newArray.address
         advancePc()
-      case StoreArray(src, index, array, prim) =>
+      case PutArray(src, index, array, prim) =>
         val arr = frame.locals(array).arr
         if (0 <= frame.locals(index) && frame.locals(index) < arr.length){
           blit(frame.locals, src, arr, frame.locals(index) * prim.size, prim.size)
@@ -173,7 +173,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
           throwExWithTrace("java/lang/ArrayIndexOutOfBoundsException", frame.locals(index).toString)
         }
 
-      case LoadArray(dest, index, array, prim) =>
+      case GetArray(dest, index, array, prim) =>
         val arr = frame.locals(array).arr
         if (0 <= frame.locals(index) && frame.locals(index) < arr.length){
           blit(arr, frame.locals(index) * prim.size, frame.locals, dest, prim.size)

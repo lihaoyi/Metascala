@@ -119,7 +119,7 @@ object StackOps {
 
 
 
-  // Not used, because ASM converts these to raw XLoad(index: Int)s
+  // Not used, because ASM converts these to raw XLoad(indexSrc: Int)s
   //===============================================================
   val ILoad0 = UnusedOpCode
   val ILoad1 = UnusedOpCode
@@ -165,7 +165,7 @@ object StackOps {
   val DStore = Store[D](_: Int, D)
   val AStore = Store[I](_: Int, I)
 
-  // Not used, because ASM converts these to raw XStore(index: Int)s
+  // Not used, because ASM converts these to raw XStore(indexSrc: Int)s
   //===============================================================
   val IStore0 = UnusedOpCode
   val IStore1 = UnusedOpCode

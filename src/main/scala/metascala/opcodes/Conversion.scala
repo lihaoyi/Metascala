@@ -293,11 +293,11 @@ object Conversion {
       val index :: array :: base = state.stack
       val symbol = makeSymbol(prim)
 
-      state.copy(stack = symbol join base) -> List(Insn.LoadArray(symbol.n, index.n, array.n, prim))
+      state.copy(stack = symbol join base) -> List(Insn.GetArray(symbol.n, index.n, array.n, prim))
 
     case StoreArray(prim) =>
       val (value, index :: array :: base) = state.stack.pop(prim)
-      state.copy(stack = base) -> List(Insn.StoreArray(value.n, index.n, array.n, prim))
+      state.copy(stack = base) -> List(Insn.PutArray(value.n, index.n, array.n, prim))
 
     case Load(index, _) =>
       state.copy(stack = state.locals(index) join state.stack) -> Nil
@@ -305,7 +305,7 @@ object Conversion {
     case Ldc(thing) =>
       def handle[T, U](t: Prim[T], u: Prim[U], value: U) = {
         val symbol = makeSymbol(t)
-        Insn.Push[U](u, symbol.n, value) -> symbol
+        Insn.Push[U](symbol.n, u, value) -> symbol
       }
       val (opcode: Insn, symbol: Symbol) = thing match {
         case t: org.objectweb.asm.Type =>
@@ -359,11 +359,11 @@ object Conversion {
 
     case Push(v) =>
       val symbol = makeSymbol(I)
-      state.copy(stack = symbol join state.stack) -> List(Insn.Push(I, symbol.n, v))
+      state.copy(stack = symbol join state.stack) -> List(Insn.Push(symbol.n, I, v))
 
     case Const(prim, value) =>
       val symbol = makeSymbol(prim)
-      state.copy(stack = symbol join state.stack) -> List(Insn.Push(prim, symbol.n, value))
+      state.copy(stack = symbol join state.stack) -> List(Insn.Push(symbol.n, prim, value))
 
     case New(desc) =>
       val symbol = makeSymbol(A)
@@ -408,7 +408,7 @@ object Conversion {
       val symbol = makeSymbol(I)
       val out = makeSymbol(I)
       state.copy(locals = state.locals.updated(varId, out)) -> Seq(
-        Insn.Push(I, symbol.n, amount),
+        Insn.Push(symbol.n, I, amount),
         Insn.BinOp[I, I, I](symbol.n, I, state.locals(varId).n, I, out.n, I, F2[Int, Int, Int](_+_, "IInc"))
       )
 

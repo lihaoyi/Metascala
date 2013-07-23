@@ -45,26 +45,25 @@ object Insn{
   case class ArrayLength(src: Sym, dest: Sym) extends Insn
   case class InstanceOf(src: Sym, dest: Sym, desc: Type) extends Insn
 
-  case class Push[T](prim: Prim[T], target: Int, value: T) extends Insn
+  case class Push[T](dest: Sym, prim: Prim[T], value: T) extends Insn
 
-  case class InvokeStatic(target: Sym, sources: Seq[Sym], owner: Type.Cls, method: rt.Method) extends Invoke
-  case class InvokeVirtual(target: Sym, sources: Seq[Sym], owner: Type.Cls, sig: imm.Sig, methodIndex: Int) extends Invoke
-  case class InvokeInterface(target: Sym, sources: Seq[Sym], owner: Type.Cls, sig: imm.Sig) extends Invoke
+  case class InvokeStatic(dest: Sym, srcs: Seq[Sym], owner: Type.Cls, method: rt.Method) extends Invoke
+  case class InvokeVirtual(dest: Sym, srcs: Seq[Sym], owner: Type.Cls, sig: imm.Sig, methodIndex: Int) extends Invoke
+  case class InvokeInterface(dest: Sym, srcs: Seq[Sym], owner: Type.Cls, sig: imm.Sig) extends Invoke
 
   case class New(target: Sym, cls: rt.Cls) extends Insn
   case class NewArray(src: Sym, dest: Sym, typeRef: imm.Type) extends Insn
   case class MultiANewArray(desc: Type, target: Sym, dims: Seq[Sym]) extends Insn
 
+  // offsets fixed/fixed
   case class PutStatic(src: Sym, cls: rt.Cls, index: Int, prim: Prim[_]) extends Insn
-  case class GetStatic(src: Sym, cls: rt.Cls, index: Int, prim: Prim[_]) extends Insn
+  case class GetStatic(dest: Sym, cls: rt.Cls, index: Int, prim: Prim[_]) extends Insn
 
+  // offsets relative/fixed
   case class PutField(src: Sym, obj: Sym, index: Int, prim: Prim[_]) extends Insn
-  case class GetField(src: Sym, obj: Sym, index: Int, prim: Prim[_]) extends Insn
+  case class GetField(dest: Sym, obj: Sym, index: Int, prim: Prim[_]) extends Insn
 
-  case class StoreArray[T](src: Sym, index: Sym, array: Sym, prim: Prim[T]) extends Insn
-  case class LoadArray[T](dest: Sym, index: Sym, array: Sym, prim: Prim[T]) extends Insn
-
-
-
-
+  // offsets relative/relative
+  case class PutArray[T](src: Sym, indexSrc: Sym, array: Sym, prim: Prim[T]) extends Insn
+  case class GetArray[T](dest: Sym, indexSrc: Sym, array: Sym, prim: Prim[T]) extends Insn
 }
