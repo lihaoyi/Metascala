@@ -13,16 +13,18 @@ import metascala.imm
 
 
 object Obj{
+
   def allocate(cls: rt.Cls, initMembers: (String, Val)*)(implicit vm: VM): vrt.Obj = {
-    val address = vm.Heap.allocate(2 + cls.fieldList.length)
-    vm.Heap(address) = -cls.index
+    val address = vm.heap.allocate(2 + cls.fieldList.length)
+    println("Allocating " + cls.name + " at " + address)
+    vm.heap(address) = -cls.index
     val obj = new Obj(address)
     for ((s, v) <- initMembers){
       obj(s) = v
     }
-
     obj
   }
+
   def unapply(x: Val)(implicit vm: VM) = new Obj(x)
 }
 
@@ -40,16 +42,16 @@ class Obj(val address: Val)
    */
   import vm._
 
-  def cls: rt.Cls = vm.ClsTable.clsIndex(-vm.Heap(address).toInt)
+  def cls: rt.Cls = vm.ClsTable.clsIndex(-vm.heap(address).toInt)
 
   object members extends mutable.Seq[Val]{
     def apply(n: Int): Val = {
 
-      vm.Heap(address + n + 2)
+      vm.heap(address + n + 2)
     }
 
     def update(n: Int, v: Val): Unit = {
-      vm.Heap(address + n + 2) = v
+      vm.heap(address + n + 2) = v
     }
 
     def length = cls.fieldList.length
@@ -58,7 +60,7 @@ class Obj(val address: Val)
       var index = 0
       def hasNext = index < members.length
       def next() = {
-        val x = vm.Heap(address + index + 2)
+        val x = vm.heap(address + index + 2)
         index += 1
         x
       }
@@ -77,7 +79,7 @@ class Obj(val address: Val)
     members(index + 1 - tpe.fieldList(index).desc.size) = value
   }
 
-  def view = address + " " + vm.Heap.memory.slice(address, address + cls.fieldList.length + 2).toList
+  def view = address + " " + vm.heap.memory.slice(address, address + cls.fieldList.length + 2).toList
 
   override def toString = {
     s"vrt.Obj(${cls.name} + )"
@@ -98,12 +100,13 @@ object Arr{
     vrt.Arr.allocate(t, Array.fill[Int](n * t.size)(0))
   }
   def allocate(innerType: imm.Type, backing: Array[Int])(implicit vm: VM): Arr = {
-    val address = vm.Heap.allocate(2 + backing.length)
-    vm.Heap(address) = arrayTypeCache.length
+    val address = vm.heap.allocate(2 + backing.length)
+    println("Allocating Array[" + innerType.name + "] at " + address)
+    vm.heap(address) = arrayTypeCache.length
 
     arrayTypeCache.append(innerType)
-    vm.Heap(address + 1) = backing.length / innerType.size
-    backing.copyToArray(vm.Heap.memory, address + 2)
+    vm.heap(address + 1) = backing.length / innerType.size
+    backing.copyToArray(vm.heap.memory, address + 2)
 
     new Arr(address)
   }
@@ -121,15 +124,15 @@ class Arr(val address: scala.Int)(implicit vm: VM) extends mutable.Seq[Int]{
    * N FieldN-2
    */
   def longVal = address
-  def innerType = Arr.arrayTypeCache(vm.Heap(address))
+  def innerType = Arr.arrayTypeCache(vm.heap(address))
   def tpe = imm.Type.Arr(innerType)
-  def length = vm.Heap(address + 1)
-  def apply(index: scala.Int) = vm.Heap(address + index + 2)
-  def update(index: scala.Int, value: Val) = vm.Heap(address + index + 2) = value
+  def length = vm.heap(address + 1)
+  def apply(index: scala.Int) = vm.heap(address + index + 2)
+  def update(index: scala.Int, value: Val) = vm.heap(address + index + 2) = value
 
-  override def toString = ""+vm.Heap.memory.slice(address, address + length * innerType.size + 2).toList
+  override def toString = ""+vm.heap.memory.slice(address, address + length * innerType.size + 2).toList
 
-  def iterator: Iterator[Int] = vm.Heap.memory.view(address, address + length * innerType.size + 2).iterator
+  def iterator: Iterator[Int] = vm.heap.memory.view(address, address + length * innerType.size + 2).iterator
 }
 
 

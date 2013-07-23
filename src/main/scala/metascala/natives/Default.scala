@@ -238,7 +238,7 @@ trait Default extends Bindings{
 
           "System"/(
             "arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V".func(I, I, I, I, I, V){ (vt, src, srcIndex, dest, destIndex, length) =>
-              System.arraycopy(vt.vm.Heap.memory, src + srcIndex + 2, vt.vm.Heap.memory, dest + destIndex + 2, length)
+              System.arraycopy(vt.vm.heap.memory, src + srcIndex + 2, vt.vm.heap.memory, dest + destIndex + 2, length)
             },
 
             "identityHashCode(Ljava/lang/Object;)I".func(I, I){(vt, l) => l},

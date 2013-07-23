@@ -4,7 +4,12 @@ import scala.reflect.ClassTag
 
 package object metascala {
   import imm.Type.Prim
+
+  /**
+   * Represents a number referencing the local variable pool.
+   */
   type Sym = Int
+
   private[metascala] implicit class castable(val x: Any) extends AnyVal{
     def cast[T] = x.asInstanceOf[T]
   }
@@ -22,8 +27,8 @@ package object metascala {
     }
   }
   implicit class pimpedVal(v: Val){
-    def isObj(implicit vm: VM) = vm.Heap(v) < 0
-    def isArr(implicit vm: VM) = vm.Heap(v) >= 0
+    def isObj(implicit vm: VM) = vm.heap(v) < 0
+    def isArr(implicit vm: VM) = vm.heap(v) >= 0
     def obj(implicit vm: VM) = {
       assert(isObj)
       new vrt.Obj(v)

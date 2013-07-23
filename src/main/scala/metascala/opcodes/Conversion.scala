@@ -1,10 +1,9 @@
 package metascala
 package opcodes
 
-import metascala.imm.{TryCatchBlock, Attached, Type, Method}
+import metascala.imm.{Attached, Type, Method}
 import scala.collection.mutable
 import metascala.StackOps.OpCode
-import org.objectweb.asm.commons.AdviceAdapter
 import imm.Type.Prim
 import imm.Type.Prim._
 import scala.annotation.tailrec
@@ -135,16 +134,14 @@ object Conversion {
           )
         }
 
-
-
       allStates.append(beginState)
 
       val (regInsns, newInsns, newAttached, newState) = run(insns, attached, allStates.last, makeSymbol.apply)
       sections = sections :+ regInsns.map(_.length).scan(0)(_+_)
 
       blockMap(method.code.insns.length - insns.length) = blocks.length
-
       blocks.append((allStates.last, regInsns.flatten, newState, makeSymbol.types))
+
       insns = newInsns
       attached = newAttached
       state = newState

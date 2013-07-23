@@ -1,9 +1,9 @@
 package metascala
 package opcodes
 
-import metascala.StackOps.OpCode
+
 import metascala.imm.Type.Prim
-import metascala.imm.{TryCatchBlock, Type}
+import metascala.imm.Type
 import metascala.imm
 
 class Jump(override val targets: Seq[Int]) extends Insn

@@ -26,7 +26,7 @@ object Virtualizer {
                 val f = getAllFields(obj.getClass).find(_.getName == field.name).get
                 f.setAccessible(true)
 
-                f.set(obj, popVirtual(field.desc, reader(vm.Heap.memory, address + 2 + index), refs))
+                f.set(obj, popVirtual(field.desc, reader(vm.heap.memory, address + 2 + index), refs))
                 index += field.desc.size
               }
             }
@@ -39,8 +39,8 @@ object Virtualizer {
             for(i <- 0 until address.arr.length){
 
               val cooked = tpe match{
-                case p: imm.Type.Prim[_] => p.read(reader(vm.Heap.memory, address + 2 + i * tpe.size))
-                case x => popVirtual(tpe, reader(vm.Heap.memory, address + 2 + i * tpe.size))
+                case p: imm.Type.Prim[_] => p.read(reader(vm.heap.memory, address + 2 + i * tpe.size))
+                case x => popVirtual(tpe, reader(vm.heap.memory, address + 2 + i * tpe.size))
               }
               java.lang.reflect.Array.set(newArr, i, cooked)
             }
@@ -80,7 +80,7 @@ object Virtualizer {
         for(field <- obj.cls.clsData.fields.filter(!_.static)){
           val f = b.getClass.getDeclaredField(field.name)
           f.setAccessible(true)
-          pushVirtual(f.get(b), writer(vm.Heap.memory, obj.address + 2 + index))
+          pushVirtual(f.get(b), writer(vm.heap.memory, obj.address + 2 + index))
           index += field.desc.size
         }
 

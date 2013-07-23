@@ -74,7 +74,7 @@ object Util{
     }
   }
 
-  class SingleClassVM(className: String, log: (=>String) => Unit) extends VM(log = log){
+  class SingleClassVM(className: String, log: (=>String) => Unit, memorySize: Int = 1024) extends VM(log = log, memorySize=memorySize){
     def run(main: String, args: Any*): Any ={
       val res = invoke(className.replace('.', '/'), main, args)
       res
@@ -96,9 +96,9 @@ trait Util extends ShouldMatchers { this: FreeSpec  =>
       method.invoke(null, args.map(x => x.asInstanceOf[AnyRef]):_*)
     }
   }
-  class Tester(className: String, log: (=>String) => Unit = x => ()){
+  class Tester(className: String, log: (=>String) => Unit = x => (), memorySize: Int = 1 * 1024 * 1024){
 
-    implicit val svm = new Util.SingleClassVM(className, log)
+    implicit val svm = new Util.SingleClassVM(className, log, memorySize)
     val ref = new ReflectiveRunner(className)
     def run(main: String, args: Any*) = {
 

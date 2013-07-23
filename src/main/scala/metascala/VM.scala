@@ -5,25 +5,36 @@ import annotation.tailrec
 import metascala.imm.{Type, Code}
 import rt.{FrameDump, Thread}
 import metascala.natives.Bindings
+import metascala.imm.Type.Prim
 
 
+class ArrRef(backing: Array[Int], index: Int){
+  def update(i: Int) = backing(index) = i
+  def apply() = backing(index)
+}
 /**
  * A Metascala VM. Call invoke() on it with a class, method name and arguments
  * to have it interpret some Java bytecode for you. It optionally takes in a set of
  * native bindings, as well as a logging function which it will use to log all of
  * its bytecode operations
  */
-class VM(val natives: Bindings = Bindings.default, val log: ((=>String) => Unit) = s => ()) {
+class VM(val natives: Bindings = Bindings.default,
+         val log: ((=>String) => Unit) = s => (),
+         val memorySize: Int = 1 * 1024 * 1024) {
+
   private[this] implicit val vm = this
 
   val internedStrings = mutable.Map[String, Int]()
-  object Heap{
+  val heap = new Heap()
+  class Heap{
 
-    val memory = new Array[Int](1 * 1024 * 1024)
-
+    val memory = new Array[Int](memorySize * 2)
+    var start = 0
     var freePointer = 1
 
     def allocate(n: Int) = {
+      println(s"Allocating $n at $freePointer")
+      if (freePointer + n > memorySize) collect(start)
       val newFree = freePointer
       freePointer += n
       newFree
@@ -31,8 +42,10 @@ class VM(val natives: Bindings = Bindings.default, val log: ((=>String) => Unit)
 
     def apply(n: Int): Int = memory(n)
     def update(n: Int, v: Int) = memory.update(n, v)
-    def dump = {
-      memory.take(freePointer)
+
+    def dump(start: Int = start, freePointer: Int = freePointer) = {
+      s"Heap $start to $freePointer\n" +
+      memory.slice(start, freePointer)
             .grouped(10)
             .map(_.map(_.toString.padTo(4, ' ')))
             .map(_.mkString)
@@ -40,10 +53,143 @@ class VM(val natives: Bindings = Bindings.default, val log: ((=>String) => Unit)
     }
 
 
+    def blit(freePointer: Int, src: Int) = {
+      if (memory(src + 1) >= 0){
+        if (src.isObj) {
+          val obj = src.obj
+          val length = obj.cls.fieldList.length + 2
+          println(s"blit obj $src $freePointer $length")
 
+          System.arraycopy(memory, src, memory, freePointer, length)
+          memory(src + 1) = -freePointer
+          (freePointer, freePointer + length)
+        } else { // it's an Arr
+          val length = src.arr.length * src.arr.innerType.size + 2
+          println(s"blit arr $src $freePointer $length")
+
+          System.arraycopy(memory, src, memory, freePointer, length)
+          memory(src + 1) = -freePointer
+          (freePointer, freePointer + length)
+        }
+      }else{
+        println(s"non-blitting $src -> ${-memory(src + 1)}")
+        (-memory(src + 1), freePointer)
+      }
+    }
+    def collect(from: Int){
+      val to = (from + memorySize) % (2 * memorySize)
+      for(i <- to until (to+memorySize)){
+        memory(i) = 0
+      }
+      println("===============Collecting==================")
+
+      def collectDump = {
+        println("From")
+        println(dump(from, from + memorySize))
+        println("To")
+        println(dump(to, to + memorySize))
+      }
+      val roots = getRoots
+
+      println(s"allRoots ${roots.map(_())}")
+
+      var scanPointer = 0
+      if(from == 0){
+        freePointer = memorySize + 1
+        scanPointer = memorySize + 1
+      }else{ // to == memorySize
+        start = 0
+        freePointer = 1
+        scanPointer = 1
+      }
+
+
+      for(root <- roots){
+        val oldRoot = root()
+
+        val (newRoot, nfp) = blit(freePointer, oldRoot)
+        freePointer = nfp
+        root() = newRoot
+        println(s"Step root: $scanPointer, free: $freePointer")
+        collectDump
+      }
+      println("-----------------------------------------------")
+      while(scanPointer != freePointer){
+        assert(scanPointer <= freePointer, s"scanPointer $scanPointer > freePointer $freePointer")
+        println(s"Step scan: $scanPointer, free: $freePointer")
+        collectDump
+        if (scanPointer.isObj){
+          val obj = scanPointer.obj
+          val length = 2 + obj.members.length
+          println("Scanning Obj length = "+length)
+
+          for{
+            (x, i) <- obj.cls.fieldList.zipWithIndex
+            if x.desc.prim == Prim.A
+          }{
+            val (newRoot, nfp) = blit(freePointer, obj.members(i))
+            obj.members(i) = newRoot
+            freePointer = nfp
+          }
+
+          scanPointer += length
+        }else{ // it's an Arr
+        val arr = scanPointer.arr
+          val length = 2 + arr.length * arr.innerType.size
+          println("Scanning Arr length = "+length)
+
+          if (arr.innerType.prim == Prim.A){
+            for (i <- 0 until arr.length){
+              val (newRoot, nfp) = blit(freePointer, arr(i))
+              println(arr.address)
+              arr(i) = newRoot
+              freePointer = nfp
+            }
+          }
+          scanPointer += length
+        }
+      }
+
+
+
+      if (from == 0) start = memorySize
+      else start = 0
+
+      println("==================Collectiong Compelete====================")
+      println(dump())
+      //System.exit(0)
+    }
   }
 
+  /**
+   * Identify the list of all root object references within the virtual machine.
+   */
+  def getRoots() = {
+    val stackRoots = for{
+      thread <- threads
+      frame <- thread.threadStack
+      (blockId, index) = frame.pc
+      block = frame.method.code.blocks(blockId)
+      _ = println(frame.locals.zip(block.locals).toList)
+      (x, i) <- block.locals.zipWithIndex
 
+      if x.prim == Prim.A
+    } yield new ArrRef(frame.locals, i)
+
+    println(s"stackRoots ${stackRoots.map(_())}")
+
+    val classRoots = for{
+      cls <- ClsTable.clsIndex.drop(1)
+      _ = println("Cls " + cls.name)
+      (field, i) <- cls.fieldList.zipWithIndex
+      _ = println("Field " + field.name + "\t" + cls.statics(i))
+      if field.desc.prim == Prim.A
+    } yield new ArrRef(cls.statics, i)
+
+    println(s"classRoots ${classRoots.map(_())}")
+
+    stackRoots ++ classRoots
+  }
   /**
    * Globally shared sun.misc.Unsafe object.
    */
@@ -53,10 +199,14 @@ class VM(val natives: Bindings = Bindings.default, val log: ((=>String) => Unit)
    * Cache of all the classes loaded so far within the Metascala VM.
    */
   implicit object ClsTable extends Cache[imm.Type.Cls, rt.Cls]{
-    val clsIndex = mutable.ArrayBuffer.empty[rt.Cls]
+    val clsIndex = mutable.ArrayBuffer[rt.Cls](null)
 
     def calc(t: imm.Type.Cls): rt.Cls = {
-      val clsData = imm.Cls.parse(natives.fileLoader(t.name.replace(".", "/") + ".class").get)
+      val clsData = imm.Cls.parse(
+        natives.fileLoader(t.name.replace(".", "/") + ".class").getOrElse(
+          throw new Exception("Can't find " + t)
+        )
+      )
       clsData.superType.map(vm.ClsTable)
       new rt.Cls(clsData, clsIndex.length)
     }
@@ -92,7 +242,8 @@ class VM(val natives: Bindings = Bindings.default, val log: ((=>String) => Unit)
       imm.Type.Cls(bootClass),
       imm.Sig(
         mainMethod,
-        imm.Type.Cls(bootClass).cls
+        imm.Type.Cls(bootClass)
+          .cls
           .clsData
           .methods
           .find(x => x.name == mainMethod)
