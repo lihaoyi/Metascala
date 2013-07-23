@@ -238,19 +238,25 @@ object Conversion {
 
     case InvokeStatic(cls, sig) =>
       val (args, newStack) = state.stack.splitAt(sig.desc.argSize)
-
+      val m = vm.resolveDirectRef(cls, sig).get
       val target = makeSymbol(sig.desc.ret)
-      state.copy(stack = target join newStack) -> List(Insn.InvokeStatic(target.n, collapseReverse(args).map(_.n), cls, sig))
+      state.copy(stack = target join newStack) -> List(Insn.InvokeStatic(target.n, collapseReverse(args).map(_.n), cls, m))
 
     case InvokeSpecial(cls, sig) =>
       val (args, newStack) = state.stack.splitAt(sig.desc.argSize + 1)
+      val m = vm.resolveDirectRef(cls, sig).get
       val target = makeSymbol(sig.desc.ret)
-      state.copy(stack = target join newStack) -> List(Insn.InvokeSpecial(target.n, collapseReverse(args).map(_.n), cls, sig))
+      state.copy(stack = target join newStack) -> List(Insn.InvokeStatic(target.n, collapseReverse(args).map(_.n), cls, m))
 
-    case InvokeVirtual(cls, sig) =>
+    case InvokeVirtual(ref, sig) =>
       val (args, newStack) = state.stack.splitAt(sig.desc.argSize + 1)
       val target = makeSymbol(sig.desc.ret)
-      state.copy(stack = target join newStack) -> List(Insn.InvokeVirtual(target.n, collapseReverse(args).map(_.n), cls.cast[imm.Type.Cls], sig))
+      val cls = ref match{
+        case c: imm.Type.Cls => c
+        case _ => imm.Type.Cls("java/lang/Object")
+      }
+      val mIndex = vm.ClsTable(cls).vTable.indexWhere(_.sig == sig)
+      state.copy(stack = target join newStack) -> List(Insn.InvokeVirtual(target.n, collapseReverse(args).map(_.n), cls.cast[imm.Type.Cls], sig, mIndex))
 
     case InvokeInterface(cls, sig) =>
       val (args, newStack) = state.stack.splitAt(sig.desc.argSize + 1)

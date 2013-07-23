@@ -94,59 +94,49 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     node match {
       case ReturnVal(sym) =>
         returnVal(frame.method.method.sig.desc.ret.size, sym)
+
       case Push(prim, target, value) =>
         prim.write(value, writer(frame.locals, target))
         advancePc()
+
       case New(target, cls) =>
         cls.checkInitialized()
         val obj = vrt.Obj.allocate(cls.name)
         frame.locals(target) = obj.address
         advancePc()
-      case InvokeStatic(target, sources, owner, sig) =>
-        owner.checkInitialized()
-        resolveDirectRef(owner, sig).map{ m =>
-          val args = sources.zip(sig.desc.args)
-                            .flatMap{case (s, t) =>
-            frame.locals.slice(s, s + t.size)
-          }
 
+      case InvokeStatic(target, sources, owner, m) =>
+        owner.checkInitialized()
+        // Check for InvokeSpecial, which gets folded into InvokeStatic
+        val thisVal = sources.length > m.sig.desc.args.length
+        val thisCell = if (thisVal) Seq(1) else Nil
+        val args =
+            sources.zip(thisCell ++ m.sig.desc.args.map(_.size))
+                   .flatMap{case (s, t) => frame.locals.slice(s, s + t)}
+
+        if (thisVal && args(0) == 0){
+          throwExWithTrace("java/lang/NullPointerException", "null")
+        }else{
           val phis = advancePc()
           val ptarget = phis.toMap.getOrElse(target, target)
           prepInvoke(m, args, writer(frame.locals, ptarget))
         }
 
-      case InvokeSpecial(target, sources, owner, sig) =>
-        resolveDirectRef(owner, sig).map{ m =>
-          val args = sources.zip(1 +: sig.desc.args.map(_.size))
-            .flatMap{case (s, t) =>
-            frame.locals.slice(s, s + t)
-          }
-          val phis = advancePc()
-          val ptarget = phis.toMap.getOrElse(target, target)
-          if(args(0) == 0) throwExWithTrace("java/lang/NullPointerException", "null")
-          else prepInvoke(m, args, writer(frame.locals, ptarget))
-        }
-      case InvokeVirtual(target, sources, owner, sig) =>
+      case InvokeVirtual(target, sources, owner, sig, mIndex) =>
         val args = sources.zip(1 +: sig.desc.args.map(_.size))
                           .flatMap{case (s, t) =>
           frame.locals.slice(s, s + t)
         }
 
-//        println(indent + "INVOKEVIRTUAL")
-//        println(indent + args)
-//        println(indent + sources)
-//        println(indent + frame.locals.toList)
-
         val phis = advancePc()
         val ptarget = phis.toMap.getOrElse(target, target)
         if(args(0) == 0) throwExWithTrace("java/lang/NullPointerException", "null")
         else {
-          //println(args(0).obj.cls.clsData.tpe)
           val mRef =
             if (args(0).isArr){
               resolveDirectRef(imm.Type.Cls("java/lang/Object"), sig).get
             }else{
-              args(0).obj.cls.vTableMap(sig)
+              args(0).obj.cls.vTable(mIndex)
             }
 
           prepInvoke(mRef, args, writer(frame.locals, ptarget))

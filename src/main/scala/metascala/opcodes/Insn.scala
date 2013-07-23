@@ -39,9 +39,8 @@ object Insn{
   case class Goto(target: Int) extends Jump(Seq(target))
   case class Ldc(target: Int, thing: Any) extends Insn
   case class Push[T](prim: Prim[T], target: Int, value: T) extends Insn
-  case class InvokeStatic(target: Sym, sources: Seq[Sym], owner: Type.Cls, sig: imm.Sig) extends Invoke
-  case class InvokeSpecial(target: Sym, sources: Seq[Sym], owner: Type.Cls, sig: imm.Sig) extends Invoke
-  case class InvokeVirtual(target: Sym, sources: Seq[Sym], owner: Type.Cls, sig: imm.Sig) extends Invoke
+  case class InvokeStatic(target: Sym, sources: Seq[Sym], owner: Type.Cls, method: rt.Method) extends Invoke
+  case class InvokeVirtual(target: Sym, sources: Seq[Sym], owner: Type.Cls, sig: imm.Sig, methodIndex: Int) extends Invoke
   case class InvokeInterface(target: Sym, sources: Seq[Sym], owner: Type.Cls, sig: imm.Sig) extends Invoke
   case class New(target: Sym, cls: rt.Cls) extends Insn
   case class PutStatic(src: Sym, cls: rt.Cls, index: Int, prim: Prim[_]) extends Insn
