@@ -51,7 +51,7 @@ class GCTests extends FreeSpec with Util{
   }
 
   "helloArr" in {
-    val tester = new Tester("metascala.full.GCTestsBasic", memorySize = 20)
+    val tester = new Tester("metascala.full.GCTestsBasic", memorySize = 30)
     tester.run("helloArr", 10)
   }
 

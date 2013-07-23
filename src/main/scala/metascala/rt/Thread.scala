@@ -434,9 +434,3 @@ class Frame(var pc: (Int, Int) = (0, 0),
             var lineNum: Int = 0,
             val returnTo: Int => Unit,
             val locals: Array[Val])
-
-
-
-object Cow{
-
-}
