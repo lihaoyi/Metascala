@@ -74,7 +74,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 //    }
 //    val stackH = threadStack.length
 
-//    println(indent + "::\t" + vm.heap.dump.replace("\n", "\n" + indent + "::\t"))
+//    println(indent + "::\t" + vm.heap.dump().replace("\n", "\n" + indent + "::\t"))
     val currentFrame = frame
 
     def advancePc() = {

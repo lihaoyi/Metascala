@@ -12,5 +12,10 @@ public class Primitives {
     public static double multiArgI(int i, double d){ return i; }
 
     public static String stringLiteral(){ return "omgwtfbbq"; }
-    public static String strings(String s){ return s + "a"; }
+    public static String strings(String s){
+        if (9 * 2 + 7 > 16)
+            s = "a";
+        return s + "a";
+
+    }
 }
