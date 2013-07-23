@@ -16,7 +16,7 @@ object Obj{
 
   def allocate(cls: rt.Cls, initMembers: (String, Val)*)(implicit vm: VM): vrt.Obj = {
     val address = vm.heap.allocate(2 + cls.fieldList.length)
-    println("Allocating " + cls.name + " at " + address)
+//    println("Allocating " + cls.name + " at " + address)
     vm.heap(address) = -cls.index
     val obj = new Obj(address)
     for ((s, v) <- initMembers){
@@ -101,7 +101,7 @@ object Arr{
   }
   def allocate(innerType: imm.Type, backing: Array[Int])(implicit vm: VM): Arr = {
     val address = vm.heap.allocate(2 + backing.length)
-    println("Allocating Array[" + innerType.name + "] at " + address)
+//    println("Allocating Array[" + innerType.name + "] at " + address)
     vm.heap(address) = arrayTypeCache.length
 
     arrayTypeCache.append(innerType)

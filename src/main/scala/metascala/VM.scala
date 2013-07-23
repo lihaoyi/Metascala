@@ -33,7 +33,7 @@ class VM(val natives: Bindings = Bindings.default,
     var freePointer = 1
 
     def allocate(n: Int) = {
-      println(s"Allocating $n at $freePointer")
+//      println(s"Allocating $n at $freePointer")
       if (freePointer + n > memorySize) collect(start)
       val newFree = freePointer
       freePointer += n
@@ -58,14 +58,14 @@ class VM(val natives: Bindings = Bindings.default,
         if (src.isObj) {
           val obj = src.obj
           val length = obj.cls.fieldList.length + 2
-          println(s"blit obj $src $freePointer $length")
+//          println(s"blit obj src: $src, free:$freePointer, length: $length")
 
           System.arraycopy(memory, src, memory, freePointer, length)
           memory(src + 1) = -freePointer
           (freePointer, freePointer + length)
         } else { // it's an Arr
           val length = src.arr.length * src.arr.innerType.size + 2
-          println(s"blit arr $src $freePointer $length")
+//          println(s"blit arr src: $src, free: $freePointer, length: $length")
 
           System.arraycopy(memory, src, memory, freePointer, length)
           memory(src + 1) = -freePointer
@@ -81,17 +81,17 @@ class VM(val natives: Bindings = Bindings.default,
       for(i <- to until (to+memorySize)){
         memory(i) = 0
       }
-      println("===============Collecting==================")
+//      println("===============Collecting==================")
 
       def collectDump = {
-        println("From")
-        println(dump(from, from + memorySize))
-        println("To")
-        println(dump(to, to + memorySize))
+//        println("From")
+//        println(dump(from, from + memorySize))
+//        println("To")
+//        println(dump(to, to + memorySize))
       }
       val roots = getRoots
 
-      println(s"allRoots ${roots.map(_())}")
+//      println(s"allRoots ${roots.map(_())}")
 
       var scanPointer = 0
       if(from == 0){
@@ -110,18 +110,18 @@ class VM(val natives: Bindings = Bindings.default,
         val (newRoot, nfp) = blit(freePointer, oldRoot)
         freePointer = nfp
         root() = newRoot
-        println(s"Step root: $scanPointer, free: $freePointer")
+//        println(s"Step root: $scanPointer, free: $freePointer")
         collectDump
       }
-      println("-----------------------------------------------")
+//      println("-----------------------------------------------")
       while(scanPointer != freePointer){
         assert(scanPointer <= freePointer, s"scanPointer $scanPointer > freePointer $freePointer")
-        println(s"Step scan: $scanPointer, free: $freePointer")
+//        println(s"Step scan: $scanPointer, free: $freePointer")
         collectDump
         if (scanPointer.isObj){
           val obj = scanPointer.obj
           val length = 2 + obj.members.length
-          println("Scanning Obj length = "+length)
+//          println("Scanning Obj length = "+length)
 
           for{
             (x, i) <- obj.cls.fieldList.zipWithIndex
@@ -136,7 +136,7 @@ class VM(val natives: Bindings = Bindings.default,
         }else{ // it's an Arr
         val arr = scanPointer.arr
           val length = 2 + arr.length * arr.innerType.size
-          println("Scanning Arr length = "+length)
+//          println("Scanning Arr length = "+length)
 
           if (arr.innerType.prim == Prim.A){
             for (i <- 0 until arr.length){
@@ -155,8 +155,8 @@ class VM(val natives: Bindings = Bindings.default,
       if (from == 0) start = memorySize
       else start = 0
 
-      println("==================Collectiong Compelete====================")
-      println(dump())
+//      println("==================Collectiong Compelete====================")
+//      println(dump())
       //System.exit(0)
     }
   }
@@ -167,26 +167,29 @@ class VM(val natives: Bindings = Bindings.default,
   def getRoots() = {
     val stackRoots = for{
       thread <- threads
+//      _ = println("threadStack " + thread.threadStack.map(_.runningClass.name))
       frame <- thread.threadStack
       (blockId, index) = frame.pc
       block = frame.method.code.blocks(blockId)
-      _ = println(frame.locals.zip(block.locals).toList)
+      _ = println(frame.method.method.name + "\t" + frame.locals.zip(block.locals).toList)
+      _ = println(frame.locals.toList)
+      _ = println(block.locals.map(_.prim).toList)
       (x, i) <- block.locals.zipWithIndex
 
       if x.prim == Prim.A
     } yield new ArrRef(frame.locals, i)
 
-    println(s"stackRoots ${stackRoots.map(_())}")
+//    println(s"stackRoots ${stackRoots.map(_())}")
 
     val classRoots = for{
       cls <- ClsTable.clsIndex.drop(1)
-      _ = println("Cls " + cls.name)
-      (field, i) <- cls.fieldList.zipWithIndex
-      _ = println("Field " + field.name + "\t" + cls.statics(i))
+//      _ = println("Cls " + cls.name)
+      (field, i) <- cls.staticList.zipWithIndex
+//      _ = println("Field " + field.name + "\t" + cls.statics(i))
       if field.desc.prim == Prim.A
     } yield new ArrRef(cls.statics, i)
 
-    println(s"classRoots ${classRoots.map(_())}")
+//    println(s"classRoots ${classRoots.map(_())}")
 
     stackRoots ++ classRoots
   }

@@ -27,10 +27,22 @@ object GCTestsBasic{
     }
     p2(0)(1)
   }
-}
-object GCTestsTwo{
 
+  def chain(n: Int) = {
+    var i = 0
+    var front = new Cons(1, null)
+    var back = new Cons(5, new Cons(4, new Cons(3, new Cons(2, front))))
+    while (i < n){
+      front.next = new Cons(front.value + 1, null)
+      front = front.next
+      back = back.next
+      i += 1
+    }
+    front.value
+  }
 }
+class Cons(val value: Int, var next: Cons)
+
 class GCTests extends FreeSpec with Util{
 
   "helloObj" in {
@@ -43,4 +55,8 @@ class GCTests extends FreeSpec with Util{
     tester.run("helloArr", 10)
   }
 
+  "chain" in {
+    val tester = new Tester("metascala.full.GCTestsBasic", memorySize = 40)
+    tester.run("chain", 20)
+  }
 }

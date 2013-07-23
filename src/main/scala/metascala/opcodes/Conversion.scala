@@ -22,7 +22,7 @@ object Conversion {
 
   def convertToSsa(method: Method, cls: String)(implicit vm: VM): Code = {
 
-    if (method.name == "stringSwitch") {
+    if (method.name == "XXX") {
       println(s"-------------------Converting: $cls/${method.sig}--------------------------")
       method.code.insns.zipWithIndex.foreach{ case (x, i) =>
         println(s"$i\t$x")
@@ -40,13 +40,15 @@ object Conversion {
             .zip(makePhis(blocks))
             .map{ case ((buff, types), phis) => BasicBlock(buff, phis, types) }
 
-    if(method.name == "stringSwitch"){
+    if(method.name == "XXX"){
       println("----------------------------------------------")
       for ((block, i) <- basicBlocks.zipWithIndex){
         println()
         println(i + "\t" + block.phi.toList)
         block.insns.foreach(println)
+        println(block.locals.map(_.prim))
       }
+
       println("---TryCatch---")
       tryCatchBlocks.foreach(println)
       println("----------------------------------------------")
@@ -114,7 +116,9 @@ object Conversion {
       var symCount = 0
       val types = mutable.Buffer.empty[Type]
       def apply(t: Type) = {
-        types.append(t)
+        if (t.prim != V){
+          types.append(t)
+        }
         val sym = Symbol(symCount, t)
         symCount += t.size
         sym
