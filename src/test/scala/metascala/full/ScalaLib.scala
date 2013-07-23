@@ -6,6 +6,7 @@ import org.scalatest._
 import scala.collection.immutable.Range.Inclusive
 import scala.collection.immutable.Range
 import scala.runtime.RichInt
+import scala.concurrent.{Await, Promise}
 
 
 object ScalaLib{
@@ -26,11 +27,26 @@ object ScalaLib{
   }
 
   def bigFibonacci(n: Int) = {
-//    lazy val fs: Stream[BigInt] =
-//      0 #:: 1 #:: fs.zip(fs.tail).map(p => p._1 + p._2)
-//
-//    fs.view.takeWhile(_.toString.length < n).size
-    java.lang.Long.toString(1)
+    lazy val fs: Stream[BigInt] =
+      0 #:: 1 #:: fs.zip(fs.tail).map(p => p._1 + p._2)
+
+    fs.view.takeWhile(_.toString.length < n).size
+
+  }
+
+  def futures = {
+    import scala.concurrent.ExecutionContext.Implicits.global
+    val a = Promise[Promise[Int]]()
+    val b = Promise[List[String]]()
+    val c = for{
+      ar <- a.future
+      br <- b.future
+      i <- ar.future
+    } yield i.toString :: br
+    a.success(Promise.successful(1))
+    b.success(List("2", "3", "4"))
+    import scala.concurrent.duration._
+    Await.result(c, 10 seconds)
   }
   def lol = {
     val args2: String = java.security.AccessController.doPrivileged(new sun.security.action.GetPropertyAction("java.security.auth.debug"))
@@ -46,13 +62,12 @@ class ScalaLib extends FreeSpec with Util{
     tester.run("palindrome", 100, 130)
   }
   "bigFibonacci" in {
-    tester.run("bigFibonacci", 3)
+    tester.run("bigFibonacci", 100)
   }
+//  "futures" in {
+//    tester.run("futures", 100)
+//  }
   "lol" in{
-    try tester.run("lol")
-    catch{case e =>
-      buffer.lines.foreach(println)
-      throw e
-    }
+    tester.run("lol")
   }
 }

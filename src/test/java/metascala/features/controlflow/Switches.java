@@ -102,7 +102,7 @@ public class Switches {
 
         switch("" + n){
             case "0": return 0;
-            case "1": return 1;
+               case "1": return 1;
             default:  return 2;
         }
     }

@@ -14,7 +14,7 @@ object GCTests{
 }
 class GCTests extends FreeSpec with Util{
   val tester = new Tester("metascala.full.GCTests")
-  /*"allocDeAlloc" in {
-    tester.run("allocDeAlloc", 10000000)
-  }*/
+  "allocDeAlloc" in {
+    tester.run("allocDeAlloc", 10)
+  }
 }

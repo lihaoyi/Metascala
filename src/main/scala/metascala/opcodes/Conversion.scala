@@ -23,7 +23,7 @@ object Conversion {
 
   def convertToSsa(method: Method, cls: String)(implicit vm: VM): Code = {
 
-    if (method.name == "XXX") {
+    if (method.name == "stringSwitch") {
       println(s"-------------------Converting: $cls/${method.sig}--------------------------")
       method.code.insns.zipWithIndex.foreach{ case (x, i) =>
         println(s"$i\t$x")
@@ -41,7 +41,7 @@ object Conversion {
             .zip(makePhis(blocks))
             .map{ case ((buff, types), phis) => BasicBlock(buff, phis, types) }
 
-    if(method.name == "XXX"){
+    if(method.name == "stringSwitch"){
       println("----------------------------------------------")
       for ((block, i) <- basicBlocks.zipWithIndex){
         println()
@@ -60,30 +60,31 @@ object Conversion {
    * Calculates the phi node movements required at the top of each basic block
    * to complete the SSA code.
    */
-  def makePhis(blocks: Blocks): Seq[Seq[Seq[(Sym, Sym)]]] =
-    for{((destState, buffer, _, _), i) <- blocks.zipWithIndex} yield {
-      for{((_, srcBuffer, srcState, _), j) <- blocks.zipWithIndex} yield {
+  def makePhis(blocks: Blocks): Seq[Seq[Seq[(Sym, Sym)]]] = {
+    val newBlocks = blocks
+    for{((destState, buffer, _, _), i) <- newBlocks.zipWithIndex} yield {
+      for{((_, srcBuffer, srcState, _), j) <- newBlocks.zipWithIndex} yield {
         def stuff = {
           val zipped = (srcState.locals zip destState.locals) ++
-            (srcState.stack.reverse zip destState.stack.reverse)
+                       (srcState.stack.reverse zip destState.stack.reverse)
           for {
-            (src, dest)<- zipped.distinct
+            (src, dest) <- zipped.distinct
             if src != dest
             pairs <- src.slots zip dest.slots
           } yield pairs
         }
+
         if (j + 1 == i) stuff
         else if(!srcBuffer.isEmpty && srcBuffer.last.targets.contains(i)) stuff
         else Nil
       }
     }
-
+  }
   /**
    * Takes a method and breaks up the bytecode from a flat list of stack
    * operations into a list of basic blocks of register operations
    */
   def walkBlocks(method: imm.Method)(implicit vm: VM): (Blocks, Seq[opcodes.TryCatchBlock]) = {
-
 
     val locals: Vector[imm.Type] ={
       val thisArg =
@@ -110,7 +111,7 @@ object Conversion {
     val blocks = mutable.Buffer.empty[(State, Seq[Insn], State, Seq[Type])]
     var sections: Seq[Seq[Int]] =  Nil
 
-    object makeSymbol{
+    class SymbolMaker(){
       var symCount = 0
       val types = mutable.Buffer.empty[Type]
       def apply(t: Type) = {
@@ -122,12 +123,21 @@ object Conversion {
     }
 
     while (insns != Nil){
-      allStates.append(
+      val makeSymbol = new SymbolMaker()
+      val beginState =
         attached.head
                 .collectFirst{case f: imm.Attached.Frame => f}
-                .map(State(_, makeSymbol.apply _))
-                .getOrElse(state)
-      )
+                .map{State(_, makeSymbol.apply _)}
+                .getOrElse{
+          new State(
+            state.stack.map(s => makeSymbol(s.tpe)),
+            state.locals.map(s => makeSymbol(s.tpe))
+          )
+        }
+
+
+
+      allStates.append(beginState)
 
       val (regInsns, newInsns, newAttached, newState) = run(insns, attached, allStates.last, makeSymbol.apply)
       sections = sections :+ regInsns.map(_.length).scan(0)(_+_)
@@ -139,7 +149,6 @@ object Conversion {
       attached = newAttached
       state = newState
     }
-
 
     var current = 0
     for (i <- 0 until blockMap.length){

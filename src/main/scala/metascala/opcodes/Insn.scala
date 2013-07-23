@@ -13,12 +13,16 @@ case class Code(blocks: Seq[BasicBlock] = Nil,
                 tryCatches: Seq[TryCatchBlock] = Nil){
   lazy val localSize = blocks.map(_.locals.map(_.size).sum).max
 }
-case class BasicBlock(insns: Seq[Insn], phi: Seq[Seq[(Sym, Sym)]], locals: Seq[imm.Type])
+case class BasicBlock(insns: Seq[Insn],
+                      phi: Seq[Seq[(Sym, Sym)]],
+                      locals: Seq[imm.Type])
+
 case class TryCatchBlock(start: (Sym, Sym),
                          end: (Sym, Sym),
                          handler: Int,
                          destReg: Int,
                          blockType: Option[Type.Cls])
+
 case class Step(insn: Insn, line: Int)
 
 sealed trait Insn{

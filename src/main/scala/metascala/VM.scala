@@ -18,6 +18,7 @@ class VM(val natives: Bindings = Bindings.default, val log: ((=>String) => Unit)
 
   val internedStrings = mutable.Map[String, Int]()
   object Heap{
+
     val memory = new Array[Int](1 * 1024 * 1024)
 
     var freePointer = 1
@@ -37,6 +38,9 @@ class VM(val natives: Bindings = Bindings.default, val log: ((=>String) => Unit)
             .map(_.mkString)
             .mkString("\n")
     }
+
+
+
   }
 
 
