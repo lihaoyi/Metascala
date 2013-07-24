@@ -26,7 +26,7 @@ class VM(val natives: Bindings = Bindings.default,
 
   val internedStrings = mutable.Map[String, Int]()
   val heap = new Heap(memorySize)
-
+  val arrayTypeCache = mutable.Buffer.empty[imm.Type]
 
   /**
    * Identify the list of all root object references within the virtual machine.

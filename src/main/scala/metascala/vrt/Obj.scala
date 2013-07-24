@@ -89,7 +89,7 @@ class Obj(val address: Val)
 
 object Arr{
   val headerSize = 2
-  val arrayTypeCache = mutable.Buffer.empty[imm.Type]
+
 
   /**
    * Allocates and returns an array of the specified type, with `n` elements.
@@ -102,9 +102,9 @@ object Arr{
   def allocate(innerType: imm.Type, backing: Array[Int])(implicit vm: VM): Arr = {
     val address = vm.heap.allocate(Arr.headerSize + backing.length)
 //    println("Allocating Array[" + innerType.name + "] at " + address)
-    vm.heap(address) = arrayTypeCache.length
+    vm.heap(address) = vm.arrayTypeCache.length
 
-    arrayTypeCache.append(innerType)
+    vm.arrayTypeCache.append(innerType)
     vm.heap(address + 1) = backing.length / innerType.size
     backing.copyToArray(vm.heap.memory, address + Arr.headerSize)
 
@@ -132,7 +132,7 @@ class Arr(val address: scala.Int)(implicit vm: VM) extends mutable.Seq[Int]{
   /**
    * The type the array contains
    */
-  def innerType = Arr.arrayTypeCache(vm.heap(address))
+  def innerType = vm.arrayTypeCache(vm.heap(address))
 
   /**
    * The type of the entire array
