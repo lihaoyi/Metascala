@@ -46,7 +46,6 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
 
 
   val staticList: Seq[imm.Field] = {
-
     clsData.fields.filter(_.static).flatMap{x =>
       Seq.fill(x.desc.size)(x)
     }
@@ -54,9 +53,9 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
 
 
   val statics = {
-
     new Array[Int](staticList.length)
   }
+
 
 
   def method(name: String, desc: imm.Desc): Option[imm.Method] = {

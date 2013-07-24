@@ -60,13 +60,12 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     val r = reader(frame.locals, 0)
 
-    lazy val localSnapshot =
-      code.blocks(frame.pc._1)
-          .locals
-          .map(_.prim)
-          .flatMap(x => Seq(x.read(r).toString).take(x.size).padTo(x.size, "~"))
-          .toList
-          .toString
+//    lazy val localSnapshot =
+//      code.blocks(frame.pc._1)
+//          .locals
+//          .flatMap(x => Seq(x.read(r).toString).take(x.size).padTo(x.size, "~"))
+//          .toList
+//          .toString
 
 //    if (frame.method.method.name != "<clinit>") {
 //      println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + localSnapshot)

@@ -56,14 +56,14 @@ object Insn{
   case class MultiANewArray(desc: Type, target: Sym, dims: Seq[Sym]) extends Insn
 
   // offsets fixed/fixed
-  case class PutStatic(src: Sym, cls: rt.Cls, index: Int, prim: Prim[_]) extends Insn
-  case class GetStatic(dest: Sym, cls: rt.Cls, index: Int, prim: Prim[_]) extends Insn
+  case class PutStatic(src: Sym, cls: rt.Cls, index: Int, prim: Type) extends Insn
+  case class GetStatic(dest: Sym, cls: rt.Cls, index: Int, prim: Type) extends Insn
 
   // offsets relative/fixed
-  case class PutField(src: Sym, obj: Sym, index: Int, prim: Prim[_]) extends Insn
-  case class GetField(dest: Sym, obj: Sym, index: Int, prim: Prim[_]) extends Insn
+  case class PutField(src: Sym, obj: Sym, index: Int, prim: Type) extends Insn
+  case class GetField(dest: Sym, obj: Sym, index: Int, prim: Type) extends Insn
 
   // offsets relative/relative
-  case class PutArray[T](src: Sym, indexSrc: Sym, array: Sym, prim: Prim[T]) extends Insn
-  case class GetArray[T](dest: Sym, indexSrc: Sym, array: Sym, prim: Prim[T]) extends Insn
+  case class PutArray(src: Sym, indexSrc: Sym, array: Sym, prim: Type) extends Insn
+  case class GetArray(dest: Sym, indexSrc: Sym, array: Sym, prim: Type) extends Insn
 }

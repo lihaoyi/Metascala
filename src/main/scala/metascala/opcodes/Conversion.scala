@@ -46,7 +46,7 @@ object Conversion {
         println()
         println(i + "\t" + block.phi.toList)
         block.insns.foreach(println)
-        println(block.locals.map(_.prim))
+        println(block.locals)
       }
 
       println("---TryCatch---")
@@ -116,7 +116,7 @@ object Conversion {
       var symCount = 0
       val types = mutable.Buffer.empty[Type]
       def apply(t: Type) = {
-        if (t.prim != V){
+        if (t != V){
           types.append(t)
         }
         val sym = Symbol(symCount, t)
@@ -219,7 +219,7 @@ object Conversion {
   import StackOps._
 
   implicit class poppable[T](val l: List[T]){
-    def pop(p: Prim[_]) = {
+    def pop(p: Type) = {
       val t = l.splitAt(p.size)
       t.copy(_1 = t._1.head)
     }
@@ -288,7 +288,7 @@ object Conversion {
       state.copy(stack = symbol :: rest) -> List(Insn.ArrayLength(arr.n, symbol.n))
     case ANewArray(typeRef) =>
       val length :: rest = state.stack
-      val symbol = makeSymbol(A)
+      val symbol = makeSymbol(typeRef)
       state.copy(stack = symbol :: rest) -> List(Insn.NewArray(length.n, symbol.n, typeRef))
 
     case LoadArray(prim) =>
@@ -374,23 +374,23 @@ object Conversion {
 
     case PutStatic(owner, name, tpe) =>
       val index = owner.cls.staticList.indexWhere(_.name == name)
-      val prim = owner.cls.staticList(index).desc.prim
+      val prim = owner.cls.staticList(index).desc
       val (symbol, rest) = state.stack.pop(prim)
       state.copy(stack = rest) ->
       List(Insn.PutStatic(symbol.n, owner.cls, index, prim))
 
     case GetStatic(owner, name, tpe) =>
       val index = owner.cls.staticList.indexWhere(_.name == name)
-      val prim = owner.cls.staticList(index).desc.prim
+      val prim = owner.cls.staticList(index).desc
       val symbol = makeSymbol(prim)
       state.copy(stack = symbol join state.stack) ->
         List(Insn.GetStatic(symbol.n, owner.cls, index, prim))
 
     case PutField(owner, name, tpe) =>
       val index = owner.cls.fieldList.lastIndexWhere(_.name == name)
-      val prim = owner.cls.fieldList(index).desc.prim
+      val prim = owner.cls.fieldList(index).desc
 
-      val (symA, stack1) = state.stack.pop(tpe.prim)
+      val (symA, stack1) = state.stack.pop(tpe)
       val (symB, stack2) = stack1.pop(I)
 
       state.copy(stack = stack2) ->
@@ -398,9 +398,9 @@ object Conversion {
 
     case GetField(owner, name, tpe) =>
       val index = owner.cls.fieldList.lastIndexWhere(_.name == name)
-      val prim = owner.cls.fieldList(index).desc.prim
+      val prim = owner.cls.fieldList(index).desc
       val symbol = makeSymbol(prim)
-      val (sym, stack1) = state.stack.pop(tpe.prim)
+      val (sym, stack1) = state.stack.pop(tpe)
 
       state.copy(stack = symbol join stack1) ->
         List(Insn.GetField(symbol.n, sym.n, index, prim))
