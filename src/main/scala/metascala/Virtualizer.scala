@@ -34,9 +34,9 @@ object Virtualizer {
           case t @ imm.Type.Arr(tpe) =>
 
             val clsObj = forName(tpe.unparse.toDot)
-            val newArr = java.lang.reflect.Array.newInstance(clsObj, address.arr.length)
+            val newArr = java.lang.reflect.Array.newInstance(clsObj, address.arr.arrayLength)
 
-            for(i <- 0 until address.arr.length){
+            for(i <- 0 until address.arr.arrayLength){
 
               val cooked = tpe match{
                 case p: imm.Type.Prim[_] => p.read(reader(vm.heap.memory, address + vrt.Arr.headerSize + i * tpe.size))

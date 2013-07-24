@@ -10,8 +10,6 @@ import scala.Some
 
 import metascala.imm
 
-
-
 object Obj{
   val headerSize = 2
   def allocate(cls: rt.Cls, initMembers: (String, Val)*)(implicit vm: VM): vrt.Obj = {
@@ -81,7 +79,7 @@ class Obj(val address: Val)
     members(index + 1 - tpe.fieldList(index).desc.size) = value
   }
 
-  def view = address + " " + vm.heap.memory.slice(address, address + cls.fieldList.length + Obj.headerSize).toList
+  def view = address + " " + vm.heap.memory.slice(address, address + heapSize).toList
 
   override def toString = {
     s"vrt.Obj(${cls.name} + )"
@@ -130,25 +128,35 @@ class Arr(val address: scala.Int)(implicit vm: VM) extends mutable.Seq[Int]{
    * ...
    * N FieldN-2
    */
-  def longVal = address
+
+  /**
+   * The type the array contains
+   */
   def innerType = Arr.arrayTypeCache(vm.heap(address))
+
+  /**
+   * The type of the entire array
+   */
   def tpe = imm.Type.Arr(innerType)
 
-  def heapSize = Arr.headerSize + innerType.size * length
+  /**
+   * Length of the array, in Ints or Longs, from the POV of interpreted code
+   */
+  def arrayLength = vm.heap(address + 1)
 
+  /**
+   * Total size of the array on the heap
+   */
+  def heapSize = Arr.headerSize + length
 
-  def length = vm.heap(address + 1)
+  /**
+   * Length of the read-writable part of the array, in Ints.
+   */
+  def length = vm.heap(address + 1) * innerType.size
   def apply(index: scala.Int) = vm.heap(address + index + Arr.headerSize)
   def update(index: scala.Int, value: Val) = vm.heap(address + index + Arr.headerSize) = value
 
-  override def toString = ""+vm.heap.memory.slice(address, address + length * innerType.size + Arr.headerSize).toList
+  override def toString = ""+vm.heap.memory.slice(address, address + heapSize).toList
 
-  def iterator: Iterator[Int] = vm.heap.memory.view(address, address + length * innerType.size + Arr.headerSize).iterator
+  def iterator: Iterator[Int] = vm.heap.memory.view(address + Arr.headerSize, address + heapSize).iterator
 }
-
-
-
-
-
-
-

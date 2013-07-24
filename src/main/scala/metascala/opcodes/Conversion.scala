@@ -266,7 +266,7 @@ object Conversion {
 
     case NewArray(typeCode) =>
       val length :: rest = state.stack
-      val symbol = makeSymbol(A)
+
       val typeRef: imm.Type = typeCode match{
         case 4  => Z: imm.Type
         case 5  => C: imm.Type
@@ -277,6 +277,7 @@ object Conversion {
         case 10 => I: imm.Type
         case 11 => J: imm.Type
       }
+      val symbol = makeSymbol(imm.Type.Arr(typeRef))
       state.copy(stack = symbol :: rest) -> List(Insn.NewArray(length.n, symbol.n, typeRef))
     case MonitorEnter | MonitorExit =>
       val monitor :: rest = state.stack
@@ -304,7 +305,7 @@ object Conversion {
       state.copy(stack = state.locals(index) join state.stack) -> Nil
 
     case Ldc(thing) =>
-      def handle[T, U](t: Prim[T], u: Prim[U], value: U) = {
+      def handle[T, U](t: imm.Type, u: Prim[U], value: U) = {
         val symbol = makeSymbol(t)
         Insn.Push[U](symbol.n, u, value) -> symbol
       }
@@ -313,8 +314,8 @@ object Conversion {
           val clsObj = vrt.Obj.allocate("java/lang/Class",
             "name" -> Virtualizer.pushVirtual(t.getInternalName).apply(0)
           )
-          handle(A, I, clsObj.address)
-        case s: String =>       handle(A, I, Virtualizer.pushVirtual(s).apply(0))
+          handle(clsObj.cls.clsData.tpe, I, clsObj.address)
+        case s: String =>       handle(imm.Type.Cls("java/lang/String"), I, Virtualizer.pushVirtual(s).apply(0))
         case x: scala.Byte   => handle(B, B, x)
         case x: scala.Char   => handle(C, C, x)
         case x: scala.Short  => handle(S, S, x)
@@ -367,7 +368,7 @@ object Conversion {
       state.copy(stack = symbol join state.stack) -> List(Insn.Push(symbol.n, prim, value))
 
     case New(desc) =>
-      val symbol = makeSymbol(A)
+      val symbol = makeSymbol(desc)
       state.copy(stack = symbol join state.stack) ->
         List(Insn.New(symbol.n, vm.ClsTable(desc)))
 
@@ -439,7 +440,7 @@ object Conversion {
 
     case MultiANewArray(desc, dims) =>
       val (dimsX, rest) = state.stack.splitAt(dims)
-      val symbol = makeSymbol(A)
+      val symbol = makeSymbol(desc)
       state.copy(stack = symbol :: rest) -> Seq(Insn.MultiANewArray(desc, symbol.n, dimsX.map(_.n)))
   }
 }

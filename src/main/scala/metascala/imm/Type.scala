@@ -181,7 +181,7 @@ trait Type{
   def size: Int
   def name: String
   def prim: Type.Prim[_]
-
+  def isRef: Boolean = this.isInstanceOf[imm.Type.Ref]
 
 }
 

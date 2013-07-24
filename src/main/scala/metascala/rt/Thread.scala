@@ -158,7 +158,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         }
 
       case ArrayLength(src, dest) =>
-        frame.locals(dest) = frame.locals(src).arr.length
+        frame.locals(dest) = frame.locals(src).arr.arrayLength
         advancePc()
       case NewArray(src, dest, typeRef) =>
         val newArray = vrt.Arr.allocate(typeRef, frame.locals(src))
@@ -166,7 +166,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         advancePc()
       case PutArray(src, index, array, prim) =>
         val arr = frame.locals(array).arr
-        if (0 <= frame.locals(index) && frame.locals(index) < arr.length){
+        if (0 <= frame.locals(index) && frame.locals(index) < arr.arrayLength){
           blit(frame.locals, src, arr, frame.locals(index) * prim.size, prim.size)
           advancePc()
         }else{
@@ -175,7 +175,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
       case GetArray(dest, index, array, prim) =>
         val arr = frame.locals(array).arr
-        if (0 <= frame.locals(index) && frame.locals(index) < arr.length){
+        if (0 <= frame.locals(index) && frame.locals(index) < arr.arrayLength){
           blit(arr, frame.locals(index) * prim.size, frame.locals, dest, prim.size)
           advancePc()
         }else{
