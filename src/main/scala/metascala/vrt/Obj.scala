@@ -69,6 +69,8 @@ class Obj(val address: Val)
 
   def tpe = cls.clsData.tpe
 
+  def heapSize = cls.fieldList.length + vrt.Obj.headerSize
+
   def apply(name: String): Val = {
     members(tpe.fieldList.lastIndexWhere(_.name == name))
   }
@@ -112,6 +114,11 @@ object Arr{
   }
   def unapply(x: Int)(implicit vm: VM): Option[Arr] = Some(new Arr(x))
 }
+
+/**
+ * Can be treated as a mutable sequence of Ints; this representation is
+ * completely unaware of differently sized contents.
+ */
 class Arr(val address: scala.Int)(implicit vm: VM) extends mutable.Seq[Int]{
   /**
    * Layout
@@ -126,6 +133,10 @@ class Arr(val address: scala.Int)(implicit vm: VM) extends mutable.Seq[Int]{
   def longVal = address
   def innerType = Arr.arrayTypeCache(vm.heap(address))
   def tpe = imm.Type.Arr(innerType)
+
+  def heapSize = Arr.headerSize + innerType.size * length
+
+
   def length = vm.heap(address + 1)
   def apply(index: scala.Int) = vm.heap(address + index + Arr.headerSize)
   def update(index: scala.Int, value: Val) = vm.heap(address + index + Arr.headerSize) = value

@@ -65,7 +65,8 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
   }
 
 
-  def size = fieldList.length
+  lazy val size = fieldList.length
+
   def name = clsData.tpe.name
 
   /**

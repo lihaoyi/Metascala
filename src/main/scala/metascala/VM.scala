@@ -57,16 +57,16 @@ class VM(val natives: Bindings = Bindings.default,
       if (memory(src + 1) >= 0){
         if (src.isObj) {
           val obj = src.obj
-          val length = obj.cls.fieldList.length + vrt.Obj.headerSize
+
 //          println(s"blit obj src: $src, free:$freePointer, length: $length")
 
-          System.arraycopy(memory, src, memory, freePointer, length)
+          System.arraycopy(memory, src, memory, freePointer, obj.heapSize)
           memory(src + 1) = -freePointer
-          (freePointer, freePointer + length)
+          (freePointer, freePointer + obj.heapSize)
         } else { // it's an Arr
-          val length = src.arr.length * src.arr.innerType.size + vrt.Arr.headerSize
-//          println(s"blit arr src: $src, free: $freePointer, length: $length")
 
+//          println(s"blit arr src: $src, free: $freePointer, length: $length")
+          val length = src.arr.heapSize
           System.arraycopy(memory, src, memory, freePointer, length)
           memory(src + 1) = -freePointer
           (freePointer, freePointer + length)
@@ -120,7 +120,7 @@ class VM(val natives: Bindings = Bindings.default,
         collectDump
         if (scanPointer.isObj){
           val obj = scanPointer.obj
-          val length = vrt.Obj.headerSize + obj.members.length
+
 //          println("Scanning Obj length = "+length)
 
           for{
@@ -132,10 +132,10 @@ class VM(val natives: Bindings = Bindings.default,
             freePointer = nfp
           }
 
-          scanPointer += length
+          scanPointer += obj.heapSize
         }else{ // it's an Arr
         val arr = scanPointer.arr
-          val length = vrt.Arr.headerSize + arr.length * arr.innerType.size
+          val length = arr.heapSize
 //          println("Scanning Arr length = "+length)
 
           if (arr.innerType.prim == Prim.A){
