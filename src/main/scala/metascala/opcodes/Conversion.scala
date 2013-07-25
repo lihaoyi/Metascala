@@ -45,8 +45,8 @@ object Conversion {
       for ((block, i) <- basicBlocks.zipWithIndex){
         println()
         println(i + "\t" + block.phi.toList)
+        println(i + "\t" + block.locals)
         block.insns.foreach(println)
-        println(block.locals)
       }
 
       println("---TryCatch---")
@@ -68,9 +68,9 @@ object Conversion {
         def stuff = {
           val zipped = (srcState.locals zip destState.locals) ++
                        (srcState.stack.reverse zip destState.stack.reverse)
+
           for {
-            (src, dest) <- zipped.distinct
-            if src != dest
+            (src, dest) <- zipped.filter{case (s, d) => s.tpe.isRef == d.tpe.isRef}.distinct
             pairs <- src.slots zip dest.slots
           } yield pairs
         }

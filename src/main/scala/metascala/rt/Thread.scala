@@ -34,10 +34,11 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   def doPhi(frame: Frame, oldBlock: Int, newBlock: Int) = {
 //    println(indent + "doPhi")
 //    println(indent + oldBlock + "\t" + newBlock)
+
     val (srcs, dests) = frame.method.code.blocks(newBlock).phi(oldBlock).unzip
 //    println(indent + (srcs, dests))
     val temp = srcs.map(frame.locals)
-
+    java.util.Arrays.fill(frame.locals, 0)
     for ((i, dest) <- temp.zip(dests)){
       frame.locals(dest) = i
     }
@@ -68,11 +69,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 //          .toString
 
 //    if (frame.method.method.name != "<clinit>") {
-//      println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + localSnapshot)
-//      println(indent + "::\t" + frame.pc + "\t" + node )
+      println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.locals.toList.zip(block.locals))
+      println(indent + "::\t" + frame.pc + "\t" + node )
 //    }
-//    val stackH = threadStack.length
-
+//
 //    println(indent + "::\t" + vm.heap.dump().replace("\n", "\n" + indent + "::\t"))
     val currentFrame = frame
 
@@ -314,6 +314,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   }
 
   def returnVal(size: Int, index: Int) = {
+//    println(s"Returning size: $size, index: $index")
     for (i <- 0 until size){
       frame.returnTo(frame.locals(index + i))
     }

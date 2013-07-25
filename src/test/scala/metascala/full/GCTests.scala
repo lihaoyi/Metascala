@@ -16,7 +16,8 @@ object GCTestsBasic{
     val p = new Array[Int](2)
     p(0) = 5
     p(1) = 6
-    val p2 = Array(p)
+    val p2 = new Array[Array[Int]](1)
+    p2(0) = p
 
     while(i < n){
       val p = new Array[Int](3)
@@ -43,20 +44,47 @@ object GCTestsBasic{
 }
 class Cons(val value: Int, var next: Cons)
 
+object GCTestsTwo{
+  def interned = {
+    var i = 0
+    while(i < 30){
+      val p = new Object()
+      i += 1
+    }
+    1
+  }
+}
 class GCTests extends FreeSpec with Util{
 
   "helloObj" in {
-    val tester = new Tester("metascala.full.GCTestsBasic", memorySize = 20)
-    tester.run("helloObj", 20)
+    for{
+      memory <- List(20, 30, 67, 121)
+      count <- List(0, 1, 5, 19, 30, 67)
+    }{
+      val tester = new Tester("metascala.full.GCTestsBasic", memorySize = memory)
+      tester.run("helloObj", count)
+    }
   }
 
   "helloArr" in {
-    val tester = new Tester("metascala.full.GCTestsBasic", memorySize = 30)
-    tester.run("helloArr", 10)
+    for{
+      memory <- List(30, 65, 93, 123)
+      count <- List(0, 3, 9, 12, 30)
+    }{
+      println(memory + " " + count)
+      val tester = new Tester("metascala.full.GCTestsBasic", memorySize = memory)
+      tester.run("helloArr", count)
+    }
   }
 
   "chain" in {
-    val tester = new Tester("metascala.full.GCTestsBasic", memorySize = 40)
-    tester.run("chain", 20)
+    for {
+      memory <- 40 to 45
+      count <- 20 to 30
+    }{
+      val tester = new Tester("metascala.full.GCTestsBasic", memorySize = 40)
+      tester.run("chain", count)
+    }
   }
+
 }

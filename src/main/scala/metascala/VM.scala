@@ -38,9 +38,9 @@ class VM(val natives: Bindings = Bindings.default,
       frame <- thread.threadStack
       (blockId, index) = frame.pc
       block = frame.method.code.blocks(blockId)
-      _ = println(frame.method.method.name + "\t" + frame.locals.zip(block.locals).toList)
-      _ = println(frame.locals.toList)
-      _ = println(block.locals.toList)
+//      _ = println(frame.method.method.name + "\t" + frame.locals.zip(block.locals).toList)
+//      _ = println(frame.locals.toList)
+//      _ = println(block.locals.toList)
       (x, i) <- block.locals.zipWithIndex
 
       if x.isRef

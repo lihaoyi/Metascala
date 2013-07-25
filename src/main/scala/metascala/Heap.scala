@@ -9,7 +9,7 @@ class Heap(memorySize: Int)(implicit vm: VM){
   var freePointer = 1
 
   def allocate(n: Int) = {
-    //      println(s"Allocating $n at $freePointer")
+//          println(s"Allocating $n at $freePointer")
     if (freePointer + n > memorySize) collect(start)
     val newFree = freePointer
     freePointer += n
@@ -30,25 +30,29 @@ class Heap(memorySize: Int)(implicit vm: VM){
 
 
   def blit(freePointer: Int, src: Int) = {
-    if (memory(src + 1) >= 0){
+//    println(s"blit free:$freePointer, src:$src")
+    if (src == 0) {
+      (0, freePointer)
+    } else if (memory(src + 1) >= 0){
       if (src.isObj) {
         val obj = src.obj
 
-        //          println(s"blit obj src: $src, free:$freePointer, length: $length")
+//        println(s"blit obj length: ${obj.heapSize}")
 
         System.arraycopy(memory, src, memory, freePointer, obj.heapSize)
         memory(src + 1) = -freePointer
         (freePointer, freePointer + obj.heapSize)
       } else { // it's an Arr
 
-        //          println(s"blit arr src: $src, free: $freePointer, length: $length")
+
         val length = src.arr.heapSize
+//        println(s"blit arr length: $length")
         System.arraycopy(memory, src, memory, freePointer, length)
         memory(src + 1) = -freePointer
         (freePointer, freePointer + length)
       }
     }else{
-      println(s"non-blitting $src -> ${-memory(src + 1)}")
+//      println(s"non-blitting $src -> ${-memory(src + 1)}")
       (-memory(src + 1), freePointer)
     }
   }
@@ -57,17 +61,17 @@ class Heap(memorySize: Int)(implicit vm: VM){
     for(i <- to until (to+memorySize)){
       memory(i) = 0
     }
-    //      println("===============Collecting==================")
+//          println("===============Collecting==================")
 
     def collectDump = {
-      //        println("From")
-      //        println(dump(from, from + memorySize))
-      //        println("To")
-      //        println(dump(to, to + memorySize))
+//              println("From")
+//              println(dump(from, from + memorySize))
+//              println("To")
+//              println(dump(to, to + memorySize))
     }
     val roots = vm.getRoots
 
-    //      println(s"allRoots ${roots.map(_())}")
+//        println(s"allRoots ${roots.map(_())}")
 
     var scanPointer = 0
     if(from == 0){
@@ -86,18 +90,20 @@ class Heap(memorySize: Int)(implicit vm: VM){
       val (newRoot, nfp) = blit(freePointer, oldRoot)
       freePointer = nfp
       root() = newRoot
-      //        println(s"Step root: $scanPointer, free: $freePointer")
+
+//      println(s"Step root: $scanPointer, free: $freePointer")
+//      println(oldRoot + "->" + newRoot)
       collectDump
     }
-    //      println("-----------------------------------------------")
+//          println("-----------------------------------------------")
     while(scanPointer != freePointer){
       assert(scanPointer <= freePointer, s"scanPointer $scanPointer > freePointer $freePointer")
-      //        println(s"Step scan: $scanPointer, free: $freePointer")
+//              println(s"Step scan: $scanPointer, free: $freePointer")
       collectDump
       if (scanPointer.isObj){
         val obj = scanPointer.obj
 
-        //          println("Scanning Obj length = "+length)
+//          println("Scanning Obj length = "+obj.heapSize)
 
         for{
           (x, i) <- obj.cls.fieldList.zipWithIndex
@@ -112,7 +118,7 @@ class Heap(memorySize: Int)(implicit vm: VM){
       }else{ // it's an Arr
       val arr = scanPointer.arr
         val length = arr.heapSize
-        //          println("Scanning Arr length = "+length)
+//                  println("Scanning Arr length = "+length)
 
         if (arr.innerType.isRef){
           for (i <- 0 until arr.length){
@@ -131,8 +137,9 @@ class Heap(memorySize: Int)(implicit vm: VM){
     if (from == 0) start = memorySize
     else start = 0
 
-    //      println("==================Collectiong Compelete====================")
-    //      println(dump())
+//    println("==================Collectiong Compelete====================")
+//    println(dump())
+//    vm.getRoots
     //System.exit(0)
   }
 }
