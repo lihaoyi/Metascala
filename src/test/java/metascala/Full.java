@@ -17,6 +17,7 @@ public class Full {
             total = total + v;
             map.put(v, ""+total);
         }
+
         return Integer.parseInt(map.get(n/2));
     }
 

@@ -22,7 +22,7 @@ object Conversion {
 
   def convertToSsa(method: Method, cls: String)(implicit vm: VM): Code = {
 
-    if (method.name == "XXX") {
+    if (method.name == "???") {
       println(s"-------------------Converting: $cls/${method.sig}--------------------------")
       method.code.insns.zipWithIndex.foreach{ case (x, i) =>
         println(s"$i\t$x")
@@ -40,7 +40,7 @@ object Conversion {
             .zip(makePhis(blocks))
             .map{ case ((buff, types), phis) => BasicBlock(buff, phis, types) }
 
-    if(method.name == "XXX"){
+    if(method.name == "???"){
       println("----------------------------------------------")
       for ((block, i) <- basicBlocks.zipWithIndex){
         println()
@@ -70,7 +70,8 @@ object Conversion {
                        (srcState.stack.reverse zip destState.stack.reverse)
 
           for {
-            (src, dest) <- zipped.filter{case (s, d) => s.tpe.isRef == d.tpe.isRef}.distinct
+            (src, dest) <- zipped.distinct
+            if src.tpe.isRef == dest.tpe.isRef
             pairs <- src.slots zip dest.slots
           } yield pairs
         }
@@ -279,16 +280,19 @@ object Conversion {
       }
       val symbol = makeSymbol(imm.Type.Arr(typeRef))
       state.copy(stack = symbol :: rest) -> List(Insn.NewArray(length.n, symbol.n, typeRef))
+
     case MonitorEnter | MonitorExit =>
       val monitor :: rest = state.stack
       state.copy(stack = rest) -> Nil
+
     case ArrayLength =>
       val arr :: rest = state.stack
       val symbol = makeSymbol(I)
       state.copy(stack = symbol :: rest) -> List(Insn.ArrayLength(arr.n, symbol.n))
+
     case ANewArray(typeRef) =>
       val length :: rest = state.stack
-      val symbol = makeSymbol(typeRef)
+      val symbol = makeSymbol(imm.Type.Arr(typeRef))
       state.copy(stack = symbol :: rest) -> List(Insn.NewArray(length.n, symbol.n, typeRef))
 
     case LoadArray(prim) =>
@@ -435,7 +439,7 @@ object Conversion {
 
     case InstanceOf(desc) =>
       val head :: rest = state.stack
-      val symbol = makeSymbol(I)
+      val symbol = makeSymbol(desc)
       state.copy(stack = symbol :: rest) -> Seq(Insn.InstanceOf(head.n, symbol.n, desc))
 
     case MultiANewArray(desc, dims) =>

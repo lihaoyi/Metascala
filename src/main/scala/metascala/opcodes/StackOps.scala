@@ -147,12 +147,12 @@ object StackOps {
   val ALoad3 = UnusedOpCode
   //===============================================================
 
-  case class LoadArray[T](p: Prim[T]) extends OpCode
+  case class LoadArray(p: Type) extends OpCode
   val IALoad = LoadArray(I)
   val LALoad = LoadArray(J)
   val FALoad = LoadArray(F)
   val DALoad = LoadArray(D)
-  val AALoad = LoadArray(I)
+  val AALoad = LoadArray(imm.Type.Cls("java/lang/Object"))
   val BALoad = LoadArray(B)
   val CALoad = LoadArray(C)
   val SALoad = LoadArray(S)
@@ -194,12 +194,12 @@ object StackOps {
   //===============================================================
 
 
-  case class StoreArray[T](p: Prim[T]) extends OpCode
+  case class StoreArray(p: Type) extends OpCode
   val IAStore = StoreArray(I)
   val LAStore = StoreArray(J)
   val FAStore = StoreArray(F)
   val DAStore = StoreArray(D)
-  val AAStore = StoreArray(I)
+  val AAStore = StoreArray(imm.Type.Cls("java/lang/Object"))
   val BAStore = StoreArray(B)
   val CAStore = StoreArray(C)
   val SAStore = StoreArray(S)
