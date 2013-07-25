@@ -24,6 +24,7 @@ object ScalaLib{
       if isPalindrome(p.toString)
     } yield p
     palindromes
+
   }
 
   def bigFibonacci(n: Int) = {

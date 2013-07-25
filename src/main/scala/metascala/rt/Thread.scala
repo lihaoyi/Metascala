@@ -68,10 +68,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 //          .toList
 //          .toString
 
-//    if (frame.method.method.name == "getEntry") {
-//      println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.locals.toList.zip(block.locals))
-//      println(indent + "::\t" + frame.pc + "\t" + node )
-//    }
+    if (frame.method.method.name == "XXX") {
+      println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.locals.toList.zip(block.locals))
+      println(indent + "::\t" + frame.pc + "\t" + node )
+    }
 //
 //    println(indent + "::\t" + vm.heap.dump().replace("\n", "\n" + indent + "::\t"))
     val currentFrame = frame
@@ -229,8 +229,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         frame.pc = (target, 0)
       case TableSwitch(src, min, max, default, targets) =>
         var done = false
-        val res = for ((k, t) <- min to max zip targets) yield {
-          if (frame.locals(src) == k){
+        for ((k, t) <- min to max zip targets) yield {
+          if (frame.locals(src) == k && !done){
             doPhi(frame, frame.pc._1, t)
             frame.pc = (t, 0)
             done = true
@@ -242,8 +242,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         }
       case LookupSwitch(src, default, keys, targets) =>
         var done = false
-        val res = for ((k, t) <- keys zip targets) yield {
-          if (frame.locals(src) == k){
+        for ((k, t) <- keys zip targets) yield {
+          if (frame.locals(src) == k && !done){
             doPhi(frame, frame.pc._1, t)
             frame.pc = (t, 0)
             done = true
