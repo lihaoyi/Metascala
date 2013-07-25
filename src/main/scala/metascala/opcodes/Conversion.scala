@@ -65,16 +65,15 @@ object Conversion {
     val newBlocks = blocks
     for{((destState, buffer, _, _), i) <- newBlocks.zipWithIndex} yield {
       for{((_, srcBuffer, srcState, _), j) <- newBlocks.zipWithIndex} yield {
-        def stuff = {
-          val zipped = (srcState.locals zip destState.locals) ++
-                       (srcState.stack.reverse zip destState.stack.reverse)
 
-          for {
-            (src, dest) <- zipped.distinct
-            if src.tpe.isRef == dest.tpe.isRef
-            pairs <- src.slots zip dest.slots
-          } yield pairs
-        }
+        def zipped = (srcState.locals zip destState.locals) ++
+                     (srcState.stack.reverse zip destState.stack.reverse)
+        def stuff = for {
+          (src, dest) <- zipped.distinct
+          if src.tpe.isRef == dest.tpe.isRef
+          pairs <- src.slots zip dest.slots
+        } yield pairs
+
 
         if (j + 1 == i) stuff
         else if(!srcBuffer.isEmpty && srcBuffer.last.targets.contains(i)) stuff

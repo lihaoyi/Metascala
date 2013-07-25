@@ -45,18 +45,20 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     (srcs, dests)
   }
 
+  def jumpPhis(target: Int) = {
+    doPhi(frame, frame.pc._1, target)
+    frame.pc = (target, 0)
+  }
   final def step(): Unit = try {
     //  println(frame.pc)
     val code = frame.method.code
 
-    val block = code.blocks(frame.pc._1)
-    if (block.insns.length == 0){
-      doPhi(frame, frame.pc._1, frame.pc._1 + 1)
-      frame.pc = frame.pc.copy(_1 = frame.pc._1 + 1)
-
-      step()
-      return
+    var block = code.blocks(frame.pc._1)
+    while(block.insns.length == 0){
+      jumpPhis(frame.pc._1 + 1)
+      block = code.blocks(frame.pc._1)
     }
+
     val node = block.insns(frame.pc._2)
 
     val r = reader(frame.locals, 0)
@@ -209,50 +211,37 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         advancePc()
       case BinaryBranch(symA, symB, target, func) =>
         val (a, b) = (frame.locals(symA), frame.locals(symB))
-        if(func(b, a)) {
-          doPhi(frame, frame.pc._1, target)
-          frame.pc = (target, 0)
-        }else{
-          advancePc()
-        }
+        if(func(b, a)) jumpPhis(target)
+        else advancePc()
+
 
       case UnaryBranch(sym, target, func) =>
-        if(func(frame.locals(sym))) {
-          doPhi(frame, frame.pc._1, target)
-          frame.pc = (target, 0)
-        }else{
-          advancePc()
-        }
+        if(func(frame.locals(sym))) jumpPhis(target)
+        else advancePc()
+
 
       case Goto(target) =>
-        doPhi(frame, frame.pc._1, target)
-        frame.pc = (target, 0)
+        jumpPhis(target)
+
       case TableSwitch(src, min, max, default, targets) =>
         var done = false
         for ((k, t) <- min to max zip targets) yield {
           if (frame.locals(src) == k && !done){
-            doPhi(frame, frame.pc._1, t)
-            frame.pc = (t, 0)
+            jumpPhis(t)
             done = true
           }
         }
-        if (!done) {
-          doPhi(frame, frame.pc._1, default)
-          frame.pc = (default, 0)
-        }
+        if (!done) jumpPhis(default)
       case LookupSwitch(src, default, keys, targets) =>
         var done = false
         for ((k, t) <- keys zip targets) yield {
           if (frame.locals(src) == k && !done){
-            doPhi(frame, frame.pc._1, t)
-            frame.pc = (t, 0)
+            jumpPhis(t)
             done = true
           }
         }
-        if (!done) {
-          doPhi(frame, frame.pc._1, default)
-          frame.pc = (default, 0)
-        }
+        if (!done) jumpPhis(default)
+
       case CheckCast(src, desc) =>
         frame.locals(src) match{
           case 0 => advancePc()
