@@ -56,9 +56,14 @@ class VM(val natives: Bindings = Bindings.default,
       if field.desc.isRef
     } yield new ArrRef(cls.statics, i)
 
+    lazy val internedRoots = for{
+      cls <- ClsTable.clsIndex.drop(1)
+      i <- 0 until cls.internedList.length
+    } yield new ArrRef(cls.internedList, i)
+
 //    println(s"classRoots ${classRoots.map(_())}")
 
-    stackRoots ++ classRoots
+    stackRoots ++ classRoots ++ internedRoots
   }
   /**
    * Globally shared sun.misc.Unsafe object.
@@ -85,7 +90,7 @@ class VM(val natives: Bindings = Bindings.default,
 
     override def post(cls: rt.Cls) = {
       clsIndex.append(cls)
-
+      cls.internedList
     }
   }
 
@@ -140,10 +145,8 @@ class VM(val natives: Bindings = Bindings.default,
            .methods
            .find(_.sig == sig)
 
-    Some(
-      native.orElse(method)
-            .getOrElse(throw new Exception(s"Can't find method ${owner.unparse} ${sig.name} ${sig.desc.unparse}"))
-    )
+
+    native.orElse(method)
   }
 }
 

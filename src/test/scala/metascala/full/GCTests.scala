@@ -41,19 +41,17 @@ object GCTestsBasic{
     }
     front.value
   }
-}
-class Cons(val value: Int, var next: Cons)
-
-object GCTestsTwo{
-  def interned = {
+  def interned(n: Int) = {
     var i = 0
-    while(i < 30){
+    while(i < n){
       val p = new Object()
       i += 1
     }
-    1
+    "aaaaa"
   }
 }
+class Cons(val value: Int, var next: Cons)
+
 class GCTests extends FreeSpec with Util{
 
   "helloObj" in {
@@ -87,4 +85,8 @@ class GCTests extends FreeSpec with Util{
     }
   }
 
+  "interned" in {
+    val tester = new Tester("metascala.full.GCTestsBasic", memorySize = 30)
+    tester.run("interned", 30)
+  }
 }

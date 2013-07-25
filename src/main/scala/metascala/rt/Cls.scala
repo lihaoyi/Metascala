@@ -6,6 +6,7 @@ import collection.mutable
 
 import  metascala.{vrt, VM, imm}
 import metascala.imm.{Sig, Access, Type}
+import metascala.opcodes.Insn
 
 /**
  * A handle to a readable and writable value.
@@ -50,6 +51,8 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
       Seq.fill(x.desc.size)(x)
     }
   }
+
+  var internedList = Array.empty[Int]
 
 
   val statics = {

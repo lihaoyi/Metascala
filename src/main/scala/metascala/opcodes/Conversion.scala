@@ -20,10 +20,10 @@ case class Symbol(n: Int, tpe: imm.Type){
 object Conversion {
   type Blocks = Seq[(State, Seq[Insn], State, Seq[Type])]
 
-  def convertToSsa(method: Method, cls: String)(implicit vm: VM): Code = {
+  def convertToSsa(cls: rt.Cls, method: Method)(implicit vm: VM): Code = {
 
     if (method.name == "???") {
-      println(s"-------------------Converting: $cls/${method.sig}--------------------------")
+      println(s"-------------------Converting: ${cls.name}/${method.sig}--------------------------")
       method.code.insns.zipWithIndex.foreach{ case (x, i) =>
         println(s"$i\t$x")
       }
@@ -33,7 +33,7 @@ object Conversion {
       }
     }
 
-    val (blocks, tryCatchBlocks) = walkBlocks(method)
+    val (blocks, tryCatchBlocks) = walkBlocks(cls, method)
 
     val basicBlocks =
       blocks.map(b => b._2 -> b._4)
@@ -85,7 +85,7 @@ object Conversion {
    * Takes a method and breaks up the bytecode from a flat list of stack
    * operations into a list of basic blocks of register operations
    */
-  def walkBlocks(method: imm.Method)(implicit vm: VM): (Blocks, Seq[opcodes.TryCatchBlock]) = {
+  def walkBlocks(cls: rt.Cls, method: imm.Method)(implicit vm: VM): (Blocks, Seq[opcodes.TryCatchBlock]) = {
 
     val locals: Vector[imm.Type] ={
       val thisArg =
@@ -140,7 +140,7 @@ object Conversion {
 
       allStates.append(beginState)
 
-      val (regInsns, newInsns, newAttached, newState) = run(insns, attached, allStates.last, makeSymbol.apply)
+      val (regInsns, newInsns, newAttached, newState) = run(cls, insns, attached, allStates.last, makeSymbol.apply)
       sections = sections :+ regInsns.map(_.length).scan(0)(_+_)
 
       blockMap(method.code.insns.length - insns.length) = blocks.length
@@ -182,7 +182,8 @@ object Conversion {
     (finalBlocks, tryCatchBlocks)
   }
   @tailrec
-  def run(insns: List[OpCode],
+  def run(cls: rt.Cls,
+          insns: List[OpCode],
           attached: List[Seq[Attached]],
           state: State,
           makeSymbol: Type => Symbol,
@@ -194,13 +195,13 @@ object Conversion {
       case (i :: is, a :: as) =>
 
 //        println(i + "\t" + i.toString.padTo(30, ' ') + state.stack.toString.padTo(20, ' ') + state.locals.toString.padTo(30, ' '))
-        val (newState, newInsn) = op(state, i, makeSymbol)
+        val (newState, newInsn) = op(cls, state, i, makeSymbol)
         val outInsns = regInsns ++ Seq(newInsn)
         import StackOps._
         (i, as) match{
           case (_, a :: _) if a.exists(_.isInstanceOf[Attached.Frame]) => (outInsns, is, as, newState)
           case (_: Jump, _) => (outInsns, is, as, newState)
-          case _ => run(is, as, newState, makeSymbol, outInsns, index + 1)
+          case _ => run(cls, is, as, newState, makeSymbol, outInsns, index + 1)
         }
       case _ => (regInsns, insns, attached, state)
     }
@@ -235,7 +236,7 @@ object Conversion {
    * the new state out the other end, togther with any register instructions
    * that are needed.
    */
-  def op(state: State, oc: OpCode, makeSymbol: Type => Symbol)(implicit vm: VM): (State, Seq[Insn]) = oc match {
+  def op(cls: rt.Cls, state: State, oc: OpCode, makeSymbol: Type => Symbol)(implicit vm: VM): (State, Seq[Insn]) = oc match {
 
     case InvokeStatic(cls, sig) =>
       val (args, newStack) = state.stack.splitAt(sig.desc.argSize)
@@ -310,6 +311,7 @@ object Conversion {
     case Ldc(thing) =>
       def handle[T, U](t: imm.Type, u: Prim[U], value: U) = {
         val symbol = makeSymbol(t)
+
         Insn.Push[U](symbol.n, u, value) -> symbol
       }
       val (opcode: Insn, symbol: Symbol) = thing match {
@@ -317,8 +319,12 @@ object Conversion {
           val clsObj = vrt.Obj.allocate("java/lang/Class",
             "name" -> Virtualizer.pushVirtual(t.getInternalName).apply(0)
           )
+          cls.internedList = cls.internedList ++ Array(clsObj.address)
           handle(clsObj.cls.clsData.tpe, I, clsObj.address)
-        case s: String =>       handle(imm.Type.Cls("java/lang/String"), I, Virtualizer.pushVirtual(s).apply(0))
+        case s: String =>
+          val strObjAddr = Virtualizer.pushVirtual(s).apply(0)
+          cls.internedList = cls.internedList ++ Array(strObjAddr)
+          handle(imm.Type.Cls("java/lang/String"), I, strObjAddr)
         case x: scala.Byte   => handle(B, B, x)
         case x: scala.Char   => handle(C, C, x)
         case x: scala.Short  => handle(S, S, x)
