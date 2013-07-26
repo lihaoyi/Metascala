@@ -319,11 +319,11 @@ object Conversion {
           val clsObj = vrt.Obj.allocate("java/lang/Class",
             "name" -> Virtualizer.pushVirtual(t.getInternalName).apply(0)
           )
-          cls.internedList = cls.internedList ++ Array(clsObj.address)
+
           handle(clsObj.cls.clsData.tpe, I, clsObj.address)
         case s: String =>
           val strObjAddr = Virtualizer.pushVirtual(s).apply(0)
-          cls.internedList = cls.internedList ++ Array(strObjAddr)
+
           handle(imm.Type.Cls("java/lang/String"), I, strObjAddr)
         case x: scala.Byte   => handle(B, B, x)
         case x: scala.Char   => handle(C, C, x)

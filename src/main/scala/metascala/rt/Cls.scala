@@ -7,6 +7,7 @@ import collection.mutable
 import  metascala.{vrt, VM, imm}
 import metascala.imm.{Sig, Access, Type}
 import metascala.opcodes.Insn
+import metascala.imm.Type.Prim.I
 
 /**
  * A handle to a readable and writable value.
@@ -34,9 +35,9 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
       clsData.superType.foreach{ cls =>
         vm.ClsTable(cls).checkInitialized()
       }
-
     }
   }
+
   /**
    * Mutable representations of all the methods this class has
    */
@@ -52,20 +53,12 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
     }
   }
 
-  var internedList = Array.empty[Int]
-
-
-  val statics = {
-    new Array[Int](staticList.length)
-  }
-
-
+  val statics = vrt.Arr.allocate(I, staticList.length).address
 
   def method(name: String, desc: imm.Desc): Option[imm.Method] = {
     clsAncestry.flatMap(_.methods)
                .find(m => m.name == name && m.desc == desc)
   }
-
 
   lazy val size = fieldList.length
 

@@ -48,22 +48,9 @@ class VM(val natives: Bindings = Bindings.default,
 
 //    println(s"stackRoots ${stackRoots.map(_())}")
 
-    val classRoots = for{
-      cls <- ClsTable.clsIndex.drop(1)
-//      _ = println("Cls " + cls.name)
-      (field, i) <- cls.staticList.zipWithIndex
-//      _ = println("Field " + field.name + "\t" + cls.statics(i))
-      if field.desc.isRef
-    } yield new ArrRef(cls.statics, i)
-
-    lazy val internedRoots = for{
-      cls <- ClsTable.clsIndex.drop(1)
-      i <- 0 until cls.internedList.length
-    } yield new ArrRef(cls.internedList, i)
-
 //    println(s"classRoots ${classRoots.map(_())}")
 
-    stackRoots ++ classRoots ++ internedRoots
+    stackRoots
   }
   /**
    * Globally shared sun.misc.Unsafe object.
@@ -90,7 +77,6 @@ class VM(val natives: Bindings = Bindings.default,
 
     override def post(cls: rt.Cls) = {
       clsIndex.append(cls)
-      cls.internedList
     }
   }
 
