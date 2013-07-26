@@ -49,7 +49,6 @@ object Insn{
 
   case class InvokeStatic(dest: Sym, srcs: Seq[Sym], owner: Type.Cls, method: rt.Method) extends Invoke
   case class InvokeVirtual(dest: Sym, srcs: Seq[Sym], owner: Type.Cls, sig: imm.Sig, methodIndex: Int) extends Invoke
-  case class InvokeInterface(dest: Sym, srcs: Seq[Sym], owner: Type.Cls, sig: imm.Sig) extends Invoke
 
   case class New(target: Sym, cls: rt.Cls) extends Insn
   case class NewArray(src: Sym, dest: Sym, typeRef: imm.Type) extends Insn

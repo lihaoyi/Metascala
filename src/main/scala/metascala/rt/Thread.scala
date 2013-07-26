@@ -128,33 +128,19 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
                           .flatMap{case (s, t) =>
           frame.locals.slice(s, s + t)
         }
-
         val phis = advancePc()
         val ptarget = phis.toMap.getOrElse(target, target)
         if(args(0) == 0) throwExWithTrace("java/lang/NullPointerException", "null")
         else {
-          val mRef =
-            if (args(0).isArr){
-              resolveDirectRef(imm.Type.Cls("java/lang/Object"), sig).get
-            }else{
-              args(0).obj.cls.vTable(mIndex)
-            }
-
-          prepInvoke(mRef, args, writer(frame.locals, ptarget))
-        }
-
-      case InvokeInterface(target, sources, owner, sig) =>
-        val args = sources.zip(1 +: sig.desc.args.map(_.size))
-          .flatMap{case (s, t) =>
-          frame.locals.slice(s, s + t)
-        }
-        ///println("INVOKE VIRTUAL " + args)
-        val phis = advancePc()
-        val ptarget = phis.toMap.getOrElse(target, target)
-        if(args(0) == 0) throwExWithTrace("java/lang/NullPointerException", "null")
-        else {
-          //println(args(0).obj.cls.clsData.tpe)
-          val mRef = args(0).obj.cls.vTableMap(sig)
+          val mRef = mIndex match{
+            case -1 =>
+              args(0).obj.cls.vTableMap(sig)
+            case _ =>
+              val cls =
+                if (args(0).isObj) args(0).obj.cls
+                else owner.cls
+              cls.vTable(mIndex)
+          }
           prepInvoke(mRef, args, writer(frame.locals, ptarget))
         }
 
