@@ -210,7 +210,6 @@ trait Default extends Bindings{
             "floatToRawIntBits(F)I".func(I, I){(vt, l) => l}
           ),
           "Object"/(
-            "<clinit>()V".value(V)(()),
             "clone()Ljava/lang/Object;".func(I, I){(vt, l) => l},
             "getClass()Ljava/lang/Class;".func(I, I){ (vt, value) =>
 
@@ -249,7 +248,6 @@ trait Default extends Bindings{
             "registerNatives()V".value(V)(())
           ),
           "String"/(
-            "<clinit>()V".value(V)(()),
             "intern()Ljava/lang/String;".func(I, I){ (vt, addr) =>
               import vt.vm
               val str = addr.toRealObj[String]
@@ -333,9 +331,7 @@ trait Default extends Bindings{
       ),
       "sun"/(
         "misc"/(
-          "Hashing"/(
-            "randomHashSeed(Ljava/lang/Object;)I".value(I)(2)
-          ),
+
           "Unsafe"/(
             "arrayBaseOffset(Ljava/lang/Class;)I".value(I)(2),
             "arrayIndexScale(Ljava/lang/Class;)I".value(I)(1),
@@ -356,13 +352,13 @@ trait Default extends Bindings{
               field.apply("slot")
             },
             "registerNatives()V".value(V)(()),
-            "getUnsafe()Lsun/misc/Unsafe;".func(I){vt => vt.vm.theUnsafe.address},
-            "<clinit>()V".value(V)(())
+            "getUnsafe()Lsun/misc/Unsafe;".func(I){vt => vt.vm.theUnsafe.address}
+
           ),
           "VM"/(
             "getSavedProperty(Ljava/lang/String;)Ljava/lang/String;".value(I)(0),
-            "initialize()V".value(V)(()),
-            "<clinit>()V".value(V)(())
+            "initialize()V".value(V)(())
+
           )
         ),
         "reflect"/(
@@ -380,8 +376,7 @@ trait Default extends Bindings{
               val addr = o.obj.apply("name")
               val str = addr.toRealObj[String]
               vm.ClsTable(str).clsData.access_flags
-            },
-            "<clinit>()V".value(V)(())
+            }
           )
         )
       )

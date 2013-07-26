@@ -30,8 +30,8 @@ object Cls {
 
   def parse(input: Array[Byte]) = {
 
-    val cr = new ClassReader(input);
-    val classNode = new ClassNode();
+    val cr = new ClassReader(input)
+    val classNode = new ClassNode()
 
     cr.accept(classNode, ClassReader.EXPAND_FRAMES)
     read(classNode)
