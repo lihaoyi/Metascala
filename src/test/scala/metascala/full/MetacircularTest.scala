@@ -10,7 +10,7 @@ import collection.GenSeq
 object MetacircularTest{
 
   def sqrtFinder = {
-    val x = new metascala.VM()
+    val x = new metascala.VM(memorySize = 1024)
     x.invoke("metascala.features.controlflow.Loops", "sqrtFinder", Seq(5.0))
   }
 
@@ -56,19 +56,16 @@ class MetacircularTest extends FreeSpec with Util{
   val buffer = new BufferLog(1900)
   var count = 0
 
-  val tester = new Tester("metascala.full.MetacircularTest")
-  /*
-  "helloWorld" in {
-  //  tester.run("helloWorld")
+  val tester = new Tester("metascala.full.MetacircularTest", memorySize = 1 * 1024 * 1024)
 
+//  "helloWorld" in {
+//    tester.run("helloWorld")
+//  }
 
-  }
-
-  "sqrtFinder" in {
-    tester.run("sqrtFinder")
-
-  }
-
+//  "sqrtFinder" in {
+//    tester.run("sqrtFinder")
+//  }
+/*
   "fibonacci" in {
     tester.run("fibonacci")
   }

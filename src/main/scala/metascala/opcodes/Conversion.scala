@@ -8,6 +8,7 @@ import imm.Type.Prim
 import imm.Type.Prim._
 import scala.annotation.tailrec
 
+
 case class Symbol(n: Int, tpe: imm.Type){
   override def toString = if (n < 0) "~" else ""+n
   def size = tpe.size
@@ -22,7 +23,7 @@ object Conversion {
 
   def convertToSsa(cls: rt.Cls, method: Method)(implicit vm: VM): Code = {
 
-    if (method.name == "???") {
+    if (cls.name == "aaorg/objectweb/asm/ClassReader") {
       println(s"-------------------Converting: ${cls.name}/${method.sig}--------------------------")
       method.code.insns.zipWithIndex.foreach{ case (x, i) =>
         println(s"$i\t$x")
@@ -40,7 +41,7 @@ object Conversion {
             .zip(makePhis(blocks))
             .map{ case ((buff, types), phis) => BasicBlock(buff, phis, types) }
 
-    if(method.name == "???"){
+    if(cls.name == "orgaa/objectweb/asm/ClassReader"){
       println("----------------------------------------------")
       for ((block, i) <- basicBlocks.zipWithIndex){
         println()
@@ -200,7 +201,7 @@ object Conversion {
         import StackOps._
         (i, as) match{
           case (_, a :: _) if a.exists(_.isInstanceOf[Attached.Frame]) => (outInsns, is, as, newState)
-          case (_: Jump, _) => (outInsns, is, as, newState)
+          case (_: Jump | _: ReturnVal | AThrow, _) => (outInsns, is, as, newState)
           case _ => run(cls, is, as, newState, makeSymbol, outInsns, index + 1)
         }
       case _ => (regInsns, insns, attached, state)

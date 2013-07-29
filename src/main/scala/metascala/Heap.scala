@@ -8,9 +8,14 @@ class Heap(memorySize: Int)(implicit vm: VM){
   var start = 0
   var freePointer = 1
 
+  var allocCount = 0
   def allocate(n: Int) = {
-//          println(s"Allocating $n at $freePointer")
-    if (freePointer + n > memorySize) collect(start)
+//    println(s"Allocating $n at $freePointer")
+    if (freePointer + n > memorySize + start) {
+      collect(start)
+      allocCount = 0
+    }
+    allocCount += 1
     val newFree = freePointer
     freePointer += n
     newFree
@@ -61,14 +66,11 @@ class Heap(memorySize: Int)(implicit vm: VM){
     for(i <- to until (to+memorySize)){
       memory(i) = 0
     }
-//          println("===============Collecting==================")
+    println("===============Collecting==================")
+    println("allocCount " + allocCount)
+    vm.threads(0).threadStack.map(x => x.runningClass.name + "/" + x.method.sig + "\t" + x.method.code.blocks(x.pc._1).insns(x.pc._2)).foreach(println)
+    println("starting " + (freePointer - from))
 
-    def collectDump = {
-//              println("From")
-//              println(dump(from, from + memorySize))
-//              println("To")
-//              println(dump(to, to + memorySize))
-    }
     val roots = vm.getRoots
 
 //        println(s"allRoots ${roots.map(_())}")
@@ -91,15 +93,11 @@ class Heap(memorySize: Int)(implicit vm: VM){
       freePointer = nfp
       root() = newRoot
 
-//      println(s"Step root: $scanPointer, free: $freePointer")
-//      println(oldRoot + "->" + newRoot)
-      collectDump
     }
-//          println("-----------------------------------------------")
+
     while(scanPointer != freePointer){
       assert(scanPointer <= freePointer, s"scanPointer $scanPointer > freePointer $freePointer")
-//              println(s"Step scan: $scanPointer, free: $freePointer")
-      collectDump
+
       if (scanPointer.isObj){
         val obj = scanPointer.obj
 
@@ -123,7 +121,6 @@ class Heap(memorySize: Int)(implicit vm: VM){
         if (arr.innerType.isRef){
           for (i <- 0 until arr.length){
             val (newRoot, nfp) = blit(freePointer, arr(i))
-            println(arr.address)
             arr(i) = newRoot
             freePointer = nfp
           }
@@ -136,6 +133,7 @@ class Heap(memorySize: Int)(implicit vm: VM){
 
     if (from == 0) start = memorySize
     else start = 0
+    println("ending " + (freePointer - start))
 
 //    println("==================Collectiong Compelete====================")
 //    println(dump())

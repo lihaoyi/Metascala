@@ -1,12 +1,15 @@
 package metascala.full
 
-import metascala.{BufferLog, Util}
+import metascala.{imm, BufferLog, Util}
 import org.scalatest.FreeSpec
 import org.scalatest._
 import scala.collection.immutable.Range.Inclusive
 import scala.collection.immutable.Range
 import scala.runtime.RichInt
 import scala.concurrent.{Await, Promise}
+import java.io.DataInputStream
+import org.objectweb.asm.ClassReader
+import org.objectweb.asm.tree.ClassNode
 
 
 object ScalaLib{
@@ -34,6 +37,31 @@ object ScalaLib{
     fs.view.takeWhile(_.toString.length < n).size
 
   }
+  def main(args: Array[String]){
+    println(parseClass())
+  }
+  def parseClass() = {
+
+    val slashName = "/java/lang/Object.class"
+
+    val loaded = getClass.getResourceAsStream(slashName)
+    println("loaded " + loaded)
+
+    val stream = new DataInputStream(loaded)
+    println("A")
+    val bytes = new Array[Byte](stream.available())
+    println("B")
+    stream.readFully(bytes)
+    println("C")
+    val cr = new ClassReader(bytes)
+    val classNode = new ClassNode()
+
+    cr.accept(classNode, ClassReader.EXPAND_FRAMES)
+    println("D")
+    classNode.name
+
+
+  }
 
   def futures = {
     import scala.concurrent.ExecutionContext.Implicits.global
@@ -56,16 +84,12 @@ object ScalaLib{
 }
 class ScalaLib extends FreeSpec with Util{
   val buffer = new BufferLog(4000)
-  val tester = new Tester("metascala.full.ScalaLib", buffer)
+  val tester = new Tester("metascala.full.ScalaLib", memorySize = 16 * 1024 * 1024)
   "hello world" in tester.run("hello")
   "predef" in tester.run("predef", 5)
   "palindrome" in tester.run("palindrome", 100, 130)
   "bigFibonacci" in tester.run("bigFibonacci", 100)
+  "parseClass" in tester.run("parseClass")
+  "lol" in tester.run("lol")
 
-//  "futures" in {
-//    tester.run("futures", 100)
-//  }
-  "lol" in{
-    tester.run("lol")
-  }
 }

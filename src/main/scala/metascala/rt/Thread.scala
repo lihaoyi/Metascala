@@ -70,7 +70,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 //          .toList
 //          .toString
 
-    if (frame.method.method.name == "XXX") {
+    if (frame.runningClass.name == "org/objectweb/asm/ClassReader///") {
       println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.locals.toList.zip(block.locals))
       println(indent + "::\t" + frame.pc + "\t" + node )
     }
@@ -79,7 +79,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     val currentFrame = frame
 
     def advancePc() = {
-
       if (currentFrame.pc._2 + 1 < code.blocks(currentFrame.pc._1).insns.length){
         currentFrame.pc =(currentFrame.pc._1, currentFrame.pc._2 + 1)
         Nil
