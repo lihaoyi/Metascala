@@ -48,9 +48,16 @@ class VM(val natives: Bindings = Bindings.default,
 
 //    println(s"stackRoots ${stackRoots.map(_())}")
 
-//    println(s"classRoots ${classRoots.map(_())}")
+    val classRoots = for{
+      cls <- ClsTable.clsIndex.drop(1)
+//      _ = println("Cls " + cls.name)
+      (field, i) <- cls.staticList.zipWithIndex
+//      _ = println("Field " + field.name + "\t" + cls.statics(i))
+      if field.desc.isRef
+    } yield new ArrRef(cls.statics, i)
 
-    stackRoots
+    stackRoots ++ classRoots
+
   }
   /**
    * Globally shared sun.misc.Unsafe object.

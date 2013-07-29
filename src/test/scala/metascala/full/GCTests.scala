@@ -77,8 +77,8 @@ class GCTests extends FreeSpec with Util{
 
   "chain" in {
     for {
-      memory <- 40 to 45
-      count <- 20 to 30
+      memory <- 40 to 45 by 2
+      count <- 20 to 30 by 3
     }{
       val tester = new Tester("metascala.full.GCTestsBasic", memorySize = 40)
       tester.run("chain", count)
@@ -86,7 +86,12 @@ class GCTests extends FreeSpec with Util{
   }
 
   "interned" in {
-    val tester = new Tester("metascala.full.GCTestsBasic", memorySize = 30)
-    tester.run("interned", 30)
+    for {
+      memory <- 40 to 45 by 2
+      count <- 20 to 30 by 3
+    }{
+      val tester = new Tester("metascala.full.GCTestsBasic", memorySize = memory)
+      tester.run("interned", count)
+    }
   }
 }

@@ -53,7 +53,7 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
     }
   }
 
-  val statics = vrt.Arr.allocate(I, staticList.length).address
+  val statics = new Array[Int](staticList.length)
 
   def method(name: String, desc: imm.Desc): Option[imm.Method] = {
     clsAncestry.flatMap(_.methods)

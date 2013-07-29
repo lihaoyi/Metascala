@@ -309,33 +309,21 @@ object Conversion {
       state.copy(stack = state.locals(index) join state.stack) -> Nil
 
     case Ldc(thing) =>
-      def handle[T, U](t: imm.Type, u: Prim[U], value: U) = {
-        val symbol = makeSymbol(t)
-
-        Insn.Push[U](symbol.n, u, value) -> symbol
-      }
-      val (opcode: Insn, symbol: Symbol) = thing match {
-        case t: org.objectweb.asm.Type =>
-          val clsObj = vrt.Obj.allocate("java/lang/Class",
-            "name" -> Virtualizer.pushVirtual(t.getInternalName).apply(0)
-          )
-
-          handle(clsObj.cls.clsData.tpe, I, clsObj.address)
-        case s: String =>
-          val strObjAddr = Virtualizer.pushVirtual(s).apply(0)
-
-          handle(imm.Type.Cls("java/lang/String"), I, strObjAddr)
-        case x: scala.Byte   => handle(B, B, x)
-        case x: scala.Char   => handle(C, C, x)
-        case x: scala.Short  => handle(S, S, x)
-        case x: scala.Int    => handle(I, I, x)
-        case x: scala.Float  => handle(F, F, x)
-        case x: scala.Long   => handle(J, J, x)
-        case x: scala.Double => handle(D, D, x)
-
+      val symbol = thing match{
+        case _: Long => makeSymbol(J)
+        case _: Double => makeSymbol(D)
+        case x: scala.Byte   => makeSymbol(B)
+        case x: scala.Char   => makeSymbol(C)
+        case x: scala.Short  => makeSymbol(S)
+        case x: scala.Int    => makeSymbol(I)
+        case x: scala.Float  => makeSymbol(F)
+        case x: scala.Long   => makeSymbol(J)
+        case x: scala.Double => makeSymbol(D)
+        case _: String => makeSymbol(imm.Type.Cls("java/lang/String"))
+        case _: org.objectweb.asm.Type => makeSymbol(imm.Type.Cls("java/lang/Class"))
       }
 
-      state.copy(stack = symbol join state.stack) -> List(opcode)
+      state.copy(stack = symbol join state.stack) -> List(Insn.Ldc(symbol.n, thing))
 
     case BinOp(a, b, out, func) =>
       val symbol = makeSymbol(out)

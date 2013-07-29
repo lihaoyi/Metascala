@@ -168,7 +168,26 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         }else{
           throwExWithTrace("java/lang/ArrayIndexOutOfBoundsException", frame.locals(index).toString)
         }
-
+      case Ldc(target, thing) =>
+        val w = writer(frame.locals, target)
+        thing match{
+          case s: String =>
+            val top = Virtualizer.pushVirtual(s).apply(0)
+            frame.locals(target) = top
+          case t: org.objectweb.asm.Type =>
+            val clsObj = vrt.Obj.allocate("java/lang/Class",
+              "name" -> Virtualizer.pushVirtual(t.getInternalName).apply(0)
+            )
+            frame.locals(target) = clsObj.address
+          case x: scala.Byte  => B.write(x, w)
+          case x: scala.Char  => C.write(x, w)
+          case x: scala.Short => S.write(x, w)
+          case x: scala.Int   => I.write(x, w)
+          case x: scala.Float => F.write(x, w)
+          case x: scala.Long  => J.write(x, w)
+          case x: scala.Double => D.write(x, w)
+        }
+        advancePc()
       case UnaryOp(src, psrc, dest, pout, func) =>
         pout.write(func(psrc.read(reader(frame.locals, src))), writer(frame.locals, dest))
         advancePc()
@@ -182,11 +201,11 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         advancePc()
       case PutStatic(src, cls, index, prim) =>
         cls.checkInitialized()
-        System.arraycopy(frame.locals, src, vm.heap.memory, cls.statics + vrt.Arr.headerSize + index, prim.size)
+        System.arraycopy(frame.locals, src, cls.statics, index, prim.size)
         advancePc()
       case GetStatic(src, cls, index, prim) =>
         cls.checkInitialized()
-        System.arraycopy(vm.heap.memory, cls.statics + vrt.Arr.headerSize + index, frame.locals, src, prim.size)
+        System.arraycopy(cls.statics, index, frame.locals, src, prim.size)
 
         advancePc()
       case PutField(src, obj, index, prim) =>
