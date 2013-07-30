@@ -115,7 +115,7 @@ object Conversion {
       }
     }
     println("=========================================")
-    val blockBuffers = (for(blockId <- 0 to blockMap.last) yield {
+    val blockBuffers = for(blockId <- 0 to blockMap.last) yield {
       val start = blockMap.indexOf(blockId)
       val end = blockMap.lastIndexOf(blockId)
       val buffer = mutable.Buffer.empty[Insn]
@@ -150,7 +150,7 @@ object Conversion {
 
       // force in-order registration of method arguments in first block
       frames(0).boxes.map(getBox)
-
+      println("BLOCK MAP " + blockMap.toSeq)
       for (i <- start to end){
         def append(in: Insn) = {
           buffer.append(in)
@@ -320,20 +320,41 @@ object Conversion {
             val index = x.owner.cls.fieldList.lastIndexWhere(_.name == x.name)
             val prim = x.owner.cls.fieldList(index).desc
             append(Insn.PutField(frames(i).top(1), frames(i).top(0), index, prim))
+          case (INVOKESTATIC, x: MethodInsnNode) =>
+            val desc = imm.Desc.read(x.desc)
+            val m = vm.resolveDirectRef(x.owner, imm.Sig(x.name, desc)).get
+            var j = 0
+            val args = for(arg <- desc.args)yield{
+              println(j)
+              val res = frames(i).top(j)
+              j += 1
+              res
+            }
+            println(frames(i+1))
+            val target =
+              if (desc.ret == V)0
+              else frames(i+1).top(0): Int
+
+            append(Insn.InvokeStatic(target, args.map(getBox), x.owner, m))
+          case (INVOKESPECIAL, x: MethodInsnNode) =>
+          case (INVOKEVIRTUAL, x: MethodInsnNode) =>
+          case (INVOKEINTERFACE, x: MethodInsnNode) =>
           case _ => ()
         }
       }
 
-      if (srcMap.length == 0) None
-      else {
-        println(blockId + " XXX " + frames(start + srcMap(0)) + "\t" + frames(end))
 
-        val startFrame = frames(start)
-        val endFrame = new Frame[Box](frames(end))
-        endFrame.execute(insns(end), new FunnyInterpreter())
-        Some((buffer, types, localMap, startFrame, endFrame))
-      }
-    }).flatten
+      val startFrame = frames(start)
+      val origEndFrame = frames(end)
+      val endFrame = if (origEndFrame != null){
+        val f = new Frame[Box](origEndFrame)
+        f.execute(insns(end), new FunnyInterpreter())
+        f
+      }else null
+
+      (buffer, types, localMap, startFrame, endFrame)
+
+    }
 
     for(i <- 0 until frames.length){
       println(insns(i).toString.drop(23).padTo(30, ' ') + (""+frames(i)).padTo(40, ' ') + " | " + blockMap(i) + " | " + insnMap(i))
@@ -342,23 +363,15 @@ object Conversion {
     println("++++++++++++++++++++++++++++++++++++++++")
 
     val basicBlocks = for(((buffer, types, localMap, startFrame, _), i) <- blockBuffers.zipWithIndex) yield {
-      println(i)
       val phis = for(((buffer2, types2, localMap2, _, endFrame), j) <- blockBuffers.zipWithIndex) yield {
-        println(i + " " + j + "\t" + buffer2.last.targets)
-        if (buffer2.last.targets.contains(i) || (i == j + 1)) {
-
-          println("ZING " + j + " -> " + i + "\t")
-          println(startFrame + "\t" + localMap)
-          println(endFrame + "\t" + localMap2)
-
+        if (endFrame != null && startFrame != null && ((buffer2.length > 0 && buffer2.last.targets.contains(i)) || (i == j + 1)))
           for{
             (e, s) <- endFrame.boxes zip startFrame.boxes
-            if localMap2.contains(e)
-            if localMap.contains(s)
-          } yield {
-            (localMap2(e), localMap(s))
-          }
-        }else Nil
+
+            a <- localMap2.get(e)
+            b <- localMap.get(s)
+          } yield (a, b)
+        else Nil
       }
       BasicBlock(buffer, phis, types)
     }

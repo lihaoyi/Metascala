@@ -35,7 +35,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 //    println(indent + "doPhi")
 //    println(indent + oldBlock + "\t" + newBlock)
 
-      val (srcs, dests) = frame.method.code.blocks(newBlock).phi(oldBlock).unzip
+    val (srcs, dests) = frame.method.code.blocks(newBlock).phi(oldBlock).unzip
 //    println(indent + (srcs, dests))
     val temp = srcs.map(frame.locals)
     java.util.Arrays.fill(frame.locals, 0)
