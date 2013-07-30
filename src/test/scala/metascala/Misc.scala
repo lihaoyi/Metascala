@@ -16,13 +16,12 @@ import metascala.opcodes.{Insn, BasicBlock, Code}
 import scala.collection.JavaConverters._
 import metascala.opcodes.Code
 import metascala.opcodes.Insn._
-import metascala.StackOps.{F1, F2}
 import metascala.opcodes.Insn.GetArray
 import metascala.opcodes.Insn.Push
 import metascala.opcodes.Insn.BinOp
-import metascala.StackOps.F1
+
 import metascala.opcodes.Insn.PutArray
-import metascala.StackOps.F2
+
 import metascala.opcodes.Code
 
 class Misc extends FreeSpec with Util{

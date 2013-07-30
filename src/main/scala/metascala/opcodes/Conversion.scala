@@ -4,7 +4,6 @@ package opcodes
 import metascala.imm.{Attached, Method}
 import org.objectweb.asm.Type
 import scala.collection.mutable
-import metascala.StackOps.{F1, F2, OpCode}
 import imm.Type.Prim
 import imm.Type.Prim._
 import scala.annotation.tailrec
@@ -14,6 +13,7 @@ import scala.collection.JavaConverters._
 import org.objectweb.asm.tree.analysis._
 import org.objectweb.asm.Opcodes._
 import Insn._
+import metascala.StackOps.{F1, F2}
 
 case class Symbol(n: Int, tpe: imm.Type){
   override def toString = if (n < 0) "~" else ""+n
@@ -25,31 +25,45 @@ case class Symbol(n: Int, tpe: imm.Type){
 }
 class Box(val x: BasicValue) extends Value{
   override def getSize = x.getSize
+  override def toString = x.toString
 }
 
-object FunnyInterpreter extends Interpreter[Box](ASM4){
-  val internal = new BasicInterpreter()
-  override def newValue(tpe: org.objectweb.asm.Type) = new Box(internal.newValue(tpe))
-  type AIN = AbstractInsnNode
-  override def newOperation(insn: AIN) = new Box(internal.newOperation(insn))
-  override def copyOperation(insn: AIN, value: Box) = value
-  override def unaryOperation(insn: AIN, value: Box) = new Box(internal.unaryOperation(insn, value.x))
-  override def binaryOperation(insn: AIN, v1: Box, value2: Box) = new Box(internal.binaryOperation(insn, v1.x, value2.x))
-  override def ternaryOperation(insn: AIN, v1: Box, v2: Box, v3: Box) = new Box(internal.ternaryOperation(insn, v1.x, v2.x, v3.x))
-  override def naryOperation(insn: AIN, vs: java.util.List[_ <: Box]) = new Box(internal.naryOperation(insn, vs.asScala.map(_.x).asJava))
-  override def returnOperation(insn: AIN, value: Box, expected: Box) = ()
-  override def merge(v1: Box, v2: Box) = new Box(internal.merge(v1.x, v2.x))
-}
+    class FunnyInterpreter extends Interpreter[Box](ASM4){
+      val internal = new BasicInterpreter()
+      type AIN = AbstractInsnNode
+
+      def newValue(tpe: org.objectweb.asm.Type) =
+        if (tpe == null) new Box(BasicValue.UNINITIALIZED_VALUE)
+        else if (tpe.getSort == Type.VOID) null
+        else new Box(internal.newValue(tpe))
+
+      def newOperation(insn: AIN) = new Box(internal.newOperation(insn))
+
+      def copyOperation(insn: AIN, value: Box) = value
+      def unaryOperation(insn: AIN, value: Box) = new Box(internal.unaryOperation(insn, value.x))
+
+      def binaryOperation(insn: AIN, v1: Box, v2: Box) = new Box(internal.binaryOperation(insn, v1.x, v2.x))
+      def ternaryOperation(insn: AIN, v1: Box, v2: Box, v3: Box) = new Box(internal.ternaryOperation(insn, v1.x, v2.x, v3.x))
+      def naryOperation(insn: AIN, vs: java.util.List[_ <: Box]) = new Box(internal.naryOperation(insn, vs.asScala.map(_.x).asJava))
+      def returnOperation(insn: AIN, value: Box, expected: Box) = internal.returnOperation(insn, value.x, expected.x)
+      def merge(v1: Box, v2: Box) = v1
+    }
 object Conversion {
   implicit def unbox(b: Box) = b.x
-  def ssa(clsName: String, method: MethodNode): Code = {
-    val frames = new Analyzer(FunnyInterpreter).analyze(clsName, method)
-
+  def ssa(clsName: String, method: MethodNode)(implicit vm: VM): Code = {
+    println(s"================Converting $clsName/${method.name}=========================")
     val insns = method.instructions.toArray
+    println("Insns " + method.instructions.size)
+    val aframes = new Analyzer(new FunnyInterpreter()).analyze(clsName, method)
+    println("Analyzed")
+    val frames = aframes.asInstanceOf[Array[Frame[Box]]]
+    println("Frames " + frames.length)
+
     val jumps = insns.collect{case x: JumpInsnNode => x}
+    println("B")
     val lookupSwitches = insns.collect{case x: LookupSwitchInsnNode => x}
     val tableSwitches = insns.collect{case x: TableSwitchInsnNode => x}
-
+    println("C")
     val targets =
       jumps.map(_.label) ++
         lookupSwitches.flatMap(_.labels.toArray) ++
@@ -74,6 +88,7 @@ object Conversion {
       }
       map
     }
+
     val insnMap = {
       val map = new Array[Int](insns.length)
       var count = 0
@@ -85,81 +100,90 @@ object Conversion {
       map
     }
 
+    implicit class pimpedFrame(x: Frame[Box]){
+      def top(n: Int) = x.getStack(x.getStackSize - 1 - n)
+      def boxes = {
+        val locals = for {
+          localId <- 0 until x.getLocals
+          local <- Option(x.getLocal(localId))
+          if local.getType != null
+        } yield local
+        val stackVals = for {
+          stackId <- 0 until x.getStackSize
+          stackVal = x.getStack(stackId)
+        } yield stackVal
+        locals ++ stackVals
+      }
+    }
     println("=========================================")
     val blockBuffers = for(blockId <- 0 to blockMap.last) yield {
       val start = blockMap.indexOf(blockId)
       val end = blockMap.lastIndexOf(blockId)
       val buffer = mutable.Buffer.empty[Insn]
+      val srcMap = mutable.Buffer.empty[Int]
+
       val localMap = mutable.Map.empty[Box, Int]
       var symCount = 0
       val types = mutable.Buffer.empty[imm.Type]
 
-      implicit class pimpedFrame[T <: Value](x: Frame[T]){
-        def top(n: Int) = x.getStack(x.getStackSize - 1 - n)
+
+      implicit def getBox(b: Box) = {
+        if (!localMap.contains(b)){
+          localMap(b) = symCount
+          symCount += b.x.getSize
+          import org.objectweb.asm.Type
+          types.append(b.x.getType.getSort match{
+            case Type.BOOLEAN => Z
+            case Type.CHAR    => C
+            case Type.BYTE    => B
+            case Type.SHORT   => S
+            case Type.INT     => I
+            case Type.FLOAT   => F
+            case Type.LONG    => J
+            case Type.DOUBLE  => D
+            case Type.ARRAY   => imm.Type.Cls("java/lang/Object")
+            case Type.OBJECT  => imm.Type.Cls("java/lang/Object")
+            case _ => ???
+          })
+        }
+        localMap(b)
       }
 
+      // force in-order registration of method arguments in first block
+      frames(0).boxes.map(getBox)
+
       for (i <- start to end){
-        if (i == 0){
-          for {
-            localId <- 0 until frames(i).getLocals
-            local <- Option(frames(i).getLocal(localId))
-            if local.getType != null
-          } getBox(local)
-          for {
-            stackId <- 0 until frames(i).getStackSize
-            stackVal = frames(i).getStack(stackId)
-          } getBox(stackVal)
-
+        def append(in: Insn) = {
+          buffer.append(in)
+          srcMap.append(i - start)
         }
-        implicit def getBox(b: Box) = {
 
-          println("getValue " + i + " " + b.x)
-          if (!localMap.contains(b)){
-            localMap(b) = symCount
-            symCount += b.x.getSize
-            import org.objectweb.asm.Type
-            types.append(b.x.getType.getSort match{
-              case Type.BOOLEAN => Z
-              case Type.CHAR    => C
-              case Type.BYTE    => B
-              case Type.SHORT   => S
-              case Type.INT     => I
-              case Type.FLOAT   => F
-              case Type.LONG    => J
-              case Type.DOUBLE  => D
-              case Type.ARRAY   => imm.Type.Cls("java/lang/Object")
-              case Type.OBJECT  => imm.Type.Cls("java/lang/Object")
-              case _ => ???
-            })
-          }
-          localMap(b)
-        }
         implicit def deref(label: LabelNode) = blockMap(insns.indexOf(label))
 
         def push[T](v: T, tpe: Prim[T]) = {
-          buffer.append(Push(frames(i+1).top(0), tpe, v))
+          append(Push(frames(i+1).top(0), tpe, v))
         }
         def aload[T](p: Prim[T], tpe: imm.Type) ={
-          buffer.append(GetArray(frames(i+1).top(0), frames(i).top(0), frames(i).top(1), tpe))
+          append(GetArray(frames(i+1).top(0), frames(i).top(0), frames(i).top(1), tpe))
         }
         def astore[T](p: Prim[T], tpe: imm.Type) ={
-          buffer.append(PutArray(frames(i).top(0), frames(i).top(1), frames(i).top(2), tpe))
+          append(PutArray(frames(i).top(0), frames(i).top(1), frames(i).top(2), tpe))
         }
         def binop[A, B, C](a: Prim[A], b: Prim[B], c: Prim[C])(f: (A, B) => C) = {
           val (bb, aa) = (getBox(frames(i).top(0)), getBox(frames(i).top(1)))
-          buffer.append(BinOp(aa, a, bb, b, frames(i+1).top(0), c, f))
+          append(BinOp(aa, a, bb, b, frames(i+1).top(0), c, f))
         }
         def unaryop[A, B](a: Prim[A], b: Prim[B])(f: A => B) = {
-          buffer.append(UnaryOp(frames(i).top(0), a, frames(i+1).top(0), b, f))
+          append(UnaryOp(frames(i).top(0), a, frames(i+1).top(0), b, f))
         }
         def unarybranch(label: LabelNode, f: Int => Boolean) = {
-          buffer.append(Insn.UnaryBranch(frames(i).top(0), label, f))
+          append(Insn.UnaryBranch(frames(i).top(0), label, f))
         }
         def binarybranch(label: LabelNode, f: (Int, Int) => Boolean) = {
-          buffer.append(Insn.BinaryBranch(frames(i).top(0), frames(i).top(1), label, f))
+          append(Insn.BinaryBranch(frames(i).top(0), frames(i).top(1), label, f))
         }
         def returnval(tpe: imm.Type) = {
-          buffer.append(Insn.ReturnVal(if (tpe == V) 0 else frames(i).top(0)))
+          append(Insn.ReturnVal(if (tpe == V) 0 else frames(i).top(0)))
         }
         println(blockId + "\t" + i + "\t" + insns(i))
 
@@ -179,7 +203,7 @@ object Conversion {
           case (DCONST_1, _) => push(1D, D)
           case (BIPUSH, x: IntInsnNode) => push(x.operand, I)
           case (SIPUSH, x: IntInsnNode) => push(x.operand, I)
-          case (LDC, x: LdcInsnNode) => buffer append Insn.Ldc(frames(i+1).top(0), x.cst)
+          case (LDC, x: LdcInsnNode) => append(Insn.Ldc(frames(i+1).top(0), x.cst))
           case (IALOAD, _) => aload(I, I)
           case (LALOAD, _) => aload(J, J)
           case (FALOAD, _) => aload(F, F)
@@ -234,8 +258,8 @@ object Conversion {
           case (LXOR, _) => binop(J, J, J)(F2(_ ^ _, "LXOr"))
           case (IINC, x: IincInsnNode) =>
             val bvalue = new Box(new BasicValue(org.objectweb.asm.Type.INT_TYPE))
-            buffer append Insn.Push(bvalue, I, x.incr)
-            buffer append Insn.BinOp[I, I, I](bvalue, I, frames(i).getLocal(x.`var`), I, frames(i+1).top(0), I, F2[Int, Int, Int](_+_, "IInc"))
+            append(Insn.Push(bvalue, I, x.incr))
+            append(Insn.BinOp[I, I, I](bvalue, I, frames(i).getLocal(x.`var`), I, frames(i+1).top(0), I, F2[Int, Int, Int](_+_, "IInc")))
           case (I2L, _) => unaryop(I, J)(F1(_.toLong,  "I2L"))
           case (I2F, _) => unaryop(I, F)(F1(_.toFloat, "I2F"))
           case (I2D, _) => unaryop(I, D)(F1(_.toDouble,"I2D"))
@@ -270,28 +294,59 @@ object Conversion {
           case (IF_ICMPLE, x: JumpInsnNode) => binarybranch(x.label, F2(_ <= _, "IfICmpLe"))
           case (IF_ACMPEQ, x: JumpInsnNode) => binarybranch(x.label, F2(_ == _, "IfACmpEq"))
           case (IF_ACMPNE, x: JumpInsnNode) => binarybranch(x.label, F2(_ != _, "IfACmpNe"))
-          case (GOTO, x: JumpInsnNode) => buffer.append(Insn.Goto(x.label))
+          case (GOTO, x: JumpInsnNode) => append(Insn.Goto(x.label))
           case (TABLESWITCH, x: TableSwitchInsnNode)   =>
-            buffer append Insn.TableSwitch(frames(i).top(0), x.min, x.max, x.dflt, x.labels.map(deref))
+            append(Insn.TableSwitch(frames(i).top(0), x.min, x.max, x.dflt, x.labels.map(deref)))
           case (LOOKUPSWITCH, x: LookupSwitchInsnNode) =>
-            buffer append Insn.LookupSwitch(frames(i).top(0), x.dflt, x.keys.asScala.map(_.intValue), x.labels.map(deref))
+            append(Insn.LookupSwitch(frames(i).top(0), x.dflt, x.keys.asScala.map(_.intValue), x.labels.map(deref)))
           case (IRETURN, _) => returnval(I)
           case (LRETURN, _) => returnval(J)
           case (FRETURN, _) => returnval(F)
           case (DRETURN, _) => returnval(D)
           case (ARETURN, _) => returnval(imm.Type.Cls("java/lang/Object"))
           case (RETURN,  _) => returnval(V)
+          case (GETSTATIC, x: FieldInsnNode) =>
+            val index = x.owner.cls.staticList.indexWhere(_.name == x.name)
+            val prim = x.owner.cls.staticList(index).desc
+            append(Insn.GetStatic(frames(i+1).top(0), x.owner.cls, index, prim))
+          case (PUTSTATIC, x: FieldInsnNode) =>
+            val index = x.owner.cls.staticList.indexWhere(_.name == x.name)
+            val prim = x.owner.cls.staticList(index).desc
+            append(Insn.PutStatic(frames(i).top(0), x.owner.cls, index, prim))
+          case (GETFIELD,  x: FieldInsnNode) =>
+            val index = x.owner.cls.fieldList.lastIndexWhere(_.name == x.name)
+            val prim = x.owner.cls.fieldList(index).desc
+            append(Insn.GetField(frames(i+1).top(0), frames(i).top(0), index, prim))
+          case (PUTFIELD,  x: FieldInsnNode) =>
+            val index = x.owner.cls.fieldList.lastIndexWhere(_.name == x.name)
+            val prim = x.owner.cls.fieldList(index).desc
+            append(Insn.PutField(frames(i).top(1), frames(i).top(0), index, prim))
           case _ => ()
         }
       }
-      (buffer, types)
+      println(blockId + " XXX " + frames(start + srcMap(0)))
+      (buffer, types, localMap, frames(start + srcMap(0)))
     }
 
     for(i <- 0 until frames.length){
       println(insns(i).toString.drop(23).padTo(30, ' ') + (""+frames(i)).padTo(20, ' ') + blockMap(i) + " " + insnMap(i))
     }
 
-    val basicBlocks = blockBuffers.map{ case (buffer, types) => BasicBlock(buffer, Nil, types)}
+    println("++++++++++++++++++++++++++++++++++++++++")
+
+    val basicBlocks = for(((buffer, types, localMap, startFrame), i) <- blockBuffers.zipWithIndex) yield {
+      println(i)
+      val phis = for(((buffer2, types2, localMap2, startFrame2), j) <- blockBuffers.zipWithIndex) yield {
+        println(i + " " + j + "\t" + buffer2.last.targets)
+        if (buffer2.last.targets.contains(i) || (i == j + 1)) {
+          val src = startFrame.boxes.flatMap(localMap2.lift.andThen(_.toSeq))
+          val dest = startFrame.boxes.flatMap(localMap.lift.andThen(_.toSeq))
+          println("ZING " + j + " -> " + i + "\t" + startFrame.boxes + " src: " + src + " dest: " + dest)
+          src zip dest
+        }else Nil
+      }
+      BasicBlock(buffer, phis, types)
+    }
 
     println("----------------------------------------------")
     for ((block, i) <- basicBlocks.zipWithIndex){
