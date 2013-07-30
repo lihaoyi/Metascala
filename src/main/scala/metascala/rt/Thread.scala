@@ -71,8 +71,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 //          .toString
 
 //    if (frame.runningClass.name == "org/objectweb/asm/ClassReader///") {
-      println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.locals.toList.zip(block.locals))
-      println(indent + "::\t" + frame.pc + "\t" + node )
+//      println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.locals.toList.zip(block.locals))
+//      println(indent + "::\t" + frame.pc + "\t" + node )
 //    }
 //
 //    println(indent + "::\t" + vm.heap.dump().replace("\n", "\n" + indent + "::\t"))

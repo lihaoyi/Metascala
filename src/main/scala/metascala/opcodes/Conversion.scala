@@ -15,39 +15,28 @@ import org.objectweb.asm.Opcodes._
 import Insn._
 import metascala.StackOps.{F1, F2}
 
-case class Symbol(n: Int, tpe: imm.Type){
-  override def toString = if (n < 0) "~" else ""+n
-  def size = tpe.size
-  def slots = n.until(n+size)
-  def join(l: List[Symbol]) = {
-    List.fill(size)(this) ::: l
-  }
-}
 class Box(val x: BasicValue) extends Value{
   override def getSize = x.getSize
-  override def toString = x.toString
+  override def toString = hashCode.toString.take(2) + x.toString + " "
 }
+class FunnyInterpreter extends Interpreter[Box](ASM4){
+  val internal = new BasicInterpreter()
+  type AIN = AbstractInsnNode
 
-    class FunnyInterpreter extends Interpreter[Box](ASM4){
-      val internal = new BasicInterpreter()
-      type AIN = AbstractInsnNode
+  def newValue(tpe: org.objectweb.asm.Type) =
+    if (tpe == null) new Box(BasicValue.UNINITIALIZED_VALUE)
+    else if (tpe.getSort == Type.VOID) null
+    else new Box(internal.newValue(tpe))
 
-      def newValue(tpe: org.objectweb.asm.Type) =
-        if (tpe == null) new Box(BasicValue.UNINITIALIZED_VALUE)
-        else if (tpe.getSort == Type.VOID) null
-        else new Box(internal.newValue(tpe))
-
-      def newOperation(insn: AIN) = new Box(internal.newOperation(insn))
-
-      def copyOperation(insn: AIN, value: Box) = value
-      def unaryOperation(insn: AIN, value: Box) = new Box(internal.unaryOperation(insn, value.x))
-
-      def binaryOperation(insn: AIN, v1: Box, v2: Box) = new Box(internal.binaryOperation(insn, v1.x, v2.x))
-      def ternaryOperation(insn: AIN, v1: Box, v2: Box, v3: Box) = new Box(internal.ternaryOperation(insn, v1.x, v2.x, v3.x))
-      def naryOperation(insn: AIN, vs: java.util.List[_ <: Box]) = new Box(internal.naryOperation(insn, vs.asScala.map(_.x).asJava))
-      def returnOperation(insn: AIN, value: Box, expected: Box) = internal.returnOperation(insn, value.x, expected.x)
-      def merge(v1: Box, v2: Box) = v1
-    }
+  def newOperation(insn: AIN) = new Box(internal.newOperation(insn))
+  def copyOperation(insn: AIN, value: Box) = value
+  def unaryOperation(insn: AIN, value: Box) = new Box(internal.unaryOperation(insn, value.x))
+  def binaryOperation(insn: AIN, v1: Box, v2: Box) = new Box(internal.binaryOperation(insn, v1.x, v2.x))
+  def ternaryOperation(insn: AIN, v1: Box, v2: Box, v3: Box) = new Box(internal.ternaryOperation(insn, v1.x, v2.x, v3.x))
+  def naryOperation(insn: AIN, vs: java.util.List[_ <: Box]) = new Box(internal.naryOperation(insn, vs.asScala.map(_.x).asJava))
+  def returnOperation(insn: AIN, value: Box, expected: Box) = internal.returnOperation(insn, value.x, expected.x)
+  def merge(v1: Box, v2: Box) = v1
+}
 object Conversion {
   implicit def unbox(b: Box) = b.x
   def ssa(clsName: String, method: MethodNode)(implicit vm: VM): Code = {
@@ -60,17 +49,26 @@ object Conversion {
     println("Frames " + frames.length)
 
     val jumps = insns.collect{case x: JumpInsnNode => x}
+    val returns = Seq(RETURN, IRETURN, FRETURN, LRETURN, DRETURN, ARETURN, ATHROW)
+    val exits = insns.filter(c => returns.contains(c.getOpcode))
     println("B")
     val lookupSwitches = insns.collect{case x: LookupSwitchInsnNode => x}
     val tableSwitches = insns.collect{case x: TableSwitchInsnNode => x}
     println("C")
+
+    val bases =
+      exits ++
+      jumps ++
+      lookupSwitches ++
+      tableSwitches
+
     val targets =
       jumps.map(_.label) ++
-        lookupSwitches.flatMap(_.labels.toArray) ++
-        lookupSwitches.map(_.dflt) ++
-        tableSwitches.flatMap(_.labels.toArray) ++
-        tableSwitches.map(_.dflt) ++
-        method.tryCatchBlocks.asScala.map(_.handler)
+      lookupSwitches.flatMap(_.labels.toArray) ++
+      lookupSwitches.map(_.dflt) ++
+      tableSwitches.flatMap(_.labels.toArray) ++
+      tableSwitches.map(_.dflt) ++
+      method.tryCatchBlocks.asScala.map(_.handler)
 
     println("Targets")
     targets.foreach(println)
@@ -80,7 +78,7 @@ object Conversion {
       for(i <- 1 until insns.length){
         val prev = map(i - 1)
         map(i) = prev max map(i)
-        if (jumps.contains(insns(i)) || lookupSwitches.contains(insns(i)) || tableSwitches.contains(insns(i))){
+        if (bases.contains(insns(i)) && i + 1 < map.length){
           map(i + 1) = prev + 1
         }else if (targets.contains(insns(i))){
           map(i) = prev + 1
@@ -106,6 +104,7 @@ object Conversion {
         val locals = for {
           localId <- 0 until x.getLocals
           local <- Option(x.getLocal(localId))
+          if local != BasicValue.UNINITIALIZED_VALUE
           if local.getType != null
         } yield local
         val stackVals = for {
@@ -116,7 +115,7 @@ object Conversion {
       }
     }
     println("=========================================")
-    val blockBuffers = for(blockId <- 0 to blockMap.last) yield {
+    val blockBuffers = (for(blockId <- 0 to blockMap.last) yield {
       val start = blockMap.indexOf(blockId)
       val end = blockMap.lastIndexOf(blockId)
       val buffer = mutable.Buffer.empty[Insn]
@@ -324,25 +323,41 @@ object Conversion {
           case _ => ()
         }
       }
-      println(blockId + " XXX " + frames(start + srcMap(0)))
-      (buffer, types, localMap, frames(start + srcMap(0)))
-    }
+
+      if (srcMap.length == 0) None
+      else {
+        println(blockId + " XXX " + frames(start + srcMap(0)) + "\t" + frames(end))
+
+        val startFrame = frames(start)
+        val endFrame = new Frame[Box](frames(end))
+        endFrame.execute(insns(end), new FunnyInterpreter())
+        Some((buffer, types, localMap, startFrame, endFrame))
+      }
+    }).flatten
 
     for(i <- 0 until frames.length){
-      println(insns(i).toString.drop(23).padTo(30, ' ') + (""+frames(i)).padTo(20, ' ') + blockMap(i) + " " + insnMap(i))
+      println(insns(i).toString.drop(23).padTo(30, ' ') + (""+frames(i)).padTo(40, ' ') + " | " + blockMap(i) + " | " + insnMap(i))
     }
 
     println("++++++++++++++++++++++++++++++++++++++++")
 
-    val basicBlocks = for(((buffer, types, localMap, startFrame), i) <- blockBuffers.zipWithIndex) yield {
+    val basicBlocks = for(((buffer, types, localMap, startFrame, _), i) <- blockBuffers.zipWithIndex) yield {
       println(i)
-      val phis = for(((buffer2, types2, localMap2, startFrame2), j) <- blockBuffers.zipWithIndex) yield {
+      val phis = for(((buffer2, types2, localMap2, _, endFrame), j) <- blockBuffers.zipWithIndex) yield {
         println(i + " " + j + "\t" + buffer2.last.targets)
         if (buffer2.last.targets.contains(i) || (i == j + 1)) {
-          val src = startFrame.boxes.flatMap(localMap2.lift.andThen(_.toSeq))
-          val dest = startFrame.boxes.flatMap(localMap.lift.andThen(_.toSeq))
-          println("ZING " + j + " -> " + i + "\t" + startFrame.boxes + " src: " + src + " dest: " + dest)
-          src zip dest
+
+          println("ZING " + j + " -> " + i + "\t")
+          println(startFrame + "\t" + localMap)
+          println(endFrame + "\t" + localMap2)
+
+          for{
+            (e, s) <- endFrame.boxes zip startFrame.boxes
+            if localMap2.contains(e)
+            if localMap.contains(s)
+          } yield {
+            (localMap2(e), localMap(s))
+          }
         }else Nil
       }
       BasicBlock(buffer, phis, types)
@@ -359,6 +374,7 @@ object Conversion {
     println("---TryCatch---")
 //    tryCatchBlocks.foreach(println)
     println("----------------------------------------------")
+
     Code(basicBlocks, Nil)
   }
   /*
