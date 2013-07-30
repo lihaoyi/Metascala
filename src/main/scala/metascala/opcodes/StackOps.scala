@@ -272,19 +272,15 @@ object StackOps {
   val I2L = UnaryOp[I, J](I, J, F1(_.toLong,  "I2L"))
   val I2F = UnaryOp[I, F](I, F, F1(_.toFloat, "I2F"))
   val I2D = UnaryOp[I, D](I, D, F1(_.toDouble,"I2D"))
-
   val L2I = UnaryOp[J, I](J, I, F1(_.toInt,   "L2I"))
   val L2F = UnaryOp[J, F](J, F, F1(_.toFloat, "L2F"))
   val L2D = UnaryOp[J, D](J, D, F1(_.toDouble,"L2D"))
-
   val F2I = UnaryOp[F, I](F, I, F1(_.toInt,   "F2I"))
   val F2L = UnaryOp[F, J](F, J, F1(_.toLong,  "F2L"))
   val F2D = UnaryOp[F, D](F, D, F1(_.toDouble,"F2D"))
-
   val D2I = UnaryOp[D, I](D, I, F1(_.toInt,   "D2I"))
   val D2L = UnaryOp[D, F](D, F, F1(_.toLong,  "D2L"))
   val D2F = UnaryOp[D, F](D, F, F1(_.toFloat, "D2F"))
-
   val I2B = UnaryOp[I, B](I, B, F1(_.toByte,  "I2B"))
   val I2C = UnaryOp[I, C](I, C, F1(_.toChar,  "I2C"))
   val I2S = UnaryOp[I, S](I, S, F1(_.toShort, "I2S"))
@@ -313,9 +309,8 @@ object StackOps {
   val IfICmpGe = BinaryBranch(_: Int, F2(_ >= _, "IfICmpGe"))
   val IfICmpGt = BinaryBranch(_: Int, F2(_ > _,  "IfICmpGt"))
   val IfICmpLe = BinaryBranch(_: Int, F2(_ <= _, "IfICmpLe"))
-
-  val IfACmpEq= BinaryBranch(_: Int, F2(_ == _, "IfACmpEq"))
-  val IfACmpNe= BinaryBranch(_: Int, F2(_ != _, "IfACmpNe"))
+  val IfACmpEq = BinaryBranch(_: Int, F2(_ == _, "IfACmpEq"))
+  val IfACmpNe = BinaryBranch(_: Int, F2(_ != _, "IfACmpNe"))
 
   case class Goto(label: Int) extends OpCode with Jump
 
@@ -623,9 +618,4 @@ object StackOps {
     GotoW,
     JsrW
   )
-
-
-
-
-
 }

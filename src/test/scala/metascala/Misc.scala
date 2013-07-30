@@ -8,6 +8,22 @@ import metascala.imm.Method
 
 import imm.Type.Prim
 import imm.Type.Prim._
+import org.objectweb.asm.{Opcodes, ClassReader}
+import Opcodes._
+import org.objectweb.asm.tree._
+import org.objectweb.asm.tree.analysis._
+import metascala.opcodes.{Insn, BasicBlock, Code}
+import scala.collection.JavaConverters._
+import metascala.opcodes.Code
+import metascala.opcodes.Insn._
+import metascala.StackOps.{F1, F2}
+import metascala.opcodes.Insn.GetArray
+import metascala.opcodes.Insn.Push
+import metascala.opcodes.Insn.BinOp
+import metascala.StackOps.F1
+import metascala.opcodes.Insn.PutArray
+import metascala.StackOps.F2
+import metascala.opcodes.Code
 
 class Misc extends FreeSpec with Util{
   val arr = new Array[Int](2)
@@ -27,20 +43,8 @@ class Misc extends FreeSpec with Util{
     "testD" in test(D)(30 ** Gen.doubleAll)
   }
 
-  /*"hello" in {
-    val cls = imm.Cls.parse(natives.Bindings.default.fileLoader("metascala/features/controlflow/Loops.class").get)
-    val (blocks, localsSize) = ssa.Conversion.convertToSsa(cls.methods.last)
-    println(
-      blocks.toSeq
-            .sortBy(_._1)
-            .map(_._2.map(_.toString).reduce(_+"\n"+_))
-            .reduce(_+"\n\n"+_)
-    )
-  }*/
+  "hello" in {
 
-
-
-
-
+  }
 
 }

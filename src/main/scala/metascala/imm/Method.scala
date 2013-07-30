@@ -9,6 +9,7 @@ object Method {
   def read(mn: MethodNode) = {
     implicit val labelMap = Code.makeLabelMap(mn.instructions)
     Method(
+      mn,
       mn.access,
       Sig(
         mn.name,
@@ -54,7 +55,8 @@ case class Sig(name: String, desc: Desc){
   override def toString = unparse
 }
 
-case class Method(access: Int,
+case class Method(mn: MethodNode,
+                  access: Int,
                   sig: Sig,
                   exceptions: Seq[String] = Nil,
                   code: Code = Code(),

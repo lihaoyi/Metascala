@@ -2,6 +2,7 @@ package metascala
 package rt
 
 import metascala.opcodes.Conversion
+import org.objectweb.asm.tree.MethodNode
 
 
 /**
@@ -24,7 +25,7 @@ object Method{
    */
   case class Cls(cls: rt.Cls, methodIndex: Int, method: imm.Method)(implicit vm: VM) extends Method{
     lazy val sig = method.sig
-    lazy val code = Conversion.convertToSsa(cls, method)(vm)
+    lazy val code = Conversion.ssa(cls.name, method.mn)
 
 
     override def toString = s"Method.Cls(${cls.name}, ${method.sig.unparse}})"

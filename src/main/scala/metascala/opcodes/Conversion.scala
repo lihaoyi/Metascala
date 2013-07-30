@@ -1,13 +1,19 @@
 package metascala
 package opcodes
 
-import metascala.imm.{Attached, Type, Method}
+import metascala.imm.{Attached, Method}
+import org.objectweb.asm.Type
 import scala.collection.mutable
-import metascala.StackOps.OpCode
+import metascala.StackOps.{F1, F2, OpCode}
 import imm.Type.Prim
 import imm.Type.Prim._
 import scala.annotation.tailrec
-
+import org.objectweb.asm.tree._
+import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
+import org.objectweb.asm.tree.analysis._
+import org.objectweb.asm.Opcodes._
+import Insn._
 
 case class Symbol(n: Int, tpe: imm.Type){
   override def toString = if (n < 0) "~" else ""+n
@@ -17,10 +23,290 @@ case class Symbol(n: Int, tpe: imm.Type){
     List.fill(size)(this) ::: l
   }
 }
+class Box(val x: BasicValue) extends Value{
+  override def getSize = x.getSize
+}
 
+object FunnyInterpreter extends Interpreter[Box](ASM4){
+  val internal = new BasicInterpreter()
+  override def newValue(tpe: org.objectweb.asm.Type) = new Box(internal.newValue(tpe))
+  type AIN = AbstractInsnNode
+  override def newOperation(insn: AIN) = new Box(internal.newOperation(insn))
+  override def copyOperation(insn: AIN, value: Box) = value
+  override def unaryOperation(insn: AIN, value: Box) = new Box(internal.unaryOperation(insn, value.x))
+  override def binaryOperation(insn: AIN, v1: Box, value2: Box) = new Box(internal.binaryOperation(insn, v1.x, value2.x))
+  override def ternaryOperation(insn: AIN, v1: Box, v2: Box, v3: Box) = new Box(internal.ternaryOperation(insn, v1.x, v2.x, v3.x))
+  override def naryOperation(insn: AIN, vs: java.util.List[_ <: Box]) = new Box(internal.naryOperation(insn, vs.asScala.map(_.x).asJava))
+  override def returnOperation(insn: AIN, value: Box, expected: Box) = ()
+  override def merge(v1: Box, v2: Box) = new Box(internal.merge(v1.x, v2.x))
+}
 object Conversion {
-  type Blocks = Seq[(State, Seq[Insn], State, Seq[Type])]
+  implicit def unbox(b: Box) = b.x
+  def ssa(clsName: String, method: MethodNode): Code = {
+    val frames = new Analyzer(FunnyInterpreter).analyze(clsName, method)
 
+    val insns = method.instructions.toArray
+    val jumps = insns.collect{case x: JumpInsnNode => x}
+    val lookupSwitches = insns.collect{case x: LookupSwitchInsnNode => x}
+    val tableSwitches = insns.collect{case x: TableSwitchInsnNode => x}
+
+    val targets =
+      jumps.map(_.label) ++
+        lookupSwitches.flatMap(_.labels.toArray) ++
+        lookupSwitches.map(_.dflt) ++
+        tableSwitches.flatMap(_.labels.toArray) ++
+        tableSwitches.map(_.dflt) ++
+        method.tryCatchBlocks.asScala.map(_.handler)
+
+    println("Targets")
+    targets.foreach(println)
+
+    val blockMap = {
+      val map = new Array[Int](insns.length)
+      for(i <- 1 until insns.length){
+        val prev = map(i - 1)
+        map(i) = prev max map(i)
+        if (jumps.contains(insns(i)) || lookupSwitches.contains(insns(i)) || tableSwitches.contains(insns(i))){
+          map(i + 1) = prev + 1
+        }else if (targets.contains(insns(i))){
+          map(i) = prev + 1
+        }
+      }
+      map
+    }
+    val insnMap = {
+      val map = new Array[Int](insns.length)
+      var count = 0
+      for(i <- 1 until insns.length){
+        count += 1
+        if (blockMap(i) != blockMap(i-1)) count = 0
+        map(i) = count
+      }
+      map
+    }
+
+    println("=========================================")
+    val blockBuffers = for(blockId <- 0 to blockMap.last) yield {
+      val start = blockMap.indexOf(blockId)
+      val end = blockMap.lastIndexOf(blockId)
+      val buffer = mutable.Buffer.empty[Insn]
+      val localMap = mutable.Map.empty[Box, Int]
+      var symCount = 0
+      val types = mutable.Buffer.empty[imm.Type]
+
+      implicit class pimpedFrame[T <: Value](x: Frame[T]){
+        def top(n: Int) = x.getStack(x.getStackSize - 1 - n)
+      }
+
+      for (i <- start to end){
+        if (i == 0){
+          for {
+            localId <- 0 until frames(i).getLocals
+            local <- Option(frames(i).getLocal(localId))
+            if local.getType != null
+          } getBox(local)
+          for {
+            stackId <- 0 until frames(i).getStackSize
+            stackVal = frames(i).getStack(stackId)
+          } getBox(stackVal)
+
+        }
+        implicit def getBox(b: Box) = {
+
+          println("getValue " + i + " " + b.x)
+          if (!localMap.contains(b)){
+            localMap(b) = symCount
+            symCount += b.x.getSize
+            import org.objectweb.asm.Type
+            types.append(b.x.getType.getSort match{
+              case Type.BOOLEAN => Z
+              case Type.CHAR    => C
+              case Type.BYTE    => B
+              case Type.SHORT   => S
+              case Type.INT     => I
+              case Type.FLOAT   => F
+              case Type.LONG    => J
+              case Type.DOUBLE  => D
+              case Type.ARRAY   => imm.Type.Cls("java/lang/Object")
+              case Type.OBJECT  => imm.Type.Cls("java/lang/Object")
+              case _ => ???
+            })
+          }
+          localMap(b)
+        }
+        implicit def deref(label: LabelNode) = blockMap(insns.indexOf(label))
+
+        def push[T](v: T, tpe: Prim[T]) = {
+          buffer.append(Push(frames(i+1).top(0), tpe, v))
+        }
+        def aload[T](p: Prim[T], tpe: imm.Type) ={
+          buffer.append(GetArray(frames(i+1).top(0), frames(i).top(0), frames(i).top(1), tpe))
+        }
+        def astore[T](p: Prim[T], tpe: imm.Type) ={
+          buffer.append(PutArray(frames(i).top(0), frames(i).top(1), frames(i).top(2), tpe))
+        }
+        def binop[A, B, C](a: Prim[A], b: Prim[B], c: Prim[C])(f: (A, B) => C) = {
+          val (bb, aa) = (getBox(frames(i).top(0)), getBox(frames(i).top(1)))
+          buffer.append(BinOp(aa, a, bb, b, frames(i+1).top(0), c, f))
+        }
+        def unaryop[A, B](a: Prim[A], b: Prim[B])(f: A => B) = {
+          buffer.append(UnaryOp(frames(i).top(0), a, frames(i+1).top(0), b, f))
+        }
+        def unarybranch(label: LabelNode, f: Int => Boolean) = {
+          buffer.append(Insn.UnaryBranch(frames(i).top(0), label, f))
+        }
+        def binarybranch(label: LabelNode, f: (Int, Int) => Boolean) = {
+          buffer.append(Insn.BinaryBranch(frames(i).top(0), frames(i).top(1), label, f))
+        }
+        def returnval(tpe: imm.Type) = {
+          buffer.append(Insn.ReturnVal(if (tpe == V) 0 else frames(i).top(0)))
+        }
+        println(blockId + "\t" + i + "\t" + insns(i))
+
+        (insns(i).getOpcode, insns(i)) match{
+          case (ICONST_0, _) => push(0, I)
+          case (ICONST_1, _) => push(1, I)
+          case (ICONST_2, _) => push(2, I)
+          case (ICONST_3, _) => push(3, I)
+          case (ICONST_4, _) => push(4, I)
+          case (ICONST_5, _) => push(5, I)
+          case (LCONST_0, _) => push(0L, J)
+          case (LCONST_1, _) => push(1L, J)
+          case (FCONST_0, _) => push(0F, F)
+          case (FCONST_1, _) => push(1F, F)
+          case (FCONST_2, _) => push(2F, F)
+          case (DCONST_0, _) => push(0D, D)
+          case (DCONST_1, _) => push(1D, D)
+          case (BIPUSH, x: IntInsnNode) => push(x.operand, I)
+          case (SIPUSH, x: IntInsnNode) => push(x.operand, I)
+          case (LDC, x: LdcInsnNode) => buffer append Insn.Ldc(frames(i+1).top(0), x.cst)
+          case (IALOAD, _) => aload(I, I)
+          case (LALOAD, _) => aload(J, J)
+          case (FALOAD, _) => aload(F, F)
+          case (DALOAD, _) => aload(D, D)
+          case (AALOAD, _) => aload(I, imm.Type.Cls("java/lang/Object"))
+          case (BALOAD, _) => aload(B, B)
+          case (CALOAD, _) => aload(C, C)
+          case (SALOAD, _) => aload(S, S)
+          case (IASTORE, _) => astore(I, I)
+          case (LASTORE, _) => astore(J, J)
+          case (FASTORE, _) => astore(F, F)
+          case (DASTORE, _) => astore(D, D)
+          case (AASTORE, _) => astore(I, imm.Type.Cls("java/lang/Object"))
+          case (BASTORE, _) => astore(B, B)
+          case (CASTORE, _) => astore(C, C)
+          case (SASTORE, _) => astore(S, S)
+          case (IADD, _) => binop(I, I, I)(F2(_ + _, "IAdd"))
+          case (LADD, _) => binop(J, J, J)(F2(_ + _, "LAdd"))
+          case (FADD, _) => binop(F, F, F)(F2(_ + _, "FAdd"))
+          case (DADD, _) => binop(D, D, D)(F2(_ + _, "DAdd"))
+          case (ISUB, _) => binop(I, I, I)(F2(_ - _, "ISub"))
+          case (LSUB, _) => binop(J, J, J)(F2(_ - _, "LSub"))
+          case (FSUB, _) => binop(F, F, F)(F2(_ - _, "FSub"))
+          case (DSUB, _) => binop(D, D, D)(F2(_ - _, "DSub"))
+          case (IMUL, _) => binop(I, I, I)(F2(_ * _, "IMul"))
+          case (LMUL, _) => binop(J, J, J)(F2(_ * _, "LMul"))
+          case (FMUL, _) => binop(F, F, F)(F2(_ * _, "FMul"))
+          case (DMUL, _) => binop(D, D, D)(F2(_ * _, "DMul"))
+          case (IDIV, _) => binop(I, I, I)(F2(_ / _, "IDiv"))
+          case (LDIV, _) => binop(J, J, J)(F2(_ / _, "LDiv"))
+          case (FDIV, _) => binop(F, F, F)(F2(_ / _, "FDiv"))
+          case (DDIV, _) => binop(D, D, D)(F2(_ / _, "DDiv"))
+          case (IREM, _) => binop(I, I, I)(F2(_ % _, "IRem"))
+          case (LREM, _) => binop(J, J, J)(F2(_ % _, "LRem"))
+          case (FREM, _) => binop(F, F, F)(F2(_ % _, "FRem"))
+          case (DREM, _) => binop(D, D, D)(F2(_ % _, "DRem"))
+          case (INEG, _) => unaryop(I, I)(F1(-_, "INeg"))
+          case (LNEG, _) => unaryop(J, J)(F1(-_, "LNeg"))
+          case (FNEG, _) => unaryop(F, F)(F1(-_, "FNeg"))
+          case (DNEG, _) => unaryop(D, D)(F1(-_, "DNeg"))
+          case (ISHL, _) => binop(I, I, I)(F2(_ << _, "IShl"))
+          case (LSHL, _) => binop(J, I, J)(F2(_ << _, "LShl"))
+          case (ISHR, _) => binop(I, I, I)(F2(_ >> _, "IShr"))
+          case (LSHR, _) => binop(J, I, J)(F2(_ >> _, "LShr"))
+          case (IUSHR, _) => binop(I, I, I)(F2(_ >>> _, "IUShr"))
+          case (LUSHR, _) => binop(J, I, J)(F2(_ >>> _, "LUShr"))
+          case (IAND, _) => binop(I, I, I)(F2(_ & _, "IAnd"))
+          case (LAND, _) => binop(J, J, J)(F2(_ & _, "LAnd"))
+          case (IOR, _) => binop(I, I, I)(F2(_ | _, "IOr"))
+          case (LOR, _) => binop(J, J, J)(F2(_ | _, "LOr"))
+          case (IXOR, _) => binop(I, I, I)(F2(_ ^ _, "IXOr"))
+          case (LXOR, _) => binop(J, J, J)(F2(_ ^ _, "LXOr"))
+          case (IINC, x: IincInsnNode) =>
+            val bvalue = new Box(new BasicValue(org.objectweb.asm.Type.INT_TYPE))
+            buffer append Insn.Push(bvalue, I, x.incr)
+            buffer append Insn.BinOp[I, I, I](bvalue, I, frames(i).getLocal(x.`var`), I, frames(i+1).top(0), I, F2[Int, Int, Int](_+_, "IInc"))
+          case (I2L, _) => unaryop(I, J)(F1(_.toLong,  "I2L"))
+          case (I2F, _) => unaryop(I, F)(F1(_.toFloat, "I2F"))
+          case (I2D, _) => unaryop(I, D)(F1(_.toDouble,"I2D"))
+          case (L2I, _) => unaryop(J, I)(F1(_.toInt,   "L2I"))
+          case (L2F, _) => unaryop(J, F)(F1(_.toFloat, "L2F"))
+          case (L2D, _) => unaryop(J, D)(F1(_.toDouble,"L2D"))
+          case (F2I, _) => unaryop(F, I)(F1(_.toInt,   "F2I"))
+          case (F2L, _) => unaryop(F, J)(F1(_.toLong,  "F2L"))
+          case (F2D, _) => unaryop(F, D)(F1(_.toDouble,"F2D"))
+          case (D2I, _) => unaryop(D, I)(F1(_.toInt,   "D2I"))
+          case (D2L, _) => unaryop(D, F)(F1(_.toLong,  "D2L"))
+          case (D2F, _) => unaryop(D, F)(F1(_.toFloat, "D2F"))
+          case (I2B, _) => unaryop(I, B)(F1(_.toByte,  "I2B"))
+          case (I2C, _) => unaryop(I, C)(F1(_.toChar,  "I2C"))
+          case (I2S, _) => unaryop(I, S)(F1(_.toShort, "I2S"))
+          case (LCMP,  _) => binop(J, J, I)(F2(_ compare _, "LCmp"))
+          case (FCMPL, _) => binop(F, F, I)(F2(_ compare _, "FCmpl"))
+          case (FCMPG, _) => binop(F, F, I)(F2(_ compare _, "FCmpg"))
+          case (DCMPL, _) => binop(D, D, I)(F2(_ compare _, "DCmpl"))
+          case (DCMPG, _) => binop(D, D, I)(F2(_ compare _, "DCmpG"))
+          case (IFEQ, x: JumpInsnNode) => unarybranch(x.label, F1(_ == 0, "IfEq"))
+          case (IFNE, x: JumpInsnNode) => unarybranch(x.label, F1(_ != 0, "IfNe"))
+          case (IFLT, x: JumpInsnNode) => unarybranch(x.label, F1(_ < 0,  "IfLt"))
+          case (IFGE, x: JumpInsnNode) => unarybranch(x.label, F1(_ >= 0, "IfGe"))
+          case (IFGT, x: JumpInsnNode) => unarybranch(x.label, F1(_ > 0,  "IfGt"))
+          case (IFLE, x: JumpInsnNode) => unarybranch(x.label, F1(_ <= 0, "IfLe"))
+          case (IF_ICMPEQ, x: JumpInsnNode) => binarybranch(x.label, F2(_ == _, "IfICmpEq"))
+          case (IF_ICMPNE, x: JumpInsnNode) => binarybranch(x.label, F2(_ != _, "IfICmpNe"))
+          case (IF_ICMPLT, x: JumpInsnNode) => binarybranch(x.label, F2(_ < _,  "IfICmpLt"))
+          case (IF_ICMPGE, x: JumpInsnNode) => binarybranch(x.label, F2(_ >= _, "IfICmpGe"))
+          case (IF_ICMPGT, x: JumpInsnNode) => binarybranch(x.label, F2(_ > _,  "IfICmpGt"))
+          case (IF_ICMPLE, x: JumpInsnNode) => binarybranch(x.label, F2(_ <= _, "IfICmpLe"))
+          case (IF_ACMPEQ, x: JumpInsnNode) => binarybranch(x.label, F2(_ == _, "IfACmpEq"))
+          case (IF_ACMPNE, x: JumpInsnNode) => binarybranch(x.label, F2(_ != _, "IfACmpNe"))
+          case (GOTO, x: JumpInsnNode) => buffer.append(Insn.Goto(x.label))
+          case (TABLESWITCH, x: TableSwitchInsnNode)   =>
+            buffer append Insn.TableSwitch(frames(i).top(0), x.min, x.max, x.dflt, x.labels.map(deref))
+          case (LOOKUPSWITCH, x: LookupSwitchInsnNode) =>
+            buffer append Insn.LookupSwitch(frames(i).top(0), x.dflt, x.keys.asScala.map(_.intValue), x.labels.map(deref))
+          case (IRETURN, _) => returnval(I)
+          case (LRETURN, _) => returnval(J)
+          case (FRETURN, _) => returnval(F)
+          case (DRETURN, _) => returnval(D)
+          case (ARETURN, _) => returnval(imm.Type.Cls("java/lang/Object"))
+          case (RETURN,  _) => returnval(V)
+          case _ => ()
+        }
+      }
+      (buffer, types)
+    }
+
+    for(i <- 0 until frames.length){
+      println(insns(i).toString.drop(23).padTo(30, ' ') + (""+frames(i)).padTo(20, ' ') + blockMap(i) + " " + insnMap(i))
+    }
+
+    val basicBlocks = blockBuffers.map{ case (buffer, types) => BasicBlock(buffer, Nil, types)}
+
+    println("----------------------------------------------")
+    for ((block, i) <- basicBlocks.zipWithIndex){
+      println()
+      println(i + "\t" + block.phi.toList)
+      println(i + "\t" + block.locals)
+      block.insns.foreach(println)
+    }
+
+    println("---TryCatch---")
+//    tryCatchBlocks.foreach(println)
+    println("----------------------------------------------")
+    Code(basicBlocks, Nil)
+  }
+  /*
   def convertToSsa(cls: rt.Cls, method: Method)(implicit vm: VM): Code = {
 
     if (cls.name == "aaorg/objectweb/asm/ClassReader") {
@@ -440,5 +726,5 @@ object Conversion {
       val (dimsX, rest) = state.stack.splitAt(dims)
       val symbol = makeSymbol(desc)
       state.copy(stack = symbol :: rest) -> Seq(Insn.MultiANewArray(desc, symbol.n, dimsX.map(_.n)))
-  }
+  }*/
 }

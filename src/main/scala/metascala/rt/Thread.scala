@@ -70,10 +70,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 //          .toList
 //          .toString
 
-    if (frame.runningClass.name == "org/objectweb/asm/ClassReader///") {
+//    if (frame.runningClass.name == "org/objectweb/asm/ClassReader///") {
       println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + frame.locals.toList.zip(block.locals))
       println(indent + "::\t" + frame.pc + "\t" + node )
-    }
+//    }
 //
 //    println(indent + "::\t" + vm.heap.dump().replace("\n", "\n" + indent + "::\t"))
     val currentFrame = frame
@@ -191,12 +191,13 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         pout.write(func(psrc.read(reader(frame.locals, src))), writer(frame.locals, dest))
         advancePc()
       case BinOp(a, pa, b, pb, dest, pout, func) =>
-        pout.write(
-          func(
-            pb.read(reader(frame.locals, b)),
-            pa.read(reader(frame.locals, a))
-          ), writer(frame.locals, dest)
-        )
+
+        val va = pa.read(reader(frame.locals, a))
+        val vb = pb.read(reader(frame.locals, b))
+
+        val out = func(va, vb)
+
+        pout.write(out, writer(frame.locals, dest))
         advancePc()
       case PutStatic(src, cls, index, prim) =>
         cls.checkInitialized()
