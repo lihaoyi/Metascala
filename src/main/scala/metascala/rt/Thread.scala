@@ -64,15 +64,15 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     val r = reader(frame.locals, 0)
 
-//    if (frame.runningClass.name == "org/objectweb/asm/ClassReader///") {
-    lazy val localSnapshot =
-      block.locals
-           .flatMap(x => Seq(x.prettyRead(r)).padTo(x.size, "~"))
-           .toList
+    if (frame.method.method.name == "stringSwitch") {
+      lazy val localSnapshot =
+        block.locals
+             .flatMap(x => Seq(x.prettyRead(r)).padTo(x.size, "~"))
+             .toList
 
-//    println(indent + "::\t" + frame.runningClass.shortName + "/" + frame.method.sig.shortName + ": " + localSnapshot)
-//    println(indent + "::\t" + frame.pc + "\t" + node )
-//    }
+//      println(indent + "::\t" + frame.runningClass.shortName + "/" + frame.method.sig.shortName + ": " + localSnapshot)
+//      println(indent + "::\t" + frame.pc + "\t" + node )
+    }
 //
 //    println(indent + "::\t" + vm.heap.dump().replace("\n", "\n" + indent + "::\t"))
     val currentFrame = frame

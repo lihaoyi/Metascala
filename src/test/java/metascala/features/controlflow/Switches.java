@@ -99,12 +99,11 @@ public class Switches {
         }
     }
     public static int stringSwitch(int n){
-
-        switch("" + n){
-            case "0": return 0;
-               case "1": return 1;
-            default:  return 2;
+        
+        switch(Integer.toString(n)){
+            case "1": return 1;
         }
+        return 0;
     }
     public static String stringSwitchTwo(String s){
         switch(s){

@@ -9,7 +9,7 @@ class ExceptionTest extends FreeSpec with Util{
   "if else" - {
     val tester = new Tester("metascala.features.exceptions.Exceptions")
 
-    "throwCatch" in tester.run("throwCatch")
+    "throwCatch" in chk(tester.run("throwCatch", _: Int))(Seq(-1, 0, 1, 2))
     "multiCatch" in chk(tester.run("multiCatch", _: Int))(Seq(0, 1, 2, 3, 4))
     "nullPointer" in chk(tester.run("nullPointer", _: Object))(Seq("omg", null))
     "arrayIndexOutOfBounds" in {
