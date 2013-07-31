@@ -35,7 +35,15 @@ class FunnyInterpreter extends Interpreter[Box](ASM4){
   def ternaryOperation(insn: AIN, v1: Box, v2: Box, v3: Box) = new Box(internal.ternaryOperation(insn, v1.x, v2.x, v3.x))
   def naryOperation(insn: AIN, vs: java.util.List[_ <: Box]) = new Box(internal.naryOperation(insn, vs.asScala.map(_.x).asJava))
   def returnOperation(insn: AIN, value: Box, expected: Box) = internal.returnOperation(insn, value.x, expected.x)
-  def merge(v1: Box, v2: Box) = v1
+  def merge(v1: Box, v2: Box) = {
+    if (v1 == v2){
+      println("omg")
+      v1
+    }else{
+      println(s"Merge $v1 $v2")
+      v2
+    }
+  }
 }
 object Conversion {
   implicit def unbox(b: Box) = b.x
@@ -165,14 +173,14 @@ object Conversion {
 
       val startFrame = frames(start)
       val origEndFrame = frames(end)
-      val endFrame = origEndFrame /*match{
+      val endFrame = origEndFrame match{
         case null => null
         case _ if Seq(GOTO, RETURN, ARETURN, IRETURN, FRETURN, LRETURN, DRETURN, ATHROW).contains(insns(end).getOpcode) =>
           val f = new Frame[Box](origEndFrame)
           f.execute(insns(end), new FunnyInterpreter())
           f
         case _ => frames(end + 1)
-      }*/
+      }
 
       if (endFrame != null) {
         endFrame.boxes.map(getBox)
@@ -181,7 +189,7 @@ object Conversion {
       (buffer, types, localMap, startFrame, endFrame)
 
     }
-    if (method.name == "astringSwitch") {
+    if (method.name == "stringSwitch"){
       for(i <- 0 until frames.length){
         println(insns(i).toString.drop(23).padTo(30, ' ') + (""+frames(i)).padTo(40, ' ') + " | " + blockMap(i) + " | " + insnMap(i))
       }
@@ -192,14 +200,7 @@ object Conversion {
     val basicBlocks = for(((buffer, types, startMap, startFrame, _), i) <- blockBuffers.zipWithIndex) yield {
       val phis = for(((buffer2, types2, endMap, _, endFrame), j) <- blockBuffers.zipWithIndex) yield {
         if (endFrame != null && startFrame != null && ((buffer2.length > 0 && buffer2.last.targets.contains(i)) || (i == j + 1))){
-//          println()
-//          println("Making Phi       " + j + "->" + i)
-//          println("endFrame         " + endFrame)
-//          println("startFrame       " + startFrame)
-//          println("endFrame.boxes   " + endFrame.boxes)
-//          println("startFrame.boxes " + startFrame.boxes)
-//          println("endMap2          " + endMap)
-//          println("startMap         " + startMap)
+
           val zipped = for{
             (e, s) <- endFrame.boxes zip startFrame.boxes
             a <- endMap.get(e).toSeq
@@ -207,7 +208,17 @@ object Conversion {
 
             i <- 0 until e.getSize
           } yield (a + i, b + i)
-//          println("zipped             " + zipped)
+          if (method.name == "stringSwitch"){
+            println()
+            println("Making Phi       " + j + "->" + i)
+            println("endFrame         " + endFrame)
+            println("startFrame       " + startFrame)
+            println("endFrame.boxes   " + endFrame.boxes)
+            println("startFrame.boxes " + startFrame.boxes)
+            println("endMap2          " + endMap)
+            println("startMap         " + startMap)
+            println("zipped             " + zipped)
+          }
           zipped
         }else Nil
 
@@ -215,7 +226,7 @@ object Conversion {
       BasicBlock(buffer, phis, types)
     }
 
-    if (method.name == "astringSwitch") {
+    if (method.name == "stringSwitch") {
       for ((block, i) <- basicBlocks.zipWithIndex){
         println()
         println(i + "\t" + block.phi.toList)
