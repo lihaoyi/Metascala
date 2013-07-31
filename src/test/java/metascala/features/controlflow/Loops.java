@@ -1,5 +1,7 @@
 package metascala.features.controlflow;
 
+
+
 public class Loops {
     public static int nullFor(int a){
         int c = 0;
@@ -21,13 +23,15 @@ public class Loops {
         while(c < a) c = c * 2;
         return c;
     }
-    public static double sqrtFinder(double n){
+    public static int sqrtFinder(double n){
         double guess = n / 2 + 5;
+        int i = 0;
         while(true){
             double errorSquared = guess*guess - n;
             errorSquared = errorSquared * errorSquared;
-            if (errorSquared / n < 1) return guess;
+            if (errorSquared / n < 0.1) return i;
             else{
+                i++;
                 guess = ((guess * guess) - n) / (2 * guess);
             }
         }

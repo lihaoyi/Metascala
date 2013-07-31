@@ -131,6 +131,10 @@ object Conversion {
           localMap(b) = symCount
           symCount += b.x.getSize
           import org.objectweb.asm.Type
+          assert (b != null)
+          assert (b.x != null)
+          assert (b.x.getType != null, "fail " + b.x)
+
           types.append(b.x.getType.getSort match{
             case Type.BOOLEAN => Z
             case Type.CHAR    => C
@@ -149,7 +153,7 @@ object Conversion {
       }
 
       // force in-order registration of method arguments in first block
-      frames(0).boxes.map(getBox)
+      if (frames(start) != null) frames(start).boxes.map(getBox)
       println("BLOCK MAP " + blockMap.toSeq)
       for (i <- start to end){
         def append(in: Insn) = {
@@ -257,8 +261,10 @@ object Conversion {
           case (LXOR, _) => binop(J, J, J)(F2(_ ^ _, "LXOr"))
           case (IINC, x: IincInsnNode) =>
             val bvalue = new Box(new BasicValue(org.objectweb.asm.Type.INT_TYPE))
+
             append(Insn.Push(bvalue, I, x.incr))
-            append(Insn.BinOp[I, I, I](bvalue, I, frames(i).getLocal(x.`var`), I, frames(i+1).top(0), I, F2[Int, Int, Int](_+_, "IInc")))
+            println("IIncing " + bvalue + " " + frames(i).getLocal(x.`var`) + " " + frames(i+1).getLocal(x.`var`))
+            append(Insn.BinOp[I, I, I](bvalue, I, frames(i).getLocal(x.`var`), I, frames(i+1).getLocal(x.`var`), I, F2[Int, Int, Int](_+_, "IInc")))
           case (I2L, _) => unaryop(I, J)(F1(_.toLong,  "I2L"))
           case (I2F, _) => unaryop(I, F)(F1(_.toFloat, "I2F"))
           case (I2D, _) => unaryop(I, D)(F1(_.toDouble,"I2D"))
@@ -343,7 +349,6 @@ object Conversion {
         }
       }
 
-
       val startFrame = frames(start)
       val origEndFrame = frames(end)
       val endFrame = if (origEndFrame != null){
@@ -364,14 +369,26 @@ object Conversion {
 
     val basicBlocks = for(((buffer, types, localMap, startFrame, _), i) <- blockBuffers.zipWithIndex) yield {
       val phis = for(((buffer2, types2, localMap2, _, endFrame), j) <- blockBuffers.zipWithIndex) yield {
-        if (endFrame != null && startFrame != null && ((buffer2.length > 0 && buffer2.last.targets.contains(i)) || (i == j + 1)))
-          for{
+        if (endFrame != null && startFrame != null && ((buffer2.length > 0 && buffer2.last.targets.contains(i)) || (i == j + 1))){
+          println()
+          println("Making Phi       " + j + "->" + i)
+          println("endFrame         " + endFrame)
+          println("startFrame       " + startFrame)
+          println("endFrame.boxes   " + endFrame.boxes)
+          println("startFrame.boxes " + startFrame.boxes)
+          println("localMap2        " + localMap2)
+          println("localMap         " + localMap)
+          val zipped = for{
             (e, s) <- endFrame.boxes zip startFrame.boxes
-
+            _ = println(e + "\t" + s)
             a <- localMap2.get(e)
             b <- localMap.get(s)
+            _ = println(a + "\t" + b)
           } yield (a, b)
-        else Nil
+          println("zipped             " + zipped)
+          zipped
+        }else Nil
+
       }
       BasicBlock(buffer, phis, types)
     }
