@@ -134,6 +134,8 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
   override def toString() = {
     s"Cls($index, ${clsData.tpe.name})"
   }
+
+  def shortName = shorten(clsData.tpe.name)
 }
 
 

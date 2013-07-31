@@ -108,4 +108,9 @@ package object metascala {
       i+= 1
     }
   }
+
+  def shorten(name: String) = {
+    val some :+ last = name.split("/").toSeq
+    (some.map(_(0)) :+ last).mkString("/")
+  }
 }

@@ -52,7 +52,12 @@ object Method {
 case class Sig(name: String, desc: Desc){
   override lazy val hashCode = name.hashCode + desc.hashCode
   def unparse = name + desc.unparse
+
   override def toString = unparse
+  def shortName = {
+    val some :+ last = name.split("/").toSeq
+    (some.map(_(0)) :+ last).mkString("/")
+  }
 }
 
 case class Method(mn: MethodNode,

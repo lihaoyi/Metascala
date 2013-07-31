@@ -42,19 +42,14 @@ object Conversion {
   def ssa(clsName: String, method: MethodNode)(implicit vm: VM): Code = {
     println(s"================Converting $clsName/${method.name}=========================")
     val insns = method.instructions.toArray
-    println("Insns " + method.instructions.size)
     val aframes = new Analyzer(new FunnyInterpreter()).analyze(clsName, method)
-    println("Analyzed")
     val frames = aframes.asInstanceOf[Array[Frame[Box]]]
-    println("Frames " + frames.length)
 
     val jumps = insns.collect{case x: JumpInsnNode => x}
     val returns = Seq(RETURN, IRETURN, FRETURN, LRETURN, DRETURN, ARETURN, ATHROW)
     val exits = insns.filter(c => returns.contains(c.getOpcode))
-    println("B")
     val lookupSwitches = insns.collect{case x: LookupSwitchInsnNode => x}
     val tableSwitches = insns.collect{case x: TableSwitchInsnNode => x}
-    println("C")
 
     val bases =
       exits ++
@@ -70,8 +65,7 @@ object Conversion {
       tableSwitches.map(_.dflt) ++
       method.tryCatchBlocks.asScala.map(_.handler)
 
-    println("Targets")
-    targets.foreach(println)
+
 
     val blockMap = {
       val map = new Array[Int](insns.length)
@@ -114,7 +108,7 @@ object Conversion {
         locals ++ stackVals
       }
     }
-    println("=========================================")
+
     val blockBuffers = for(blockId <- 0 to blockMap.last) yield {
       val start = blockMap.indexOf(blockId)
       val end = blockMap.lastIndexOf(blockId)
@@ -154,7 +148,6 @@ object Conversion {
 
       // force in-order registration of method arguments in first block
       if (frames(start) != null) frames(start).boxes.map(getBox)
-      println("BLOCK MAP " + blockMap.toSeq)
       for (i <- start to end){
         def append(in: Insn) = {
           buffer.append(in)
@@ -188,7 +181,7 @@ object Conversion {
         def returnval(tpe: imm.Type) = {
           append(Insn.ReturnVal(if (tpe == V) 0 else frames(i).top(0)))
         }
-        println(blockId + "\t" + i + "\t" + insns(i))
+
 
         (insns(i).getOpcode, insns(i)) match{
           case (ICONST_0, _) => push(0, I)
@@ -263,7 +256,6 @@ object Conversion {
             val bvalue = new Box(new BasicValue(org.objectweb.asm.Type.INT_TYPE))
 
             append(Insn.Push(bvalue, I, x.incr))
-            println("IIncing " + bvalue + " " + frames(i).getLocal(x.`var`) + " " + frames(i+1).getLocal(x.`var`))
             append(Insn.BinOp[I, I, I](bvalue, I, frames(i).getLocal(x.`var`), I, frames(i+1).getLocal(x.`var`), I, F2[Int, Int, Int](_+_, "IInc")))
           case (I2L, _) => unaryop(I, J)(F1(_.toLong,  "I2L"))
           case (I2F, _) => unaryop(I, F)(F1(_.toFloat, "I2F"))
@@ -325,26 +317,53 @@ object Conversion {
           case (PUTFIELD,  x: FieldInsnNode) =>
             val index = x.owner.cls.fieldList.lastIndexWhere(_.name == x.name)
             val prim = x.owner.cls.fieldList(index).desc
-            append(Insn.PutField(frames(i).top(1), frames(i).top(0), index, prim))
+            append(Insn.PutField(frames(i).top(0), frames(i).top(1), index, prim))
           case (INVOKESTATIC, x: MethodInsnNode) =>
             val desc = imm.Desc.read(x.desc)
             val m = vm.resolveDirectRef(x.owner, imm.Sig(x.name, desc)).get
-            var j = 0
-            val args = for(arg <- desc.args)yield{
-              println(j)
-              val res = frames(i).top(j)
-              j += 1
-              res
+            val args = for(j <- (0 until desc.args.length).reverse)yield{
+              frames(i).top(j)
             }
-            println(frames(i+1))
             val target =
               if (desc.ret == V)0
               else frames(i+1).top(0): Int
 
             append(Insn.InvokeStatic(target, args.map(getBox), x.owner, m))
           case (INVOKESPECIAL, x: MethodInsnNode) =>
+            val desc = imm.Desc.read(x.desc)
+            val m = vm.resolveDirectRef(x.owner, imm.Sig(x.name, desc)).get
+
+            val args = for(j <- (0 until desc.args.length + 1).reverse)yield{
+              frames(i).top(j)
+            }
+
+
+            val target =
+              if (desc.ret == V) 0
+              else frames(i+1).top(0): Int
+
+            append(Insn.InvokeStatic(target, args.map(getBox), x.owner, m))
+
           case (INVOKEVIRTUAL, x: MethodInsnNode) =>
-          case (INVOKEINTERFACE, x: MethodInsnNode) =>
+            val desc = imm.Desc.read(x.desc)
+            val cls = (x.owner: imm.Type.Ref) match{
+              case c: imm.Type.Cls => c
+              case _ => imm.Type.Cls("java/lang/Object")
+            }
+
+            val args = for(j <- (0 until desc.args.length + 1).reverse)yield{
+              frames(i).top(j)
+            }
+            getBox(args.last)
+            val sig = new imm.Sig(x.name, desc)
+            val target =
+              if (desc.ret == V) 0
+              else frames(i+1).top(0): Int
+
+            val mIndex = vm.ClsTable(cls).vTable.indexWhere(_.sig == sig)
+            append(Insn.InvokeVirtual(target, args.map(getBox), cls.cast[imm.Type.Cls], sig, mIndex))
+          case (INVOKEINTERFACE, x: MethodInsnNode) => ???
+          case (NEW, x: TypeInsnNode) => append(Insn.New(frames(i + 1).top(0), vm.ClsTable(x.desc)))
           case _ => ()
         }
       }
@@ -393,7 +412,7 @@ object Conversion {
       BasicBlock(buffer, phis, types)
     }
 
-    println("----------------------------------------------")
+
     for ((block, i) <- basicBlocks.zipWithIndex){
       println()
       println(i + "\t" + block.phi.toList)

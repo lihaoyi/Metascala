@@ -64,20 +64,13 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     val r = reader(frame.locals, 0)
 
-//    lazy val localSnapshot =
-//      code.blocks(frame.pc._1)
-//          .locals
-//          .flatMap(x => Seq(x.read(r).toString).take(x.size).padTo(x.size, "~"))
-//          .toList
-//          .toString
-
 //    if (frame.runningClass.name == "org/objectweb/asm/ClassReader///") {
     lazy val localSnapshot =
       block.locals
            .flatMap(x => Seq(x.prettyRead(r)).padTo(x.size, "~"))
            .toList
 
-//    println(indent + "::\t" + frame.runningClass.name + "/" + frame.method.sig.unparse + ": " + localSnapshot)
+//    println(indent + "::\t" + frame.runningClass.shortName + "/" + frame.method.sig.shortName + ": " + localSnapshot)
 //    println(indent + "::\t" + frame.pc + "\t" + node )
 //    }
 //
@@ -116,6 +109,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         // Check for InvokeSpecial, which gets folded into InvokeStatic
         val thisVal = sources.length > m.sig.desc.args.length
         val thisCell = if (thisVal) Seq(1) else Nil
+        println("thisCell " + thisCell)
         val args =
             sources.zip(thisCell ++ m.sig.desc.args.map(_.size))
                    .flatMap{case (s, t) => frame.locals.slice(s, s + t)}

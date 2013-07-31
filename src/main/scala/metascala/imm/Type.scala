@@ -37,7 +37,7 @@ object Type{
     def parent(implicit vm: VM) = Some(imm.Type.Cls("java/lang/Object"))
     def realCls = innerType.realCls
     def methodType = Type.Cls("java/lang/Object")
-    def prettyRead(x: () => Val) = name + "@" + x()
+    def prettyRead(x: () => Val) = "[" + innerType.shortName + "@" + x()
 
   }
   object Cls{
@@ -58,7 +58,7 @@ object Type{
     def methodType: Type.Cls = this
 
     override val hashCode = name.hashCode
-    def prettyRead(x: () => Val) = ""+x()
+    def prettyRead(x: () => Val) = shorten(name) + "@" + x()
   }
 
   abstract class Prim[T: ClassTag](val size: Int) extends imm.Type{
@@ -168,6 +168,7 @@ trait Type{
    */
   def unparse: String
   override def toString = unparse
+  def shortName = shorten(unparse)
   /**
    * Retrieves the Class object in the host JVM which represents the
    * given Type inside the Metascala VM
@@ -223,4 +224,5 @@ case class Desc(args: Seq[Type], ret: Type){
     baseArgSize + longArgSize
   }
   override def toString = unparse
+  def shortName = "(" + args.map(Desc.unparse).map(shorten).foldLeft("")(_+_) + ")" + shorten(Desc.unparse(ret))
 }
