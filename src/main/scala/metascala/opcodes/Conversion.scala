@@ -286,142 +286,154 @@ object Conversion {
       append(Insn.ReturnVal(if (tpe == V) 0 else frames(i).top()))
     }
 
-    (insns(i).getOpcode, insns(i)) match{
-      case (ICONST_M1, _) => push(-1, I)
-      case (ICONST_0, _) => push(0, I)
-      case (ICONST_1, _) => push(1, I)
-      case (ICONST_2, _) => push(2, I)
-      case (ICONST_3, _) => push(3, I)
-      case (ICONST_4, _) => push(4, I)
-      case (ICONST_5, _) => push(5, I)
-      case (LCONST_0, _) => push(0L, J)
-      case (LCONST_1, _) => push(1L, J)
-      case (FCONST_0, _) => push(0F, F)
-      case (FCONST_1, _) => push(1F, F)
-      case (FCONST_2, _) => push(2F, F)
-      case (DCONST_0, _) => push(0D, D)
-      case (DCONST_1, _) => push(1D, D)
-      case (BIPUSH, x: IntInsnNode) => push(x.operand, I)
-      case (SIPUSH, x: IntInsnNode) => push(x.operand, I)
-      case (LDC, x: LdcInsnNode) => append(Insn.Ldc(frames(i+1).top(), x.cst))
-      case (IALOAD, _) => aLoad(I, I)
-      case (LALOAD, _) => aLoad(J, J)
-      case (FALOAD, _) => aLoad(F, F)
-      case (DALOAD, _) => aLoad(D, D)
-      case (AALOAD, _) => aLoad(I, imm.Type.Cls("java/lang/Object"))
-      case (BALOAD, _) => aLoad(B, B)
-      case (CALOAD, _) => aLoad(C, C)
-      case (SALOAD, _) => aLoad(S, S)
-      case (IASTORE, _) => aStore(I, I)
-      case (LASTORE, _) => aStore(J, J)
-      case (FASTORE, _) => aStore(F, F)
-      case (DASTORE, _) => aStore(D, D)
-      case (AASTORE, _) => aStore(I, imm.Type.Cls("java/lang/Object"))
-      case (BASTORE, _) => aStore(B, B)
-      case (CASTORE, _) => aStore(C, C)
-      case (SASTORE, _) => aStore(S, S)
-      case (IADD, _) => binOp1(I)(F2(_ + _, "IAdd"))
-      case (LADD, _) => binOp1(J)(F2(_ + _, "LAdd"))
-      case (FADD, _) => binOp1(F)(F2(_ + _, "FAdd"))
-      case (DADD, _) => binOp1(D)(F2(_ + _, "DAdd"))
-      case (ISUB, _) => binOp1(I)(F2(_ - _, "ISub"))
-      case (LSUB, _) => binOp1(J)(F2(_ - _, "LSub"))
-      case (FSUB, _) => binOp1(F)(F2(_ - _, "FSub"))
-      case (DSUB, _) => binOp1(D)(F2(_ - _, "DSub"))
-      case (IMUL, _) => binOp1(I)(F2(_ * _, "IMul"))
-      case (LMUL, _) => binOp1(J)(F2(_ * _, "LMul"))
-      case (FMUL, _) => binOp1(F)(F2(_ * _, "FMul"))
-      case (DMUL, _) => binOp1(D)(F2(_ * _, "DMul"))
-      case (IDIV, _) => binOp1(I)(F2(_ / _, "IDiv"))
-      case (LDIV, _) => binOp1(J)(F2(_ / _, "LDiv"))
-      case (FDIV, _) => binOp1(F)(F2(_ / _, "FDiv"))
-      case (DDIV, _) => binOp1(D)(F2(_ / _, "DDiv"))
-      case (IREM, _) => binOp1(I)(F2(_ % _, "IRem"))
-      case (LREM, _) => binOp1(J)(F2(_ % _, "LRem"))
-      case (FREM, _) => binOp1(F)(F2(_ % _, "FRem"))
-      case (DREM, _) => binOp1(D)(F2(_ % _, "DRem"))
-      case (INEG, _) => unaryOp(I, I)(F1(-_, "INeg"))
-      case (LNEG, _) => unaryOp(J, J)(F1(-_, "LNeg"))
-      case (FNEG, _) => unaryOp(F, F)(F1(-_, "FNeg"))
-      case (DNEG, _) => unaryOp(D, D)(F1(-_, "DNeg"))
-      case (ISHL, _) => binOp(I, I, I)(F2(_ << _, "IShl"))
-      case (LSHL, _) => binOp(J, I, J)(F2(_ << _, "LShl"))
-      case (ISHR, _) => binOp(I, I, I)(F2(_ >> _, "IShr"))
-      case (LSHR, _) => binOp(J, I, J)(F2(_ >> _, "LShr"))
-      case (IUSHR, _) => binOp(I, I, I)(F2(_ >>> _, "IUShr"))
-      case (LUSHR, _) => binOp(J, I, J)(F2(_ >>> _, "LUShr"))
-      case (IAND, _) => binOp(I, I, I)(F2(_ & _, "IAnd"))
-      case (LAND, _) => binOp(J, J, J)(F2(_ & _, "LAnd"))
-      case (IOR, _) => binOp(I, I, I)(F2(_ | _, "IOr"))
-      case (LOR, _) => binOp(J, J, J)(F2(_ | _, "LOr"))
-      case (IXOR, _) => binOp(I, I, I)(F2(_ ^ _, "IXOr"))
-      case (LXOR, _) => binOp(J, J, J)(F2(_ ^ _, "LXOr"))
-      case (IINC, x: IincInsnNode) =>
+    implicit def intInsnNode(x: AbstractInsnNode) = x.cast[IntInsnNode]
+    implicit def jumpInsnNode(x: AbstractInsnNode) = x.cast[JumpInsnNode]
+    implicit def methodInsnNode(x: AbstractInsnNode) = x.cast[MethodInsnNode]
+
+    val x = insns(i) match{
+      case x: FieldInsnNode => new MethodInsnNode(x.getOpcode, x.owner, x.name, x.desc)
+      case y => y
+    }
+
+    x.getOpcode match{
+      case ICONST_M1 => push(-1, I)
+      case ICONST_0 => push(0, I)
+      case ICONST_1 => push(1, I)
+      case ICONST_2 => push(2, I)
+      case ICONST_3 => push(3, I)
+      case ICONST_4 => push(4, I)
+      case ICONST_5 => push(5, I)
+      case LCONST_0 => push(0L, J)
+      case LCONST_1 => push(1L, J)
+      case FCONST_0 => push(0F, F)
+      case FCONST_1 => push(1F, F)
+      case FCONST_2 => push(2F, F)
+      case DCONST_0 => push(0D, D)
+      case DCONST_1 => push(1D, D)
+      case BIPUSH => push(x.operand, I)
+      case SIPUSH => push(x.operand, I)
+      case LDC => append(Insn.Ldc(frames(i+1).top(), x.cast[LdcInsnNode].cst))
+      case IALOAD => aLoad(I, I)
+      case LALOAD => aLoad(J, J)
+      case FALOAD => aLoad(F, F)
+      case DALOAD => aLoad(D, D)
+      case AALOAD => aLoad(I, imm.Type.Cls("java/lang/Object"))
+      case BALOAD => aLoad(B, B)
+      case CALOAD => aLoad(C, C)
+      case SALOAD => aLoad(S, S)
+      case IASTORE => aStore(I, I)
+      case LASTORE => aStore(J, J)
+      case FASTORE => aStore(F, F)
+      case DASTORE => aStore(D, D)
+      case AASTORE => aStore(I, imm.Type.Cls("java/lang/Object"))
+      case BASTORE => aStore(B, B)
+      case CASTORE => aStore(C, C)
+      case SASTORE => aStore(S, S)
+      case IADD => binOp1(I)(F2(_ + _, "IAdd"))
+      case LADD => binOp1(J)(F2(_ + _, "LAdd"))
+      case FADD => binOp1(F)(F2(_ + _, "FAdd"))
+      case DADD => binOp1(D)(F2(_ + _, "DAdd"))
+      case ISUB => binOp1(I)(F2(_ - _, "ISub"))
+      case LSUB => binOp1(J)(F2(_ - _, "LSub"))
+      case FSUB => binOp1(F)(F2(_ - _, "FSub"))
+      case DSUB => binOp1(D)(F2(_ - _, "DSub"))
+      case IMUL => binOp1(I)(F2(_ * _, "IMul"))
+      case LMUL => binOp1(J)(F2(_ * _, "LMul"))
+      case FMUL => binOp1(F)(F2(_ * _, "FMul"))
+      case DMUL => binOp1(D)(F2(_ * _, "DMul"))
+      case IDIV => binOp1(I)(F2(_ / _, "IDiv"))
+      case LDIV => binOp1(J)(F2(_ / _, "LDiv"))
+      case FDIV => binOp1(F)(F2(_ / _, "FDiv"))
+      case DDIV => binOp1(D)(F2(_ / _, "DDiv"))
+      case IREM => binOp1(I)(F2(_ % _, "IRem"))
+      case LREM => binOp1(J)(F2(_ % _, "LRem"))
+      case FREM => binOp1(F)(F2(_ % _, "FRem"))
+      case DREM => binOp1(D)(F2(_ % _, "DRem"))
+      case INEG => unaryOp(I, I)(F1(-_, "INeg"))
+      case LNEG => unaryOp(J, J)(F1(-_, "LNeg"))
+      case FNEG => unaryOp(F, F)(F1(-_, "FNeg"))
+      case DNEG => unaryOp(D, D)(F1(-_, "DNeg"))
+      case ISHL => binOp(I, I, I)(F2(_ << _, "IShl"))
+      case LSHL => binOp(J, I, J)(F2(_ << _, "LShl"))
+      case ISHR => binOp(I, I, I)(F2(_ >> _, "IShr"))
+      case LSHR => binOp(J, I, J)(F2(_ >> _, "LShr"))
+      case IUSHR => binOp(I, I, I)(F2(_ >>> _, "IUShr"))
+      case LUSHR => binOp(J, I, J)(F2(_ >>> _, "LUShr"))
+      case IAND => binOp(I, I, I)(F2(_ & _, "IAnd"))
+      case LAND => binOp(J, J, J)(F2(_ & _, "LAnd"))
+      case IOR => binOp(I, I, I)(F2(_ | _, "IOr"))
+      case LOR => binOp(J, J, J)(F2(_ | _, "LOr"))
+      case IXOR => binOp(I, I, I)(F2(_ ^ _, "IXOr"))
+      case LXOR => binOp(J, J, J)(F2(_ ^ _, "LXOr"))
+      case IINC =>
         val bvalue = new Box(new BasicValue(org.objectweb.asm.Type.INT_TYPE))
+        val x = insns(i).cast[IincInsnNode]
         append(Insn.Push(bvalue, I, x.incr))
         append(Insn.BinOp[I, I, I](bvalue, I, frames(i).getLocal(x.`var`), I, frames(i+1).getLocal(x.`var`), I, F2[Int, Int, Int](_+_, "IInc")))
-      case (I2L, _) => unaryOp(I, J)(F1(_.toLong,  "I2L"))
-      case (I2F, _) => unaryOp(I, F)(F1(_.toFloat, "I2F"))
-      case (I2D, _) => unaryOp(I, D)(F1(_.toDouble,"I2D"))
-      case (L2I, _) => unaryOp(J, I)(F1(_.toInt,   "L2I"))
-      case (L2F, _) => unaryOp(J, F)(F1(_.toFloat, "L2F"))
-      case (L2D, _) => unaryOp(J, D)(F1(_.toDouble,"L2D"))
-      case (F2I, _) => unaryOp(F, I)(F1(_.toInt,   "F2I"))
-      case (F2L, _) => unaryOp(F, J)(F1(_.toLong,  "F2L"))
-      case (F2D, _) => unaryOp(F, D)(F1(_.toDouble,"F2D"))
-      case (D2I, _) => unaryOp(D, I)(F1(_.toInt,   "D2I"))
-      case (D2L, _) => unaryOp(D, F)(F1(_.toLong,  "D2L"))
-      case (D2F, _) => unaryOp(D, F)(F1(_.toFloat, "D2F"))
-      case (I2B, _) => unaryOp(I, B)(F1(_.toByte,  "I2B"))
-      case (I2C, _) => unaryOp(I, C)(F1(_.toChar,  "I2C"))
-      case (I2S, _) => unaryOp(I, S)(F1(_.toShort, "I2S"))
-      case (LCMP,  _) => binOp(J, J, I)(F2(_ compare _, "LCmp"))
-      case (FCMPL, _) => binOp(F, F, I)(F2(_ compare _, "FCmpl"))
-      case (FCMPG, _) => binOp(F, F, I)(F2(_ compare _, "FCmpg"))
-      case (DCMPL, _) => binOp(D, D, I)(F2(_ compare _, "DCmpl"))
-      case (DCMPG, _) => binOp(D, D, I)(F2(_ compare _, "DCmpG"))
-      case (IFEQ, x: JumpInsnNode) => unaryBranch(x.label, F1(_ == 0, "IfEq"))
-      case (IFNE, x: JumpInsnNode) => unaryBranch(x.label, F1(_ != 0, "IfNe"))
-      case (IFLT, x: JumpInsnNode) => unaryBranch(x.label, F1(_ < 0,  "IfLt"))
-      case (IFGE, x: JumpInsnNode) => unaryBranch(x.label, F1(_ >= 0, "IfGe"))
-      case (IFGT, x: JumpInsnNode) => unaryBranch(x.label, F1(_ > 0,  "IfGt"))
-      case (IFLE, x: JumpInsnNode) => unaryBranch(x.label, F1(_ <= 0, "IfLe"))
-      case (IF_ICMPEQ, x: JumpInsnNode) => binaryBranch(x.label, F2(_ == _, "IfICmpEq"))
-      case (IF_ICMPNE, x: JumpInsnNode) => binaryBranch(x.label, F2(_ != _, "IfICmpNe"))
-      case (IF_ICMPLT, x: JumpInsnNode) => binaryBranch(x.label, F2(_ < _,  "IfICmpLt"))
-      case (IF_ICMPGE, x: JumpInsnNode) => binaryBranch(x.label, F2(_ >= _, "IfICmpGe"))
-      case (IF_ICMPGT, x: JumpInsnNode) => binaryBranch(x.label, F2(_ > _,  "IfICmpGt"))
-      case (IF_ICMPLE, x: JumpInsnNode) => binaryBranch(x.label, F2(_ <= _, "IfICmpLe"))
-      case (IF_ACMPEQ, x: JumpInsnNode) => binaryBranch(x.label, F2(_ == _, "IfACmpEq"))
-      case (IF_ACMPNE, x: JumpInsnNode) => binaryBranch(x.label, F2(_ != _, "IfACmpNe"))
-      case (GOTO, x: JumpInsnNode) => append(Insn.Goto(x.label))
-      case (TABLESWITCH, x: TableSwitchInsnNode)   =>
+      case I2L => unaryOp(I, J)(F1(_.toLong,  "I2L"))
+      case I2F => unaryOp(I, F)(F1(_.toFloat, "I2F"))
+      case I2D => unaryOp(I, D)(F1(_.toDouble,"I2D"))
+      case L2I => unaryOp(J, I)(F1(_.toInt,   "L2I"))
+      case L2F => unaryOp(J, F)(F1(_.toFloat, "L2F"))
+      case L2D => unaryOp(J, D)(F1(_.toDouble,"L2D"))
+      case F2I => unaryOp(F, I)(F1(_.toInt,   "F2I"))
+      case F2L => unaryOp(F, J)(F1(_.toLong,  "F2L"))
+      case F2D => unaryOp(F, D)(F1(_.toDouble,"F2D"))
+      case D2I => unaryOp(D, I)(F1(_.toInt,   "D2I"))
+      case D2L => unaryOp(D, F)(F1(_.toLong,  "D2L"))
+      case D2F => unaryOp(D, F)(F1(_.toFloat, "D2F"))
+      case I2B => unaryOp(I, B)(F1(_.toByte,  "I2B"))
+      case I2C => unaryOp(I, C)(F1(_.toChar,  "I2C"))
+      case I2S => unaryOp(I, S)(F1(_.toShort, "I2S"))
+      case LCMP => binOp(J, J, I)(F2(_ compare _, "LCmp"))
+      case FCMPL => binOp(F, F, I)(F2(_ compare _, "FCmpl"))
+      case FCMPG => binOp(F, F, I)(F2(_ compare _, "FCmpg"))
+      case DCMPL => binOp(D, D, I)(F2(_ compare _, "DCmpl"))
+      case DCMPG => binOp(D, D, I)(F2(_ compare _, "DCmpG"))
+      case IFEQ => unaryBranch(x.label, F1(_ == 0, "IfEq"))
+      case IFNE => unaryBranch(x.label, F1(_ != 0, "IfNe"))
+      case IFLT => unaryBranch(x.label, F1(_ < 0,  "IfLt"))
+      case IFGE => unaryBranch(x.label, F1(_ >= 0, "IfGe"))
+      case IFGT => unaryBranch(x.label, F1(_ > 0,  "IfGt"))
+      case IFLE => unaryBranch(x.label, F1(_ <= 0, "IfLe"))
+      case IF_ICMPEQ => binaryBranch(x.label, F2(_ == _, "IfICmpEq"))
+      case IF_ICMPNE => binaryBranch(x.label, F2(_ != _, "IfICmpNe"))
+      case IF_ICMPLT => binaryBranch(x.label, F2(_ < _,  "IfICmpLt"))
+      case IF_ICMPGE => binaryBranch(x.label, F2(_ >= _, "IfICmpGe"))
+      case IF_ICMPGT => binaryBranch(x.label, F2(_ > _,  "IfICmpGt"))
+      case IF_ICMPLE => binaryBranch(x.label, F2(_ <= _, "IfICmpLe"))
+      case IF_ACMPEQ => binaryBranch(x.label, F2(_ == _, "IfACmpEq"))
+      case IF_ACMPNE => binaryBranch(x.label, F2(_ != _, "IfACmpNe"))
+      case GOTO => append(Insn.Goto(x.label))
+      case TABLESWITCH =>
+        val x = insns(i).cast[TableSwitchInsnNode]
         append(Insn.TableSwitch(frames(i).top(), x.min, x.max, x.dflt, x.labels.map(deref)))
-      case (LOOKUPSWITCH, x: LookupSwitchInsnNode) =>
+      case LOOKUPSWITCH =>
+        val x = insns(i).cast[LookupSwitchInsnNode]
         append(Insn.LookupSwitch(frames(i).top(), x.dflt, x.keys.asScala.map(_.intValue), x.labels.map(deref)))
-      case (IRETURN, _) => returnVal(I)
-      case (LRETURN, _) => returnVal(J)
-      case (FRETURN, _) => returnVal(F)
-      case (DRETURN, _) => returnVal(D)
-      case (ARETURN, _) => returnVal(imm.Type.Cls("java/lang/Object"))
-      case (RETURN,  _) => returnVal(V)
-      case (GETSTATIC, x: FieldInsnNode) =>
+      case IRETURN => returnVal(I)
+      case LRETURN => returnVal(J)
+      case FRETURN => returnVal(F)
+      case DRETURN => returnVal(D)
+      case ARETURN => returnVal(imm.Type.Cls("java/lang/Object"))
+      case RETURN => returnVal(V)
+      case GETSTATIC =>
         val index = x.owner.cls.staticList.indexWhere(_.name == x.name)
         val prim = x.owner.cls.staticList(index).desc
         append(Insn.GetStatic(frames(i+1).top(), x.owner.cls, index, prim))
-      case (PUTSTATIC, x: FieldInsnNode) =>
+      case PUTSTATIC =>
         val index = x.owner.cls.staticList.indexWhere(_.name == x.name)
         val prim = x.owner.cls.staticList(index).desc
         append(Insn.PutStatic(frames(i).top(), x.owner.cls, index, prim))
-      case (GETFIELD,  x: FieldInsnNode) =>
+      case GETFIELD  =>
         val index = x.owner.cls.fieldList.lastIndexWhere(_.name == x.name)
         val prim = x.owner.cls.fieldList(index).desc
         append(Insn.GetField(frames(i+1).top(), frames(i).top(), index, prim))
-      case (PUTFIELD,  x: FieldInsnNode) =>
+      case PUTFIELD =>
         val index = x.owner.cls.fieldList.lastIndexWhere(_.name == x.name)
         val prim = x.owner.cls.fieldList(index).desc
         append(Insn.PutField(frames(i).top(), frames(i).top(1), index, prim))
-      case (INVOKESTATIC, x: MethodInsnNode) =>
+      case INVOKESTATIC =>
         val desc = imm.Desc.read(x.desc)
         val m = vm.resolveDirectRef(x.owner, imm.Sig(x.name, desc)).get
         val args = for(j <- (0 until desc.args.length).reverse)yield{
@@ -432,7 +444,7 @@ object Conversion {
           else frames(i+1).top(): Int
 
         append(Insn.InvokeStatic(target, args.map(getBox), x.owner, m))
-      case (INVOKESPECIAL, x: MethodInsnNode) =>
+      case INVOKESPECIAL =>
         val desc = imm.Desc.read(x.desc)
         val m = vm.resolveDirectRef(x.owner, imm.Sig(x.name, desc)).get
 
@@ -447,7 +459,7 @@ object Conversion {
 
         append(Insn.InvokeStatic(target, args.map(getBox), x.owner, m))
 
-      case (INVOKEVIRTUAL, x: MethodInsnNode) =>
+      case INVOKEVIRTUAL =>
         val desc = imm.Desc.read(x.desc)
         val cls = (x.owner: imm.Type.Ref) match{
           case c: imm.Type.Cls => c
@@ -465,7 +477,7 @@ object Conversion {
 
         val mIndex = vm.ClsTable(cls).vTable.indexWhere(_.sig == sig)
         append(Insn.InvokeVirtual(target, args.map(getBox), cls.cast[imm.Type.Cls], sig, mIndex))
-      case (INVOKEINTERFACE, x: MethodInsnNode) =>
+      case INVOKEINTERFACE =>
         val desc = imm.Desc.read(x.desc)
         val cls = (x.owner: imm.Type.Ref) match{
           case c: imm.Type.Cls => c
@@ -482,9 +494,9 @@ object Conversion {
           else frames(i+1).top(): Int
 
         append(Insn.InvokeVirtual(target, args.map(getBox), cls.cast[imm.Type.Cls], sig, -1))
-      case (NEW, x: TypeInsnNode) => append(Insn.New(frames(i + 1).top(), vm.ClsTable(x.desc)))
-      case (NEWARRAY, x: IntInsnNode) =>
-        val typeRef: imm.Type = x.operand match{
+      case NEW => append(Insn.New(frames(i + 1).top(), vm.ClsTable(x.cast[TypeInsnNode].desc)))
+      case NEWARRAY =>
+        val typeRef: imm.Type = x.cast[IntInsnNode].operand match{
           case 4  => Z: imm.Type
           case 5  => C: imm.Type
           case 6  => F: imm.Type
@@ -495,25 +507,26 @@ object Conversion {
           case 11 => J: imm.Type
         }
         append(Insn.NewArray(frames(i).top(), frames(i+1).top(), typeRef))
-      case (ANEWARRAY, x: TypeInsnNode) =>
-        append(Insn.NewArray(frames(i).top(), frames(i+1).top(), x.desc))
-      case (ARRAYLENGTH, _) => append(Insn.ArrayLength(frames(i).top(), frames(i+1).top()))
-      case (ATHROW, _) => append(Insn.AThrow(frames(i).top()))
-      case (CHECKCAST, x: TypeInsnNode) => append(Insn.CheckCast(frames(i).top(), frames(i+1).top(), x.desc))
-      case (INSTANCEOF, x: TypeInsnNode) => append(Insn.InstanceOf(frames(i).top(), frames(i+1).top(), x.desc))
-      case (MULTIANEWARRAY, x: MultiANewArrayInsnNode) =>
+      case ANEWARRAY =>
+        append(Insn.NewArray(frames(i).top(), frames(i+1).top(), x.cast[TypeInsnNode].desc))
+      case ARRAYLENGTH => append(Insn.ArrayLength(frames(i).top(), frames(i+1).top()))
+      case ATHROW => append(Insn.AThrow(frames(i).top()))
+      case CHECKCAST => append(Insn.CheckCast(frames(i).top(), frames(i+1).top(), x.cast[TypeInsnNode].desc))
+      case INSTANCEOF => append(Insn.InstanceOf(frames(i).top(), frames(i+1).top(), x.cast[TypeInsnNode].desc))
+      case MULTIANEWARRAY =>
+        val x = insns(i).cast[MultiANewArrayInsnNode]
         val dims = for(j <- (0 until x.dims).reverse)yield{
           frames(i).top(j)
         }
 
         append(Insn.MultiANewArray(imm.Type.read(x.desc), frames(i+1).top(), dims.map(getBox)))
-      case (IFNULL, x: JumpInsnNode) =>
-        unaryBranch(x.label, F1(_ == 0, "IfNull"))
-      case (IFNONNULL, x: JumpInsnNode) =>
-        unaryBranch(x.label, F1(_ != 0, "IfNonNull"))
-      case (ACONST_NULL | POP | POP2 | DUP | DUP_X1 | DUP_X2 | DUP2 | DUP2_X1
-            | DUP2_X2 | SWAP | ISTORE | LSTORE | FSTORE | DSTORE
-            | ASTORE | ILOAD | LLOAD | FLOAD | DLOAD | ALOAD | NOP | -1, _) =>
+      case IFNULL =>
+        unaryBranch(x.cast[JumpInsnNode].label, F1(_ == 0, "IfNull"))
+      case IFNONNULL =>
+        unaryBranch(x.cast[JumpInsnNode].label, F1(_ != 0, "IfNonNull"))
+      case ACONST_NULL | POP | POP2 | DUP | DUP_X1 | DUP_X2 | DUP2 |
+           DUP2_X1 | DUP2_X2 | SWAP | ISTORE | LSTORE | FSTORE | DSTORE |
+           ASTORE | ILOAD | LLOAD | FLOAD | DLOAD | ALOAD | NOP | -1 =>
         () // These are "move" operations and can be ignored
     }
   }
@@ -698,7 +711,7 @@ object Conversion {
         import StackOps._
         (i, as) match{
           case (_, a :: _) if a.exists(_.isInstanceOf[Attached.Frame]) => (outInsns, is, as, newState)
-          case (_: Jump | _: ReturnVal | AThrow, _) => (outInsns, is, as, newState)
+          case (_: Jump | _: ReturnVal | AThrow => (outInsns, is, as, newState)
           case _ => run(cls, is, as, newState, makeSymbol, outInsns, index + 1)
         }
       case _ => (regInsns, insns, attached, state)
@@ -803,7 +816,7 @@ object Conversion {
       val (value, index :: array :: base) = state.stack.pop(prim)
       state.copy(stack = base) -> List(Insn.PutArray(value.n, index.n, array.n, prim))
 
-    case Load(index, _) =>
+    case Load(index =>
       state.copy(stack = state.locals(index) join state.stack) -> Nil
 
     case Ldc(thing) =>
