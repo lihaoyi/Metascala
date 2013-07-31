@@ -12,6 +12,7 @@ object Type{
       case s if s.startsWith("[") => Arr.read(s)
       case s => Cls.read(s)
     }
+
   }
 
   /**
@@ -36,6 +37,7 @@ object Type{
     def parent(implicit vm: VM) = Some(imm.Type.Cls("java/lang/Object"))
     def realCls = innerType.realCls
     def methodType = Type.Cls("java/lang/Object")
+    def prettyRead(x: () => Val) = name + "@" + x()
 
   }
   object Cls{
@@ -56,6 +58,7 @@ object Type{
     def methodType: Type.Cls = this
 
     override val hashCode = name.hashCode
+    def prettyRead(x: () => Val) = ""+x()
   }
 
   abstract class Prim[T: ClassTag](val size: Int) extends imm.Type{
@@ -68,7 +71,7 @@ object Type{
     def prim = this
     def productPrefix: String
     def unparse = productPrefix
-
+    def prettyRead(x: () => Val) = toString + "@" + read(x)
   }
   object Prim extends {
     def read(s: String) = all(s(0))
@@ -171,6 +174,11 @@ trait Type{
    */
   def realCls: Class[_]
 
+  /**
+   * Reads an object of this type from the given input stream into a readable
+   * representation
+   */
+  def prettyRead(x: () => Val): String
   def size: Int
   def name: String
   def isRef: Boolean = this.isInstanceOf[imm.Type.Ref]

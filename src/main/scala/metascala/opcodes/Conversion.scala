@@ -381,10 +381,10 @@ object Conversion {
           val zipped = for{
             (e, s) <- endFrame.boxes zip startFrame.boxes
             _ = println(e + "\t" + s)
-            a <- localMap2.get(e)
-            b <- localMap.get(s)
-            _ = println(a + "\t" + b)
-          } yield (a, b)
+            a <- localMap2.get(e).toSeq
+            b <- localMap.get(s).toSeq
+            i <- 0 until e.getSize
+          } yield (a + i, b + i)
           println("zipped             " + zipped)
           zipped
         }else Nil

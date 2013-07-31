@@ -23,15 +23,14 @@ public class Loops {
         while(c < a) c = c * 2;
         return c;
     }
-    public static int sqrtFinder(double n){
+    public static double sqrtFinder(double n){
         double guess = n / 2 + 5;
-        int i = 0;
+
         while(true){
             double errorSquared = guess*guess - n;
             errorSquared = errorSquared * errorSquared;
-            if (errorSquared / n < 0.1) return i;
+            if (errorSquared / n < 0.1) return guess;
             else{
-                i++;
                 guess = ((guess * guess) - n) / (2 * guess);
             }
         }
