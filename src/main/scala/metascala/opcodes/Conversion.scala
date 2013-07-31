@@ -184,6 +184,7 @@ object Conversion {
         }
 
         (insns(i).getOpcode, insns(i)) match{
+          case (ICONST_M1, _) => push(-1, I)
           case (ICONST_0, _) => push(0, I)
           case (ICONST_1, _) => push(1, I)
           case (ICONST_2, _) => push(2, I)
