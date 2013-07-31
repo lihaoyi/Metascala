@@ -41,7 +41,7 @@ object Insn{
   case class LookupSwitch(src: Sym, default: Int, keys: Seq[Int], targetList: Seq[Int]) extends Jump(targetList :+ default)
   case class Goto(target: Int) extends Jump(Seq(target))
 
-  case class CheckCast(src: Sym, desc: Type) extends Insn
+  case class CheckCast(src: Sym, dest: Sym, desc: Type) extends Insn
   case class ArrayLength(src: Sym, dest: Sym) extends Insn
   case class InstanceOf(src: Sym, dest: Sym, desc: Type) extends Insn
 

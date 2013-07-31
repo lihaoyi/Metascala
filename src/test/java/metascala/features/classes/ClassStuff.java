@@ -2,9 +2,10 @@ package metascala.features.classes;
 
 public class ClassStuff {
     public static int customClass(){
-        Cow c1 = new Cow();
-        Cow c2 = new Cow();
-        return c1.moo().length() + c2.moo().length();
+        return "abc".length();
+//        Cow c1 = new Cow();
+//        Cow c2 = new Cow();
+//        return c1.moo().length() + c2.moo().length();
     }
     public static String stringConcat(){
         StringBuilder x = new StringBuilder();

@@ -37,7 +37,7 @@ object Type{
     def parent(implicit vm: VM) = Some(imm.Type.Cls("java/lang/Object"))
     def realCls = innerType.realCls
     def methodType = Type.Cls("java/lang/Object")
-    def prettyRead(x: () => Val) = "[" + innerType.shortName + "@" + x()
+    def prettyRead(x: () => Val) = "[" + innerType.shortName + "#" + x()
 
   }
   object Cls{
@@ -58,7 +58,7 @@ object Type{
     def methodType: Type.Cls = this
 
     override val hashCode = name.hashCode
-    def prettyRead(x: () => Val) = shorten(name) + "@" + x()
+    def prettyRead(x: () => Val) = shorten(name) + "#" + x()
   }
 
   abstract class Prim[T: ClassTag](val size: Int) extends imm.Type{
@@ -71,7 +71,7 @@ object Type{
     def prim = this
     def productPrefix: String
     def unparse = productPrefix
-    def prettyRead(x: () => Val) = toString + "@" + read(x)
+    def prettyRead(x: () => Val) = toString + "#" + read(x)
   }
   object Prim extends {
     def read(s: String) = all(s(0))

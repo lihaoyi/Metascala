@@ -37,7 +37,6 @@ class ArrayTest extends FreeSpec with Util{
     val buffer = new BufferLog(4000)
     val tester = new Tester("metascala.features.arrays.MultiDimArrays", buffer)
     "make2D" in chk(tester.run("make2D", _: Int, _: Int))(Seq(0, 1, 2), Seq(0, 1, 2))
-
     "make3D" in chk(tester.run("make3D", _: Int, _: Int, _ : Int))(Seq(0, 1, 2), Seq(0, 1, 2), Seq(0, 1, 2))
     "getAndSet" in tester.run("getAndSet")
   }

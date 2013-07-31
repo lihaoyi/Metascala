@@ -109,7 +109,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         // Check for InvokeSpecial, which gets folded into InvokeStatic
         val thisVal = sources.length > m.sig.desc.args.length
         val thisCell = if (thisVal) Seq(1) else Nil
-        println("thisCell " + thisCell)
+
         val args =
             sources.zip(thisCell ++ m.sig.desc.args.map(_.size))
                    .flatMap{case (s, t) => frame.locals.slice(s, s + t)}
@@ -247,12 +247,14 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         }
         if (!done) jumpPhis(default)
 
-      case CheckCast(src, desc) =>
+      case CheckCast(src, dest, desc) =>
         frame.locals(src) match{
-          case 0 => advancePc()
+
           case top if (top.isArr && !check(top.arr.tpe, desc)) || (top.isObj && !check(top.obj.tpe, desc)) =>
             throwExWithTrace("java/lang/ClassCastException", "")
-          case _ => advancePc()
+          case _ =>
+            frame.locals(dest) = frame.locals(src)
+            advancePc()
         }
       case InstanceOf(src, dest, desc) =>
         frame.locals(dest) = frame.locals(src) match{
