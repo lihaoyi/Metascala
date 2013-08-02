@@ -223,9 +223,9 @@ object Conversion {
 
     }
 
-    if (method.name == "nsullFor") {
+    if (method.name == "arrayCasts") {
       for(i <- 0 until blockMap.length){
-        if (i < blockMap.length - 1 && blockMap(i) != blockMap(i+1)) println("-------------- BasicBlock " + blockMap(i) + " --------------")
+        if (i == 0 || blockMap(i) != blockMap(i-1)) println("-------------- BasicBlock " + blockMap(i) + " --------------")
         val insn = OPCODES.lift(allInsns(i).getOpcode).getOrElse(allInsns(i).getClass.getSimpleName).padTo(30, ' ')
         val frame = Option(allFrames(blockMap(i))).map(_(insnMap(i)).toString).getOrElse("-")
         println(insn + " | " + blockMap(i) + " | " + insnMap(i) + "\t" + frame)
@@ -264,7 +264,7 @@ object Conversion {
       BasicBlock(buffer, phis, types)
     }
 
-    if (method.name == "ndullFor") {
+    if (method.name == "arrayCasts") {
       for ((block, i) <- basicBlocks.zipWithIndex){
         println()
         println(i + "\t" + block.phi.toList)
@@ -272,6 +272,8 @@ object Conversion {
         block.insns.foreach(println)
         println(blockBuffers(i)._3)
       }
+      println()
+      println()
     }
 
 

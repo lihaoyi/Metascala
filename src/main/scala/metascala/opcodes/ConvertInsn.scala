@@ -277,8 +277,8 @@ object ConvertInsn {
         append(Insn.NewArray(frame.top(), nextFrame.top(), insn.cast[TypeInsnNode].desc))
       case ARRAYLENGTH => append(Insn.ArrayLength(frame.top(), nextFrame.top()))
       case ATHROW => append(Insn.AThrow(frame.top()))
-      case CHECKCAST => append(Insn.CheckCast(frame.top(), nextFrame.top(), insn.cast[TypeInsnNode].desc))
-      case INSTANCEOF => append(Insn.InstanceOf(frame.top(), nextFrame.top(), insn.cast[TypeInsnNode].desc))
+      case CHECKCAST => append(Insn.CheckCast(frame.top(), nextFrame.top(), imm.Type.read(insn.cast[TypeInsnNode].desc)))
+      case INSTANCEOF => append(Insn.InstanceOf(frame.top(), nextFrame.top(), imm.Type.read(insn.cast[TypeInsnNode].desc)))
       case MULTIANEWARRAY =>
         val x = insn.cast[MultiANewArrayInsnNode]
         val dims = for(j <- (0 until x.dims).reverse)yield{

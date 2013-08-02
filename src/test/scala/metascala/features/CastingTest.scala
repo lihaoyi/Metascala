@@ -18,9 +18,9 @@ class CastingTest extends FreeSpec with Util{
       new Object()
     ))
     "arrayCasts" in chk(tester.run("arrayCasts", _: AnyRef))(Seq(
-      Array(1, 2, 3),
-      Array("omg", "wtf", "bbq"),
-      Array(new Object(), new Object()),
+//      Array(1, 2, 3),
+//      Array("omg", "wtf", "bbq"),
+//      Array(new Object(), new Object()),
       Array(new Point2D.Double(), new Point2D.Double())
     ))
     "primArrayCasts" in chk(tester.run("primArrayCasts", _: AnyRef))(Seq(

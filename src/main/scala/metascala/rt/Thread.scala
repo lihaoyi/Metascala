@@ -64,7 +64,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     val r = reader(frame.locals, 0)
 
-    if (frame.method.method.name == "stringSwitch") {
+    if (frame.method.method.name == "arrayCasts") {
       lazy val localSnapshot =
         block.locals
              .flatMap(x => Seq(x.prettyRead(r)).padTo(x.size, "~"))
@@ -167,6 +167,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         }else{
           throwExWithTrace("java/lang/ArrayIndexOutOfBoundsException", frame.locals(index).toString)
         }
+
       case Ldc(target, thing) =>
         val w = writer(frame.locals, target)
         thing match{
@@ -187,9 +188,11 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
           case x: scala.Double => D.write(x, w)
         }
         advancePc()
+
       case UnaryOp(src, psrc, dest, pout, func) =>
         pout.write(func(psrc.read(reader(frame.locals, src))), writer(frame.locals, dest))
         advancePc()
+
       case BinOp(a, pa, b, pb, dest, pout, func) =>
 
         val va = pa.read(reader(frame.locals, a))
@@ -206,24 +209,24 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       case GetStatic(src, cls, index, prim) =>
         cls.checkInitialized()
         System.arraycopy(cls.statics, index, frame.locals, src, prim.size)
-
         advancePc()
+
       case PutField(src, obj, index, prim) =>
         blit(frame.locals, src, frame.locals(obj).obj.members, index, prim.size)
         advancePc()
+
       case GetField(src, obj, index, prim) =>
         blit(frame.locals(obj).obj.members, index, frame.locals, src, prim.size)
         advancePc()
+
       case BinaryBranch(symA, symB, target, func) =>
         val (a, b) = (frame.locals(symA), frame.locals(symB))
         if(func(b, a)) jumpPhis(target)
         else advancePc()
 
-
       case UnaryBranch(sym, target, func) =>
         if(func(frame.locals(sym))) jumpPhis(target)
         else advancePc()
-
 
       case Goto(target) =>
         jumpPhis(target)
@@ -249,7 +252,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
       case CheckCast(src, dest, desc) =>
         frame.locals(src) match{
-
           case top if (top.isArr && !check(top.arr.tpe, desc)) || (top.isObj && !check(top.obj.tpe, desc)) =>
             throwExWithTrace("java/lang/ClassCastException", "")
           case _ =>
@@ -264,6 +266,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
           case _ => 1
         }
         advancePc()
+
       case MultiANewArray(desc, symbol, dims) =>
         def rec(dims: List[Int], tpe: imm.Type): Val = {
 
@@ -277,7 +280,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
             case (size :: Nil, imm.Type.Arr(innerType)) =>
               vrt.Arr.allocate(innerType, size).address
-          }
+           }
         }
         val dimValues = dims.map(frame.locals).toList
 
