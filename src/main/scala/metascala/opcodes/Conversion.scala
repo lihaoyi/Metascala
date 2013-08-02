@@ -4,23 +4,20 @@ package opcodes
 import metascala.imm.{Attached, Method}
 import org.objectweb.asm.Type
 import scala.collection.mutable
-import imm.Type.Prim
 import imm.Type.Prim._
-import scala.annotation.tailrec
 import org.objectweb.asm.tree._
-import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 import org.objectweb.asm.tree.analysis._
 import org.objectweb.asm.Opcodes._
-import Insn._
-import metascala.StackOps.{F1, F2}
+
+import org.objectweb.asm.util.Printer.OPCODES
 
 class Box(val value: BasicValue) extends Value{
   override def getSize = value.getSize
   override def toString = Math.abs(hashCode).toString.take(2) + "" + value + " "
 
 }
-object FunnyInterpreter extends Interpreter[Box](ASM4){
+class AbstractFunnyInterpreter(b: Boolean) extends Interpreter[Box](ASM4){
   val internal = new BasicInterpreter()
   type AIN = AbstractInsnNode
 
@@ -37,8 +34,11 @@ object FunnyInterpreter extends Interpreter[Box](ASM4){
   def ternaryOperation(insn: AIN, v1: Box, v2: Box, v3: Box) = new Box(internal.ternaryOperation(insn, v1.value, v2.value, v3.value))
   def naryOperation(insn: AIN, vs: java.util.List[_ <: Box]) = new Box(internal.naryOperation(insn, vs.asScala.map(_.value).asJava))
   def returnOperation(insn: AIN, value: Box, expected: Box) = ()
-  def merge(v1: Box, v2: Box) = v2
+  def merge(v1: Box, v2: Box) = if (b) v1 else v2
 }
+object IncrementalInterpreter extends AbstractFunnyInterpreter(false)
+object FullInterpreter extends AbstractFunnyInterpreter(true)
+
 object Conversion {
   val unconditionalJumps = Seq(GOTO, RETURN, ARETURN, IRETURN, FRETURN, LRETURN, DRETURN, ATHROW)
 
@@ -46,6 +46,7 @@ object Conversion {
   def ssa(clsName: String, method: MethodNode)(implicit vm: VM): Code = {
 
     val allInsns = method.instructions.toArray
+    lazy val extraFrames = new Analyzer(FullInterpreter).analyze(clsName, method)
 
 
     val blockMap: Array[Int] = {
@@ -106,9 +107,9 @@ object Conversion {
               .map(_.map(_._2))
               .toArray
     }
-
+    implicit def deref(label: LabelNode) = blockInsns.indexWhere(_.head == label)
 //    println("blockInsns")
-    blockInsns.map(_.map(_.getOpcode).filter(_!= -1).map(org.objectweb.asm.util.Printer.OPCODES).toSeq).foreach(println)
+    blockInsns.map(_.map(_.getOpcode).filter(_!= -1).map(OPCODES).toSeq).foreach(println)
     val allFrames: Seq[Seq[Frame[Box]]] = {
       val links: Seq[(Int, Int)] = {
         val jumps =
@@ -125,29 +126,12 @@ object Conversion {
             (a, b) <- (0 to blockMap.last - 1).zip(1 to blockMap.last)
             if !unconditionalJumps.contains(blockInsns(a).last.getOpcode)
           } yield (a, b)
-        println("jumps " + jumps.toSeq)
-        println("flows " + flows)
+//        println("jumps " + jumps.toSeq)
+//        println("flows " + flows)
         jumps ++ flows
       }
 
 //      println("links " + links)
-      val startFrame: Frame[Box] = {
-        val f = new Frame[Box](method.maxLocals, method.maxStack)
-        var localId = 0
-        for(arg <- Type.getArgumentTypes(method.desc)){
-          f.setLocal(localId, FunnyInterpreter.newValue(arg))
-          localId += 1
-          if (arg.getSize == 2){
-            f.setLocal(localId, FunnyInterpreter.newValue(null))
-            localId += 1
-          }
-        }
-        for(i <- localId until method.maxLocals) {
-          f.setLocal(i, FunnyInterpreter.newValue(null));
-        }
-//        println("".padTo(30, ' ') + f)
-        f
-      }
       val existing = new Array[Seq[Frame[Box]]](blockInsns.length)
       def handle(startFrame: Frame[Box], blockId: Int): Unit = {
         if (existing(blockId) != null) ()
@@ -155,7 +139,7 @@ object Conversion {
           val theseFrames = blockInsns(blockId).scanLeft(startFrame){ (frame, insn) =>
             val f = new Frame(frame)
             if (insn.getOpcode != -1) {
-              f.execute(insn, FunnyInterpreter)
+              f.execute(insn, IncrementalInterpreter)
             }
             f
           }
@@ -164,18 +148,21 @@ object Conversion {
             (src, dest) <- links
             if src == blockId
           } handle(theseFrames.last, dest)
-
-
         }
       }
-      handle(startFrame, 0)
+
+      handle(extraFrames(0), 0)
+
+      for(b <- method.tryCatchBlocks.asScala) {
+        val catchFrame = extraFrames(allInsns.indexOf(b.handler))
+        handle(catchFrame, b.handler)
+      }
       existing
     }
 
-    println("allFrames")
-    allFrames.map(println)
+//    println("allFrames")
+//    allFrames.map(println)
     // force in-order registration of method arguments in first block
-
 
     val blockBuffers = for{
       (blockFrames, blockId) <- allFrames.zipWithIndex
@@ -219,7 +206,6 @@ object Conversion {
       blockFrames(0).boxes.map(getBox)
 
       for ((insn, i) <- blockInsns(blockId).zipWithIndex){
-        implicit def deref(label: LabelNode) = blockInsns.indexWhere(_.head == label)
 
         ConvertInsn(
           insn,
@@ -237,14 +223,17 @@ object Conversion {
 
     }
 
-    if (method.name == "basicIf") {
+    if (method.name == "nsullFor") {
       for(i <- 0 until blockMap.length){
+        if (i < blockMap.length - 1 && blockMap(i) != blockMap(i+1)) println("-------------- BasicBlock " + blockMap(i) + " --------------")
+        val insn = OPCODES.lift(allInsns(i).getOpcode).getOrElse(allInsns(i).getClass.getSimpleName).padTo(30, ' ')
+        val frame = Option(allFrames(blockMap(i))).map(_(insnMap(i)).toString).getOrElse("-")
+        println(insn + " | " + blockMap(i) + " | " + insnMap(i) + "\t" + frame)
 
-        println(allInsns(i).toString.drop(23).padTo(30, ' ') + " | " + blockMap(i) + " | " + insnMap(i) + "\t" + allFrames(blockMap(i))(insnMap(i)))
       }
       println("XXX")
       println(allFrames.length)
-      allFrames.map(_.length).map(println)
+      allFrames.filter(_ != null).map(_.length).map(println)
     }
 
 //    println("++++++++++++++++++++++++++++++++++++++++")
@@ -275,7 +264,7 @@ object Conversion {
       BasicBlock(buffer, phis, types)
     }
 
-    if (method.name == "basicIf") {
+    if (method.name == "ndullFor") {
       for ((block, i) <- basicBlocks.zipWithIndex){
         println()
         println(i + "\t" + block.phi.toList)
@@ -287,15 +276,15 @@ object Conversion {
 
 
 
-    val tryCatchBlocks = Nil/*for(b <- method.tryCatchBlocks.asScala) yield{
+    val tryCatchBlocks = for(b <- method.tryCatchBlocks.asScala) yield{
       TryCatchBlock(
         (b.start.block, b.start.insn),
         (b.end.block, b.end.insn),
         b.handler.block,
-        blockBuffers(b.handler.block)._3(frames(allInsns.indexOf(b.handler)).top()),
+        blockBuffers(b.handler.block)._3(allFrames(blockMap(allInsns.indexOf(b.handler))).head.top()),
         Option(b.`type`).map(imm.Type.Cls.read)
       )
-    }*/
+    }
 //    println("============TryCatchBlocks===============")
 //    tryCatchBlocks.map(println)
 

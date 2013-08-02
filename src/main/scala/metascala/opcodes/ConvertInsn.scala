@@ -57,7 +57,7 @@ object ConvertInsn {
     implicit def methodInsnNode(x: AbstractInsnNode) = {
       x match {
         case x: MethodInsnNode => x
-        case x: FieldInsnNode => new MethodInsnNode(x.getOpcode, x.name, x.owner, x.desc)
+        case x: FieldInsnNode => new MethodInsnNode(x.getOpcode, x.owner, x.name, x.desc)
       }
     }
     

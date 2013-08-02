@@ -10,6 +10,13 @@ public class Exceptions {
         if (a >= 1) b += 1;
         else        b += 2;
 
+        try{
+            int j = a + 1;
+            if(a > 0) throw new Exception();
+            b += j;
+        }catch(Exception e){
+            return b - 1;
+        }
         return b;
     }
 
