@@ -2,7 +2,7 @@ package metascala
 
 import collection.mutable
 import annotation.tailrec
-import metascala.imm.{Type, Code}
+import metascala.imm.Type
 import rt.{FrameDump, Thread}
 import metascala.natives.Bindings
 import metascala.imm.Type.Prim

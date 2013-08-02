@@ -1,7 +1,7 @@
 package metascala
 package opcodes
 
-import metascala.imm.{Attached, Method}
+import metascala.imm.Method
 import org.objectweb.asm.Type
 import scala.collection.mutable
 import imm.Type.Prim._
@@ -109,7 +109,7 @@ object Conversion {
     }
     implicit def deref(label: LabelNode) = blockInsns.indexWhere(_.head == label)
 //    println("blockInsns")
-    blockInsns.map(_.map(_.getOpcode).filter(_!= -1).map(OPCODES).toSeq).foreach(println)
+
     val allFrames: Seq[Seq[Frame[Box]]] = {
       val links: Seq[(Int, Int)] = {
         val jumps =

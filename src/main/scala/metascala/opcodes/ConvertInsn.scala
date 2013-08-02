@@ -2,7 +2,7 @@ package metascala
 package opcodes
 
 
-import metascala.imm.{Attached, Method}
+
 import org.objectweb.asm.Type
 import scala.collection.mutable
 import metascala.imm.Type.Prim
@@ -15,9 +15,13 @@ import org.objectweb.asm.tree.analysis._
 import org.objectweb.asm.Opcodes._
 
 import Insn._
-import metascala.StackOps.{F1, F2}
 object ConvertInsn {
-
+  case class F1[A, B](a: A => B, override val toString: String) extends Function1[A, B]{
+    def apply(x: A) = a(x)
+  }
+  case class F2[A, B, C](a: (A, B) => C, override val toString: String) extends Function2[A, B, C]{
+    def apply(x: A, y: B) = a(x, y)
+  }
   def apply(insn: AbstractInsnNode,
               append: Insn => Unit,
               frame: Frame[Box],
@@ -294,6 +298,7 @@ object ConvertInsn {
            DUP2_X1 | DUP2_X2 | SWAP | ISTORE | LSTORE | FSTORE | DSTORE |
            ASTORE | ILOAD | LLOAD | FLOAD | DLOAD | ALOAD | NOP | -1 =>
         () // These are "move" operations and can be ignored
+      case MONITORENTER | MONITOREXIT => () // No monitors!
     }
   }
 }

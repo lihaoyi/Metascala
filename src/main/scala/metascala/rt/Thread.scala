@@ -9,7 +9,7 @@ import imm.Access
 import metascala.opcodes.{TryCatchBlock, Invoke, Jump, Insn}
 import Insn._
 
-import metascala.imm.Attached.LineNumber
+
 import Insn.Push
 import Insn.InvokeStatic
 import scala.Some
