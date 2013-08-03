@@ -55,6 +55,43 @@ object ConvertInsn {
     def returnVal(tpe: imm.Type) = {
       append(Insn.ReturnVal(if (tpe == V) 0 else frame.top()))
     }
+    def invokeVirtual(insn: MethodInsnNode, indexed: Boolean) = {
+      val desc = imm.Desc.read(insn.desc)
+      val cls = (insn.owner: imm.Type.Ref) match{
+        case c: imm.Type.Cls => c
+        case _ => imm.Type.Cls("java/lang/Object")
+      }
+
+      val args = for(j <- (0 until desc.args.length + 1).reverse)yield{
+        frame.top(j)
+      }
+      getBox(args.last)
+      val sig = new imm.Sig(insn.name, desc)
+      val target =
+        if (desc.ret == V) 0
+        else nextFrame.top(): Int
+
+      val mIndex =
+        if (!indexed) -1
+        else vm.ClsTable(cls).vTable.indexWhere(_.sig == sig)
+
+      append(Insn.InvokeVirtual(target, args.map(getBox), cls.cast[imm.Type.Cls], sig, mIndex))
+    }
+    def invokeStatic(insn: MethodInsnNode, self: Int) = {
+      val desc = imm.Desc.read(insn.desc)
+      val m = vm.resolveDirectRef(insn.owner, imm.Sig(insn.name, desc)).get
+
+      val args = for(j <- (0 until desc.args.length + self).reverse)yield{
+        frame.top(j)
+      }
+
+
+      val target =
+        if (desc.ret == V) 0
+        else nextFrame.top(): Int
+
+      append(Insn.InvokeStatic(target, args.map(getBox), insn.owner, m))
+    }
 
     implicit def intInsnNode(x: AbstractInsnNode) = x.cast[IntInsnNode]
     implicit def jumpInsnNode(x: AbstractInsnNode) = x.cast[JumpInsnNode]
@@ -64,7 +101,12 @@ object ConvertInsn {
         case x: FieldInsnNode => new MethodInsnNode(x.getOpcode, x.owner, x.name, x.desc)
       }
     }
-    
+    def refField(list: rt.Cls => Seq[imm.Field], func: (Int, imm.Type) => Insn) = {
+      val index = list(insn.owner.cls).lastIndexWhere(_.name == insn.name)
+      val prim = list(insn.owner.cls)(index).desc
+      append(func(index - prim.size + 1, prim))
+    }
+
     insn.getOpcode match{
       case ICONST_M1 => push(-1, I)
       case ICONST_0 => push(0, I)
@@ -187,83 +229,14 @@ object ConvertInsn {
       case DRETURN => returnVal(D)
       case ARETURN => returnVal(imm.Type.Cls("java/lang/Object"))
       case RETURN => returnVal(V)
-      case GETSTATIC =>
-        val index = insn.owner.cls.staticList.indexWhere(_.name == insn.name)
-        val prim = insn.owner.cls.staticList(index).desc
-        append(Insn.GetStatic(nextFrame.top(), insn.owner.cls, index, prim))
-      case PUTSTATIC =>
-        val index = insn.owner.cls.staticList.indexWhere(_.name == insn.name)
-        val prim = insn.owner.cls.staticList(index).desc
-        append(Insn.PutStatic(frame.top(), insn.owner.cls, index, prim))
-      case GETFIELD =>
-        val index = insn.owner.cls.fieldList.lastIndexWhere(_.name == insn.name)
-        val prim = insn.owner.cls.fieldList(index).desc
-        append(Insn.GetField(nextFrame.top(), frame.top(), index - prim.size + 1, prim))
-      case PUTFIELD =>
-        val index = insn.owner.cls.fieldList.lastIndexWhere(_.name == insn.name)
-        val prim = insn.owner.cls.fieldList(index).desc
-        append(Insn.PutField(frame.top(), frame.top(1), index - prim.size + 1, prim))
-      case INVOKESTATIC =>
-        val desc = imm.Desc.read(insn.desc)
-        val m = vm.resolveDirectRef(insn.owner, imm.Sig(insn.name, desc)).get
-        val args = for(j <- (0 until desc.args.length).reverse)yield{
-          frame.top(j)
-        }
-        val target =
-          if (desc.ret == V)0
-          else nextFrame.top(): Int
-
-        append(Insn.InvokeStatic(target, args.map(getBox), insn.owner, m))
-      case INVOKESPECIAL =>
-        val desc = imm.Desc.read(insn.desc)
-        val m = vm.resolveDirectRef(insn.owner, imm.Sig(insn.name, desc)).get
-
-        val args = for(j <- (0 until desc.args.length + 1).reverse)yield{
-          frame.top(j)
-        }
-
-
-        val target =
-          if (desc.ret == V) 0
-          else nextFrame.top(): Int
-
-        append(Insn.InvokeStatic(target, args.map(getBox), insn.owner, m))
-
-      case INVOKEVIRTUAL =>
-        val desc = imm.Desc.read(insn.desc)
-        val cls = (insn.owner: imm.Type.Ref) match{
-          case c: imm.Type.Cls => c
-          case _ => imm.Type.Cls("java/lang/Object")
-        }
-
-        val args = for(j <- (0 until desc.args.length + 1).reverse)yield{
-          frame.top(j)
-        }
-        getBox(args.last)
-        val sig = new imm.Sig(insn.name, desc)
-        val target =
-          if (desc.ret == V) 0
-          else nextFrame.top(): Int
-
-        val mIndex = vm.ClsTable(cls).vTable.indexWhere(_.sig == sig)
-        append(Insn.InvokeVirtual(target, args.map(getBox), cls.cast[imm.Type.Cls], sig, mIndex))
-      case INVOKEINTERFACE =>
-        val desc = imm.Desc.read(insn.desc)
-        val cls = (insn.owner: imm.Type.Ref) match{
-          case c: imm.Type.Cls => c
-          case _ => imm.Type.Cls("java/lang/Object")
-        }
-
-        val args = for(j <- (0 until desc.args.length + 1).reverse)yield{
-          frame.top(j)
-        }
-        getBox(args.last)
-        val sig = new imm.Sig(insn.name, desc)
-        val target =
-          if (desc.ret == V) 0
-          else nextFrame.top(): Int
-
-        append(Insn.InvokeVirtual(target, args.map(getBox), cls.cast[imm.Type.Cls], sig, -1))
+      case GETSTATIC => refField(_.staticList, Insn.GetStatic(nextFrame.top(), insn.owner.cls, _, _))
+      case PUTSTATIC => refField(_.staticList, Insn.PutStatic(frame.top(), insn.owner.cls, _, _))
+      case GETFIELD  => refField(_.fieldList, Insn.GetField(nextFrame.top(), frame.top(), _, _))
+      case PUTFIELD  => refField(_.fieldList, Insn.PutField(frame.top(), frame.top(1), _, _))
+      case INVOKESTATIC    => invokeStatic(insn, 0)
+      case INVOKESPECIAL   => invokeStatic(insn, 1)
+      case INVOKEVIRTUAL   => invokeVirtual(insn, indexed=true)
+      case INVOKEINTERFACE => invokeVirtual(insn, indexed=false)
       case NEW => append(Insn.New(nextFrame.top(), vm.ClsTable(insn.cast[TypeInsnNode].desc)))
       case NEWARRAY =>
         val typeRef: imm.Type = insn.operand match{
@@ -277,12 +250,11 @@ object ConvertInsn {
           case 11 => J: imm.Type
         }
         append(Insn.NewArray(frame.top(), nextFrame.top(), typeRef))
-      case ANEWARRAY =>
-        append(Insn.NewArray(frame.top(), nextFrame.top(), insn.cast[TypeInsnNode].desc))
+      case ANEWARRAY   => append(Insn.NewArray(frame.top(), nextFrame.top(), insn.cast[TypeInsnNode].desc))
       case ARRAYLENGTH => append(Insn.ArrayLength(frame.top(), nextFrame.top()))
-      case ATHROW => append(Insn.AThrow(frame.top()))
-      case CHECKCAST => append(Insn.CheckCast(frame.top(), nextFrame.top(), imm.Type.read(insn.cast[TypeInsnNode].desc)))
-      case INSTANCEOF => append(Insn.InstanceOf(frame.top(), nextFrame.top(), imm.Type.read(insn.cast[TypeInsnNode].desc)))
+      case ATHROW      => append(Insn.AThrow(frame.top()))
+      case CHECKCAST   => append(Insn.CheckCast(frame.top(), nextFrame.top(), imm.Type.read(insn.cast[TypeInsnNode].desc)))
+      case INSTANCEOF  => append(Insn.InstanceOf(frame.top(), nextFrame.top(), imm.Type.read(insn.cast[TypeInsnNode].desc)))
       case MULTIANEWARRAY =>
         val x = insn.cast[MultiANewArrayInsnNode]
         val dims = for(j <- (0 until x.dims).reverse)yield{
@@ -290,10 +262,8 @@ object ConvertInsn {
         }
 
         append(Insn.MultiANewArray(imm.Type.read(x.desc), nextFrame.top(), dims.map(getBox)))
-      case IFNULL =>
-        unaryBranch(insn.label, F1(_ == 0, "IfNull"))
-      case IFNONNULL =>
-        unaryBranch(insn.label, F1(_ != 0, "IfNonNull"))
+      case IFNULL    => unaryBranch(insn.label, F1(_ == 0, "IfNull"))
+      case IFNONNULL => unaryBranch(insn.label, F1(_ != 0, "IfNonNull"))
       case ACONST_NULL | POP | POP2 | DUP | DUP_X1 | DUP_X2 | DUP2 |
            DUP2_X1 | DUP2_X2 | SWAP | ISTORE | LSTORE | FSTORE | DSTORE |
            ASTORE | ILOAD | LLOAD | FLOAD | DLOAD | ALOAD | NOP | -1 =>

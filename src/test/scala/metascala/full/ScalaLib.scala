@@ -90,7 +90,7 @@ class ScalaLib extends FreeSpec with Util{
   "predef" in tester.run("predef", 5)
   "palindrome" in tester.run("palindrome", 100, 130)
   "bigFibonacci" in tester.run("bigFibonacci", 100)
-  "parseClass" in tester.run("parseClass")
+  //"parseClass" in tester.run("parseClass")
   "lol" in tester.run("lol")
 
 }
