@@ -67,9 +67,7 @@ object ConvertInsn {
       }
       getBox(args.last)
       val sig = new imm.Sig(insn.name, desc)
-      val target =
-        if (desc.ret == V) 0
-        else nextFrame.top(): Int
+      val target = if (desc.ret == V) 0 else nextFrame.top(): Int
 
       val mIndex =
         if (!indexed) -1
@@ -85,10 +83,7 @@ object ConvertInsn {
         frame.top(j)
       }
 
-
-      val target =
-        if (desc.ret == V) 0
-        else nextFrame.top(): Int
+      val target = if (desc.ret == V) 0 else nextFrame.top(): Int
 
       append(Insn.InvokeStatic(target, args.map(getBox), insn.owner, m))
     }
@@ -257,10 +252,7 @@ object ConvertInsn {
       case INSTANCEOF  => append(Insn.InstanceOf(frame.top(), nextFrame.top(), imm.Type.read(insn.cast[TypeInsnNode].desc)))
       case MULTIANEWARRAY =>
         val x = insn.cast[MultiANewArrayInsnNode]
-        val dims = for(j <- (0 until x.dims).reverse)yield{
-          frame.top(j)
-        }
-
+        val dims = (0 until x.dims).reverse.map(frame.top)
         append(Insn.MultiANewArray(imm.Type.read(x.desc), nextFrame.top(), dims.map(getBox)))
       case IFNULL    => unaryBranch(insn.label, F1(_ == 0, "IfNull"))
       case IFNONNULL => unaryBranch(insn.label, F1(_ != 0, "IfNonNull"))
