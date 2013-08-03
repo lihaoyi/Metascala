@@ -1,4 +1,4 @@
-package metascala;
+package metascala.full;
 
 import java.util.*;
 import java.math.BigInteger;
@@ -110,9 +110,16 @@ public class JavaLib {
         b.compareAndSet(12124124164865234L, 34934198359342123L);
         values[1] = b.get();
         values[2] = b.getAndSet(98172271923198732L);
-//        b.compareAndSet(981724127399231987L, 123517894187923123L);
-//        values[3] = b.get();
+        b.compareAndSet(981724127399231987L, 123517894187923123L);
+        values[3] = b.get();
         return values;
+    }
+    public static long randoms(){
+        Random r = new Random(241231241251241123L);
+        for(int i = 0; i < 100; i++){
+            r.nextLong();
+        }
+        return r.nextLong();
     }
 
 }

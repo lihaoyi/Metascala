@@ -14,7 +14,7 @@ class IOTest extends FreeSpec with Util{
 
   "primitives" - {
     val buffer = new BufferLog(4000)
-    val tester = new Tester("metascala.io.Primitives", buffer)
+    val tester = new Tester("metascala.features.IO", buffer)
     "retInt" in tester.run("retInt")
     "retDouble" in tester.run("retDouble")
     "argInt" in tester.run("argInt", 10)
@@ -27,7 +27,7 @@ class IOTest extends FreeSpec with Util{
 
   }
   "exceptions" -{
-    val tester = new SingleClassVM("metascala.io.Exceptions", x => ())
+    val tester = new SingleClassVM("metascala.features.IO", x => ())
     "runtime" in {
       val svmRes = Try(tester.run("runtime"))
 

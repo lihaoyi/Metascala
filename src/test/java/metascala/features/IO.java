@@ -1,6 +1,6 @@
-package metascala.io;
+package metascala.features;
 
-public class Primitives {
+public class IO {
 
     public static int retInt(){ return 1337; }
     public static double  retDouble(){ return 3.1337; }
@@ -17,5 +17,11 @@ public class Primitives {
             s = "a";
         return s + "a";
 
+    }
+
+    public static int runtime(){
+        String s = null;
+        s.charAt(0);
+        throw new RuntimeException("omg!");
     }
 }
