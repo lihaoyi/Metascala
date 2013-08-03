@@ -26,16 +26,16 @@ public class Full {
     }
 
     public static int sorting(){
-        Random r = new Random(1234);
-
-        int[] arr = new int[100];
-        for(int i = 0; i < arr.length; i++){
-            arr[i] = r.nextInt();
+        int[] arr = new int[250];
+        int current = 94664704;
+        for(int i = 1; i < arr.length; i++){
+            current = 23 * current % 100000000 + 1;
+            arr[i] = current % 100000;
         }
 
         Arrays.sort(arr);
 
-        return arr.length;
+        return arr[52];
     }
 
     public static String sudoku(){

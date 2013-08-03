@@ -251,7 +251,7 @@ object Conversion {
       (buffer, types, localMap, blockFrames.head, blockFrames.last, lineMap)
     }
 
-    if (method.name == "sorting") {
+    if (method.name == "sortingd") {
       for(i <- 0 until blockMap.length){
         if (i == 0 || blockMap(i) != blockMap(i-1)) println("-------------- BasicBlock " + blockMap(i) + " --------------")
         val insn = OPCODES.lift(allInsns(i).getOpcode).getOrElse(allInsns(i).getClass.getSimpleName).padTo(30, ' ')
@@ -291,7 +291,7 @@ object Conversion {
       BasicBlock(buffer, phis, types, lines)
     }
 
-    if (method.name == "sorting") {
+    if (method.name == "sortingd") {
       for ((block, i) <- basicBlocks.zipWithIndex){
         println()
         println(i + "\t" + block.phi.toList)

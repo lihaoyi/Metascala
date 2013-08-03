@@ -64,7 +64,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     val r = reader(frame.locals, 0)
 
-    if (frame.method.method.name == "sorting") {
+    if (frame.method.method.name == "filterFieldsss") {
       lazy val localSnapshot =
         block.locals
              .flatMap(x => Seq(x.prettyRead(r)).padTo(x.size, "~"))
@@ -72,7 +72,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
       println(indent + "::\t" + frame.runningClass.shortName + "/" + frame.method.sig.shortName + ":" + block.lines(frame.pc._2) + "\t"  + localSnapshot)
       println(indent + "::\t" + frame.pc + "\t" + node )
-      println(indent + "::\t" + vm.heap.dump().replace("\n", "\n" + indent + "::\t"))
+      //println(indent + "::\t" + vm.heap.dump().replace("\n", "\n" + indent + "::\t"))
     }
 
 
@@ -254,6 +254,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       case CheckCast(src, dest, desc) =>
         frame.locals(src) match{
           case top if (top.isArr && !check(top.arr.tpe, desc)) || (top.isObj && !check(top.obj.tpe, desc)) =>
+            println("DYING " + top.arr.tpe + " " + desc)
             throwExWithTrace("java/lang/ClassCastException", "")
           case _ =>
             frame.locals(dest) = frame.locals(src)

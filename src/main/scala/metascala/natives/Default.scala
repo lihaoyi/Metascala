@@ -372,6 +372,9 @@ trait Default extends Bindings{
         ),
         "reflect"/(
           "Reflection"/(
+            "filterFields(Ljava/lang/Class;[Ljava/lang/reflect/Field;)[Ljava/lang/reflect/Field;".func(I, I, I){ (vt, cls, fs) =>
+              fs
+            },
             "getCallerClass(I)Ljava/lang/Class;".func(I, I){ (vt, n) =>
               import vt.vm
               val name = vt.threadStack(n).runningClass.name
