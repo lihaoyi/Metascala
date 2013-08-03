@@ -41,9 +41,4 @@ class Misc extends FreeSpec with Util{
     "testL" in test(J)(30 ** Gen.longAll)
     "testD" in test(D)(30 ** Gen.doubleAll)
   }
-
-  "hello" in {
-
-  }
-
 }

@@ -251,14 +251,14 @@ object Conversion {
       (buffer, types, localMap, blockFrames.head, blockFrames.last, lineMap)
     }
 
-    if (method.name == "<<<clinit>") {
+    if (false) {
+      println(s"--------------------- Converting ${method.name} ---------------------")
       for(i <- 0 until blockMap.length){
         if (i == 0 || blockMap(i) != blockMap(i-1)) println("-------------- BasicBlock " + blockMap(i) + " --------------")
         val insn = OPCODES.lift(allInsns(i).getOpcode).getOrElse(allInsns(i).getClass.getSimpleName).padTo(30, ' ')
         val frame = Option(allFrames(blockMap(i))).map(_(insnMap(i)).toString).getOrElse("-")
 
         println(lineMap(i) + "\t" + insn + " | " + blockMap(i) + " | " + insnMap(i) + " |\t" + frame)
-
       }
       println("XXX")
     }
@@ -295,7 +295,7 @@ object Conversion {
       BasicBlock(buffer, phis, types, lines)
     }
 
-    if (method.name == "<<clinit>") {
+    if (false) {
       for ((block, i) <- basicBlocks.zipWithIndex){
         println()
         println(i + "\t" + block.phi.toList)

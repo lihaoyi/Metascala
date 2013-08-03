@@ -198,11 +198,11 @@ object ConvertInsn {
       case GETFIELD =>
         val index = insn.owner.cls.fieldList.lastIndexWhere(_.name == insn.name)
         val prim = insn.owner.cls.fieldList(index).desc
-        append(Insn.GetField(nextFrame.top(), frame.top(), index, prim))
+        append(Insn.GetField(nextFrame.top(), frame.top(), index - prim.size + 1, prim))
       case PUTFIELD =>
         val index = insn.owner.cls.fieldList.lastIndexWhere(_.name == insn.name)
         val prim = insn.owner.cls.fieldList(index).desc
-        append(Insn.PutField(frame.top(), frame.top(1), index, prim))
+        append(Insn.PutField(frame.top(), frame.top(1), index - prim.size + 1, prim))
       case INVOKESTATIC =>
         val desc = imm.Desc.read(insn.desc)
         val m = vm.resolveDirectRef(insn.owner, imm.Sig(insn.name, desc)).get

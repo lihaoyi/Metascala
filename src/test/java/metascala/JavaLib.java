@@ -2,6 +2,7 @@ package metascala;
 
 import java.util.*;
 import java.math.BigInteger;
+import java.util.concurrent.atomic.*;
 import java.util.regex.*;
 public class JavaLib {
 
@@ -63,8 +64,9 @@ public class JavaLib {
     }
 
     public static String regex(){
-        Pattern p = Pattern.compile("\\d+([_-]\\d+)*");
-        Matcher m = p.matcher("123_321_12 i am a cow 123_3-12_990 but my ip is 192-168-1-1 lolz");
+        Pattern p = Pattern.compile("\\d+([_-]\\d+)*(:? )");
+        Matcher m = p.matcher("123_321_12 i am a cow 123_3-" +
+                "12_990 but my ip is 192-168-1-1 lolz");
 
         String s = "";
         while(m.find()){
@@ -72,6 +74,45 @@ public class JavaLib {
         }
 
         return s;
+    }
+    public static void main(String[] args){
+
+    }
+    public static boolean[] atomicBooleans(){
+        AtomicBoolean b = new AtomicBoolean();
+        boolean[] values = new boolean[4];
+        b.set(true);
+        values[0] = b.get();
+        b.compareAndSet(false, false);
+        values[1] = b.get();
+        values[2] = b.getAndSet(false);
+        b.compareAndSet(false, true);
+        values[3] = b.get();
+        return values;
+    }
+    public static int[] atomicIntegers(){
+        AtomicInteger b = new AtomicInteger();
+        int[] values = new int[4];
+        b.set(192);
+        values[0] = b.get();
+        b.compareAndSet(12, 3123);
+        values[1] = b.get();
+        values[2] = b.getAndSet(31241);
+        b.compareAndSet(31241, 12451);
+        values[3] = b.get();
+        return values;
+    }
+    public static long[] atomicLongs(){
+        AtomicLong b = new AtomicLong();
+        long[] values = new long[4];
+        b.set(1921231231234124124L);
+        values[0] = b.get();
+        b.compareAndSet(12124124164865234L, 34934198359342123L);
+        values[1] = b.get();
+        values[2] = b.getAndSet(98172271923198732L);
+//        b.compareAndSet(981724127399231987L, 123517894187923123L);
+//        values[3] = b.get();
+        return values;
     }
 
 }

@@ -8,8 +8,6 @@ import scala.Some
 import java.util.Arrays
 import Gen._
 class ArrayTest extends FreeSpec with Util{
-
-
   "array stuff" - {
     val buffer = new BufferLog(4000)
     val tester = new Tester("metascala.features.arrays.ArrayStuff", buffer)
@@ -40,6 +38,4 @@ class ArrayTest extends FreeSpec with Util{
     "make3D" in chk(tester.run("make3D", _: Int, _: Int, _ : Int))(Seq(0, 1, 2), Seq(0, 1, 2), Seq(0, 1, 2))
     "getAndSet" in tester.run("getAndSet")
   }
-
 }
-

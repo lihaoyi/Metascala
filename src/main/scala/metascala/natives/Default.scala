@@ -63,12 +63,12 @@ trait Default extends Bindings{
               val obj = o.obj
 
               val name = obj("name").toRealObj[String]
-              val realFields = vm.ClsTable(name).clsData.fields
+              val realFields = vm.ClsTable(name).fieldList
 
 
               "java/lang/reflect/Field".allocArr(
                 realFields.zipWithIndex.map{ case (f, i) =>
-                 "java/lang/reflect/Field".allocObj(
+                  "java/lang/reflect/Field".allocObj(
                     "clazz" -> obj.address,
                     "slot" -> i,
                     "name" -> vt.vm.internedStrings.getOrElseUpdate(f.name, f.name.toVirtObj)
@@ -76,11 +76,7 @@ trait Default extends Bindings{
                 }
               )
 
-
-            }/*,
-            "getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;" x {vt =>
-              ???              //private native Method[]      getDeclaredMethods0(boolean publicOnly);
-            }*/,
+            },
             "getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;".func(I, I, I){ (vt, bool, o) =>
               import vt.vm
 
@@ -105,10 +101,6 @@ trait Default extends Bindings{
               )
               vrtArr
             },
-            /*"getDeclaredClasses0(Z)[Ljava/lang/Class;" x {vt =>
-              ???
-              //private native Class<?>[]   getDeclaredClasses0();
-            },*/
             "getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;".func(I, I){ (vt, o) =>
               import vt.vm
               val addr = "java/lang/Class".allocObj(
@@ -348,13 +340,31 @@ trait Default extends Bindings{
             "compareAndSwapInt(Ljava/lang/Object;JII)Z".func(I, I, J, I, I, Z){ (vt, unsafe, o, slot, expected ,x) =>
               import vt.vm
               val obj = o.obj
-              obj.members(slot.toInt) = x
-              true
+              if (obj.members(slot.toInt) == expected){
+                obj.members(slot.toInt) = x
+                true
+              }else{
+                false
+              }
+
+            },
+            "compareAndSwapLong(Ljava/lang/Object;JJJ)Z".func(I, I, J, J, J, Z){ (vt, unsafe, o, slot, expected ,x) =>
+              import vt.vm
+              val obj = o.obj
+              val current = J.read(reader(obj.members, slot.toInt))
+              if (current == expected){
+                J.write(x, writer(obj.members, slot.toInt))
+                true
+              }else{
+                false
+              }
+
             },
 
             "objectFieldOffset(Ljava/lang/reflect/Field;)J".func(I, I, I){(vt, unsafe, f) =>
               import vt.vm
               val field = f.obj
+              println("objectFieldOffset " + field.apply("slot"))
               field.apply("slot")
             },
 

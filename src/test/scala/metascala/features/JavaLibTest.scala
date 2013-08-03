@@ -19,6 +19,9 @@ class JavaLibTest extends FreeSpec with Util{
     "sudoku" in tester.run("sudoku")
     "bigInteger" in tester.run("bigInteger")
     "regex" in tester.run("regex")
+    "atomicBooleans" in tester.run("atomicBooleans")
+    "atomicIntegers" in tester.run("atomicIntegers")
+    "atomicLongs" in tester.run("atomicLongs")
   }
 }
 

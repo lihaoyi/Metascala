@@ -44,7 +44,6 @@ class Obj(val address: Val)
 
   object members extends mutable.Seq[Val]{
     def apply(n: Int): Val = {
-
       vm.heap(address + n + Obj.headerSize)
     }
 
