@@ -347,9 +347,7 @@ trait Default extends Bindings{
             "addressSize()I".value(I)(4),
             "compareAndSwapInt(Ljava/lang/Object;JII)Z".func(I, I, J, I, I, Z){ (vt, unsafe, o, slot, expected ,x) =>
               import vt.vm
-
               val obj = o.obj
-
               obj.members(slot.toInt) = x
               true
             },
@@ -357,12 +355,11 @@ trait Default extends Bindings{
             "objectFieldOffset(Ljava/lang/reflect/Field;)J".func(I, I, I){(vt, unsafe, f) =>
               import vt.vm
               val field = f.obj
-
               field.apply("slot")
             },
+
             "registerNatives()V".value(V)(()),
             "getUnsafe()Lsun/misc/Unsafe;".func(I){vt => vt.vm.theUnsafe.address}
-
           ),
           "VM"/(
             "getSavedProperty(Ljava/lang/String;)Ljava/lang/String;".value(I)(0),

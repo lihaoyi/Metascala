@@ -26,11 +26,13 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
   import vm._
 
   var initialized = false
-  def checkInitialized(): Unit = {
+  def checkInitialized()(implicit vm: VM): Unit = {
     if (!initialized){
       initialized = true
-      methods.find(_.method.sig == Sig("<clinit>", imm.Desc.read("()V")))
-             .foreach(threads(0).invoke(_, Nil))
+      vm.resolveDirectRef(clsData.tpe, Sig("<clinit>", imm.Desc.read("()V")))
+        .foreach(threads(0).invoke(_, Nil))
+
+
 
       clsData.superType.foreach{ cls =>
         vm.ClsTable(cls).checkInitialized()

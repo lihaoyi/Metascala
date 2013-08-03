@@ -231,7 +231,7 @@ object Conversion {
         localMap(b)
       }
 
-      blockFrames(0).boxes.map(getBox)
+      blockFrames(0).boxes.flatten.map(getBox)
 
       for ((insn, i) <- blockInsns(blockId).zipWithIndex){
 
@@ -251,7 +251,7 @@ object Conversion {
       (buffer, types, localMap, blockFrames.head, blockFrames.last, lineMap)
     }
 
-    if (method.name == "getChars") {
+    if (method.name == "<<<clinit>") {
       for(i <- 0 until blockMap.length){
         if (i == 0 || blockMap(i) != blockMap(i-1)) println("-------------- BasicBlock " + blockMap(i) + " --------------")
         val insn = OPCODES.lift(allInsns(i).getOpcode).getOrElse(allInsns(i).getClass.getSimpleName).padTo(30, ' ')
@@ -267,19 +267,21 @@ object Conversion {
       val phis = for(((buffer2, types2, endMap, _, endFrame, _), j) <- blockBuffers.zipWithIndex) yield {
         if (endFrame != null && startFrame != null && ((buffer2.length > 0 && buffer2.last.targets.contains(i)) || (i == j + 1))){
 //          println()
-          println("Making Phi       " + j + "->" + i)
-          println("endFrame         " + endFrame + "\t" + endFrame.boxes.map(endMap))
-          println("startFrame       " + startFrame + "\t" + startFrame.boxes.map(startMap))
+          if (method.name == "<<clinit>") {
+            println("Making Phi       " + j + "->" + i)
+            println("endFrame         " + endFrame + "\t" + endFrame.boxes.flatten.map(endMap))
+            println("startFrame       " + startFrame + "\t" + startFrame.boxes.flatten.map(startMap))
+          }
 //          println("endFrame.boxes   " + endFrame.boxes)
 //          println("startFrame.boxes " + startFrame.boxes)
 //          println("endMap           " + endMap)
 //          println("startMap         " + startMap)
-          assert(
-            endFrame.boxes.length == startFrame.boxes.length,
-            "Start frame doesn't line up with End frame"
-          )
+//          assert(
+//            endFrame.boxes.length == startFrame.boxes.length,
+//            "Start frame doesn't line up with End frame"
+//          )
           val zipped = for{
-            (e, s) <- endFrame.boxes zip startFrame.boxes
+            (Some(e), Some(s)) <- endFrame.boxes zip startFrame.boxes
             a <- endMap.get(e).toSeq
             b <- startMap.get(s).toSeq
 
@@ -293,7 +295,7 @@ object Conversion {
       BasicBlock(buffer, phis, types, lines)
     }
 
-    if (method.name == "getChars") {
+    if (method.name == "<<clinit>") {
       for ((block, i) <- basicBlocks.zipWithIndex){
         println()
         println(i + "\t" + block.phi.toList)

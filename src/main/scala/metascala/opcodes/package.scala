@@ -10,13 +10,12 @@ package object opcodes {
       val locals = for {
         localId <- 0 until x.getLocals
         local <- Option(x.getLocal(localId))
-        if local != BasicValue.UNINITIALIZED_VALUE
-        if local.getType != null
-      } yield local
+
+      } yield if (local.getType != null) Some(local) else None
       val stackVals = for {
         stackId <- 0 until x.getStackSize
         stackVal = x.getStack(stackId)
-      } yield stackVal
+      } yield Some(stackVal)
       locals ++ stackVals
     }
   }
