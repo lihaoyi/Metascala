@@ -77,6 +77,7 @@ object ScalaLib{
     import scala.concurrent.duration._
     Await.result(c, 10 seconds)
   }
+
   def lol = {
     val args2: String = java.security.AccessController.doPrivileged(new sun.security.action.GetPropertyAction("java.security.auth.debug"))
     args2

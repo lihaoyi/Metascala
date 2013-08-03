@@ -1,15 +1,9 @@
 package metascala;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.CharBuffer;
-import java.nio.IntBuffer;
 import java.util.*;
-
-public class Full {
+import java.math.BigInteger;
+import java.util.regex.*;
+public class JavaLib {
 
     public static int collections(int n){
         Vector<Integer> vec = new Vector<>();
@@ -53,6 +47,31 @@ public class Full {
         };
         Sudoku.solve(0, 0, grid);
         return Sudoku.writeMatrix(grid);
+    }
+
+
+    public static String bigInteger(){
+        BigInteger a = new BigInteger("1237923896771092385");
+        BigInteger b = new BigInteger("498658982734992345912340");
+        BigInteger c = new BigInteger("08968240235478367717203984123");
+
+        BigInteger d = a.add(b);
+        BigInteger e = d.subtract(c);
+        BigInteger f = e.multiply(b);
+        BigInteger g = f.divide(a);
+        return g.toString();
+    }
+
+    public static String regex(){
+        Pattern p = Pattern.compile("\\d+([_-]\\d+)*");
+        Matcher m = p.matcher("123_321_12 i am a cow 123_3-12_990 but my ip is 192-168-1-1 lolz");
+
+        String s = "";
+        while(m.find()){
+            s += m.group(0);
+        }
+
+        return s;
     }
 
 }

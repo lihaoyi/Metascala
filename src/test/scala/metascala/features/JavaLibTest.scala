@@ -7,16 +7,18 @@ import util.{Failure, Try}
 import metascala.{UncaughtVmException, BufferLog, Gen, Util}
 import metascala.Util.SingleClassVM
 
-class FullTest extends FreeSpec with Util{
+class JavaLibTest extends FreeSpec with Util{
 
 
   implicit val intAll10 = 10 ** Gen.intAll
 
   "stuff" - {
-    val tester = new Tester("metascala.Full")
+    val tester = new Tester("metascala.JavaLib")
     "sorting" in tester.run("sorting")
     "collections" in tester.run("collections", 10)
     "sudoku" in tester.run("sudoku")
+    "bigInteger" in tester.run("bigInteger")
+    "regex" in tester.run("regex")
   }
 }
 
