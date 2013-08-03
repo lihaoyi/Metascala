@@ -46,8 +46,21 @@ object Conversion {
   def ssa(clsName: String, method: MethodNode)(implicit vm: VM): Code = {
 
     val allInsns = method.instructions.toArray
-    lazy val extraFrames = new Analyzer(FullInterpreter).analyze(clsName, method)
 
+    val lineMap = {
+      var lastLine = 0
+      val lines = new Array[Int](allInsns.length)
+      for((insn, i) <- allInsns.zipWithIndex){
+        insn match{
+          case x: LineNumberNode => lastLine = x.line
+          case _ => ()
+        }
+        lines(i) = lastLine
+      }
+      lines
+    }
+
+    lazy val extraFrames = new Analyzer(FullInterpreter).analyze(clsName, method)
 
     val blockMap: Array[Int] = {
       val jumps = allInsns.collect{case x: JumpInsnNode => x}
@@ -101,12 +114,20 @@ object Conversion {
     val blockInsns: Array[Array[AbstractInsnNode]] = {
       blockMap.zip(allInsns)
               .groupBy(_._1)
-              .toSeq
-              .sortBy(_._1)
-              .map(_._2)
-              .map(_.map(_._2))
               .toArray
+              .sortBy(_._1)
+              .map(_._2.map(_._2))
+
     }
+
+    val blockLines: Array[Array[Int]] = {
+      blockMap.zip(lineMap)
+              .groupBy(_._1)
+              .toArray
+              .sortBy(_._1)
+              .map(_._2.map(_._2))
+    }
+
     implicit def deref(label: LabelNode) = blockInsns.indexWhere(_.head == label)
 //    println("blockInsns")
 
@@ -126,13 +147,18 @@ object Conversion {
             (a, b) <- (0 to blockMap.last - 1).zip(1 to blockMap.last)
             if !unconditionalJumps.contains(blockInsns(a).last.getOpcode)
           } yield (a, b)
-//        println("jumps " + jumps.toSeq)
-//        println("flows " + flows)
         jumps ++ flows
       }
 
-//      println("links " + links)
       val existing = new Array[Seq[Frame[Box]]](blockInsns.length)
+
+      def copy(f: Frame[Box]) = {
+        val newF = new Frame[Box](f)
+        newF.clearStack()
+        for(i <- 0 until f.getLocals) newF.setLocal(i, new Box(f.getLocal(i).value))
+        for(i <- 0 until f.getStackSize) newF.push(new Box(f.getStack(i).value))
+        newF
+      }
       def handle(startFrame: Frame[Box], blockId: Int): Unit = {
         if (existing(blockId) != null) ()
         else{
@@ -147,7 +173,7 @@ object Conversion {
           for{
             (src, dest) <- links
             if src == blockId
-          } handle(theseFrames.last, dest)
+          } handle(copy(theseFrames.last), dest)
         }
       }
 
@@ -172,9 +198,11 @@ object Conversion {
       val buffer = mutable.Buffer.empty[Insn]
 
       val srcMap = mutable.Buffer.empty[Int]
+      val lineMap = mutable.Buffer.empty[Int]
       val localMap = mutable.Map.empty[Box, Int]
       var symCount = 0
       val types = mutable.Buffer.empty[imm.Type]
+
 
 
       implicit def getBox(b: Box) = {
@@ -212,6 +240,7 @@ object Conversion {
           (in: Insn) => {
             buffer.append(in)
             srcMap.append(i)
+            lineMap.append(blockLines(blockId)(i))
           },
           blockFrames(i),
           blockFrames(i+1),
@@ -219,16 +248,16 @@ object Conversion {
         )
       }
 
-      (buffer, types, localMap, blockFrames.head, blockFrames.last)
-
+      (buffer, types, localMap, blockFrames.head, blockFrames.last, lineMap)
     }
 
-    if (method.name == "arrayCasts") {
+    if (method.name == "sorting") {
       for(i <- 0 until blockMap.length){
         if (i == 0 || blockMap(i) != blockMap(i-1)) println("-------------- BasicBlock " + blockMap(i) + " --------------")
         val insn = OPCODES.lift(allInsns(i).getOpcode).getOrElse(allInsns(i).getClass.getSimpleName).padTo(30, ' ')
         val frame = Option(allFrames(blockMap(i))).map(_(insnMap(i)).toString).getOrElse("-")
-        println(insn + " | " + blockMap(i) + " | " + insnMap(i) + "\t" + frame)
+
+        println(lineMap(i) + "\t" + insn + " | " + blockMap(i) + " | " + insnMap(i) + " |\t" + frame)
 
       }
       println("XXX")
@@ -236,10 +265,8 @@ object Conversion {
       allFrames.filter(_ != null).map(_.length).map(println)
     }
 
-//    println("++++++++++++++++++++++++++++++++++++++++")
-
-    val basicBlocks = for(((buffer, types, startMap, startFrame, _), i) <- blockBuffers.zipWithIndex) yield {
-      val phis = for(((buffer2, types2, endMap, _, endFrame), j) <- blockBuffers.zipWithIndex) yield {
+    val basicBlocks = for(((buffer, types, startMap, startFrame, _, lines), i) <- blockBuffers.zipWithIndex) yield {
+      val phis = for(((buffer2, types2, endMap, _, endFrame, _), j) <- blockBuffers.zipWithIndex) yield {
         if (endFrame != null && startFrame != null && ((buffer2.length > 0 && buffer2.last.targets.contains(i)) || (i == j + 1))){
 //          println()
 //          println("Making Phi       " + j + "->" + i)
@@ -261,16 +288,18 @@ object Conversion {
         }else Nil
 
       }
-      BasicBlock(buffer, phis, types)
+      BasicBlock(buffer, phis, types, lines)
     }
 
-    if (method.name == "arrayCasts") {
+    if (method.name == "sorting") {
       for ((block, i) <- basicBlocks.zipWithIndex){
         println()
         println(i + "\t" + block.phi.toList)
-        println(i + "\t" + block.locals)
-        block.insns.foreach(println)
-        println(blockBuffers(i)._3)
+        //println(i + "\t" + block.locals.toList)
+        for(i <- 0 until block.insns.length){
+          println(block.lines(i) + "\t" + block.insns(i))
+        }
+        //println(blockBuffers(i)._3)
       }
       println()
       println()
@@ -287,8 +316,7 @@ object Conversion {
         Option(b.`type`).map(imm.Type.Cls.read)
       )
     }
-//    println("============TryCatchBlocks===============")
-//    tryCatchBlocks.map(println)
+
 
     Code(basicBlocks, tryCatchBlocks)
   }

@@ -64,17 +64,18 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     val r = reader(frame.locals, 0)
 
-    if (frame.method.method.name == "arrayCasts") {
+    if (frame.method.method.name == "sorting") {
       lazy val localSnapshot =
         block.locals
              .flatMap(x => Seq(x.prettyRead(r)).padTo(x.size, "~"))
              .toList
 
-      println(indent + "::\t" + frame.runningClass.shortName + "/" + frame.method.sig.shortName + ": " + localSnapshot)
+      println(indent + "::\t" + frame.runningClass.shortName + "/" + frame.method.sig.shortName + ":" + block.lines(frame.pc._2) + "\t"  + localSnapshot)
       println(indent + "::\t" + frame.pc + "\t" + node )
+      println(indent + "::\t" + vm.heap.dump().replace("\n", "\n" + indent + "::\t"))
     }
-//
-//    println(indent + "::\t" + vm.heap.dump().replace("\n", "\n" + indent + "::\t"))
+
+
     val currentFrame = frame
 
     def advancePc() = {
@@ -307,7 +308,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         f.runningClass.name.toDot,
         f.method.method.name,
         f.runningClass.clsData.misc.sourceFile.getOrElse("<unknown file>"),
-        0
+        f.method.code.blocks(f.pc._1).lines(f.pc._2)
       )
     ).toArray
   }

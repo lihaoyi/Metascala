@@ -15,7 +15,8 @@ case class Code(blocks: Seq[BasicBlock] = Nil,
 }
 case class BasicBlock(insns: Seq[Insn],
                       phi: Seq[Seq[(Sym, Sym)]],
-                      locals: Seq[imm.Type])
+                      locals: Seq[imm.Type],
+                      lines: Seq[Int])
 
 case class TryCatchBlock(start: (Sym, Sym),
                          end: (Sym, Sym),

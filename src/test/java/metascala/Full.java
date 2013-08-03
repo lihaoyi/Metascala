@@ -3,6 +3,10 @@ package metascala;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.CharBuffer;
+import java.nio.IntBuffer;
 import java.util.*;
 
 public class Full {
@@ -22,9 +26,16 @@ public class Full {
     }
 
     public static int sorting(){
-        int[] arr = new int[]{1, 5, 4, 2, 8, 7, 9, 5, 6, 3};
+        Random r = new Random(1234);
+
+        int[] arr = new int[100];
+        for(int i = 0; i < arr.length; i++){
+            arr[i] = r.nextInt();
+        }
+
         Arrays.sort(arr);
-        return arr[1];
+
+        return arr.length;
     }
 
     public static String sudoku(){

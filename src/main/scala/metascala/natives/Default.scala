@@ -318,6 +318,15 @@ trait Default extends Bindings{
             "getStackAccessControlContext()Ljava/security/AccessControlContext;".value(I)(0)
 
           )
+        ),
+        "util"/(
+          "concurrent"/(
+            "atomic"/(
+              "AtomicLong"/(
+                "VMSupportsCS8()Z".func(Z){ vt => true }
+              )
+            )
+          )
         )
       ),
       "scala"/(
