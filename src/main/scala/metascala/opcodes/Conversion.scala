@@ -251,7 +251,7 @@ object Conversion {
       (buffer, types, localMap, blockFrames.head, blockFrames.last, lineMap)
     }
 
-    if (method.name == "sortingd") {
+    if (method.name == "getChars") {
       for(i <- 0 until blockMap.length){
         if (i == 0 || blockMap(i) != blockMap(i-1)) println("-------------- BasicBlock " + blockMap(i) + " --------------")
         val insn = OPCODES.lift(allInsns(i).getOpcode).getOrElse(allInsns(i).getClass.getSimpleName).padTo(30, ' ')
@@ -261,21 +261,23 @@ object Conversion {
 
       }
       println("XXX")
-      println(allFrames.length)
-      allFrames.filter(_ != null).map(_.length).map(println)
     }
 
     val basicBlocks = for(((buffer, types, startMap, startFrame, _, lines), i) <- blockBuffers.zipWithIndex) yield {
       val phis = for(((buffer2, types2, endMap, _, endFrame, _), j) <- blockBuffers.zipWithIndex) yield {
         if (endFrame != null && startFrame != null && ((buffer2.length > 0 && buffer2.last.targets.contains(i)) || (i == j + 1))){
 //          println()
-//          println("Making Phi       " + j + "->" + i)
-//          println("endFrame         " + endFrame + "\t" + endFrame.boxes.map(endMap))
-//          println("startFrame       " + startFrame + "\t" + startFrame.boxes.map(startMap))
+          println("Making Phi       " + j + "->" + i)
+          println("endFrame         " + endFrame + "\t" + endFrame.boxes.map(endMap))
+          println("startFrame       " + startFrame + "\t" + startFrame.boxes.map(startMap))
 //          println("endFrame.boxes   " + endFrame.boxes)
 //          println("startFrame.boxes " + startFrame.boxes)
 //          println("endMap           " + endMap)
 //          println("startMap         " + startMap)
+          assert(
+            endFrame.boxes.length == startFrame.boxes.length,
+            "Start frame doesn't line up with End frame"
+          )
           val zipped = for{
             (e, s) <- endFrame.boxes zip startFrame.boxes
             a <- endMap.get(e).toSeq
@@ -291,15 +293,16 @@ object Conversion {
       BasicBlock(buffer, phis, types, lines)
     }
 
-    if (method.name == "sortingd") {
+    if (method.name == "getChars") {
       for ((block, i) <- basicBlocks.zipWithIndex){
         println()
         println(i + "\t" + block.phi.toList)
         //println(i + "\t" + block.locals.toList)
+        println(blockBuffers(i)._3)
         for(i <- 0 until block.insns.length){
           println(block.lines(i) + "\t" + block.insns(i))
         }
-        //println(blockBuffers(i)._3)
+
       }
       println()
       println()

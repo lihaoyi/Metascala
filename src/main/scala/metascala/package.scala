@@ -28,7 +28,7 @@ package object metascala {
   }
   implicit class pimpedVal(v: Val){
     def isObj(implicit vm: VM) = vm.heap(v) < 0
-    def isArr(implicit vm: VM) = vm.heap(v) >= 0
+    def isArr(implicit vm: VM) = vm.heap(v) > 0
     def obj(implicit vm: VM) = {
       assert(isObj)
       new vrt.Obj(v)
