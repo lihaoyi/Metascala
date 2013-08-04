@@ -34,11 +34,16 @@ trait Default extends Bindings{
             "desiredAssertionStatus0(Ljava/lang/Class;)Z".value(I)(0),
             "desiredAssertionStatus()Z".value(I)(0),
             "forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;".func(I, I, I, I){
-              (vt, clsloader, boolean, name) =>
+              (vt, name, boolean, classLoader) =>
                 import vt.vm
-                "java/lang/Class".allocObj(
+                println("forName0")
+                val x = "java/lang/Class".allocObj(
                   "name" -> name
                 )
+                println(x)
+                println(name)
+                println(x.obj.apply("name"))
+                x
             },
             "getClassLoader0()Ljava/lang/ClassLoader;".value(I)(0),
             "getComponentType()Ljava/lang/Class;".func(I, I){ (vt, o) =>
@@ -101,6 +106,12 @@ trait Default extends Bindings{
               )
               vrtArr
             },
+            "getEnclosingMethod0()[Ljava/lang/Object;".func(I, I){
+              (vt, cls) => 0
+            },
+            "getDeclaringClass()Ljava/lang/Class;".func(I, I){
+              (vt, cls) => 0
+            },
             "getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;".func(I, I){ (vt, o) =>
               import vt.vm
               val addr = "java/lang/Class".allocObj(
@@ -126,7 +137,7 @@ trait Default extends Bindings{
 
             "isArray()Z".func(I, I){ (vt, o) =>
               import vt.vm
-
+              println("isArray " + o.obj.apply("name"))
               if(o.obj.apply("name").toRealObj[String].contains('[')) 1 else 0
 
             },
@@ -208,13 +219,14 @@ trait Default extends Bindings{
               import vt.vm
 
 
-              val stringAddr = (
-                if(value.isObj) value.obj.cls.name.toDot
-                else "[" + value.arr.innerType.name.toDot
-              ).toVirtObj
+              val string =
+                if(value.isObj) value.obj.cls.clsData.tpe.javaName
+                else value.arr.tpe.javaName
+
+              println("GET CLASS " + string)
 
               val addr = "java/lang/Class".allocObj(
-                "name" -> stringAddr
+                "name" -> string.toVirtObj
               )
               addr
             },
@@ -369,13 +381,15 @@ trait Default extends Bindings{
             },
 
             "registerNatives()V".value(V)(()),
-            "getUnsafe()Lsun/misc/Unsafe;".func(I){vt => vt.vm.theUnsafe.address}
+            "getUnsafe()Lsun/misc/Unsafe;".func(I){vt => vt.vm.theUnsafe.address},
+            "<clinit>()V".value(V)(())
           ),
           "VM"/(
             "getSavedProperty(Ljava/lang/String;)Ljava/lang/String;".value(I)(0),
             "initialize()V".value(V)(())
 
           )
+
         ),
         "reflect"/(
           "Reflection"/(
@@ -384,11 +398,14 @@ trait Default extends Bindings{
             },
             "getCallerClass(I)Ljava/lang/Class;".func(I, I){ (vt, n) =>
               import vt.vm
-              val name = vt.threadStack(n).runningClass.name
-              val clsObj = "java/lang/Class".allocObj(
-                "name" -> name.toVirtObj
-              )
-              clsObj
+              if (n >= vt.threadStack.length) 0
+              else {
+                val name = vt.threadStack(n).runningClass.name
+                val clsObj = "java/lang/Class".allocObj(
+                  "name" -> name.toVirtObj
+                )
+                clsObj
+              }
             },
             "getClassAccessFlags(Ljava/lang/Class;)I".func(I, I){ (vt, o) =>
               import vt.vm

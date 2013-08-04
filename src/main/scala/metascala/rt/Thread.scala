@@ -64,7 +64,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     val r = reader(frame.locals, 0)
 
-    if (true) {
+    if (false && frame.method.method.name == "forName") {
       lazy val localSnapshot =
         block.locals
              .flatMap(x => Seq(x.prettyRead(r)).padTo(x.size, "~"))
@@ -176,6 +176,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
             val top = Virtualizer.pushVirtual(s).apply(0)
             frame.locals(target) = top
           case t: org.objectweb.asm.Type =>
+
             val clsObj = vrt.Obj.allocate("java/lang/Class",
               "name" -> Virtualizer.pushVirtual(t.getInternalName).apply(0)
             )

@@ -37,7 +37,13 @@ object Type{
     def realCls = innerType.realCls
     def methodType = Type.Cls("java/lang/Object")
     def prettyRead(x: () => Val) = "[" + innerType.shortName + "#" + x()
-    def javaName = name.replace('/', '.')
+    def javaName = innerType match{
+
+      case tpe: Cls => "[L" + tpe.javaName + ";"
+      case tpe: Prim[_] => "[" + tpe.internalName
+      case tpe => "[" + tpe.javaName
+
+    }
     def internalName = "[" + innerType.internalName
   }
   object Cls{
@@ -193,7 +199,7 @@ trait Type{
   /**
    * The thing that's returned by Java's getName method
    * - void boolean byte char short int float long double
-   * - java.lang.Object [java/lang/String;
+   * - java.lang.Object [java.lang.String;
    */
   def javaName: String
   /**

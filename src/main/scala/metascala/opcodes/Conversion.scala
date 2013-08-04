@@ -251,7 +251,7 @@ object Conversion {
       (buffer, types, localMap, blockFrames.head, blockFrames.last, lineMap)
     }
 
-    if (method.name == "asdadd") {
+    if (false && method.name == "getCanonicalName") {
       vm.log(s"--------------------- Converting ${method.name} ---------------------")
       for(i <- 0 until blockMap.length){
         if (i == 0 || blockMap(i) != blockMap(i-1)) println("-------------- BasicBlock " + blockMap(i) + " --------------")
@@ -267,7 +267,7 @@ object Conversion {
       val phis = for(((buffer2, types2, endMap, _, endFrame, _), j) <- blockBuffers.zipWithIndex) yield {
         if (endFrame != null && startFrame != null && ((buffer2.length > 0 && buffer2.last.targets.contains(i)) || (i == j + 1))){
 //          println()
-          if (method.name == "asdadd") {
+          if (false && method.name == "getCanonicalName") {
             vm.log("Making Phi       " + j + "->" + i)
             vm.log("endFrame         " + endFrame + "\t" + endFrame.boxes.flatten.map(endMap))
             vm.log("startFrame       " + startFrame + "\t" + startFrame.boxes.flatten.map(startMap))
@@ -295,7 +295,7 @@ object Conversion {
       BasicBlock(buffer, phis, types, lines)
     }
 
-    if (method.name == "asasadd") {
+    if (false && method.name == "getCanonicalName") {
       for ((block, i) <- basicBlocks.zipWithIndex){
         vm.log("")
         vm.log(i + "\t" + block.phi.toList)

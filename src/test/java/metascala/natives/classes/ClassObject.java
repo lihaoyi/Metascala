@@ -2,8 +2,16 @@ package metascala.natives.classes;
 
 public class ClassObject {
     public static String name(){
-        return new ClassObject().getClass().getName()
-                + new long[100].getClass().getName();
+        return new ClassObject().getClass().getName();
+    }
+    public static String namePrim(){
+        return int.class.getName();
+    }
+    public static String nameArray(){
+        return new Object[10].getClass().getName();
+    }
+    public static String nameObjArray(){
+        return new long[100].getClass().getName();
     }
     public static String forName(String s) throws Exception{
         Class x = Class.forName(s);
