@@ -177,10 +177,9 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
             frame.locals(target) = top
           case t: org.objectweb.asm.Type =>
 
-            val clsObj = vrt.Obj.allocate("java/lang/Class",
-              "name" -> Virtualizer.pushVirtual(t.getInternalName).apply(0)
-            )
-            frame.locals(target) = clsObj.address
+            val clsObj = vm.typeObjCache(imm.Type.read(t.getInternalName))
+
+            frame.locals(target) = clsObj
           case x: scala.Byte  => B.write(x, w)
           case x: scala.Char  => C.write(x, w)
           case x: scala.Short => S.write(x, w)

@@ -36,30 +36,15 @@ trait Default extends Bindings{
             "forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;".func(I, I, I, I){
               (vt, name, boolean, classLoader) =>
                 import vt.vm
-                println("forName0")
-                val x = "java/lang/Class".allocObj(
-                  "name" -> name
-                )
-                println(x)
-                println(name)
-                println(x.obj.apply("name"))
-                x
+                vt.vm.typeObjCache(imm.Type.readJava(name.toRealObj[String]))
             },
             "getClassLoader0()Ljava/lang/ClassLoader;".value(I)(0),
             "getComponentType()Ljava/lang/Class;".func(I, I){ (vt, o) =>
               import vt.vm
               val obj = o.obj
-              val oldName = obj("name").toRealObj[String]
-              val shortNewName = oldName.substring(1)
-              val newName =
-                if (Prim.all.keySet.map(""+_).contains(oldName))
-                  Prim.all(shortNewName(0)).primClass.getName
-                else
-                  shortNewName
 
-              "java/lang/Class".allocObj(
-                "name" -> newName.toVirtObj
-              )
+              val oldName = obj("name").toRealObj[String]
+              vt.vm.typeObjCache(imm.Type.Arr.readJava(oldName).innerType)
             },
 
             "getDeclaredFields0(Z)[Ljava/lang/reflect/Field;".func(I, I, I){ (vt, o, public) =>
@@ -68,7 +53,7 @@ trait Default extends Bindings{
               val obj = o.obj
 
               val name = obj("name").toRealObj[String]
-              val realFields = vm.ClsTable(name).fieldList
+              val realFields = vm.ClsTable(imm.Type.Cls.readJava(name)).fieldList
 
 
               "java/lang/reflect/Field".allocArr(
@@ -96,9 +81,7 @@ trait Default extends Bindings{
                     "slot" -> i,
                     "parameterTypes" -> "java/lang/Class".allocArr(
                       f.desc.args.map(t =>
-                        "java/lang/Class".allocObj(
-                          "name" -> t.realCls.getName.toVirtObj
-                        )
+                        vt.vm.typeObjCache(imm.Type.readJava(t.realCls.getName))
                       )
                     )
                   )
@@ -114,10 +97,7 @@ trait Default extends Bindings{
             },
             "getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;".func(I, I){ (vt, o) =>
               import vt.vm
-              val addr = "java/lang/Class".allocObj(
-                "name" -> o
-              )
-              addr
+              vt.vm.typeObjCache(imm.Type.readJava(o.toRealObj[String]))
             },
             "getSuperclass()Ljava/lang/Class;".func(I, I){ (vt, o) =>
               import vt.vm
@@ -127,17 +107,13 @@ trait Default extends Bindings{
                 .clsData
                 .superType
                 .map{_.name}
-                .map(name =>
-                  "java/lang/Class".allocObj(
-                    "name" -> name.toVirtObj
-                  )
-                ).getOrElse(0)
+                .map(name => vt.vm.typeObjCache(imm.Type.readJava(name)))
+                .getOrElse(0)
 
             },
 
             "isArray()Z".func(I, I){ (vt, o) =>
               import vt.vm
-              println("isArray " + o.obj.apply("name"))
               if(o.obj.apply("name").toRealObj[String].contains('[')) 1 else 0
 
             },
@@ -173,11 +149,8 @@ trait Default extends Bindings{
             "isPrimitive()Z".func(I, I){ (vt, o) =>
               import vt.vm
               val clsObj = o.obj
-              val res = Prim.all
-                            .values
-                            .map(_.primClass.getName)
-                            .toList
-                            .contains(clsObj("name").toRealObj[String])
+              val name = clsObj("name").toRealObj[String]
+              val res = Prim.allJava.contains(name)
               if (res) 1 else 0
             },
             "registerNatives()V".value(V)(())
@@ -190,7 +163,7 @@ trait Default extends Bindings{
                 case 1 => vt.threadStack(0).runningClass.name
                 case 2 => vt.threadStack(1).runningClass.name
               }
-              "java/lang/Class".allocObj("name" -> name.toVirtObj)
+              vt.vm.typeObjCache(imm.Type.readJava(name))
             },
             "getSystemResourceAsStream(Ljava/lang/String;)Ljava/io/InputStream;".func(I, I){ (vt, o) =>
               import vt.vm
@@ -223,12 +196,7 @@ trait Default extends Bindings{
                 if(value.isObj) value.obj.cls.clsData.tpe.javaName
                 else value.arr.tpe.javaName
 
-              println("GET CLASS " + string)
-
-              val addr = "java/lang/Class".allocObj(
-                "name" -> string.toVirtObj
-              )
-              addr
+              vt.vm.typeObjCache(imm.Type.readJava(string))
             },
 
             "hashCode()I".func(I, I){(vt, l) => l},
@@ -290,7 +258,7 @@ trait Default extends Bindings{
                 import vt.vm
                 val clsObj = cls.obj
                 val clsName = clsObj("name").toRealObj[String]
-                vrt.Arr.allocate(clsName.replace('.', '/'), length).address
+                vrt.Arr.allocate(imm.Type.readJava(clsName), length).address
               }
             )
           )
@@ -376,7 +344,6 @@ trait Default extends Bindings{
             "objectFieldOffset(Ljava/lang/reflect/Field;)J".func(I, I, I){(vt, unsafe, f) =>
               import vt.vm
               val field = f.obj
-              println("objectFieldOffset " + field.apply("slot"))
               field.apply("slot")
             },
 
@@ -401,10 +368,7 @@ trait Default extends Bindings{
               if (n >= vt.threadStack.length) 0
               else {
                 val name = vt.threadStack(n).runningClass.name
-                val clsObj = "java/lang/Class".allocObj(
-                  "name" -> name.toVirtObj
-                )
-                clsObj
+                vt.vm.typeObjCache(imm.Type.readJava(name))
               }
             },
             "getClassAccessFlags(Ljava/lang/Class;)I".func(I, I){ (vt, o) =>

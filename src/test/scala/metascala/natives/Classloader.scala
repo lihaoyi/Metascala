@@ -18,7 +18,13 @@ class ClassTest extends FreeSpec with Util{
     "nameObjArray" in tester.run("nameObjArray")
 
     "forName" in {
-      chk(tester.run("forName", _: String))(Seq("metascala.natives.classes.ClassObject", "java.lang.Object", "java.util.AbstractCollection"))
+      chk(tester.run("forName", _: String))(Seq(
+        "metascala.natives.classes.ClassObject",
+        "java.lang.Object",
+        "java.util.AbstractCollection",
+        "[I",
+        "[Ljava.lang.Object;"
+      ))
     }
 
     "isPrimitive" in tester.run("isPrimitive")

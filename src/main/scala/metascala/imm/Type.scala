@@ -5,14 +5,17 @@ import reflect.ClassTag
 
 
 object Type{
-  def read(s: String): Type = {
-    s match{
-      case "Z" | "B" | "C" | "S" | "I" | "J" | "F" | "D" | "V" => Prim.read(s)
-      case s if s.startsWith("L") && s.endsWith(";") => Cls.read(s.drop(1).dropRight(1))
-      case s if s.startsWith("[") => Arr.read(s)
-      case s => Cls.read(s)
-    }
+  def read(s: String): Type = s match{
+    case x if Prim.all.contains(x(0)) => Prim.all(x(0))
+    case s if s.startsWith("L") && s.endsWith(";") => Cls.read(s.drop(1).dropRight(1))
+    case s if s.startsWith("[") => Arr.read(s)
+    case s => Cls.read(s)
+  }
 
+  def readJava(s: String): Type = s match {
+    case x if Prim.allJava.contains(x) => Prim.allJava(x)
+    case s if s.startsWith("[") => Arr.readJava(s)
+    case s => Cls.readJava(s)
   }
 
   /**
@@ -24,6 +27,11 @@ object Type{
   }
   object Arr{
     def read(s: String) = Arr(Type.read(s.drop(1)))
+    def readJava(s: String) = Arr(s.drop(1) match {
+      case x if Prim.all.contains(x(0)) => Prim.all(x(0))
+      case x if x.startsWith("L") => Cls.read(x.drop(1).dropRight(1).toSlash)
+      case x => Type.readJava(x)
+    })
   }
 
   /**
@@ -38,16 +46,15 @@ object Type{
     def methodType = Type.Cls("java/lang/Object")
     def prettyRead(x: () => Val) = "[" + innerType.shortName + "#" + x()
     def javaName = innerType match{
-
       case tpe: Cls => "[L" + tpe.javaName + ";"
       case tpe: Prim[_] => "[" + tpe.internalName
       case tpe => "[" + tpe.javaName
-
     }
     def internalName = "[" + innerType.internalName
   }
   object Cls{
     def read(s: String) = Cls(s)
+    def readJava(s: String) = Cls(s.toSlash)
   }
 
   /**
@@ -94,6 +101,19 @@ object Type{
       'J' -> (J: Prim[_]),
       'D' -> (D: Prim[_])
     )
+
+    val allJava: Map[String, Prim[_]] = Map(
+      "void" -> (V: Prim[_]),
+      "boolean" -> (Z: Prim[_]),
+      "byte" -> (B: Prim[_]),
+      "char" -> (C: Prim[_]),
+      "short" -> (S: Prim[_]),
+      "int" -> (I: Prim[_]),
+      "float" -> (F: Prim[_]),
+      "long" -> (J: Prim[_]),
+      "double" -> (D: Prim[_])
+    )
+    
     def unapply(p: Prim[_]) = Some(p.size)
 
     case object V extends Prim[Unit](0, "void"){

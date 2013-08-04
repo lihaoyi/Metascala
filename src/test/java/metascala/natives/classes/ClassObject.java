@@ -18,6 +18,8 @@ public class ClassObject {
         return x.getCanonicalName();
     }
 
+
+
     public static boolean[] isPrimitive(){
         return new boolean[]{
                 new ClassObject().getClass().isPrimitive(),

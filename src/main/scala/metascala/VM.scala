@@ -8,9 +8,9 @@ import metascala.natives.Bindings
 import metascala.imm.Type.Prim
 
 
-class ArrRef(backing: Array[Int], index: Int){
-  def update(i: Int) = backing(index) = i
-  def apply() = backing(index)
+class ArrRef(val get: () => Int, val set: Int => Unit){
+  def apply() = get()
+  def update(i: Int) = set(i)
 }
 /**
  * A Metascala VM. Call invoke() on it with a class, method name and arguments
@@ -28,33 +28,40 @@ class VM(val natives: Bindings = Bindings.default,
   val heap = new Heap(memorySize)
   val arrayTypeCache = mutable.Buffer[imm.Type](null)
 
+  val typeObjCache = new mutable.HashMap[imm.Type, Int] {
+    override def apply(x: imm.Type) = this.getOrElseUpdate(x,
+      "java/lang/Class".allocObj(
+        "name" -> x.javaName.toVirtObj
+      )
+    )
+  }
+
+
   /**
    * Identify the list of all root object references within the virtual machine.
    */
   def getRoots() = {
     val stackRoots = for{
       thread <- threads
-//      _ = println("threadStack " + thread.threadStack.map(_.runningClass.name))
       frame <- thread.threadStack
       (blockId, index) = frame.pc
       block = frame.method.code.blocks(blockId)
-//      _ = println(frame.method.method.name + "\t" + frame.locals.zip(block.locals).toList)
-//      _ = println(frame.locals.toList)
-//      _ = println(block.locals.toList)
       (x, i) <- block.locals.zipWithIndex
 
       if x.isRef
-    } yield new ArrRef(frame.locals, i)
+    } yield new ArrRef(() => frame.locals(i), frame.locals(i) = _)
 
 //    println(s"stackRoots ${stackRoots.map(_())}")
 
     val classRoots = for{
       cls <- ClsTable.clsIndex.drop(1)
-//      _ = println("Cls " + cls.name)
       (field, i) <- cls.staticList.zipWithIndex
-//      _ = println("Field " + field.name + "\t" + cls.statics(i))
       if field.desc.isRef
-    } yield new ArrRef(cls.statics, i)
+    } yield new ArrRef(() => cls.statics(i), cls.statics(i) = _)
+
+    val clsObjRoots = for{
+      (k, v) <- typeObjCache
+    } yield new ArrRef(() => typeObjCache(k), typeObjCache(k) = _)
 
     stackRoots ++ classRoots
 
