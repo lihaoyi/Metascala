@@ -32,13 +32,13 @@ object Type{
    */
   case class Arr(innerType: Type) extends Ref{
     def size = 1
-    def unparse = "[" + innerType.unparse
-    def name = "[" + innerType.unparse
+    def name = "[" + innerType.name
     def parent(implicit vm: VM) = Some(imm.Type.Cls("java/lang/Object"))
     def realCls = innerType.realCls
     def methodType = Type.Cls("java/lang/Object")
     def prettyRead(x: () => Val) = "[" + innerType.shortName + "#" + x()
-
+    def javaName = name.replace('/', '.')
+    def internalName = "[" + innerType.internalName
   }
   object Cls{
     def read(s: String) = Cls(s)
@@ -52,7 +52,6 @@ object Type{
     assert(!name.contains('.'), "Cls name cannot contain . " + name)
     assert(!name.contains('['), "Cls name cannot contain [ " + name)
     def size = 1
-    def unparse = name
     def cls(implicit vm: VM) = vm.ClsTable(this)
     def parent(implicit vm: VM) = this.cls.clsData.superType
     def realCls = classOf[Object]
@@ -60,18 +59,20 @@ object Type{
 
     override val hashCode = name.hashCode
     def prettyRead(x: () => Val) = shorten(name) + "#" + x()
+    def internalName = "L" + name + ";"
+    def javaName = name.replace('/', '.')
   }
 
-  abstract class Prim[T: ClassTag](val size: Int) extends imm.Type{
+  abstract class Prim[T: ClassTag](val size: Int, val javaName: String) extends imm.Type{
     def read(x: () => Val): T
     def write(x: T, out: Val => Unit): Unit
     def boxedClass: Class[_]
     val primClass: Class[_] = implicitly[ClassTag[T]].runtimeClass
     def realCls = Class.forName(boxedClass.getName.replace('/', '.'))
-    def name = primClass.getName
     def prim = this
     def productPrefix: String
-    def unparse = productPrefix
+    def name = productPrefix
+    def internalName = name
     def prettyRead(x: () => Val) = toString + "#" + read(x)
   }
   object Prim extends {
@@ -89,56 +90,57 @@ object Type{
     )
     def unapply(p: Prim[_]) = Some(p.size)
 
-    case object V extends Prim[Unit](0){
+    case object V extends Prim[Unit](0, "void"){
       def apply(x: Val) = ???
       def read(x: () => Val) = ()
       def write(x: Unit, out: Val => Unit) = ()
       def boxedClass = classOf[java.lang.Void]
+
     }
     type Z = Boolean
-    case object Z extends Prim[Boolean](1){
+    case object Z extends Prim[Boolean](1, "boolean"){
       def apply(x: Val) = x != 0
       def read(x: () => Val) = this(x())
       def write(x: Boolean, out: Val => Unit) = out(if (x) 1 else 0)
       def boxedClass = classOf[java.lang.Boolean]
     }
     type B = Byte
-    case object B extends Prim[Byte](1){
+    case object B extends Prim[Byte](1, "byte"){
       def apply(x: Val) = x.toByte
       def read(x: () => Val) = this(x())
       def write(x: Byte, out: Val => Unit) = out(x)
       def boxedClass = classOf[java.lang.Byte]
     }
     type C = Char
-    case object C extends Prim[Char](1){
+    case object C extends Prim[Char](1, "char"){
       def apply(x: Val) = x.toChar
       def read(x: () => Val) = this(x())
       def write(x: Char, out: Val => Unit) = out(x)
       def boxedClass = classOf[java.lang.Character]
     }
     type S = Short
-    case object S extends Prim[Short](1){
+    case object S extends Prim[Short](1, "short"){
       def apply(x: Val) = x.toShort
       def read(x: () => Val) = this(x())
       def write(x: Short, out: Val => Unit) = out(x)
       def boxedClass = classOf[java.lang.Short]
     }
     type I = Int
-    case object I extends Prim[Int](1){
+    case object I extends Prim[Int](1, "int"){
       def apply(x: Val) = x
       def read(x: () => Val) = this(x())
       def write(x: Int, out: Val => Unit) = out(x)
       def boxedClass = classOf[java.lang.Integer]
     }
     type F = Float
-    case object F extends Prim[Float](1){
+    case object F extends Prim[Float](1, "float"){
       def apply(x: Val) = java.lang.Float.intBitsToFloat(x)
       def read(x: () => Val) = this(x())
       def write(x: Float, out: Val => Unit) = out(java.lang.Float.floatToRawIntBits(x))
       def boxedClass = classOf[java.lang.Float]
     }
     type J = Long
-    case object J extends Prim[Long](2){
+    case object J extends Prim[Long](2, "long"){
       def apply(v1: Val, v2: Val) = v1.toLong << 32 | v2 & 0xFFFFFFFFL
       def read(x: () => Val) = {
         this(x(), x())
@@ -150,7 +152,7 @@ object Type{
       def boxedClass = classOf[java.lang.Long]
     }
     type D = Double
-    case object D extends Prim[Double](2){
+    case object D extends Prim[Double](2, "double"){
       def apply(v1: Val, v2: Val) = java.lang.Double.longBitsToDouble(J(v1, v2))
       def read(x: () => Val) = java.lang.Double.longBitsToDouble(J.read(x))
       def write(x: Double, out: Val => Unit) = J.write(java.lang.Double.doubleToRawLongBits(x), out)
@@ -165,11 +167,35 @@ object Type{
  */
 trait Type{
   /**
-   * Converts this object into a nice, human readable string
+   * The JVMs internal representation
+   * - V Z B C S I F J D
+   * - Ljava/lang/Object; [Ljava/lang/String;
    */
-  def unparse: String
-  override def toString = unparse
-  def shortName = shorten(unparse)
+  def internalName: String
+
+  /**
+   * Nice name to use for most things
+   * - V Z B C S I F J D
+   * - java/lang/Object [java/lang/String
+   */
+  def name: String
+
+  override def toString = name
+
+  /**
+   * A human-friendly name for this type that can be used everywhere without
+   * cluttering the screen.
+   * - V Z B C S I F J D
+   * - j/l/Object [j/l/String
+   */
+  def shortName = shorten(name)
+
+  /**
+   * The thing that's returned by Java's getName method
+   * - void boolean byte char short int float long double
+   * - java.lang.Object [java/lang/String;
+   */
+  def javaName: String
   /**
    * Retrieves the Class object in the host JVM which represents the
    * given Type inside the Metascala VM
@@ -181,8 +207,14 @@ trait Type{
    * representation
    */
   def prettyRead(x: () => Val): String
+
+  /**
+   * 0, 1 or 2 for void, most things and double/long
+   */
   def size: Int
-  def name: String
+
+
+
   def isRef: Boolean = this.isInstanceOf[imm.Type.Ref]
 
 }
@@ -206,9 +238,9 @@ object Desc{
   }
   def unparse(t: Type): String = {
     t match{
-      case t: Type.Cls => "L" + t.unparse + ";"
+      case t: Type.Cls => t.name
       case t: Type.Arr => "[" + unparse(t.innerType)
-      case x => x.unparse
+      case x => x.name
     }
   }
 }

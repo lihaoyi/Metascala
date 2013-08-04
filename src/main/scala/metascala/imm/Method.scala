@@ -4,7 +4,7 @@ import Type.Prim._
 import org.objectweb.asm.tree._
 import org.objectweb.asm.Label
 import collection.mutable
-
+import NullSafe._
 object Method {
   def read(mn: MethodNode) = {
     Method(

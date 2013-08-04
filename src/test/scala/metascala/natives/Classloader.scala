@@ -7,7 +7,7 @@ import metascala.Util
 import scala.Some
 import java.util.Arrays
 import Gen._
-/*
+
 class ClassTest extends FreeSpec with Util{
   "class stuff" - {
     val buffer = new BufferLog(4000)
@@ -28,4 +28,3 @@ class ClassTest extends FreeSpec with Util{
   }
 }
 
-*/

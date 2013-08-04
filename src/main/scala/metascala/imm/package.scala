@@ -18,18 +18,20 @@ package object imm {
    * Convenience methods to provide a safe way of converting null Lists, Arrays
    * or Objects into empty Lists, Arrays or None
    */
-  private[imm] implicit class nullSafeList[T](val list: java.util.List[T]) extends AnyVal{
-    def safeSeq: Seq[T] = {
-      Option(list).toVector.flatten
+  object NullSafe{
+    private[imm] implicit class nullSafeList[T](val list: java.util.List[T]) extends AnyVal{
+      def safeSeq: Seq[T] = {
+        Option(list).toVector.flatten
+      }
     }
-  }
-  private[imm] implicit class nullSafeArray[T](val list: Array[T]) extends AnyVal{
-    def safeSeq: Seq[T] = {
-      Option(list).toVector.flatten
+    private[imm] implicit class nullSafeArray[T](val list: Array[T]) extends AnyVal{
+      def safeSeq: Seq[T] = {
+        Option(list).toVector.flatten
+      }
     }
-  }
-  private[imm] implicit class nullSafeValue[T](val a: T) extends AnyVal{
-    def safeOpt: Option[T] = Option(a)
+    private[imm] implicit class nullSafeValue[T](val a: T) extends AnyVal{
+      def safeOpt: Option[T] = Option(a)
+    }
   }
 
   object Access{

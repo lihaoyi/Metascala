@@ -6,7 +6,7 @@ import org.objectweb.asm.tree._
 import org.objectweb.asm
 import asm.Label
 import collection.mutable
-
+import NullSafe._
 object InnerClass {
   def read(icn: InnerClassNode) = InnerClass(
     icn.name,

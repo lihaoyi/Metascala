@@ -72,7 +72,9 @@ class VM(val natives: Bindings = Bindings.default,
 
     def calc(t: imm.Type.Cls): rt.Cls = {
       val clsData = imm.Cls.parse(
-        natives.fileLoader(t.name.replace(".", "/") + ".class").getOrElse(
+        natives.fileLoader(
+          t.name + ".class"
+        ).getOrElse(
           throw new Exception("Can't find " + t)
         )
       )

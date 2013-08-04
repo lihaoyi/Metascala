@@ -33,7 +33,7 @@ object Virtualizer {
             obj
           case t @ imm.Type.Arr(tpe) =>
 
-            val clsObj = forName(tpe.unparse.toDot)
+            val clsObj = forName(tpe.name.toDot)
             val newArr = java.lang.reflect.Array.newInstance(clsObj, address.arr.arrayLength)
 
             for(i <- 0 until address.arr.arrayLength){

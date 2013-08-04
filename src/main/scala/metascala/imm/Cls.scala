@@ -2,7 +2,7 @@ package metascala.imm
 
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.ClassReader
-
+import NullSafe._
 object Cls {
 
   def read(cn: ClassNode) = {
