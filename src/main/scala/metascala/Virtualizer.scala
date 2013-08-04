@@ -70,7 +70,7 @@ object Virtualizer {
       case b: Long    => J.write(b, out)
       case b: Double  => D.write(b, out)
       case b: Array[_] =>
-        val arr = vrt.Arr.allocate(imm.Type.Arr.read(b.getClass.getName).innerType,
+        val arr = vrt.Arr.allocate(imm.Type.Arr.read(b.getClass.getName.replace('.', '/')).innerType,
           b.flatMap(pushVirtual)
         )
         out(arr.address)

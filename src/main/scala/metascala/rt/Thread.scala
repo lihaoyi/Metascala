@@ -64,14 +64,14 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     val r = reader(frame.locals, 0)
 
-    if (false) {
+    if (true) {
       lazy val localSnapshot =
         block.locals
              .flatMap(x => Seq(x.prettyRead(r)).padTo(x.size, "~"))
              .toList
 
-      println(indent + "::\t" + frame.runningClass.shortName + "/" + frame.method.sig.shortName + ":" + block.lines(frame.pc._2) + "\t"  + localSnapshot)
-      println(indent + "::\t" + frame.pc + "\t" + node )
+      vm.log(indent + "::\t" + frame.runningClass.shortName + "/" + frame.method.sig.shortName + ":" + block.lines(frame.pc._2) + "\t"  + localSnapshot)
+      vm.log(indent + "::\t" + frame.pc + "\t" + node )
       //println(indent + "::\t" + vm.heap.dump().replace("\n", "\n" + indent + "::\t"))
     }
 
@@ -213,12 +213,20 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         advancePc()
 
       case PutField(src, obj, index, prim) =>
-        blit(frame.locals, src, frame.locals(obj).obj.members, index, prim.size)
-        advancePc()
+        if (frame.locals(obj) == 0){
+          throwExWithTrace("java/lang/NullPointerException", "null")
+        }else{
+          blit(frame.locals, src, frame.locals(obj).obj.members, index, prim.size)
+          advancePc()
+        }
 
       case GetField(src, obj, index, prim) =>
-        blit(frame.locals(obj).obj.members, index, frame.locals, src, prim.size)
-        advancePc()
+        if (frame.locals(obj) == 0){
+          throwExWithTrace("java/lang/NullPointerException", "null")
+        }else{
+          blit(frame.locals(obj).obj.members, index, frame.locals, src, prim.size)
+          advancePc()
+        }
 
       case BinaryBranch(symA, symB, target, func) =>
         val (a, b) = (frame.locals(symA), frame.locals(symB))
@@ -262,7 +270,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         }
       case InstanceOf(src, dest, desc) =>
         frame.locals(dest) = frame.locals(src) match{
-          case 0 => 1
+          case 0 => 0
           case top if (top.isArr && !check(top.arr.tpe, desc)) || (top.isObj && !check(top.obj.tpe, desc)) =>
             0
           case _ => 1

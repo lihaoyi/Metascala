@@ -251,26 +251,26 @@ object Conversion {
       (buffer, types, localMap, blockFrames.head, blockFrames.last, lineMap)
     }
 
-    if (false) {
-      println(s"--------------------- Converting ${method.name} ---------------------")
+    if (method.name == "asdadd") {
+      vm.log(s"--------------------- Converting ${method.name} ---------------------")
       for(i <- 0 until blockMap.length){
         if (i == 0 || blockMap(i) != blockMap(i-1)) println("-------------- BasicBlock " + blockMap(i) + " --------------")
         val insn = OPCODES.lift(allInsns(i).getOpcode).getOrElse(allInsns(i).getClass.getSimpleName).padTo(30, ' ')
         val frame = Option(allFrames(blockMap(i))).map(_(insnMap(i)).toString).getOrElse("-")
 
-        println(lineMap(i) + "\t" + insn + " | " + blockMap(i) + " | " + insnMap(i) + " |\t" + frame)
+        vm.log(lineMap(i) + "\t" + insn + " | " + blockMap(i) + " | " + insnMap(i) + " |\t" + frame)
       }
-      println("XXX")
+      vm.log("XXX")
     }
 
     val basicBlocks = for(((buffer, types, startMap, startFrame, _, lines), i) <- blockBuffers.zipWithIndex) yield {
       val phis = for(((buffer2, types2, endMap, _, endFrame, _), j) <- blockBuffers.zipWithIndex) yield {
         if (endFrame != null && startFrame != null && ((buffer2.length > 0 && buffer2.last.targets.contains(i)) || (i == j + 1))){
 //          println()
-          if (method.name == "<<clinit>") {
-            println("Making Phi       " + j + "->" + i)
-            println("endFrame         " + endFrame + "\t" + endFrame.boxes.flatten.map(endMap))
-            println("startFrame       " + startFrame + "\t" + startFrame.boxes.flatten.map(startMap))
+          if (method.name == "asdadd") {
+            vm.log("Making Phi       " + j + "->" + i)
+            vm.log("endFrame         " + endFrame + "\t" + endFrame.boxes.flatten.map(endMap))
+            vm.log("startFrame       " + startFrame + "\t" + startFrame.boxes.flatten.map(startMap))
           }
 //          println("endFrame.boxes   " + endFrame.boxes)
 //          println("startFrame.boxes " + startFrame.boxes)
@@ -295,19 +295,19 @@ object Conversion {
       BasicBlock(buffer, phis, types, lines)
     }
 
-    if (false) {
+    if (method.name == "asasadd") {
       for ((block, i) <- basicBlocks.zipWithIndex){
-        println()
-        println(i + "\t" + block.phi.toList)
+        vm.log("")
+        vm.log(i + "\t" + block.phi.toList)
         //println(i + "\t" + block.locals.toList)
-        println(blockBuffers(i)._3)
+        vm.log(""+blockBuffers(i)._3)
         for(i <- 0 until block.insns.length){
-          println(block.lines(i) + "\t" + block.insns(i))
+          vm.log(block.lines(i) + "\t" + block.insns(i))
         }
 
       }
-      println()
-      println()
+      vm.log("")
+      vm.log("")
     }
 
 

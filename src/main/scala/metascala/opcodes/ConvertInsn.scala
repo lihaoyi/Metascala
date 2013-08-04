@@ -57,7 +57,8 @@ object ConvertInsn {
     }
     def invokeVirtual(insn: MethodInsnNode, indexed: Boolean) = {
       val desc = imm.Desc.read(insn.desc)
-      val cls = (insn.owner: imm.Type.Ref) match{
+
+      val cls = imm.Type.read(insn.owner) match{
         case c: imm.Type.Cls => c
         case _ => imm.Type.Cls("java/lang/Object")
       }
@@ -245,7 +246,7 @@ object ConvertInsn {
           case 11 => J: imm.Type
         }
         append(Insn.NewArray(frame.top(), nextFrame.top(), typeRef))
-      case ANEWARRAY   => append(Insn.NewArray(frame.top(), nextFrame.top(), insn.cast[TypeInsnNode].desc))
+      case ANEWARRAY   => append(Insn.NewArray(frame.top(), nextFrame.top(), imm.Type.read(insn.cast[TypeInsnNode].desc)))
       case ARRAYLENGTH => append(Insn.ArrayLength(frame.top(), nextFrame.top()))
       case ATHROW      => append(Insn.AThrow(frame.top()))
       case CHECKCAST   => append(Insn.CheckCast(frame.top(), nextFrame.top(), imm.Type.read(insn.cast[TypeInsnNode].desc)))

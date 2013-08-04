@@ -150,7 +150,7 @@ trait Default extends Bindings{
                   case _ => false
                 }
               }
-              if (check(imm.Type.read(nameA), imm.Type.read(nameB))) 1 else 0
+              if (check(imm.Type.read(nameA.replace('.', '/')), imm.Type.read(nameB.replace('.', '/')))) 1 else 0
             },
             "isInterface()Z".func(I, I){ (vt, o) =>
               import vt.vm
@@ -278,7 +278,7 @@ trait Default extends Bindings{
                 import vt.vm
                 val clsObj = cls.obj
                 val clsName = clsObj("name").toRealObj[String]
-                vrt.Arr.allocate(clsName, length).address
+                vrt.Arr.allocate(clsName.replace('.', '/'), length).address
               }
             )
           )

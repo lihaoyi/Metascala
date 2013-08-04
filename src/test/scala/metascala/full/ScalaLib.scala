@@ -10,7 +10,8 @@ import scala.concurrent.{Await, Promise}
 import java.io.DataInputStream
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
-
+import java.util
+import scala.collection.JavaConversions._
 
 object ScalaLib{
   def hello = "hello"
@@ -45,22 +46,18 @@ object ScalaLib{
     val slashName = "/java/lang/Object.class"
 
     val loaded = getClass.getResourceAsStream(slashName)
-    println("loaded " + loaded)
-
     val stream = new DataInputStream(loaded)
-    println("A")
     val bytes = new Array[Byte](stream.available())
-    println("B")
     stream.readFully(bytes)
-    println("C")
     val cr = new ClassReader(bytes)
     val classNode = new ClassNode()
 
     cr.accept(classNode, ClassReader.EXPAND_FRAMES)
-    println("D")
-    classNode.name
-
-
+    var s = classNode.name;
+    val methods = for(m <- classNode.methods) yield {
+      m.name + m.desc
+    }
+    s + "\n" + methods.mkString("\n")
   }
 
   def futures = {
@@ -85,12 +82,13 @@ object ScalaLib{
 }
 class ScalaLib extends FreeSpec with Util{
   val buffer = new BufferLog(4000)
-  val tester = new Tester("metascala.full.ScalaLib", memorySize = 128 * 1024 * 1024)
+
+  val tester = new Tester("metascala.full.ScalaLib", memorySize = 128 * 1024 * 1024, log=buffer)
   "hello world" in tester.run("hello")
   "predef" in tester.run("predef", 5)
   "palindrome" in tester.run("palindrome", 100, 130)
-  "bigFibonacci" in tester.run("bigFibonacci", 100)
-  //"parseClass" in tester.run("parseClass")
+  "bigFibonacci" in tester.run("bigFibonacci", 30)
+  "parseClass" in tester.run("parseClass")
   "lol" in tester.run("lol")
 
 }

@@ -49,7 +49,8 @@ object Type{
    * @param name the fuly qualified name of the class
    */
   case class Cls(name: String) extends Ref {
-    //assert(!name.contains('.'), "Cls name cannot contain . " + name)
+    assert(!name.contains('.'), "Cls name cannot contain . " + name)
+    assert(!name.contains('['), "Cls name cannot contain [ " + name)
     def size = 1
     def unparse = name
     def cls(implicit vm: VM) = vm.ClsTable(this)

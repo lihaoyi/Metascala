@@ -11,7 +11,7 @@ object MetacircularTest{
 
   def sqrtFinder = {
     val x = new metascala.VM(memorySize = 1024)
-    x.invoke("metascala.features.controlflow.Loops", "sqrtFinder", Seq(5.0))
+    x.invoke("metascala/features/controlflow/Loops", "sqrtFinder", Seq(5.0))
   }
 
   def fibonacci = {
@@ -62,9 +62,9 @@ class MetacircularTest extends FreeSpec with Util{
 //    tester.run("helloWorld")
 //  }
 
-//  "sqrtFinder" in {
-//    tester.run("sqrtFinder")
-//  }
+  "sqrtFinder" in {
+    tester.run("sqrtFinder")
+  }
 /*
   "fibonacci" in {
     tester.run("fibonacci")
