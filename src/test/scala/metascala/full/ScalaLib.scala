@@ -53,7 +53,7 @@ object ScalaLib{
     val classNode = new ClassNode()
 
     cr.accept(classNode, ClassReader.EXPAND_FRAMES)
-    var s = classNode.name;
+    val s = classNode.name;
     val methods = for(m <- classNode.methods) yield {
       m.name + m.desc
     }

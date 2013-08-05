@@ -49,6 +49,17 @@ object GCTestsBasic{
     }
     "aaaaa"
   }
+  def mixed() = {
+    var i = 0
+    while(i < 100){
+      i += 1
+      helloObj(i)
+      helloArr(i)
+      chain(i)
+      interned(i)
+    }
+    interned(10)
+  }
 }
 class Cons(val value: Int, var next: Cons)
 
@@ -93,6 +104,19 @@ class GCTests extends FreeSpec with Util{
       val tester = new Tester("metascala.full.GCTestsBasic", memorySize = memory)
       tester.run("interned", count)
     }
+  }
+  "mixed" in {
+    for {
+      memory <- Seq(500)
+    }{
+      val tester = new Tester("metascala.full.GCTestsBasic", memorySize = memory)
+      tester.run("mixed")
+    }
+  }
+  "parseClass" in {
+    val tester = new Tester("metascala.full.ScalaLib", memorySize = 9 * 1024)
+    for(i <- 1 to 5) tester.run("parseClass")
+
   }
 
 }
