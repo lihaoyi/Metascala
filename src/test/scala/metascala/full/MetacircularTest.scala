@@ -16,17 +16,17 @@ object MetacircularTest{
 
   def fibonacci = {
     val x = new metascala.VM()
-    x.invoke("metascala.features.methods.Statics", "fibonacci", Seq(12))
+    x.invoke("metascala/features/methods/Statics", "fibonacci", Seq(12))
   }
 
   def innerClass = {
     val x = new metascala.VM()
-    x.invoke("metascala.features.classes.ClassStuff", "innerClass")
+    x.invoke("metascala/features/classes/ClassStuff", "innerClass")
   }
 
   def bubbleSort = {
     val x = new metascala.VM()
-    x.invoke("metascala.features.arrays.ArrayStuff", "bubbleSort", Seq(Array(6, 5, 2, 7, 3, 4, 9, 1, 8)))
+    x.invoke("metascala/features/arrays/ArrayStuff", "bubbleSort", Seq(Array(6, 5, 2, 7, 3, 4, 9, 1, 8)))
   }
   def getAndSet = {
     val x = new metascala.VM()
@@ -56,27 +56,34 @@ class MetacircularTest extends FreeSpec with Util{
   val buffer = new BufferLog(1900)
   var count = 0
 
-  val tester = new Tester("metascala.full.MetacircularTest", memorySize = 72 * 1024)
+
 
 //  "helloWorld" in {
 //    tester.run("helloWorld")
 //  }
 
   "sqrtFinder" in {
-    tester.run("sqrtFinder")
+    val tester = new Tester("metascala.full.MetacircularTest", memorySize = 3 * 1024 * 1024)
+    for(i <- 0 to 5) tester.run("sqrtFinder")
+
   }
-/*
+
   "fibonacci" in {
-    tester.run("fibonacci")
+    val tester = new Tester("metascala.full.MetacircularTest", memorySize = 3 * 1024 * 1024)
+    for(i <- 0 to 5) tester.run("fibonacci")
   }
 
   "innerClass" in {
-    tester.run("innerClass")
+    val tester = new Tester("metascala.full.MetacircularTest", memorySize = 3 * 1014 * 1024)
+    for(i <- 0 to 5) tester.run("innerClass")
   }
+
   "bubbleSort" in {
+    val tester = new Tester("metascala.full.MetacircularTest", memorySize = 5 * 1014 * 1024)
     tester.run("bubbleSort")
 
   }
+  /*
   "getAndSet" in {
     tester.run("getAndSet")
     println(tester.svm.threads(0).getOpCount)

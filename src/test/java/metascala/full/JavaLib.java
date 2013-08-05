@@ -4,6 +4,7 @@ import java.util.*;
 import java.math.BigInteger;
 import java.util.concurrent.atomic.*;
 import java.util.regex.*;
+import java.lang.reflect.Array;
 public class JavaLib {
 
     public static int collections(int n){
@@ -121,6 +122,7 @@ public class JavaLib {
         }
         return r.nextLong();
     }
+
 
 }
 class Sudoku {

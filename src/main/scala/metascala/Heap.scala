@@ -61,12 +61,12 @@ class Heap(memorySize: Int)(implicit vm: VM){
     for(i <- to until (to+memorySize)){
       memory(i) = 0
     }
-//    println("===============Collecting==================")
-//    println("arrayTypeCache " + vm.arrayTypeCache.length)
-//    println("internedStrings " + vm.internedStrings.size)
-//    println("typeObjCache " + vm.typeObjCache.size)
-//    //vm.threads(0).threadStack.map(x => x.runningClass.name + "/" + x.method.sig + "\t" + x.method.code.blocks(x.pc._1).insns(x.pc._2)).foreach(println)
-//    println("starting " + (freePointer - from))
+    println("===============Collecting==================")
+    println("arrayTypeCache " + vm.arrayTypeCache.length)
+    println("internedStrings " + vm.internedStrings.size)
+    println("typeObjCache " + vm.internedStrings.size)
+    //vm.threads(0).threadStack.map(x => x.runningClass.name + "/" + x.method.sig + "\t" + x.method.code.blocks(x.pc._1).insns(x.pc._2)).foreach(println)
+    println("starting " + (freePointer - from))
 
     val roots = vm.getRoots
 
@@ -130,7 +130,7 @@ class Heap(memorySize: Int)(implicit vm: VM){
 
     if (from == 0) start = memorySize
     else start = 0
-//    println("ending " + (freePointer - start))
+    println("ending " + (freePointer - start))
 
 //    println("==================Collectiong Compelete====================")
 //    println(dump())
