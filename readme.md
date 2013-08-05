@@ -21,15 +21,15 @@ sbt
 > test-only metascala.features.*
 ```
 
-Which will run download the dependencies (currently just [asm](http://asm.ow2.org/)), compile the code, and run the unit tests in the [test/scala/features](test/scala/features) folder. Compiling Metascala could take a minute, but running the unit tests should take less than 10 seconds. These tests exercise individual pieces of functionality available on the JVM: math, methods, classes, exceptions, etc., and verify that the result of executing a method via Metascala is identical to the result of executing it directly via [reflection](http://docs.oracle.com/javase/tutorial/reflect/).
+Which will download the dependencies (currently just [asm](http://asm.ow2.org/)), compile the code, and run the unit tests in the [test/scala/features](test/scala/features) folder. Compiling Metascala could take a minute, but running the unit tests should take less than 10 seconds. These tests exercise individual pieces of functionality available on the JVM: math, methods, classes, exceptions, etc., and verify that the result of executing a method via Metascala is identical to the result of executing it directly via [reflection](http://docs.oracle.com/javase/tutorial/reflect/).
 
-Apart from the basic feature tests, metascala also includes basic tests for the [garbage collector](src/test/scala/metascala/full/GCTests.scala), [Java](src/test/scala/metascala/full/JavaLibTest.scala) and [Scala](src/test/scala/metascala/full/ScalaLib.scala) library functionality. Lastly, Metascala contains tests for [Meta-interpretation](src/test/scala/metascala/full/MetacircularTest.scala), which tests the ability for Metascala to interpret its own source code, which in tern interprets some simple programs (e.g. a square-root calculator). Meta-interpretation is extremely slow, and these tests take **several minutes** to run.
+Apart from the basic feature tests, metascala also includes basic tests for the [garbage collector](src/test/scala/metascala/full/GCTests.scala), [Java](src/test/scala/metascala/full/JavaLibTest.scala) and [Scala](src/test/scala/metascala/full/ScalaLib.scala) library functionality. Lastly, Metascala contains tests for [Meta-interpretation](src/test/scala/metascala/full/MetacircularTest.scala), which tests the ability for Metascala to interpret its own source code, which in turn interprets some simple programs (e.g. a square-root calculator). Meta-interpretation is extremely slow, and these tests take **several minutes** to run.
 
 Implementation
 --------------
 Metascala is a simple Scala application, and compiles to Java bytecode like any other Scala program. It is literally a program that loads in a class file, parses it into a data structure and then has a `while(true)` loop that interprets the bytecodes one by one, updating the internal state of the VM following the [JVM Spec](http://docs.oracle.com/javase/specs/jvms/se7/html/) and spitting out an answer at the end.
 
-In fact, each Metascala JVM is a single Java object, containing in itself all state relevant to its own computation, and instantiating one and invoking methods using it is simple: 
+In fact, each Metascala JVM is a single Java object, containing in itself all state relevant to its own computation. Instantiating one and invoking methods using it is simple:
 
 ```scala
 val x = new metascala.VM()
@@ -37,7 +37,7 @@ x.invoke("metascala.features.arrays.ArrayStuff", "bubbleSort", Seq(Array(6, 5, 2
 // Array(1, 2, 3, 4, 5, 6, 7, 8, 9)
 ```
 
-Arguments passed in to the `invoke()` method are converted from their real representation into virtual versions (the `vrt.*` classes) to be handled within the Metascala VM. The return value is similarly converted from a virtual value back to a real value before being given to the caller of `invoke()`.
+Arguments passed into the `invoke()` method are converted from their real representation into virtual versions (the `vrt.*` classes) to be handled within the Metascala VM. The return value is similarly converted from a virtual value back to a real value before being given to the caller of `invoke()`.
 
 The main packages of interest in Metascala are:
 
@@ -45,13 +45,13 @@ The main packages of interest in Metascala are:
 An immutable model of the data structures that make up a Java .class file. These are an almost direct conversion of the data structures provided by the [ASM Tree API](http://www.geekyarticles.com/2011/10/manipulating-java-class-files-with-asm_13.html), converted to idiomatic, immutable Scala case classes. These classes should be purely immutable, and should have no dependency on the rest of Metascala.
 
 ###[metascala/opcodes](src/main/scala/metascala/opcodes)
-This contains the logic related to [parsing and compiling](src/main/scala/metascala/opcodes/Conversion.scala) the Java bytecode instructions from the default hybrid stack/register format into an [SSA bytecode](src/main/scala/metascala/opcodes/Insn.scala), simplifying it in the process. Currently Metascala does not perform any real optimizations on the bytecode apart from linking up class/method names with the relevant classes and methods, but the [SSA](http://en.wikipedia.org/wiki/Static_single_assignment_form) format should make it easier to perform this operations in the future.
+This contains the logic related to [parsing and compiling](src/main/scala/metascala/opcodes/Conversion.scala) the Java bytecode instructions from the default hybrid stack/register format into an [SSA bytecode](src/main/scala/metascala/opcodes/Insn.scala), simplifying it in the process. Currently Metascala does not perform any real optimizations on the bytecode apart from linking up class/method names with the relevant classes and methods, but the [SSA](http://en.wikipedia.org/wiki/Static_single_assignment_form) format should make it easier to perform these operations in the future.
 
 ###[metascala/rt](src/main/scala/metascala/rt)
 Runtime data-structures that make up the JVM: [threads](src/main/scala/metascala/rt/Thread.scala), [classes](src/main/scala/metascala/rt/Cls.scala), [methods](src/main/scala/metascala/rt/Method.scala), [objects and arrays](src/main/scala/metascala/rt/Obj.scala). These classes also contain the mutable state associated with these constructs (e.g. static class fields) or Metascala-specific optimizations (e.g. pre-computed [vtables](http://en.wikipedia.org/wiki/Virtual_method_table)).
 
 ###[metascala/natives](src/main/scala/metascala/natives)
-Trapped methods, or [Bindings](src/main/scala/metascala/Bindings.scala), which when called within the Metascala VM result in some interaction with the Host VM. There is a [default](src/main/scala/metascala/Default.scala) implementation of bindings, but it an easily be swapped out for a custom version of Bindings e.g. to redirect filesystem access, or mock out `currentTimeMillis()` with a custom time. All interaction between the code inside the VM and the external world takes place through these Bindings.
+Trapped methods, or [Bindings](src/main/scala/metascala/Bindings.scala), which when called within the Metascala VM result in some interaction with the Host VM. There is a [default](src/main/scala/metascala/Default.scala) implementation of bindings, but it can easily be swapped out for a custom version of Bindings e.g. to redirect filesystem access, or mock out `currentTimeMillis()` with a custom time. All interaction between the code inside the VM and the external world takes place through these Bindings.
 
 ---------------------------------------------------------
 
@@ -83,9 +83,9 @@ MetaScala has been tested on Windows 7 using the Sun JVM (Java 7), and Ubuntu 12
 
 Performance
 -----------
-The performance of Metascala is absolutely abysmal: it performs basic optimizations (e.g. pre-calculating virtual-dispatch tables and maintaining invoke-interface caches), but not much more. Part of this arises from the fact that it is written in Scala in a mostly immutable, functional style, and that results in overhead (lots of extra allocations and method calls) over an imperative, mutable style. The other part is probably a fundamental limitation of it being an interpreter, and any major increase in performance would require pretty fundamental changes to the system.
+The performance of Metascala is absolutely abysmal: it performs basic optimizations (e.g. pre-calculating virtual-dispatch tables and maintaining invoke-interface caches), but not much more. This is partly because it is written in Scala in a mostly immutable, functional style, and that results in overhead (lots of extra allocations and method calls) over an imperative, mutable style. The other part is probably a fundamental limitation of being an interpreter, and any major increase in performance would require pretty fundamental changes to the system.
 
-This can easily be improved a great deal in the future: micro-bottlenecks (e.g. for-comprehensions) can be optimized, and the SSA bytecode is amenable to analysis and optimization. Nonetheless, the focus up to this point has been on completeness and compliance; performance optimizations will have to wait for the future.
+This can easily be improved a great deal in the future: micro-bottlenecks (e.g. for-comprehensions) can be optimized, and the SSA bytecode is amenable to analysis and optimization. Nonetheless, my focus so far has been on completeness and compliance; performance optimizations will have to wait.
 
 Security
 --------
