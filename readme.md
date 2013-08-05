@@ -87,6 +87,16 @@ The performance of Metascala is absolutely abysmal: it performs basic optimizati
 
 Part of this arises from the fact that it is written in Scala in a mostly immutable, functional style, and that results in overhead (lots of extra allocations and method calls) over an imperative, mutable style. The other part is probably a fundamental limitation of it being an interpreter, and any major increase in performance would require pretty fundamental changes to the system.
 
+Security
+--------
+Part of Metascala's goal is to allow the developer to safely run arbitrary untrusted bytecode. Metascala's approach to security is completely separate from the JVM's existing security model. In short: everything is virtualized, and everything is controlled. Because it reads and interprets each and every bytecode one by one, code executed with the Metascala VM cannot:
+
+- Loop forever: Metascala can simply stop the interpretation after a certain amount of bytecodes have been utilized.
+- Allocate unbounded memory: code run with a Metascala VM runs on its own heap (basically one big byte array), with its own garbage collector. No matter how many allocations it makes, it cannot allocate more memory than the Metascala VM's heap has available.
+- Perform unsafe actions: by default, all methods or instructions interpreted by the Metascala VM only affect the Metascala VM's internal state, and nothing else. Any attempts to influence the outside world (e.g. by printing debug statements, or loading data from files) has to happen through an explicitly created Bindings object. This single-point-of-entry makes it easy to confidently and completely lock down the untrusted code.
+
+There are still some weaknesses in Metascala's security model: time spent garbage collecting isn't accounted for, neither is memory not directly allocated but required by the VM's auxiliary data structures (e.g. classes). These provide an attacker means to consume more resources than they should be allowed to, and solving this is part of the ongoing work.
+
 Ongoing Work
 ------------
 Immediate work includes:
