@@ -3,7 +3,7 @@ package metascala
 import collection.mutable
 import annotation.tailrec
 import metascala.imm.Type
-import rt.{FrameDump, Thread}
+import metascala.rt.{Obj, FrameDump, Thread}
 import metascala.natives.Bindings
 import metascala.imm.Type.Prim
 
@@ -69,7 +69,7 @@ class VM(val natives: Bindings = Bindings.default,
   /**
    * Globally shared sun.misc.Unsafe object.
    */
-  lazy val theUnsafe = vrt.Obj.allocate("sun/misc/Unsafe")
+  lazy val theUnsafe = rt.Obj.allocate("sun/misc/Unsafe")
 
   /**
    * Cache of all the classes loaded so far within the Metascala VM.

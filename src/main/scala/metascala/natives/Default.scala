@@ -3,12 +3,11 @@ package natives
 
 
 import java.io.{ByteArrayInputStream, DataInputStream}
-import vrt.Arr
 import collection.mutable
-import metascala.vrt
-import metascala.vrt
+import metascala.rt
 import imm.Type.Prim._
 import metascala.imm.Type.Prim
+import metascala.rt.Arr
 
 trait Default extends Bindings{
 
@@ -89,11 +88,33 @@ trait Default extends Bindings{
               )
               vrtArr
             },
+            "getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;".func(I, Z, I){ (vt, clsAddr, pub) =>
+              import vt.vm
+              val cls = vt.vm.ClsTable(clsAddr.obj.apply("name").toRealObj[String].toSlash)
+              "java/lang/reflect/Method".allocArr(
+                cls.methods.map{ m =>
+                  "java/lang/reflect/Method".allocObj(
+                  )
+
+                }
+              )
+            },
             "getEnclosingMethod0()[Ljava/lang/Object;".func(I, I){
               (vt, cls) => 0
             },
             "getDeclaringClass()Ljava/lang/Class;".func(I, I){
               (vt, cls) => 0
+            },
+            "getInterfaces()[Ljava/lang/Class;".func(I, I){ (vt, clsAddr) =>
+              import vt.vm
+              val cls = vt.vm.ClsTable(clsAddr.obj.apply("name").toRealObj[String].toSlash)
+
+              "java/lang/Class".allocArr(
+                cls.typeAncestry
+                   .filter(x => !cls.clsAncestry.contains(x))
+                   .toSeq
+                   .map(x => vt.vm.typeObjCache(x.cls.clsData.tpe))
+              )
             },
             "getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;".func(I, I){ (vt, o) =>
               import vt.vm
@@ -101,7 +122,7 @@ trait Default extends Bindings{
             },
             "getSuperclass()Ljava/lang/Class;".func(I, I){ (vt, o) =>
               import vt.vm
-              val topClsName = o.obj.apply("name").toRealObj[String]
+              val topClsName = o.obj.apply("name").toRealObj[String].toSlash
 
               vm.ClsTable(topClsName)
                 .clsData
@@ -143,7 +164,7 @@ trait Default extends Bindings{
               import vt.vm
               val clsObj = o.obj
               vm.ClsTable(
-                clsObj("name").toRealObj[String]
+                clsObj("name").toRealObj[String].toSlash
               ).clsData.access_flags & 0x0200
             },
             "isPrimitive()Z".func(I, I){ (vt, o) =>
@@ -209,7 +230,7 @@ trait Default extends Bindings{
 
           "System"/(
             "arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V".func(I, I, I, I, I, V){ (vt, src, srcIndex, dest, destIndex, length) =>
-              System.arraycopy(vt.vm.heap.memory, src + srcIndex + vrt.Arr.headerSize, vt.vm.heap.memory, dest + destIndex + vrt.Arr.headerSize, length)
+              System.arraycopy(vt.vm.heap.memory, src + srcIndex + rt.Arr.headerSize, vt.vm.heap.memory, dest + destIndex + rt.Arr.headerSize, length)
             },
 
             "identityHashCode(Ljava/lang/Object;)I".func(I, I){(vt, l) => l},
@@ -258,7 +279,7 @@ trait Default extends Bindings{
                 import vt.vm
                 val clsObj = cls.obj
                 val clsName = clsObj("name").toRealObj[String]
-                vrt.Arr.allocate(imm.Type.readJava(clsName), length).address
+                rt.Arr.allocate(imm.Type.readJava(clsName), length).address
               },
               "set(Ljava/lang/Object;ILjava/lang/Object;)V".func(I, I, I, V){ (vt, arr, index, obj) =>
                 vt.invoke(

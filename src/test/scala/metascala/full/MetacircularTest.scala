@@ -70,12 +70,12 @@ class MetacircularTest extends FreeSpec with Util{
 
   "fibonacci" in {
     val tester = new Tester("metascala.full.MetacircularTest", memorySize = 3 * 1024 * 1024)
-    for(i <- 0 to 5) tester.run("fibonacci")
+    for(i <- 0 to 2) tester.run("fibonacci")
   }
 
   "innerClass" in {
     val tester = new Tester("metascala.full.MetacircularTest", memorySize = 3 * 1014 * 1024)
-    for(i <- 0 to 5) tester.run("innerClass")
+    for(i <- 0 to 2) tester.run("innerClass")
   }
 
   "bubbleSort" in {
@@ -86,11 +86,12 @@ class MetacircularTest extends FreeSpec with Util{
 
   "getAndSet" in {
     val tester = new Tester("metascala.full.MetacircularTest", memorySize = 3 * 1014 * 1024)
-    for(i <- 0 to 5) tester.run("getAndSet")
+    for(i <- 0 to 2) tester.run("getAndSet")
   }
 
   "multiCatch" in {
-    val tester = new Tester("metascala.full.MetacircularTest", memorySize = 8 * 1014 * 1024)
+    val buffer = new BufferLog(1000)
+    val tester = new Tester("metascala.full.MetacircularTest", buffer, memorySize = 16 * 1014 * 1024)
     tester.run("multiCatch")
   }
   /*"doubleMetaOne" in {

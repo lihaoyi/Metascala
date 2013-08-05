@@ -13,6 +13,9 @@ class Heap(memorySize: Int)(implicit vm: VM){
     if (freePointer + n > memorySize + start) {
       println("COLLECT LOL")
       collect(start)
+      if (freePointer + n > memorySize + start) {
+        throw new Exception("Out of Memory!")
+      }
     }
     val newFree = freePointer
     freePointer += n

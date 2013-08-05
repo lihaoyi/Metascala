@@ -1,18 +1,19 @@
-package metascala
-package vrt
+package metascala.rt
 
 import collection.mutable
 import metascala._
-import rt.Var
+import metascala.rt.Var
 
 import reflect.ClassTag
 import scala.Some
-
+import scala.Some
 import metascala.imm
+import scala.Some
+
 
 object Obj{
   val headerSize = 2
-  def allocate(cls: rt.Cls, initMembers: (String, Val)*)(implicit vm: VM): vrt.Obj = {
+  def allocate(cls: rt.Cls, initMembers: (String, Val)*)(implicit vm: VM): Obj = {
     val address = vm.heap.allocate(headerSize + cls.fieldList.length)
 //    println("Allocating " + cls.name + " at " + address)
     vm.heap(address) = -cls.index
@@ -66,7 +67,7 @@ class Obj(val address: Val)
 
   def tpe = cls.clsData.tpe
 
-  def heapSize = cls.fieldList.length + vrt.Obj.headerSize
+  def heapSize = cls.fieldList.length + rt.Obj.headerSize
 
   def apply(name: String): Val = {
     members(tpe.fieldList.lastIndexWhere(_.name == name))
@@ -96,7 +97,7 @@ object Arr{
    * calculating the total amount of memory benig allocated
    */
   def allocate(t: imm.Type, n: scala.Int)(implicit vm: VM): Arr = {
-    vrt.Arr.allocate(t, Array.fill[Int](n * t.size)(0))
+    rt.Arr.allocate(t, Array.fill[Int](n * t.size)(0))
   }
   def allocate(innerType: imm.Type, backing: Array[Int])(implicit vm: VM): Arr = {
     val address = vm.heap.allocate(Arr.headerSize + backing.length)

@@ -21,7 +21,8 @@ object Build extends sbt.Build{
       ),
       libraryDependencies ++= Seq(
         "org.ow2.asm" % "asm-debug-all" % "4.1",
-        "org.scalatest" 		   % "scalatest_2.10.0" % "2.0.M5" % "test"
+        "org.scalatest" 		   % "scalatest_2.10.0" % "2.0.M5" % "test",
+        "org.mozilla" % "rhino" % "1.7R4"
       )
     )
   )

@@ -13,9 +13,10 @@ import Insn._
 import Insn.Push
 import Insn.InvokeStatic
 import scala.Some
-import metascala.UncaughtVmException
+import metascala.{rt, UncaughtVmException}
 import Insn.ReturnVal
 import imm.Type.Prim._
+
 /**
  * A single thread within the Metascala VM.
  */
@@ -101,7 +102,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
       case New(target, cls) =>
         cls.checkInitialized()
-        val obj = vrt.Obj.allocate(cls.name)
+        val obj = rt.Obj.allocate(cls.name)
         frame.locals(target) = obj.address
         advancePc()
 
@@ -148,7 +149,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         frame.locals(dest) = frame.locals(src).arr.arrayLength
         advancePc()
       case NewArray(src, dest, typeRef) =>
-        val newArray = vrt.Arr.allocate(typeRef, frame.locals(src))
+        val newArray = rt.Arr.allocate(typeRef, frame.locals(src))
         frame.locals(dest) = newArray.address
         advancePc()
       case PutArray(src, index, array, prim) =>
@@ -282,14 +283,14 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
           (dims, tpe) match {
             case (size :: tail, imm.Type.Arr(innerType: imm.Type.Ref)) =>
-              val newArr = vrt.Arr.allocate(innerType, size)
+              val newArr = rt.Arr.allocate(innerType, size)
               for(i <- 0 until size){
                 newArr(i) = rec(tail, innerType)
               }
               newArr.address
 
             case (size :: Nil, imm.Type.Arr(innerType)) =>
-              vrt.Arr.allocate(innerType, size).address
+              rt.Arr.allocate(innerType, size).address
            }
         }
         val dimValues = dims.map(frame.locals).toList
@@ -332,14 +333,14 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   final def throwExWithTrace(clsName: String, detailMessage: String) = {
 
     throwException(
-      vrt.Obj.allocate(clsName,
+      rt.Obj.allocate(clsName,
         "stackTrace" -> trace.toVirtObj,
         "detailMessage" -> detailMessage.toVirtObj
       )
     )
   }
 
-  @tailrec final def throwException(ex: vrt.Obj, print: Boolean = true): Unit = {
+  @tailrec final def throwException(ex: Obj, print: Boolean = true): Unit = {
     import math.Ordering.Implicits._
 
     threadStack.headOption match{

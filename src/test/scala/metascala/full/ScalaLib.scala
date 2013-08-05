@@ -12,6 +12,7 @@ import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
 import java.util
 import scala.collection.JavaConversions._
+import org.mozilla.javascript.Context
 
 object ScalaLib{
   def hello = "hello"
@@ -76,8 +77,14 @@ object ScalaLib{
   }
 
   def lol = {
-    val args2: String = java.security.AccessController.doPrivileged(new sun.security.action.GetPropertyAction("java.security.auth.debug"))
-    args2
+    println("AAA")
+    val ctx = Context.enter()
+    println("BBB")
+    val scope = ctx.initStandardObjects()
+    println("CCC")
+    println(ctx.evaluateString(scope, "1 + 1", "<cmd>", 0, null))
+    println("DDD")
+    0
   }
 }
 class ScalaLib extends FreeSpec with Util{
@@ -89,6 +96,6 @@ class ScalaLib extends FreeSpec with Util{
   "palindrome" in tester.run("palindrome", 100, 130)
   "bigFibonacci" in tester.run("bigFibonacci", 30)
   "parseClass" in tester.run("parseClass")
-  "lol" in tester.run("lol")
+//  "lol" in tester.run("lol")
 
 }

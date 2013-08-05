@@ -1,4 +1,5 @@
-import metascala.rt.Thread
+import metascala.rt
+import metascala.rt.{Arr, Obj, Thread}
 import collection.mutable
 import scala.reflect.ClassTag
 
@@ -31,11 +32,11 @@ package object metascala {
     def isArr(implicit vm: VM) = vm.heap(v) > 0
     def obj(implicit vm: VM) = {
       assert(isObj)
-      new vrt.Obj(v)
+      new Obj(v)
     }
     def arr(implicit vm: VM) = {
       assert(isArr)
-      new vrt.Arr(v)
+      new Arr(v)
     }
 
     def toRealObj[T](implicit vm: VM, ct: ClassTag[T]) = {
@@ -47,8 +48,8 @@ package object metascala {
 
   object Val{
     val Null = 0
-    implicit def objToVal(x: vrt.Obj) = x.address
-    implicit def arrToVal(x: vrt.Arr) = x.address
+    implicit def objToVal(x: Obj) = x.address
+    implicit def arrToVal(x: Arr) = x.address
   }
 
   type Val = Int
@@ -81,10 +82,10 @@ package object metascala {
     def toDot = s.replace('/', '.')
     def toSlash = s.replace('.', '/')
     def allocObj(initMembers: (String, Val)*)(implicit vm: VM) = {
-      vrt.Obj.allocate(s, initMembers:_*).address
+      rt.Obj.allocate(s, initMembers:_*).address
     }
     def allocArr(backing: Seq[Int])(implicit vm: VM) = {
-      vrt.Arr.allocate(s, backing.toArray).address
+      rt.Arr.allocate(s, backing.toArray).address
     }
   }
   def reader(src: Seq[Val], index: Int) = {

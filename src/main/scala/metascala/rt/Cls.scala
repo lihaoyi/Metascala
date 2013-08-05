@@ -4,7 +4,7 @@ package rt
 import collection.mutable
 
 
-import  metascala.{vrt, VM, imm}
+import  metascala.{VM, imm}
 import metascala.imm.{Sig, Access, Type}
 import metascala.opcodes.Insn
 import metascala.imm.Type.Prim.I

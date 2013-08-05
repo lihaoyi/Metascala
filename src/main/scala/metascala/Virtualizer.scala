@@ -3,7 +3,15 @@ package metascala
 import scala.collection.mutable
 import imm.Type.Prim
 import imm.Type.Prim._
+import metascala.rt.{Arr, Obj}
+
 object Virtualizer {
+  lazy val unsafe = {
+    val field = Class.forName("sun.misc.Unsafe").getDeclaredField("theUnsafe")
+    field.setAccessible(true)
+    field.get(null).asInstanceOf[sun.misc.Unsafe]
+  }
+
   def popVirtual(tpe: imm.Type, src: () => Val, refs: mutable.Map[Int, Any] = mutable.Map.empty)(implicit vm: VM): Any = {
 
     val x = tpe match {
@@ -16,7 +24,7 @@ object Virtualizer {
         else if (refs.contains(address)) refs(address)
         else tpe match{
           case t @ imm.Type.Cls(name) =>
-            val obj = vrt.unsafe.allocateInstance(Class.forName(address.obj.cls.name.toDot))
+            val obj = unsafe.allocateInstance(Class.forName(address.obj.cls.name.toDot))
             refs += (address -> obj)
             var index = 0
             for(field <- address.obj.cls.fieldList.distinct){
@@ -26,7 +34,7 @@ object Virtualizer {
                 val f = getAllFields(obj.getClass).find(_.getName == field.name).get
                 f.setAccessible(true)
 
-                f.set(obj, popVirtual(field.desc, reader(vm.heap.memory, address + vrt.Obj.headerSize + index), refs))
+                f.set(obj, popVirtual(field.desc, reader(vm.heap.memory, address + rt.Obj.headerSize + index), refs))
                 index += field.desc.size
               }
             }
@@ -39,8 +47,8 @@ object Virtualizer {
             for(i <- 0 until address.arr.arrayLength){
 
               val cooked = tpe match{
-                case p: imm.Type.Prim[_] => p.read(reader(vm.heap.memory, address + vrt.Arr.headerSize + i * tpe.size))
-                case x => popVirtual(tpe, reader(vm.heap.memory, address + vrt.Arr.headerSize + i * tpe.size))
+                case p: imm.Type.Prim[_] => p.read(reader(vm.heap.memory, address + rt.Arr.headerSize + i * tpe.size))
+                case x => popVirtual(tpe, reader(vm.heap.memory, address + rt.Arr.headerSize + i * tpe.size))
               }
               java.lang.reflect.Array.set(newArr, i, cooked)
             }
@@ -70,17 +78,17 @@ object Virtualizer {
       case b: Long    => J.write(b, out)
       case b: Double  => D.write(b, out)
       case b: Array[_] =>
-        val arr = vrt.Arr.allocate(imm.Type.Arr.read(b.getClass.getName.replace('.', '/')).innerType,
+        val arr = rt.Arr.allocate(imm.Type.Arr.read(b.getClass.getName.replace('.', '/')).innerType,
           b.flatMap(pushVirtual)
         )
         out(arr.address)
       case b: Any =>
-        val obj = vrt.Obj.allocate(b.getClass.getName.toSlash)
+        val obj = rt.Obj.allocate(b.getClass.getName.toSlash)
         var index = 0
         for(field <- obj.cls.clsData.fields.filter(!_.static)){
           val f = b.getClass.getDeclaredField(field.name)
           f.setAccessible(true)
-          pushVirtual(f.get(b), writer(vm.heap.memory, obj.address + vrt.Obj.headerSize + index))
+          pushVirtual(f.get(b), writer(vm.heap.memory, obj.address + rt.Obj.headerSize + index))
           index += field.desc.size
         }
 
