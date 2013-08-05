@@ -94,4 +94,5 @@ class GCTests extends FreeSpec with Util{
       tester.run("interned", count)
     }
   }
+
 }

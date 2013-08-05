@@ -1,4 +1,4 @@
-package metascala.natives.classes;
+package metascala.full;
 
 public class ClassObject {
     public static String name(){

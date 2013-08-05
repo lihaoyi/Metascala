@@ -56,7 +56,7 @@ class MetacircularTest extends FreeSpec with Util{
   val buffer = new BufferLog(1900)
   var count = 0
 
-  val tester = new Tester("metascala.full.MetacircularTest", memorySize = 1 * 1024 * 1024)
+  val tester = new Tester("metascala.full.MetacircularTest", memorySize = 73 * 1024)
 
 //  "helloWorld" in {
 //    tester.run("helloWorld")

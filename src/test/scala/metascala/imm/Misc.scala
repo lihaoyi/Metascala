@@ -1,13 +1,10 @@
-package metascala
+package metascala.imm
 
 import org.scalatest.FreeSpec
 import collection.mutable
-import Gen._
 
 import metascala.imm.Method
 
-import imm.Type.Prim
-import imm.Type.Prim._
 import org.objectweb.asm.{Opcodes, ClassReader}
 import Opcodes._
 import org.objectweb.asm.tree._
@@ -23,6 +20,10 @@ import metascala.opcodes.Insn.BinOp
 import metascala.opcodes.Insn.PutArray
 
 import metascala.opcodes.Code
+import metascala._
+import metascala.imm.Type.Prim
+import metascala.Gen._
+import metascala.imm.Type.Prim._
 
 class Misc extends FreeSpec with Util{
   val arr = new Array[Int](2)

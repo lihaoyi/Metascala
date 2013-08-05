@@ -41,20 +41,19 @@ class Heap(memorySize: Int)(implicit vm: VM){
     } else if (memory(src + 1) >= 0){
       if (src.isObj) {
         val obj = src.obj
-
 //        println(s"blit obj length: ${obj.heapSize}")
-
         System.arraycopy(memory, src, memory, freePointer, obj.heapSize)
         memory(src + 1) = -freePointer
         (freePointer, freePointer + obj.heapSize)
-      } else { // it's an Arr
-
+      } else if (src.isArr){ // it's an Arr
 
         val length = src.arr.heapSize
 //        println(s"blit arr length: $length")
         System.arraycopy(memory, src, memory, freePointer, length)
         memory(src + 1) = -freePointer
         (freePointer, freePointer + length)
+      }else{
+        (0, freePointer)
       }
     }else{
 //      println(s"non-blitting $src -> ${-memory(src + 1)}")
@@ -88,7 +87,6 @@ class Heap(memorySize: Int)(implicit vm: VM){
 
     for(root <- roots){
       val oldRoot = root()
-
       val (newRoot, nfp) = blit(freePointer, oldRoot)
       freePointer = nfp
       root() = newRoot
@@ -96,6 +94,7 @@ class Heap(memorySize: Int)(implicit vm: VM){
     }
 
     while(scanPointer != freePointer){
+
       assert(scanPointer <= freePointer, s"scanPointer $scanPointer > freePointer $freePointer")
 
       if (scanPointer.isObj){

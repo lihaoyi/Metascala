@@ -1,16 +1,15 @@
-package metascala
-package features
+package metascala.full
 
 import org.scalatest.FreeSpec
 
 import metascala.Util
 import scala.Some
 import java.util.Arrays
-import Gen._
+import metascala.Gen._
 
 class ClassTest extends FreeSpec with Util{
   "class stuff" - {
-    val tester = new Tester("metascala.natives.classes.ClassObject", x => println(x))
+    val tester = new Tester("metascala.full.ClassObject", x => println(x))
 
     "name" in tester.run("name")
     "namePrim" in tester.run("namePrim")
@@ -19,7 +18,7 @@ class ClassTest extends FreeSpec with Util{
 
     "forName" in {
       chk(tester.run("forName", _: String))(Seq(
-        "metascala.natives.classes.ClassObject",
+        "metascala.full.ClassObject",
         "java.lang.Object",
         "java.util.AbstractCollection",
         "[I",
@@ -33,7 +32,7 @@ class ClassTest extends FreeSpec with Util{
     }
   }
   "classloaders" - {
-    val tester = new Tester("metascala.natives.classes.ClassLoaders")
+    val tester = new Tester("metascala.full.ClassLoaders")
     "name" in tester.run("name")
     //"create" in tester.run("create")
   }

@@ -63,7 +63,7 @@ class VM(val natives: Bindings = Bindings.default,
       (k, v) <- typeObjCache
     } yield new ArrRef(() => typeObjCache(k), typeObjCache(k) = _)
 
-    stackRoots ++ classRoots
+    stackRoots ++ classRoots ++ clsObjRoots
 
   }
   /**
