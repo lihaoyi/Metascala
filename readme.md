@@ -1,14 +1,14 @@
 Metascala
 ============
 
-Metascala is a tiny [metacircular](http://en.wikipedia.org/wiki/Metacircular) [Java Virtual Machine (JVM)](http://en.wikipedia.org/wiki/Jvm) written in the [Scala](http://en.wikipedia.org/wiki/Scala_(programming_language)) programming language. Metascala is less than 3000 lines of plain Scala, while being complete enough that it is able to interpret itself [metacircularly](https://en.wikipedia.org/wiki/Meta-circular_evaluator). Being written in Scala and compiled to [Java bytecode](http://en.wikipedia.org/wiki/Java_bytecode), the Metascala JVM requires a host JVM in order to run.
+Metascala is a tiny [metacircular](http://en.wikipedia.org/wiki/Metacircular) [Java Virtual Machine (JVM)](http://en.wikipedia.org/wiki/Jvm) written in the [Scala](http://en.wikipedia.org/wiki/Scala_(programming_language)) programming language. Metascala is barely 3000 lines of Scala, and is complete enough that it is able to interpret itself metacircularly. Being written in Scala and compiled to [Java bytecode](http://en.wikipedia.org/wiki/Java_bytecode), the Metascala JVM requires a host JVM in order to run.
 
-The point of Metascala is to have a toy platform to experiment with the JVM: a 3000 line JVM written in Scala is probably much more approachable than the 1,000,000 lines of C/C++ which make up [HotSpot](http://openjdk.java.net/groups/hotspot/), the standard implementation, and more amenable to implementing fun features like [continuations](http://en.wikipedia.org/wiki/Continuation), [isolates](http://www.javalobby.org/java/forums/t105978.html) or [value classes](https://blogs.oracle.com/jrose/entry/value_types_in_the_vm). The 3000 lines of code gives you:
+The goal of Metascala is to create a platform to experiment with the JVM: a 3000 line JVM written in Scala is probably much more approachable than the 1,000,000 lines of C/C++ which make up [HotSpot](http://openjdk.java.net/groups/hotspot/), the standard implementation, and more amenable to implementing fun features like [continuations](http://en.wikipedia.org/wiki/Continuation), [isolates](http://www.javalobby.org/java/forums/t105978.html) or [value classes](https://blogs.oracle.com/jrose/entry/value_types_in_the_vm). The 3000 lines of code gives you:
 
 - The bytecode interpreter, together with all the run-time data structures
-- The stack-machine to SSA register-machine bytecode translation
-- A custom heap, complete with a stop-the-world, copying garbage collector
-- Implementations of parts of the JVM's native interface
+- A [stack-machine](http://en.wikipedia.org/wiki/Stack_machine) to [SSA](http://en.wikipedia.org/wiki/Static_single_assignment_form) register-machine bytecode translator
+- A custom [heap](https://en.wikipedia.org/wiki/Memory_management), complete with a stop-the-world, copying [garbage collector](http://tinyurl.com/d77yltz)
+- Implementations of parts of the [JVM's native interface](http://en.wikipedia.org/wiki/Java_Native_Interface)
 
 Although it is far from a complete implementation, Metascala already provides the ability to run untrusted bytecode securely (albeit slowly), since every operation which could potentially cause harm (including memory allocations and CPU usage) is virtualized and can be controlled. [Ongoing work](#ongoing-work) includes tightening of the security guarantees, improving compatibility and increasing performance.
 
