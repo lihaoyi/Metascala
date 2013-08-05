@@ -233,7 +233,7 @@ object Conversion {
 
       blockFrames(0).boxes.flatten.map(getBox)
 
-      for ((insn, i) <- blockInsns(blockId).zipWithIndex){
+      for ((insn, i) <- blockInsns(blockId).zipWithIndex) try {
 
         ConvertInsn(
           insn,
@@ -246,6 +246,9 @@ object Conversion {
           blockFrames(i+1),
           blockMap
         )
+      } catch {case e =>
+        println("ConvertInsn Failed " + clsName)
+        throw e
       }
 
       (buffer, types, localMap, blockFrames.head, blockFrames.last, lineMap)

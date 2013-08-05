@@ -30,7 +30,28 @@ public class Inheritance {
     public static String superMethod(){
         return new Toyota().superVStart();
     }
-
+    public static int staticInheritance(){
+        int a = Parent.x;
+        Child1.x = 100;
+        return a + Child1.x + Child2.x;
+    }
+}
+interface ParentInterface{
+    public static int x = 30;
+}
+class Parent{
+    public static int x = 10;
+}
+class Child1 extends Parent{
+    public static int get(){
+        return x;
+    }
+}
+class Cowc{}
+class Child2 extends Cowc implements ParentInterface{
+    public static int get(){
+        return x;
+    }
 }
 class Sheep implements Baas{
     public String baa(int n){

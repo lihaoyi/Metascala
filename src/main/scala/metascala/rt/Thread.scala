@@ -317,7 +317,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         f.runningClass.name.toDot,
         f.method.method.name,
         f.runningClass.clsData.misc.sourceFile.getOrElse("<unknown file>"),
-        f.method.code.blocks(f.pc._1).lines(f.pc._2)
+        try f.method.code.blocks(f.pc._1).lines(f.pc._2) catch{case _ => 0 }
       )
     ).toArray
   }

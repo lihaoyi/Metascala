@@ -97,10 +97,22 @@ object ConvertInsn {
         case x: FieldInsnNode => new MethodInsnNode(x.getOpcode, x.owner, x.name, x.desc)
       }
     }
-    def refField(list: rt.Cls => Seq[imm.Field], func: (Int, imm.Type) => Insn) = {
-      val index = list(insn.owner.cls).lastIndexWhere(_.name == insn.name)
-      val prim = list(insn.owner.cls)(index).desc
-      append(func(index - prim.size + 1, prim))
+    def refField(list: rt.Cls => Seq[imm.Field], func: (rt.Cls, Int, imm.Type) => Insn) = {
+
+      def resolve(cls: rt.Cls): (Int, rt.Cls) = {
+        list(cls).lastIndexWhere(_.name == insn.name) match{
+          case -1 => resolve(cls.clsAncestry(1).tpe.cls)
+          case x =>  (x, cls)
+        }
+      }
+      val (index, cls) = resolve(insn.owner.cls)
+      assert(
+        index >= 0,
+        s"no field found in ${insn.owner}: ${insn.name}\n" +
+        "Fields\n" + list(insn.owner.cls).map(_.name).mkString("\n")
+      )
+      val prim = list(cls)(index).desc
+      append(func(cls, index - prim.size + 1, prim))
     }
 
     insn.getOpcode match{
@@ -225,10 +237,10 @@ object ConvertInsn {
       case DRETURN => returnVal(D)
       case ARETURN => returnVal(imm.Type.Cls("java/lang/Object"))
       case RETURN => returnVal(V)
-      case GETSTATIC => refField(_.staticList, Insn.GetStatic(nextFrame.top(), insn.owner.cls, _, _))
-      case PUTSTATIC => refField(_.staticList, Insn.PutStatic(frame.top(), insn.owner.cls, _, _))
-      case GETFIELD  => refField(_.fieldList, Insn.GetField(nextFrame.top(), frame.top(), _, _))
-      case PUTFIELD  => refField(_.fieldList, Insn.PutField(frame.top(), frame.top(1), _, _))
+      case GETSTATIC => refField(_.staticList, Insn.GetStatic(nextFrame.top(), _, _, _))
+      case PUTSTATIC => refField(_.staticList, Insn.PutStatic(frame.top(), _, _, _))
+      case GETFIELD  => refField(_.fieldList, (a, b, c) => Insn.GetField(nextFrame.top(), frame.top(), b, c))
+      case PUTFIELD  => refField(_.fieldList, (a, b, c) => Insn.PutField(frame.top(), frame.top(1), b, c))
       case INVOKESTATIC    => invokeStatic(insn, 0)
       case INVOKESPECIAL   => invokeStatic(insn, 1)
       case INVOKEVIRTUAL   => invokeVirtual(insn, indexed=true)

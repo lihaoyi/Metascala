@@ -30,11 +30,11 @@ object MetacircularTest{
   }
   def getAndSet = {
     val x = new metascala.VM()
-    x.invoke("metascala.features.arrays.MultiDimArrays", "getAndSet")
+    x.invoke("metascala/features/arrays/MultiDimArrays", "getAndSet")
   }
   def multiCatch = {
     val x = new metascala.VM()
-    x.invoke("metascala.features.exceptions.Exceptions", "multiCatch", Seq(2))
+    x.invoke("metascala/features/exceptions/Exceptions", "multiCatch", Seq(2))
   }
 
   def doubleMetaOne = {
@@ -63,8 +63,8 @@ class MetacircularTest extends FreeSpec with Util{
 //  }
 
   "sqrtFinder" in {
-    val tester = new Tester("metascala.full.MetacircularTest", memorySize = 3 * 1024 * 1024)
-    for(i <- 0 to 5) tester.run("sqrtFinder")
+    val tester = new Tester("metascala.full.MetacircularTest", memorySize = 128 * 1024)
+    for(i <- 0 to 2)tester.run("sqrtFinder")
 
   }
 
@@ -79,20 +79,20 @@ class MetacircularTest extends FreeSpec with Util{
   }
 
   "bubbleSort" in {
-    val tester = new Tester("metascala.full.MetacircularTest", memorySize = 5 * 1014 * 1024)
+    val tester = new Tester("metascala.full.MetacircularTest", memorySize = 6 * 1014 * 1024)
     tester.run("bubbleSort")
 
   }
-  /*
+
   "getAndSet" in {
-    tester.run("getAndSet")
-    println(tester.svm.threads(0).getOpCount)
+    val tester = new Tester("metascala.full.MetacircularTest", memorySize = 3 * 1014 * 1024)
+    for(i <- 0 to 5) tester.run("getAndSet")
   }
 
   "multiCatch" in {
+    val tester = new Tester("metascala.full.MetacircularTest", memorySize = 8 * 1014 * 1024)
     tester.run("multiCatch")
-    println(tester.svm.threads(0).getOpCount)
-  }*/
+  }
   /*"doubleMetaOne" in {
     tester.run("doubleMetaOne")
     println(tester.svm.threads(0).getOpCount)

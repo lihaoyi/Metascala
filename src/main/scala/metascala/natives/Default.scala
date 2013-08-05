@@ -259,6 +259,13 @@ trait Default extends Bindings{
                 val clsObj = cls.obj
                 val clsName = clsObj("name").toRealObj[String]
                 vrt.Arr.allocate(imm.Type.readJava(clsName), length).address
+              },
+              "set(Ljava/lang/Object;ILjava/lang/Object;)V".func(I, I, I, V){ (vt, arr, index, obj) =>
+                vt.invoke(
+                  imm.Type.Cls("metascala/patches/java/lang/reflect/Array"),
+                  imm.Sig("set", imm.Desc.read("(Ljava/lang/Object;ILjava/lang/Object;)V")),
+                  Seq(arr, index, obj)
+                )
               }
             )
           )
@@ -340,7 +347,10 @@ trait Default extends Bindings{
               }
 
             },
-
+            "getObject(Ljava/lang/Object;J)Ljava/lang/Object;".func(I, I, J, I){ (vt, unsafe, o, offset) =>
+                import vt.vm
+                o.obj.members(offset.toInt)
+            },
             "objectFieldOffset(Ljava/lang/reflect/Field;)J".func(I, I, I){(vt, unsafe, f) =>
               import vt.vm
               val field = f.obj

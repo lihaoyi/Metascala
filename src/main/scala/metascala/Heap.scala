@@ -9,7 +9,9 @@ class Heap(memorySize: Int)(implicit vm: VM){
   var freePointer = 1
 
   def allocate(n: Int) = {
+
     if (freePointer + n > memorySize + start) {
+      println("COLLECT LOL")
       collect(start)
     }
     val newFree = freePointer
