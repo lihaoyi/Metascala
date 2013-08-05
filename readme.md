@@ -77,7 +77,7 @@ Apart from the language specification, there is a large amount of functionality 
 - **Network Access**
 - **System.out.println** (`scala.Predef.println` works though!)
 
-Nonetheless, as we'll see, Metascala is compatible enough to interpret itself: a moderately sized Scala program which makes heavy use of the standard library, some basic reflection, and a small number of external Java libraries (Basically only [ASM](http://asm.ow2.org/) right now).
+Nonetheless, Metascala is compatible enough to interpret itself: a moderately sized Scala program which makes heavy use of the standard library, some basic reflection, and some external Java libraries (Basically only [ASM](http://asm.ow2.org/) right now).
 
 MetaScala has been tested on Windows 7 using the Sun JVM (Java 7), and Ubuntu 12.04 using OpenJDK 7.
 
