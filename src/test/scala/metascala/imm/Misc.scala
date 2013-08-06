@@ -3,7 +3,6 @@ package metascala.imm
 import org.scalatest.FreeSpec
 import collection.mutable
 
-import metascala.imm.Method
 
 import org.objectweb.asm.{Opcodes, ClassReader}
 import Opcodes._

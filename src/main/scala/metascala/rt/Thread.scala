@@ -65,7 +65,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     val r = reader(frame.locals, 0)
 
-    if (false && frame.method.method.name == "forName") {
+    if (false && frame.method.sig.name == "forName") {
       lazy val localSnapshot =
         block.locals
              .flatMap(x => Seq(x.prettyRead(r)).padTo(x.size, "~"))
@@ -94,7 +94,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     node match {
       case ReturnVal(sym) =>
-        returnVal(frame.method.method.sig.desc.ret.size, sym)
+        returnVal(frame.method.sig.desc.ret.size, sym)
 
       case Push(target, prim, value) =>
         prim.write(value, writer(frame.locals, target))
@@ -316,7 +316,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     threadStack.map( f =>
       new StackTraceElement(
         f.runningClass.name.toDot,
-        f.method.method.name,
+        f.method.sig.name,
         f.runningClass.sourceFile.getOrElse("<unknown file>"),
         try f.method.code.blocks(f.pc._1).lines(f.pc._2) catch{case _ => 0 }
       )
@@ -377,9 +377,9 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     mRef match{
       case rt.Method.Native(clsName, imm.Sig(name, desc), op) =>
         op(this, reader(args, 0), returnTo)
-      case m @ rt.Method.Cls(clsIndex, methodIndex, method) =>
+      case m @ rt.Method.Cls(clsIndex, methodIndex, sig, static, codethunk) =>
 
-        assert((m.method.access & Access.Native) == 0, "method cannot be native: " + ClsTable.clsIndex(clsIndex).name + " " + method.sig.unparse)
+        assert(!m.native, "method cannot be native: " + ClsTable.clsIndex(clsIndex).name + " " + sig.unparse)
         val startFrame = new Frame(
           runningClass = ClsTable.clsIndex(clsIndex),
           method = m,

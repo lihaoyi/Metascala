@@ -1,7 +1,6 @@
 package metascala
 package opcodes
 
-import metascala.imm.Method
 import org.objectweb.asm.Type
 import scala.collection.mutable
 import imm.Type.Prim._

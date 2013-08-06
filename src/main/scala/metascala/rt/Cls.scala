@@ -6,8 +6,9 @@ import collection.mutable
 
 import  metascala.{VM, imm}
 import metascala.imm.{Sig, Access, Type}
-import metascala.opcodes.Insn
+import metascala.opcodes.{Conversion, Insn}
 import metascala.imm.Type.Prim.I
+import org.objectweb.asm.tree.ClassNode
 
 /**
  * A handle to a readable and writable value.
@@ -19,13 +20,49 @@ class Var(var x: Val){
   }
 }
 
+object Cls{
+  def apply(cn: ClassNode, index: Int)(implicit vm: VM) = {
+    import imm.NullSafe._
+    val fields = cn.fields.safeSeq.map(imm.Field.read)
+    val superType = cn.superName.safeOpt.map(Type.Cls.read)
+    new Cls(
+      tpe = imm.Type.Cls.read(cn.name),
+      superType = superType,
+      sourceFile = cn.sourceFile.safeOpt,
+      interfaces = cn.interfaces.safeSeq.map(Type.Cls.read),
+      accessFlags = cn.access,
+      methods =
+        cn.methods
+          .safeSeq
+          .zipWithIndex
+          .map{case (mn, i) =>
+          new rt.Method.Cls(
+            index,
+            i,
+            Sig(mn.name, imm.Desc.read(mn.desc)),
+            mn.access,
+            () => Conversion.ssa(cn.name, mn)
+          )
+        },
+      fieldList =
+        superType.toSeq.flatMap(_.cls.fieldList) ++
+          fields.filter(!_.static).flatMap{x =>
+            Seq.fill(x.desc.size)(x)
+          },
+      staticList =
+        fields.filter(_.static).flatMap{x =>
+          Seq.fill(x.desc.size)(x)
+        },
+      index
+    )
+  }
+}
 /**
  * The runtime mutable and VM-specific data of a Java Class
  */
 class Cls(val tpe: imm.Type.Cls,
           val superType: Option[imm.Type.Cls],
           val sourceFile: Option[String],
-          val isInterface: Boolean,
           val interfaces: Seq[imm.Type.Cls],
           val accessFlags: Int,
           val methods: Seq[rt.Method.Cls],
@@ -36,34 +73,13 @@ class Cls(val tpe: imm.Type.Cls,
   import vm._
 
   var initialized = false
-  def this(clsData: imm.Cls, index: Int)(implicit vm: VM){
-    this(
-      clsData.tpe,
-      clsData.superType,
-      clsData.misc.sourceFile,
-      (clsData.access_flags & 0x0200) != 0,
-      clsData.interfaces,
-      clsData.access_flags,
-      clsData.methods
-        .zipWithIndex
-        .map{case (m, i) => new rt.Method.Cls(index, i, m)},
-      clsData.superType.toSeq.flatMap(_.cls.fieldList) ++
-        clsData.fields.filter(!_.static).flatMap{x =>
-          Seq.fill(x.desc.size)(x)
-        },
-      clsData.fields.filter(_.static).flatMap{x =>
-        Seq.fill(x.desc.size)(x)
-      },
-      index
-    )
-  }
+
+
   def checkInitialized()(implicit vm: VM): Unit = {
     if (!initialized){
       initialized = true
       vm.resolveDirectRef(tpe, Sig("<clinit>", imm.Desc.read("()V")))
         .foreach(threads(0).invoke(_, Nil))
-
-
 
       superType.foreach{ cls =>
         vm.ClsTable(cls).checkInitialized()
@@ -71,7 +87,7 @@ class Cls(val tpe: imm.Type.Cls,
     }
   }
 
-
+  val isInterface = (accessFlags & Access.Interface) != 0
   val statics = new Array[Int](staticList.length)
 
   def method(name: String, desc: imm.Desc): Option[rt.Method] = {
@@ -114,7 +130,7 @@ class Cls(val tpe: imm.Type.Cls,
                .flatMap(_.vTable): _*
       )
 
-    methods.filter(!_.method.static)
+    methods.filter(!_.static)
            .foreach{ m =>
 
       val index = oldMethods.indexWhere{ mRef => mRef.sig == m.sig }

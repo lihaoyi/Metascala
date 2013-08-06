@@ -19,17 +19,17 @@ package object imm {
    * or Objects into empty Lists, Arrays or None
    */
   object NullSafe{
-    private[imm] implicit class nullSafeList[T](val list: java.util.List[T]) extends AnyVal{
+    implicit class nullSafeList[T](val list: java.util.List[T]) extends AnyVal{
       def safeSeq: Seq[T] = {
         Option(list).toVector.flatten
       }
     }
-    private[imm] implicit class nullSafeArray[T](val list: Array[T]) extends AnyVal{
+    implicit class nullSafeArray[T](val list: Array[T]) extends AnyVal{
       def safeSeq: Seq[T] = {
         Option(list).toVector.flatten
       }
     }
-    private[imm] implicit class nullSafeValue[T](val a: T) extends AnyVal{
+    implicit class nullSafeValue[T](val a: T) extends AnyVal{
       def safeOpt: Option[T] = Option(a)
     }
   }

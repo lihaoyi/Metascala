@@ -1,7 +1,7 @@
 package metascala
 package rt
 
-import metascala.opcodes.Conversion
+import metascala.opcodes.{Code, Conversion}
 import org.objectweb.asm.tree.MethodNode
 
 
@@ -23,12 +23,17 @@ object Method{
   /**
    * A reference to a method belonging to a class
    */
-  case class Cls(clsIndex: Int, methodIndex: Int, method: imm.Method)(implicit vm: VM) extends Method{
+  case class Cls(clsIndex: Int,
+                 methodIndex: Int,
+                 sig: imm.Sig,
+                 accessFlags: Int,
+                 codeThunk: () => Code)
+                (implicit vm: VM) extends Method{
     lazy val cls = vm.ClsTable.clsIndex(clsIndex)
-    lazy val sig = method.sig
-    lazy val code = Conversion.ssa(cls.name, method.mn)
+    lazy val code = codeThunk()
 
-
-    override def toString = s"Method.Cls(${cls.name}, ${method.sig.unparse}})"
+    def static = (accessFlags & imm.Access.Static) != 0
+    def native = (accessFlags & imm.Access.Native) != 0
+    override def toString = s"Method.Cls(${cls.name}, ${sig.unparse}})"
   }
 }

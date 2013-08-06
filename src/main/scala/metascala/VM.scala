@@ -6,6 +6,8 @@ import metascala.imm.Type
 import metascala.rt.{Obj, FrameDump, Thread}
 import metascala.natives.Bindings
 import metascala.imm.Type.Prim
+import org.objectweb.asm.ClassReader
+import org.objectweb.asm.tree.ClassNode
 
 
 class ArrRef(val get: () => Int, val set: Int => Unit){
@@ -95,15 +97,17 @@ class VM(val natives: Bindings = Bindings.default,
     val clsIndex = mutable.ArrayBuffer[rt.Cls](null)
 
     def calc(t: imm.Type.Cls): rt.Cls = {
-      val clsData = imm.Cls.parse(
-        natives.fileLoader(
-          t.name + ".class"
-        ).getOrElse(
-          throw new Exception("Can't find " + t)
-        )
+      val input = natives.fileLoader(
+        t.name + ".class"
+      ).getOrElse(
+        throw new Exception("Can't find " + t)
       )
-      clsData.superType.map(vm.ClsTable)
-      new rt.Cls(clsData, clsIndex.length)
+      val cr = new ClassReader(input)
+      val classNode = new ClassNode()
+      cr.accept(classNode, ClassReader.EXPAND_FRAMES)
+
+      Option(classNode.superName).map(Type.Cls.read).map(vm.ClsTable)
+      rt.Cls(classNode, clsIndex.length)
     }
 
     var startTime = System.currentTimeMillis()
