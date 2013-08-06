@@ -63,7 +63,7 @@ class MetacircularTest extends FreeSpec with Util{
 //  }
 
   "sqrtFinder" in {
-    val tester = new Tester("metascala.full.MetacircularTest", memorySize = 128 * 1024)
+    val tester = new Tester("metascala.full.MetacircularTest", memorySize = 256 * 1024)
     for(i <- 0 to 2)tester.run("sqrtFinder")
 
   }

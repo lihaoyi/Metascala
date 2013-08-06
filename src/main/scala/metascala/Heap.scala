@@ -1,15 +1,16 @@
 package metascala
 
 import metascala.imm.Type.Prim
-
-class Heap(memorySize: Int)(implicit vm: VM){
+import scala.collection.mutable
+class Heap(memorySize: Int,
+           getRoots: () => Seq[ArrRef],
+           getLinks: (Int, Int) => Seq[Int]){
 
   val memory = new Array[Int](memorySize * 2)
   var start = 0
   var freePointer = 1
 
   def allocate(n: Int) = {
-
     if (freePointer + n > memorySize + start) {
       println("COLLECT LOL")
       collect(start)
@@ -37,25 +38,17 @@ class Heap(memorySize: Int)(implicit vm: VM){
 
   def blit(freePointer: Int, src: Int) = {
 //    println(s"blit free:$freePointer, src:$src")
-    if (src == 0) {
+    if (src == 0 || memory(src) == 0) {
       (0, freePointer)
     } else if (memory(src + 1) >= 0){
-      if (src.isObj) {
-        val obj = src.obj
-//        println(s"blit obj length: ${obj.heapSize}")
-        System.arraycopy(memory, src, memory, freePointer, obj.heapSize)
-        memory(src + 1) = -freePointer
-        (freePointer, freePointer + obj.heapSize)
-      } else if (src.isArr){ // it's an Arr
+      val headerSize = if (isObj(memory(src))) rt.Obj.headerSize else rt.Arr.headerSize
+      val length =  memory(src+1) + headerSize
 
-        val length = src.arr.heapSize
-//        println(s"blit arr length: $length")
-        System.arraycopy(memory, src, memory, freePointer, length)
-        memory(src + 1) = -freePointer
-        (freePointer, freePointer + length)
-      }else{
-        (0, freePointer)
-      }
+//        println(s"blit obj length: ${obj.heapSize}")
+      System.arraycopy(memory, src, memory, freePointer, length)
+      memory(src + 1) = -freePointer
+      (freePointer, freePointer + length)
+
     }else{
 //      println(s"non-blitting $src -> ${-memory(src + 1)}")
       (-memory(src + 1), freePointer)
@@ -67,13 +60,10 @@ class Heap(memorySize: Int)(implicit vm: VM){
       memory(i) = 0
     }
     println("===============Collecting==================")
-    println("arrayTypeCache " + vm.arrayTypeCache.length)
-    println("internedStrings " + vm.internedStrings.size)
-    println("typeObjCache " + vm.internedStrings.size)
     //vm.threads(0).threadStack.map(x => x.runningClass.name + "/" + x.method.sig + "\t" + x.method.code.blocks(x.pc._1).insns(x.pc._2)).foreach(println)
     println("starting " + (freePointer - from))
 
-    val roots = vm.getRoots
+    val roots = getRoots()
 
 //        println(s"allRoots ${roots.map(_())}")
 
@@ -87,51 +77,28 @@ class Heap(memorySize: Int)(implicit vm: VM){
       scanPointer = 1
     }
 
-
     for(root <- roots){
       val oldRoot = root()
       val (newRoot, nfp) = blit(freePointer, oldRoot)
       freePointer = nfp
       root() = newRoot
-
     }
 
     while(scanPointer != freePointer){
 
       assert(scanPointer <= freePointer, s"scanPointer $scanPointer > freePointer $freePointer")
 
-      if (scanPointer.isObj){
-        val obj = scanPointer.obj
+      val links = getLinks(memory(scanPointer), memory(scanPointer+1))
+      val length = memory(scanPointer + 1) + rt.Obj.headerSize
 
-//          println("Scanning Obj length = "+obj.heapSize)
-
-        for{
-          (x, i) <- obj.cls.fieldList.zipWithIndex
-          if x.desc.isRef
-        }{
-          val (newRoot, nfp) = blit(freePointer, obj.members(i))
-          obj.members(i) = newRoot
-          freePointer = nfp
-        }
-
-        scanPointer += obj.heapSize
-      }else{ // it's an Arr
-      val arr = scanPointer.arr
-        val length = arr.heapSize
-//                  println("Scanning Arr length = "+length)
-
-        if (arr.innerType.isRef){
-          for (i <- 0 until arr.length){
-            val (newRoot, nfp) = blit(freePointer, arr(i))
-            arr(i) = newRoot
-            freePointer = nfp
-          }
-        }
-        scanPointer += length
+      for(i <- links){
+        val (newRoot, nfp) = blit(freePointer, memory(scanPointer + i))
+        memory(scanPointer + i) = newRoot
+        freePointer = nfp
       }
+
+      scanPointer += length
     }
-
-
 
     if (from == 0) start = memorySize
     else start = 0

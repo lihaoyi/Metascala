@@ -138,6 +138,8 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
   }
 
   def shortName = shorten(clsData.tpe.name)
+
+  def heapSize = fieldList.length + rt.Obj.headerSize
 }
 
 

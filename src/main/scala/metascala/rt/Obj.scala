@@ -17,6 +17,7 @@ object Obj{
     val address = vm.heap.allocate(headerSize + cls.fieldList.length)
 //    println("Allocating " + cls.name + " at " + address)
     vm.heap(address) = -cls.index
+    vm.heap(address + 1) = cls.fieldList.length
     val obj = new Obj(address)
     for ((s, v) <- initMembers){
       obj(s) = v
@@ -33,7 +34,7 @@ class Obj(val address: Val)
    * Layout
    * ------
    * 0 Class Index
-   * 1 -
+   * 1 Length
    * 2 Field0
    * 3 Field1
    * ...
@@ -67,7 +68,7 @@ class Obj(val address: Val)
 
   def tpe = cls.clsData.tpe
 
-  def heapSize = cls.fieldList.length + rt.Obj.headerSize
+  def heapSize = cls.heapSize
 
   def apply(name: String): Val = {
     members(tpe.fieldList.lastIndexWhere(_.name == name))
@@ -89,7 +90,6 @@ class Obj(val address: Val)
 
 object Arr{
   val headerSize = 2
-
 
   /**
    * Allocates and returns an array of the specified type, with `n` elements.

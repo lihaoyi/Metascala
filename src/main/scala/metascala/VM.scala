@@ -25,7 +25,12 @@ class VM(val natives: Bindings = Bindings.default,
   private[this] implicit val vm = this
 
   val internedStrings = mutable.Map[String, Int]()
-  val heap = new Heap(memorySize)
+  val heap = new Heap(
+    memorySize,
+    () => getRoots(),
+    getLinks
+  )
+
   val arrayTypeCache = mutable.Buffer[imm.Type](null)
 
   val typeObjCache = new mutable.HashMap[imm.Type, Int] {
@@ -36,6 +41,18 @@ class VM(val natives: Bindings = Bindings.default,
     )
   }
 
+  def getLinks(tpe: Int, length: Int) = {
+    if (isObj(tpe)){
+      for{
+        (x, i) <- ClsTable.clsIndex(-tpe).fieldList.zipWithIndex
+        if x.desc.isRef
+      } yield i + rt.Obj.headerSize
+    } else{
+      if (arrayTypeCache(tpe).isRef){
+        for (i <- 0 until length) yield i + rt.Arr.headerSize
+      }else Nil
+    }
+  }
 
   /**
    * Identify the list of all root object references within the virtual machine.

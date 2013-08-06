@@ -27,9 +27,11 @@ package object metascala {
       Virtualizer.pushVirtual(x).apply(0)
     }
   }
+  def isObj(i: Int) = i < 0
+  def isArr(i: Int) = i > 0
   implicit class pimpedVal(v: Val){
-    def isObj(implicit vm: VM) = vm.heap(v) < 0
-    def isArr(implicit vm: VM) = vm.heap(v) > 0
+    def isObj(implicit vm: VM) = metascala.isObj(vm.heap(v))
+    def isArr(implicit vm: VM) = metascala.isArr(vm.heap(v))
     def obj(implicit vm: VM) = {
       assert(isObj)
       new Obj(v)
