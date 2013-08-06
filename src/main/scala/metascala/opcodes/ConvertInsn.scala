@@ -101,7 +101,7 @@ object ConvertInsn {
 
       def resolve(cls: rt.Cls): (Int, rt.Cls) = {
         list(cls).lastIndexWhere(_.name == insn.name) match{
-          case -1 => resolve(cls.clsAncestry(1).tpe.cls)
+          case -1 => resolve(cls.clsAncestry(1).cls)
           case x =>  (x, cls)
         }
       }

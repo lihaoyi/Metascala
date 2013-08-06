@@ -317,7 +317,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       new StackTraceElement(
         f.runningClass.name.toDot,
         f.method.method.name,
-        f.runningClass.clsData.misc.sourceFile.getOrElse("<unknown file>"),
+        f.runningClass.sourceFile.getOrElse("<unknown file>"),
         try f.method.code.blocks(f.pc._1).lines(f.pc._2) catch{case _ => 0 }
       )
     ).toArray
@@ -377,11 +377,11 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     mRef match{
       case rt.Method.Native(clsName, imm.Sig(name, desc), op) =>
         op(this, reader(args, 0), returnTo)
-      case m @ rt.Method.Cls(cls, methodIndex, method) =>
+      case m @ rt.Method.Cls(clsIndex, methodIndex, method) =>
 
-        assert((m.method.access & Access.Native) == 0, "method cannot be native: " + cls.name + " " + method.sig.unparse)
+        assert((m.method.access & Access.Native) == 0, "method cannot be native: " + ClsTable.clsIndex(clsIndex).name + " " + method.sig.unparse)
         val startFrame = new Frame(
-          runningClass = cls,
+          runningClass = ClsTable.clsIndex(clsIndex),
           method = m,
           returnTo = returnTo,
           locals = args.toArray.padTo(m.code.localSize, 0)

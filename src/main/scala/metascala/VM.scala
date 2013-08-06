@@ -138,10 +138,9 @@ class VM(val natives: Bindings = Bindings.default,
         mainMethod,
         imm.Type.Cls(bootClass)
           .cls
-          .clsData
           .methods
-          .find(x => x.name == mainMethod)
-          .map(_.desc)
+          .find(x => x.sig.name == mainMethod)
+          .map(_.sig.desc)
           .getOrElse(throw new IllegalArgumentException("Can't find method: " + mainMethod))
       ),
       args

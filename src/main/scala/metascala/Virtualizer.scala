@@ -85,7 +85,7 @@ object Virtualizer {
       case b: Any =>
         val obj = rt.Obj.allocate(b.getClass.getName.toSlash)
         var index = 0
-        for(field <- obj.cls.clsData.fields.filter(!_.static)){
+        for(field <- obj.cls.fieldList.distinct){
           val f = b.getClass.getDeclaredField(field.name)
           f.setAccessible(true)
           pushVirtual(f.get(b), writer(vm.heap.memory, obj.address + rt.Obj.headerSize + index))

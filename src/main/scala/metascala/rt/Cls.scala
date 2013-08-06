@@ -22,57 +22,74 @@ class Var(var x: Val){
 /**
  * The runtime mutable and VM-specific data of a Java Class
  */
-class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
+class Cls(val tpe: imm.Type.Cls,
+          val superType: Option[imm.Type.Cls],
+          val sourceFile: Option[String],
+          val isInterface: Boolean,
+          val interfaces: Seq[imm.Type.Cls],
+          val accessFlags: Int,
+          val methods: Seq[rt.Method.Cls],
+          val fieldList: Seq[imm.Field],
+          val staticList: Seq[imm.Field],
+          val index: Int)
+         (implicit vm: VM){
   import vm._
 
   var initialized = false
+  def this(clsData: imm.Cls, index: Int)(implicit vm: VM){
+    this(
+      clsData.tpe,
+      clsData.superType,
+      clsData.misc.sourceFile,
+      (clsData.access_flags & 0x0200) != 0,
+      clsData.interfaces,
+      clsData.access_flags,
+      clsData.methods
+        .zipWithIndex
+        .map{case (m, i) => new rt.Method.Cls(index, i, m)},
+      clsData.superType.toSeq.flatMap(_.cls.fieldList) ++
+        clsData.fields.filter(!_.static).flatMap{x =>
+          Seq.fill(x.desc.size)(x)
+        },
+      clsData.fields.filter(_.static).flatMap{x =>
+        Seq.fill(x.desc.size)(x)
+      },
+      index
+    )
+  }
   def checkInitialized()(implicit vm: VM): Unit = {
     if (!initialized){
       initialized = true
-      vm.resolveDirectRef(clsData.tpe, Sig("<clinit>", imm.Desc.read("()V")))
+      vm.resolveDirectRef(tpe, Sig("<clinit>", imm.Desc.read("()V")))
         .foreach(threads(0).invoke(_, Nil))
 
 
 
-      clsData.superType.foreach{ cls =>
+      superType.foreach{ cls =>
         vm.ClsTable(cls).checkInitialized()
       }
     }
   }
 
-  /**
-   * Mutable representations of all the methods this class has
-   */
-  val methods: Seq[rt.Method.Cls] =
-    clsData.methods
-           .zipWithIndex
-           .map{case (m, i) => new rt.Method.Cls(this, i, m)}
-
-
-  val staticList: Seq[imm.Field] = {
-    clsData.fields.filter(_.static).flatMap{x =>
-      Seq.fill(x.desc.size)(x)
-    }
-  }
 
   val statics = new Array[Int](staticList.length)
 
-  def method(name: String, desc: imm.Desc): Option[imm.Method] = {
+  def method(name: String, desc: imm.Desc): Option[rt.Method] = {
     clsAncestry.flatMap(_.methods)
-               .find(m => m.name == name && m.desc == desc)
+               .find(m => m.sig.name == name && m.sig.desc == desc)
   }
 
   lazy val size = fieldList.length
 
-  def name = clsData.tpe.name
+  def name = tpe.name
 
   /**
    * All classes that this class inherits from
    */
-  lazy val clsAncestry: List[imm.Cls] = {
-    clsData.superType match{
-      case None => List(clsData)
-      case Some(tpe) => clsData :: tpe.cls.clsAncestry
+  lazy val clsAncestry: List[imm.Type.Cls] = {
+    superType match{
+      case None => List(tpe)
+      case Some(superT) => tpe :: superT.cls.clsAncestry
     }
   }
 
@@ -80,19 +97,11 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
    * All classes and interfaces that this class inherits from
    */
   lazy val typeAncestry: Set[imm.Type.Cls] = {
-    Set(this.clsData.tpe) ++
-    clsData.superType.toSeq.flatMap(_.cls.typeAncestry) ++
-    clsData.interfaces.flatMap(_.cls.typeAncestry)
+    Set(tpe) ++
+    superType.toSeq.flatMap(_.cls.typeAncestry) ++
+    interfaces.flatMap(_.cls.typeAncestry)
   }
 
-
-
-  val fieldList: Seq[imm.Field] = {
-    clsData.superType.toSeq.flatMap(_.fieldList) ++
-    clsData.fields.filter(!_.static).flatMap{x =>
-      Seq.fill(x.desc.size)(x)
-    }
-  }
 
   /**
    * The virtual function dispatch table
@@ -100,7 +109,7 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
   lazy val vTable: Seq[rt.Method] = {
     val oldMethods =
       mutable.ArrayBuffer(
-        clsData.superType
+        superType
                .toArray
                .flatMap(_.vTable): _*
       )
@@ -134,10 +143,10 @@ class Cls(val clsData: imm.Cls, val index: Int)(implicit vm: VM){
   lazy val vTableMap = vTable.map(m => m.sig -> m).toMap
 
   override def toString() = {
-    s"Cls($index, ${clsData.tpe.name})"
+    s"Cls($index, ${tpe.name})"
   }
 
-  def shortName = shorten(clsData.tpe.name)
+  def shortName = shorten(tpe.name)
 
   def heapSize = fieldList.length + rt.Obj.headerSize
 }

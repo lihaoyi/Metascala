@@ -72,14 +72,14 @@ trait Default extends Bindings{
               val clsObj = o.obj
               val clsName = clsObj("name").toRealObj[String]
               val cls = vm.ClsTable(clsName)
-              val realMethods = cls.clsData.methods.filter(_.name == "<init>")
+              val realMethods = cls.methods.filter(_.sig.name == "<init>")
               val vrtArr = "java/lang/reflect/Constructor".allocArr(
-                realMethods .zipWithIndex.map{ case (f, i) =>
+                realMethods.zipWithIndex.map{ case (f, i) =>
                   "java/lang/reflect/Constructor".allocObj(
                     "clazz" -> clsObj.address,
                     "slot" -> i,
                     "parameterTypes" -> "java/lang/Class".allocArr(
-                      f.desc.args.map(t =>
+                      f.sig.desc.args.map(t =>
                         vt.vm.typeObjCache(imm.Type.readJava(t.realCls.getName))
                       )
                     )
@@ -113,7 +113,7 @@ trait Default extends Bindings{
                 cls.typeAncestry
                    .filter(x => !cls.clsAncestry.contains(x))
                    .toSeq
-                   .map(x => vt.vm.typeObjCache(x.cls.clsData.tpe))
+                   .map(x => vt.vm.typeObjCache(x.cls.tpe))
               )
             },
             "getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;".func(I, I){ (vt, o) =>
@@ -125,7 +125,6 @@ trait Default extends Bindings{
               val topClsName = o.obj.apply("name").toRealObj[String].toSlash
 
               vm.ClsTable(topClsName)
-                .clsData
                 .superType
                 .map{_.name}
                 .map(name => vt.vm.typeObjCache(imm.Type.readJava(name)))
@@ -160,12 +159,12 @@ trait Default extends Bindings{
               }
               if (check(imm.Type.read(nameA.replace('.', '/')), imm.Type.read(nameB.replace('.', '/')))) 1 else 0
             },
-            "isInterface()Z".func(I, I){ (vt, o) =>
+            "isInterface()Z".func(I, Z){ (vt, o) =>
               import vt.vm
               val clsObj = o.obj
               vm.ClsTable(
                 clsObj("name").toRealObj[String].toSlash
-              ).clsData.access_flags & 0x0200
+              ).isInterface
             },
             "isPrimitive()Z".func(I, I){ (vt, o) =>
               import vt.vm
@@ -214,7 +213,7 @@ trait Default extends Bindings{
 
 
               val string =
-                if(value.isObj) value.obj.cls.clsData.tpe.javaName
+                if(value.isObj) value.obj.cls.tpe.javaName
                 else value.arr.tpe.javaName
 
               vt.vm.typeObjCache(imm.Type.readJava(string))
@@ -298,7 +297,7 @@ trait Default extends Bindings{
 
               import vt.vm
               val pa = a.obj
-              val mRef = vt.vm.resolveDirectRef(pa.cls.clsData.tpe, pa.cls.clsData.methods.find(_.name == "run").get.sig).get
+              val mRef = vt.vm.resolveDirectRef(pa.cls.tpe, pa.cls.methods.find(_.sig.name == "run").get.sig).get
               var x = 0
               vt.invoke(mRef, Seq(pa.address))
 
@@ -308,7 +307,7 @@ trait Default extends Bindings{
 
               import vt.vm
               val pa = a.obj
-              val mRef = vt.vm.resolveDirectRef(pa.cls.clsData.tpe, pa.cls.clsData.methods.find(_.name == "run").get.sig).get
+              val mRef = vt.vm.resolveDirectRef(pa.cls.tpe, pa.cls.methods.find(_.sig.name == "run").get.sig).get
               var x = 0
               val ret = vt.invoke(mRef, Seq(pa.address))
 
@@ -406,7 +405,7 @@ trait Default extends Bindings{
               import vt.vm
               val addr = o.obj.apply("name")
               val str = addr.toRealObj[String]
-              vm.ClsTable(str).clsData.access_flags
+              vm.ClsTable(str).accessFlags
             }
           )
         )

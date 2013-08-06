@@ -2,11 +2,6 @@ package metascala.rt
 
 import collection.mutable
 import metascala._
-import metascala.rt.Var
-
-import reflect.ClassTag
-import scala.Some
-import scala.Some
 import metascala.imm
 import scala.Some
 
@@ -66,7 +61,7 @@ class Obj(val address: Val)
     }
   }
 
-  def tpe = cls.clsData.tpe
+  def tpe = cls.tpe
 
   def heapSize = cls.heapSize
 

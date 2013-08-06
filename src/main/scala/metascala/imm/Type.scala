@@ -66,7 +66,7 @@ object Type{
     assert(!name.contains('['), "Cls name cannot contain [ " + name)
     def size = 1
     def cls(implicit vm: VM) = vm.ClsTable(this)
-    def parent(implicit vm: VM) = this.cls.clsData.superType
+    def parent(implicit vm: VM) = this.cls.superType
     def realCls = classOf[Object]
     def methodType: Type.Cls = this
 

@@ -23,7 +23,8 @@ object Method{
   /**
    * A reference to a method belonging to a class
    */
-  case class Cls(cls: rt.Cls, methodIndex: Int, method: imm.Method)(implicit vm: VM) extends Method{
+  case class Cls(clsIndex: Int, methodIndex: Int, method: imm.Method)(implicit vm: VM) extends Method{
+    lazy val cls = vm.ClsTable.clsIndex(clsIndex)
     lazy val sig = method.sig
     lazy val code = Conversion.ssa(cls.name, method.mn)
 
