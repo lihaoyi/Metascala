@@ -19,6 +19,13 @@ public class IO {
 
     }
 
+    public static String nullReturn(){
+        return null;
+    }
+
+    public static Object arrayObj(){
+        return new int[]{1, 2, 3};
+    }
     public static int runtime(){
         String s = null;
         s.charAt(0);

@@ -24,6 +24,8 @@ class IOTest extends FreeSpec with Util{
 
     "stringLiteral" in tester.run("stringLiteral")
     "strings" in tester.run("strings", "mooo")
+    "nullReturn" in tester.run("nullReturn")
+    "arrayObj" in tester.run("arrayObj")
 
   }
   "exceptions" -{

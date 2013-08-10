@@ -23,7 +23,24 @@ object Virtualizer {
         if(address == 0) null
         else if (refs.contains(address)) refs(address)
         else tpe match{
-          case t @ imm.Type.Cls(name) =>
+          case imm.Type.Cls("java/lang/Object") | imm.Type.Arr(_) if address.isArr=>
+            val tpe = vm.arrayTypeCache(vm.heap(address))
+
+            val clsObj = forName(tpe.name.toDot)
+            val newArr = java.lang.reflect.Array.newInstance(clsObj, address.arr.arrayLength)
+
+            for(i <- 0 until address.arr.arrayLength){
+
+              val cooked = tpe match{
+                case p: imm.Type.Prim[_] => p.read(reader(vm.heap.memory, address + rt.Arr.headerSize + i * tpe.size))
+                case x => popVirtual(tpe, reader(vm.heap.memory, address + rt.Arr.headerSize + i * tpe.size))
+              }
+              java.lang.reflect.Array.set(newArr, i, cooked)
+            }
+
+            newArr
+          case t @ imm.Type.Cls(name)=>
+            println("Popping " + address + name)
             val obj = unsafe.allocateInstance(Class.forName(address.obj.cls.name.toDot))
             refs += (address -> obj)
             var index = 0
@@ -39,21 +56,7 @@ object Virtualizer {
               }
             }
             obj
-          case t @ imm.Type.Arr(tpe) =>
 
-            val clsObj = forName(tpe.name.toDot)
-            val newArr = java.lang.reflect.Array.newInstance(clsObj, address.arr.arrayLength)
-
-            for(i <- 0 until address.arr.arrayLength){
-
-              val cooked = tpe match{
-                case p: imm.Type.Prim[_] => p.read(reader(vm.heap.memory, address + rt.Arr.headerSize + i * tpe.size))
-                case x => popVirtual(tpe, reader(vm.heap.memory, address + rt.Arr.headerSize + i * tpe.size))
-              }
-              java.lang.reflect.Array.set(newArr, i, cooked)
-            }
-
-            newArr
         }
     }
 
