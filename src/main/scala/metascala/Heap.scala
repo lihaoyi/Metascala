@@ -40,14 +40,17 @@ class Heap(memorySize: Int,
 //    println(s"blit free:$freePointer, src:$src")
     if (src == 0 || memory(src) == 0) {
       (0, freePointer)
-    } else if (memory(src + 1) >= 0){
+    } else if (memory(src) == 0){
+      throw new Exception("Can't point to nothing! " + src + " -> " + memory(src))
+    }else if (memory(src + 1) >= 0){
       val headerSize = if (isObj(memory(src))) rt.Obj.headerSize else rt.Arr.headerSize
       val length =  memory(src+1) + headerSize
 
-//        println(s"blit obj length: ${obj.heapSize}")
+      //        println(s"blit obj length: ${obj.heapSize}")
       System.arraycopy(memory, src, memory, freePointer, length)
       memory(src + 1) = -freePointer
       (freePointer, freePointer + length)
+
 
     }else{
 //      println(s"non-blitting $src -> ${-memory(src + 1)}")

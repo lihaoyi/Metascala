@@ -83,15 +83,16 @@ object Virtualizer {
         )
         out(arr.address)
       case b: Any =>
-        val obj = rt.Obj.allocate(b.getClass.getName.toSlash)
         var index = 0
-        for(field <- obj.cls.fieldList.distinct){
+        val contents = mutable.Buffer.empty[Int]
+        for(field <- vm.ClsTable(imm.Type.Cls(b.getClass.getName.toSlash)).fieldList.distinct) yield {
           val f = b.getClass.getDeclaredField(field.name)
           f.setAccessible(true)
-          pushVirtual(f.get(b), writer(vm.heap.memory, obj.address + rt.Obj.headerSize + index))
+          pushVirtual(f.get(b), contents.append(_))
           index += field.desc.size
         }
-
+        val obj = rt.Obj.allocate(b.getClass.getName.toSlash)
+        contents.map(writer(vm.heap.memory, obj.address + rt.Obj.headerSize))
         out(obj.address)
     }
   }
