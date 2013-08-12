@@ -9,11 +9,20 @@ import metascala.imm.Type.Prim
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
 
-
-class ArrRef(val get: () => Int, val set: Int => Unit){
+trait Ref{
+  def apply(): Int
+  def update(i: Int): Unit
+}
+class ArrRef(val get: () => Int, val set: Int => Unit) extends Ref{
   def apply() = get()
   def update(i: Int) = set(i)
 }
+class ManualRef(var x: Int) extends Ref{
+  def apply() = x
+  def update(i: Int) = x = i
+}
+
+
 /**
  * A Metascala VM. Call invoke() on it with a class, method name and arguments
  * to have it interpret some Java bytecode for you. It optionally takes in a set of
@@ -33,12 +42,29 @@ class VM(val natives: Bindings = Bindings.default,
     getLinks
   )
 
+  def alloc[T](func: Registrar => T) = {
+    val tempRegistry = mutable.Set[Ref]()
+    val res = func(
+      new Registrar({i =>
+        val ref = new ManualRef(i)
+        tempRegistry.add(ref)
+        registry.add(ref)
+      }, this)
+    )
+    tempRegistry.map(registry.remove)
+    res
+  }
+
+  val registry = mutable.Set[Ref]()
+
   val arrayTypeCache = mutable.Buffer[imm.Type](null)
 
   val typeObjCache = new mutable.HashMap[imm.Type, Int] {
     override def apply(x: imm.Type) = this.getOrElseUpdate(x,
-      "java/lang/Class".allocObj(
-        "name" -> x.javaName.toVirtObj
+      vm.alloc( implicit r =>
+        "java/lang/Class".allocObj(
+          "name" -> x.javaName.toVirtObj
+        )
       )
     )
   }
@@ -82,13 +108,13 @@ class VM(val natives: Bindings = Bindings.default,
       (k, v) <- typeObjCache
     } yield new ArrRef(() => typeObjCache(k), typeObjCache(k) = _)
 
-    stackRoots ++ classRoots ++ clsObjRoots
+    stackRoots ++ classRoots ++ clsObjRoots ++ registry
 
   }
   /**
    * Globally shared sun.misc.Unsafe object.
    */
-  lazy val theUnsafe = rt.Obj.allocate("sun/misc/Unsafe")
+  lazy val theUnsafe = vm.alloc(rt.Obj.allocate("sun/misc/Unsafe")(_))
 
   /**
    * Cache of all the classes loaded so far within the Metascala VM.

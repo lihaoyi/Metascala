@@ -23,7 +23,7 @@ object Virtualizer {
         if(address == 0) null
         else if (refs.contains(address)) refs(address)
         else tpe match{
-          case imm.Type.Cls("java/lang/Object") | imm.Type.Arr(_) if address.isArr=>
+          case imm.Type.Cls("java/lang/Object") | imm.Type.Arr(_) if address.isArr =>
             val tpe = vm.arrayTypeCache(vm.heap(address))
 
             val clsObj = forName(tpe.name.toDot)
@@ -35,6 +35,7 @@ object Virtualizer {
                 case p: imm.Type.Prim[_] => p.read(reader(vm.heap.memory, address + rt.Arr.headerSize + i * tpe.size))
                 case x => popVirtual(tpe, reader(vm.heap.memory, address + rt.Arr.headerSize + i * tpe.size))
               }
+              println("Setting " + i + " " + cooked)
               java.lang.reflect.Array.set(newArr, i, cooked)
             }
 
@@ -63,13 +64,14 @@ object Virtualizer {
     x
   }
 
-  def pushVirtual(thing: Any)(implicit vm: VM): Seq[Int] = {
+  def pushVirtual(thing: Any)(implicit registrar: Registrar): Seq[Int] = {
     val tmp = new mutable.Stack[Int]()
     pushVirtual(thing, tmp.push(_))
     tmp.reverse
   }
 
-  def pushVirtual(thing: Any, out: Val => Unit)(implicit vm: VM): Unit = {
+  def pushVirtual(thing: Any, out: Val => Unit)(implicit registrar: Registrar): Unit = {
+    implicit val vm = registrar.vm
     thing match {
       case null => out(0)
       case b: Boolean => Z.write(b, out)
@@ -81,9 +83,11 @@ object Virtualizer {
       case b: Long    => J.write(b, out)
       case b: Double  => D.write(b, out)
       case b: Array[_] =>
-        val arr = rt.Arr.allocate(imm.Type.Arr.read(b.getClass.getName.replace('.', '/')).innerType,
-          b.flatMap(pushVirtual)
-        )
+        val arr =
+          rt.Arr.allocate(imm.Type.Arr.read(b.getClass.getName.replace('.', '/')).innerType,
+            b.flatMap(pushVirtual)
+          )
+
         out(arr.address)
       case b: Any =>
         var index = 0

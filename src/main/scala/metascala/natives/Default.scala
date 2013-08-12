@@ -54,15 +54,16 @@ trait Default extends Bindings{
               val name = obj("name").toRealObj[String]
               val realFields = vm.ClsTable(imm.Type.Cls.readJava(name)).fieldList
 
-
-              "java/lang/reflect/Field".allocArr(
-                realFields.zipWithIndex.map{ case (f, i) =>
-                  "java/lang/reflect/Field".allocObj(
-                    "clazz" -> obj.address,
-                    "slot" -> i,
-                    "name" -> vt.vm.internedStrings.getOrElseUpdate(f.name, f.name.toVirtObj)
-                  )
-                }
+              vm.alloc(implicit r =>
+                "java/lang/reflect/Field".allocArr(
+                  realFields.zipWithIndex.map{ case (f, i) =>
+                    "java/lang/reflect/Field".allocObj(
+                      "clazz" -> obj.address,
+                      "slot" -> i,
+                      "name" -> vt.vm.internedStrings.getOrElseUpdate(f.name, f.name.toVirtObj)
+                    )
+                  }
+                )
               )
 
             },
@@ -73,30 +74,34 @@ trait Default extends Bindings{
               val clsName = clsObj("name").toRealObj[String]
               val cls = vm.ClsTable(clsName)
               val realMethods = cls.methods.filter(_.sig.name == "<init>")
-              val vrtArr = "java/lang/reflect/Constructor".allocArr(
-                realMethods.zipWithIndex.map{ case (f, i) =>
-                  "java/lang/reflect/Constructor".allocObj(
-                    "clazz" -> clsObj.address,
-                    "slot" -> i,
-                    "parameterTypes" -> "java/lang/Class".allocArr(
-                      f.sig.desc.args.map(t =>
-                        vt.vm.typeObjCache(imm.Type.readJava(t.realCls.getName))
+              val vrtArr = vm.alloc(implicit r =>
+                "java/lang/reflect/Constructor".allocArr(
+                  realMethods.zipWithIndex.map{ case (f, i) =>
+                    "java/lang/reflect/Constructor".allocObj(
+                      "clazz" -> clsObj.address,
+                      "slot" -> i,
+                      "parameterTypes" -> "java/lang/Class".allocArr(
+                        f.sig.desc.args.map(t =>
+                          vt.vm.typeObjCache(imm.Type.readJava(t.realCls.getName))
+                        )
                       )
                     )
-                  )
-                }
+                  }
+                )
               )
               vrtArr
             },
             "getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;".func(I, Z, I){ (vt, clsAddr, pub) =>
               import vt.vm
               val cls = vt.vm.ClsTable(clsAddr.obj.apply("name").toRealObj[String].toSlash)
-              "java/lang/reflect/Method".allocArr(
-                cls.methods.map{ m =>
-                  "java/lang/reflect/Method".allocObj(
-                  )
+              vm.alloc(implicit r =>
+                "java/lang/reflect/Method".allocArr(
+                  cls.methods.map{ m =>
+                    "java/lang/reflect/Method".allocObj(
+                    )
 
-                }
+                  }
+                )
               )
             },
             "getEnclosingMethod0()[Ljava/lang/Object;".func(I, I){
@@ -108,12 +113,13 @@ trait Default extends Bindings{
             "getInterfaces()[Ljava/lang/Class;".func(I, I){ (vt, clsAddr) =>
               import vt.vm
               val cls = vt.vm.ClsTable(clsAddr.obj.apply("name").toRealObj[String].toSlash)
-
-              "java/lang/Class".allocArr(
-                cls.typeAncestry
-                   .filter(x => !cls.clsAncestry.contains(x))
-                   .toSeq
-                   .map(x => vt.vm.typeObjCache(x.cls.tpe))
+              vm.alloc(implicit r =>
+                "java/lang/Class".allocArr(
+                  cls.typeAncestry
+                     .filter(x => !cls.clsAncestry.contains(x))
+                     .toSeq
+                     .map(x => vt.vm.typeObjCache(x.cls.tpe))
+                )
               )
             },
             "getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;".func(I, I){ (vt, o) =>
@@ -193,7 +199,7 @@ trait Default extends Bindings{
               val bytes = new Array[Byte](realResult.available())
               realResult.readFully(bytes)
               val byteStream = new ByteArrayInputStream(bytes)
-              byteStream.toVirtObj
+              vm.alloc(byteStream.toVirtObj(_))
             },
             "registerNatives()V".value(V)(())
           ),
@@ -253,9 +259,11 @@ trait Default extends Bindings{
             "currentThread()Ljava/lang/Thread;".func(I){ vt =>
               import vt.vm
 
-              "java/lang/Thread".allocObj(
-                "group" -> "java/lang/ThreadGroup".allocObj(),
-                "priority" -> 5
+              vm.alloc(implicit r =>
+                "java/lang/Thread".allocObj(
+                  "group" -> "java/lang/ThreadGroup".allocObj(),
+                  "priority" -> 5
+                )
               )
             },
             "setPriority0(I)V".value(V)(()),
@@ -267,7 +275,7 @@ trait Default extends Bindings{
               import vt.vm
               val throwable = addr.obj
               val trace = vt.trace
-              throwable("stackTrace") = vt.trace.toVirtObj
+              throwable("stackTrace") = vm.alloc(vt.trace.toVirtObj(_))
 
               throwable.address
             }
@@ -278,7 +286,7 @@ trait Default extends Bindings{
                 import vt.vm
                 val clsObj = cls.obj
                 val clsName = clsObj("name").toRealObj[String]
-                rt.Arr.allocate(imm.Type.readJava(clsName), length).address
+                vm.alloc(rt.Arr.allocate(imm.Type.readJava(clsName), length)(_)).address
               },
               "set(Ljava/lang/Object;ILjava/lang/Object;)V".func(I, I, I, V){ (vt, arr, index, obj) =>
                 vt.invoke(

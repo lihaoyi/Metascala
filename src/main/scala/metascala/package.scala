@@ -11,6 +11,9 @@ package object metascala {
    */
   type Sym = Int
 
+  class Registrar(f: Int => Unit, val vm: VM) extends Function1[Int, Unit]{
+    def apply(i: Int) = f(i)
+  }
   private[metascala] implicit class castable(val x: Any) extends AnyVal{
     def cast[T] = x.asInstanceOf[T]
   }
@@ -23,7 +26,7 @@ package object metascala {
     }
   }
   implicit class pimpedAny(x: Any){
-    def toVirtObj(implicit vm: VM) = {
+    def toVirtObj(implicit registrar: Registrar) = {
       Virtualizer.pushVirtual(x).apply(0)
     }
   }
@@ -84,10 +87,12 @@ package object metascala {
   implicit class pimpedString(val s: String){
     def toDot = s.replace('/', '.')
     def toSlash = s.replace('.', '/')
-    def allocObj(initMembers: (String, Val)*)(implicit vm: VM) = {
+    def allocObj(initMembers: (String, Val)*)(implicit registrar: Registrar) = {
+      implicit val vm = registrar.vm
       rt.Obj.allocate(s, initMembers:_*).address
     }
-    def allocArr(backing: Seq[Int])(implicit vm: VM) = {
+    def allocArr(backing: Seq[Int])(implicit registrar: Registrar) = {
+      implicit val vm = registrar.vm
       rt.Arr.allocate(s, backing.toArray).address
     }
   }

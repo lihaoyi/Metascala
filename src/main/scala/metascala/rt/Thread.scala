@@ -102,7 +102,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
       case New(target, cls) =>
         cls.checkInitialized()
-        val obj = rt.Obj.allocate(cls.name)
+        val obj = vm.alloc(rt.Obj.allocate(cls.name)(_))
         frame.locals(target) = obj.address
         advancePc()
 
@@ -149,7 +149,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         frame.locals(dest) = frame.locals(src).arr.arrayLength
         advancePc()
       case NewArray(src, dest, typeRef) =>
-        val newArray = rt.Arr.allocate(typeRef, frame.locals(src))
+        val newArray = vm.alloc(rt.Arr.allocate(typeRef, frame.locals(src))(_))
         frame.locals(dest) = newArray.address
         advancePc()
       case PutArray(src, index, array, prim) =>
@@ -174,7 +174,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         val w = writer(frame.locals, target)
         thing match{
           case s: String =>
-            val top = Virtualizer.pushVirtual(s).apply(0)
+            val top = vm.alloc(Virtualizer.pushVirtual(s)(_)).apply(0)
             frame.locals(target) = top
           case t: org.objectweb.asm.Type =>
 
@@ -283,14 +283,14 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
           (dims, tpe) match {
             case (size :: tail, imm.Type.Arr(innerType: imm.Type.Ref)) =>
-              val newArr = rt.Arr.allocate(innerType, size)
+              val newArr = vm.alloc(rt.Arr.allocate(innerType, size)(_))
               for(i <- 0 until size){
                 newArr(i) = rec(tail, innerType)
               }
               newArr.address
 
             case (size :: Nil, imm.Type.Arr(innerType)) =>
-              rt.Arr.allocate(innerType, size).address
+              vm.alloc(rt.Arr.allocate(innerType, size)(_)).address
            }
         }
         val dimValues = dims.map(frame.locals).toList
@@ -333,9 +333,11 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   final def throwExWithTrace(clsName: String, detailMessage: String) = {
 
     throwException(
-      rt.Obj.allocate(clsName,
-        "stackTrace" -> trace.toVirtObj,
-        "detailMessage" -> detailMessage.toVirtObj
+      vm.alloc( implicit r =>
+        rt.Obj.allocate(clsName,
+          "stackTrace" -> trace.toVirtObj,
+          "detailMessage" -> detailMessage.toVirtObj
+        )
       )
     )
   }
@@ -398,16 +400,17 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
                        : Unit = {
 
     val tmp = mutable.Buffer.empty[Val]
+    vm.alloc{ implicit r =>
+      args.map(
+        Virtualizer.pushVirtual(_, tmp.append(_: Int))
+      )
 
-    args.map(
-      Virtualizer.pushVirtual(_, tmp.append(_: Int))
-    )
-
-    prepInvoke(
-      vm.resolveDirectRef(tpe.cast[imm.Type.Cls], sig).get,
-      tmp,
-      returnTo
-    )
+      prepInvoke(
+        vm.resolveDirectRef(tpe.cast[imm.Type.Cls], sig).get,
+        tmp,
+        returnTo
+      )
+    }
 
   }
   def invoke(mRef: rt.Method, args: Seq[Int]): Any = {

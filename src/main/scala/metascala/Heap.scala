@@ -3,14 +3,14 @@ package metascala
 import metascala.imm.Type.Prim
 import scala.collection.mutable
 class Heap(memorySize: Int,
-           getRoots: () => Seq[ArrRef],
+           getRoots: () => Seq[Ref],
            getLinks: (Int, Int) => Seq[Int]){
 
   val memory = new Array[Int](memorySize * 2)
   var start = 0
   var freePointer = 1
 
-  def allocate(n: Int) = {
+  def allocate(n: Int)(implicit registrar: Registrar) = {
     if (freePointer + n > memorySize + start) {
       println("COLLECT LOL")
       collect(start)
@@ -20,6 +20,7 @@ class Heap(memorySize: Int,
     }
     val newFree = freePointer
     freePointer += n
+    registrar(newFree)
     newFree
   }
 

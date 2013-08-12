@@ -8,7 +8,8 @@ import scala.Some
 
 object Obj{
   val headerSize = 2
-  def allocate(cls: rt.Cls, initMembers: (String, Val)*)(implicit vm: VM): Obj = {
+  def allocate(cls: rt.Cls, initMembers: (String, Val)*)(implicit registrar: Registrar): Obj = {
+    implicit val vm = registrar.vm
     val address = vm.heap.allocate(headerSize + cls.fieldList.length)
 //    println("Allocating " + cls.name + " at " + address)
     vm.heap(address) = -cls.index
@@ -91,10 +92,11 @@ object Arr{
    * This is multiplied with the size of the type being allocated when
    * calculating the total amount of memory benig allocated
    */
-  def allocate(t: imm.Type, n: scala.Int)(implicit vm: VM): Arr = {
+  def allocate(t: imm.Type, n: scala.Int)(implicit registrar: Registrar): Arr = {
     rt.Arr.allocate(t, Array.fill[Int](n * t.size)(0))
   }
-  def allocate(innerType: imm.Type, backing: Array[Int])(implicit vm: VM): Arr = {
+  def allocate(innerType: imm.Type, backing: Array[Int])(implicit registrar: Registrar): Arr = {
+    implicit val vm = registrar.vm
     val address = vm.heap.allocate(Arr.headerSize + backing.length)
 //    println("Allocating Array[" + innerType.name + "] at " + address)
     vm.heap(address) = vm.arrayTypeCache.length
