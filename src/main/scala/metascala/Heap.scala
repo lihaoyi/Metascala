@@ -104,8 +104,10 @@ class Heap(memorySize: Int,
       scanPointer += length
     }
 
+
     if (from == 0) start = memorySize
     else start = 0
+
     println("ending " + (freePointer - start))
 
 //    println("==================Collectiong Compelete====================")

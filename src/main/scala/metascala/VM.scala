@@ -9,18 +9,7 @@ import metascala.imm.Type.Prim
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
 
-trait Ref{
-  def apply(): Int
-  def update(i: Int): Unit
-}
-class ArrRef(val get: () => Int, val set: Int => Unit) extends Ref{
-  def apply() = get()
-  def update(i: Int) = set(i)
-}
-class ManualRef(var x: Int) extends Ref{
-  def apply() = x
-  def update(i: Int) = x = i
-}
+
 
 
 /**
@@ -59,7 +48,7 @@ class VM(val natives: Bindings = Bindings.default,
 
   val arrayTypeCache = mutable.Buffer[imm.Type](null)
 
-  val typeObjCache = new mutable.HashMap[imm.Type, Int] {
+  val typeObjCache = new mutable.HashMap[imm.Type, Ref] {
     override def apply(x: imm.Type) = this.getOrElseUpdate(x,
       vm.alloc( implicit r =>
         "java/lang/Class".allocObj(
@@ -106,7 +95,7 @@ class VM(val natives: Bindings = Bindings.default,
 
     val clsObjRoots = for{
       (k, v) <- typeObjCache
-    } yield new ArrRef(() => typeObjCache(k), typeObjCache(k) = _)
+    } yield v
 
     stackRoots ++ classRoots ++ clsObjRoots ++ registry
 

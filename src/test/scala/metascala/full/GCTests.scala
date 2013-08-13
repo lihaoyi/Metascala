@@ -117,16 +117,32 @@ class GCTests extends FreeSpec with Util{
     val tester = new Tester("metascala.full.ScalaLib", memorySize = 9 * 1024)
     for(i <- 1 to 5) tester.run("parseClass")
   }
-  "gcInterrupt" in {
+  "gcInterruptNegative" in {
     val tester = new Tester("metascala.full.ScalaLib", memorySize = 10)
     implicit val vm = tester.svm
     import metascala.pimpedString
-    println(implicitly[Int => Int])
+
+    vm.alloc("java/lang/Object".allocObj()(_))
+    vm.alloc("java/lang/Object".allocObj()(_))
+    vm.alloc("java/lang/Object".allocObj()(_))
+    println(vm.heap.dump(0, 20))
+    vm.heap.collect(vm.heap.start)
+
+    // everything got GCed, nothing in the second memory space
+    assert(vm.heap.memory.slice(10, 20).forall(_ == 0))
+  }
+  "gcInterruptPositive" in {
+    val tester = new Tester("metascala.full.ScalaLib", memorySize = 10)
+    implicit val vm = tester.svm
+    import metascala.pimpedString
     vm.alloc{ implicit r =>
-      val p = "java/lang/Object".allocObj()
-      println("freePointer " + vm.heap.freePointer + ", p " + p)
+      val p1 = "java/lang/Object".allocObj()
+      val p2 = "java/lang/Object".allocObj()
+      val p3 = "java/lang/Object".allocObj()
+      println(vm.heap.dump(0, 20))
       vm.heap.collect(vm.heap.start)
-      println("freePointer " + vm.heap.freePointer + ", p " + p)
+      println(vm.heap.dump(0, 20))
+      // everything got GCed
     }
   }
 }

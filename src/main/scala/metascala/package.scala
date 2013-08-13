@@ -51,6 +51,18 @@ package object metascala {
     }
   }
 
+  trait Ref{
+    def apply(): Int
+    def update(i: Int): Unit
+  }
+  class ArrRef(val get: () => Int, val set: Int => Unit) extends Ref{
+    def apply() = get()
+    def update(i: Int) = set(i)
+  }
+  implicit class ManualRef(var x: Int) extends Ref{
+    def apply() = x
+    def update(i: Int) = x = i
+  }
 
   object Val{
     val Null = 0
@@ -87,7 +99,7 @@ package object metascala {
   implicit class pimpedString(val s: String){
     def toDot = s.replace('/', '.')
     def toSlash = s.replace('.', '/')
-    def allocObj(initMembers: (String, Val)*)(implicit registrar: Registrar) = {
+    def allocObj(initMembers: (String, Ref)*)(implicit registrar: Registrar) = {
       implicit val vm = registrar.vm
       rt.Obj.allocate(s, initMembers:_*).address
     }
