@@ -140,9 +140,9 @@ class GCTests extends FreeSpec with Util{
 
     vm.heap.collect(vm.heap.start)
     vm.heap.collect(vm.heap.start)
-    // These guys got moved together to the new space (maybe in a new order)
+    // after exiting the `alloc{}` block, the refs become meaningless
+    // as the things they are pointing to get GCed
     assert(Set(p1(), p2(), p3()) == Set(1, 3, 5))
-
     assert(Set(p1, p2, p3).forall(p => vm.heap(p()) == 0))
   }
 }

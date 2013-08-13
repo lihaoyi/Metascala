@@ -35,13 +35,11 @@ object Virtualizer {
                 case p: imm.Type.Prim[_] => p.read(reader(vm.heap.memory, address + rt.Arr.headerSize + i * tpe.size))
                 case x => popVirtual(tpe, reader(vm.heap.memory, address + rt.Arr.headerSize + i * tpe.size))
               }
-              println("Setting " + i + " " + cooked)
               java.lang.reflect.Array.set(newArr, i, cooked)
             }
 
             newArr
           case t @ imm.Type.Cls(name)=>
-            println("Popping " + address + name)
             val obj = unsafe.allocateInstance(Class.forName(address.obj.cls.name.toDot))
             refs += (address -> obj)
             var index = 0

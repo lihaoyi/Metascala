@@ -93,9 +93,7 @@ class VM(val natives: Bindings = Bindings.default,
       if field.desc.isRef
     } yield new ArrRef(() => cls.statics(i), cls.statics(i) = _)
 
-    val clsObjRoots = for{
-      (k, v) <- typeObjCache
-    } yield v
+    val clsObjRoots = typeObjCache.values
 
     stackRoots ++ classRoots ++ clsObjRoots ++ registry
 

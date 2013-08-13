@@ -52,8 +52,13 @@ trait Default extends Bindings{
               val obj = o.obj
 
               val name = obj("name").toRealObj[String]
-              val realFields = vm.ClsTable(imm.Type.Cls.readJava(name)).fieldList
-
+              val cls = vm.ClsTable(imm.Type.Cls.readJava(name))
+              val realFields = cls.fieldList ++ cls.staticList
+              println("====================")
+              println(name)
+              println("--------------------")
+              realFields.map(_.name).foreach(println)
+              println("====================")
               vm.alloc(implicit r =>
                 "java/lang/reflect/Field".allocArr(
                   realFields.zipWithIndex.map{ case (f, i) =>
