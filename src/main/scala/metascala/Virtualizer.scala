@@ -9,7 +9,12 @@ object Virtualizer {
   lazy val unsafe = {
     val field = Class.forName("sun.misc.Unsafe").getDeclaredField("theUnsafe")
     field.setAccessible(true)
-    field.get(null).asInstanceOf[sun.misc.Unsafe]
+    println("lol")
+    println(field == null)
+    val f = field.get(null)
+    println("omg")
+    val g = f.asInstanceOf[sun.misc.Unsafe]
+    g
   }
 
   def popVirtual(tpe: imm.Type, src: () => Val, refs: mutable.Map[Int, Any] = mutable.Map.empty)(implicit vm: VM): Any = {

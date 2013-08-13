@@ -253,16 +253,16 @@ object Conversion {
       (buffer, types, localMap, blockFrames.head, blockFrames.last, lineMap)
     }
 
-    if (false && method.name == "getCanonicalName") {
-      vm.log(s"--------------------- Converting ${method.name} ---------------------")
+    if (method.name == "ensureObj") {
+      println(s"--------------------- Converting ${method.name} ---------------------")
       for(i <- 0 until blockMap.length){
         if (i == 0 || blockMap(i) != blockMap(i-1)) println("-------------- BasicBlock " + blockMap(i) + " --------------")
         val insn = OPCODES.lift(allInsns(i).getOpcode).getOrElse(allInsns(i).getClass.getSimpleName).padTo(30, ' ')
         val frame = Option(allFrames(blockMap(i))).map(_(insnMap(i)).toString).getOrElse("-")
 
-        vm.log(lineMap(i) + "\t" + insn + " | " + blockMap(i) + " | " + insnMap(i) + " |\t" + frame)
+        println(lineMap(i) + "\t" + insn + " | " + blockMap(i) + " | " + insnMap(i) + " |\t" + frame)
       }
-      vm.log("XXX")
+      println("XXX")
     }
 
     val basicBlocks = for(((buffer, types, startMap, startFrame, _, lines), i) <- blockBuffers.zipWithIndex) yield {
@@ -270,9 +270,9 @@ object Conversion {
         if (endFrame != null && startFrame != null && ((buffer2.length > 0 && buffer2.last.targets.contains(i)) || (i == j + 1))){
 //          println()
           if (false && method.name == "getCanonicalName") {
-            vm.log("Making Phi       " + j + "->" + i)
-            vm.log("endFrame         " + endFrame + "\t" + endFrame.boxes.flatten.map(endMap))
-            vm.log("startFrame       " + startFrame + "\t" + startFrame.boxes.flatten.map(startMap))
+            println("Making Phi       " + j + "->" + i)
+            println("endFrame         " + endFrame + "\t" + endFrame.boxes.flatten.map(endMap))
+            println("startFrame       " + startFrame + "\t" + startFrame.boxes.flatten.map(startMap))
           }
 //          println("endFrame.boxes   " + endFrame.boxes)
 //          println("startFrame.boxes " + startFrame.boxes)
@@ -297,19 +297,19 @@ object Conversion {
       BasicBlock(buffer, phis, types, lines)
     }
 
-    if (false && method.name == "getCanonicalName") {
+    if (method.name == "ensureObj") {
       for ((block, i) <- basicBlocks.zipWithIndex){
-        vm.log("")
-        vm.log(i + "\t" + block.phi.toList)
+        println("")
+        println(i + "\t" + block.phi.toList)
         //println(i + "\t" + block.locals.toList)
-        vm.log(""+blockBuffers(i)._3)
+        println (""+blockBuffers(i)._3)
         for(i <- 0 until block.insns.length){
-          vm.log(block.lines(i) + "\t" + block.insns(i))
+          println(block.lines(i) + "\t" + block.insns(i))
         }
 
       }
-      vm.log("")
-      vm.log("")
+      println("")
+      println("")
     }
 
 

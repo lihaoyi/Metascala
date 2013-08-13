@@ -85,10 +85,8 @@ class Heap(memorySize: Int,
     for(root <- roots){
       val oldRoot = root()
       val (newRoot, nfp) = blit(freePointer, oldRoot)
-      println("root " + root() + " + " + newRoot)
       freePointer = nfp
       root() = newRoot
-      println("final root " + root() + " " + root)
     }
 
     while(scanPointer != freePointer){

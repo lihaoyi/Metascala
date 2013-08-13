@@ -22,6 +22,7 @@ class Var(var x: Val){
 
 object Cls{
   def apply(cn: ClassNode, index: Int)(implicit vm: VM) = {
+
     import imm.NullSafe._
     val fields = cn.fields.safeSeq.map(imm.Field.read)
     val superType = cn.superName.safeOpt.map(Type.Cls.read)
@@ -53,6 +54,7 @@ object Cls{
         fields.filter(_.static).flatMap{x =>
           Seq.fill(x.desc.size)(x)
         },
+      outerCls = cn.outerClass.safeOpt.map(Type.Cls.read),
       index
     )
   }
@@ -68,6 +70,7 @@ class Cls(val tpe: imm.Type.Cls,
           val methods: Seq[rt.Method.Cls],
           val fieldList: Seq[imm.Field],
           val staticList: Seq[imm.Field],
+          val outerCls: Option[imm.Type.Cls],
           val index: Int)
          (implicit vm: VM){
   import vm._

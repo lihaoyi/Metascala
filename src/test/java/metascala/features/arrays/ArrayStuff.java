@@ -1,5 +1,7 @@
 package metascala.features.arrays;
 
+import metascala.Virtualizer;
+
 public class ArrayStuff {
     public static int[] makeIntArray(int n){
         int[] arr = new int[(short)n];
@@ -61,7 +63,8 @@ public class ArrayStuff {
         return buf[r + 5];
     }
     public static int[] bubbleSort(int[] arr){
-        java.lang.reflect.Array.set(arr, 0, 100);
+        Virtualizer.unsafe();
+        //java.lang.reflect.Array.set(arr, 0, 100);
         return arr;
     }
 

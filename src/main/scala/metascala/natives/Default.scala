@@ -54,23 +54,21 @@ trait Default extends Bindings{
               val name = obj("name").toRealObj[String]
               val cls = vm.ClsTable(imm.Type.Cls.readJava(name))
               val realFields = cls.fieldList ++ cls.staticList
-              println("====================")
-              println(name)
-              println("--------------------")
-              realFields.map(_.name).foreach(println)
-              println("====================")
+
               vm.alloc(implicit r =>
                 "java/lang/reflect/Field".allocArr(
                   realFields.zipWithIndex.map{ case (f, i) =>
                     "java/lang/reflect/Field".allocObj(
                       "clazz" -> obj.address,
-                      "slot" -> i,
-                      "name" -> vt.vm.internedStrings.getOrElseUpdate(f.name, f.name.toVirtObj)
+                      "slot" -> (if (f.static) cls.staticList else cls.fieldList).indexOf(f),
+                      "name" -> vt.vm.internedStrings.getOrElseUpdate(f.name, f.name.toVirtObj),
+                      "modifiers" -> f.access
                     )
                   }
                 )
               )()
-
+              // if (f.static) cls.staticList else cls.fieldList).indexOf(f)
+              // f.static(cls.staticList, cls.fieldList).indexOf(f)
             },
             "getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;".func(I, I, I){ (vt, bool, o) =>
               import vt.vm
@@ -109,12 +107,8 @@ trait Default extends Bindings{
                 )
               )()
             },
-            "getEnclosingMethod0()[Ljava/lang/Object;".func(I, I){
-              (vt, cls) => 0
-            },
-            "getDeclaringClass()Ljava/lang/Class;".func(I, I){
-              (vt, cls) => 0
-            },
+            "getEnclosingMethod0()[Ljava/lang/Object;".func(I, I){(vt, cls) => 0},
+            "getDeclaringClass()Ljava/lang/Class;".func(I, I){ (vt, cls) => 0},
             "getInterfaces()[Ljava/lang/Class;".func(I, I){ (vt, clsAddr) =>
               import vt.vm
               val cls = vt.vm.ClsTable(clsAddr.obj.apply("name").toRealObj[String].toSlash)
@@ -353,7 +347,9 @@ trait Default extends Bindings{
       ),
       "sun"/(
         "misc"/(
-
+          "Hashing"/(
+            "randomHashSeed(Ljava/lang/Object;)I".value(I)(31337) // sufficiently random
+          ),
           "Unsafe"/(
             "arrayBaseOffset(Ljava/lang/Class;)I".value(I)(2),
             "arrayIndexScale(Ljava/lang/Class;)I".value(I)(1),
@@ -379,18 +375,29 @@ trait Default extends Bindings{
               }else{
                 false
               }
-
+            },
+            "ensureClassInitialized(Ljava/lang/Class;)V".func(I, I, V){ (vt, unsafe, cls) =>
+              ()
             },
             "getObject(Ljava/lang/Object;J)Ljava/lang/Object;".func(I, I, J, I){ (vt, unsafe, o, offset) =>
                 import vt.vm
                 o.obj.members(offset.toInt)
+            },
+            "getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;".func(I, I, J, I){ (vt, unsafe, o, offset) =>
+              import vt.vm
+              o.obj.members(offset.toInt)
             },
             "objectFieldOffset(Ljava/lang/reflect/Field;)J".func(I, I, I){(vt, unsafe, f) =>
               import vt.vm
               val field = f.obj
               field.apply("slot")
             },
-
+            "staticFieldOffset(Ljava/lang/reflect/Field;)J".func(I, I, J){ (vt, unsafe, f) =>
+              import vt.vm
+              val field = f.obj
+              field.apply("slot")
+            },
+            "staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;".func(I, I, I){(vt, unsafe, f) => 0},
             "registerNatives()V".value(V)(()),
             "getUnsafe()Lsun/misc/Unsafe;".func(I){vt => vt.vm.theUnsafe.address()},
             "<clinit>()V".value(V)(())

@@ -65,14 +65,14 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     val r = reader(frame.locals, 0)
 
-    if (false && frame.method.sig.name == "forName") {
+    if (threadStack.exists(_.method.sig.name == "unsafe")) {
       lazy val localSnapshot =
         block.locals
              .flatMap(x => Seq(x.prettyRead(r)).padTo(x.size, "~"))
              .toList
 
-      vm.log(indent + "::\t" + frame.runningClass.shortName + "/" + frame.method.sig.shortName + ":" + block.lines(frame.pc._2) + "\t"  + localSnapshot)
-      vm.log(indent + "::\t" + frame.pc + "\t" + node )
+      println(indent + "::\t" + frame.runningClass.shortName + "/" + frame.method.sig.shortName + ":" + block.lines(frame.pc._2) + "\t"  + localSnapshot)
+      println(indent + "::\t" + frame.pc + "\t" + node )
       //println(indent + "::\t" + vm.heap.dump().replace("\n", "\n" + indent + "::\t"))
     }
 
@@ -131,8 +131,11 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         }
         val phis = advancePc()
         val ptarget = phis.toMap.getOrElse(target, target)
-        if(args(0) == 0) throwExWithTrace("java/lang/NullPointerException", "null")
-        else {
+        val isNull = args(0) == 0
+        if(isNull) {
+
+          throwExWithTrace("java/lang/NullPointerException", "null")
+        } else {
           val mRef = mIndex match{
             case -1 =>
               args(0).obj.cls.vTableMap(sig)
