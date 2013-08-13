@@ -85,7 +85,7 @@ class MetacircularTest extends FreeSpec with Util{
   }
 
   "getAndSet" in {
-    val tester = new Tester("metascala.full.MetacircularTest", memorySize = 3 * 1014 * 1024)
+    val tester = new Tester("metascala.full.MetacircularTest", memorySize = 15 * 1014 * 1024)
     for(i <- 0 to 2) tester.run("getAndSet")
   }
 

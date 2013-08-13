@@ -9,10 +9,7 @@ object Virtualizer {
   lazy val unsafe = {
     val field = Class.forName("sun.misc.Unsafe").getDeclaredField("theUnsafe")
     field.setAccessible(true)
-    println("lol")
-    println(field == null)
     val f = field.get(null)
-    println("omg")
     val g = f.asInstanceOf[sun.misc.Unsafe]
     g
   }
@@ -29,6 +26,7 @@ object Virtualizer {
         else if (refs.contains(address)) refs(address)
         else tpe match{
           case imm.Type.Cls("java/lang/Object") | imm.Type.Arr(_) if address.isArr =>
+
             val tpe = vm.arrayTypeCache(vm.heap(address))
 
             val clsObj = forName(tpe.name.toDot)

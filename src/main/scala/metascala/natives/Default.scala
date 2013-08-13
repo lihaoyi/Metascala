@@ -397,7 +397,9 @@ trait Default extends Bindings{
               val field = f.obj
               field.apply("slot")
             },
-            "staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;".func(I, I, I){(vt, unsafe, f) => 0},
+            "staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;".func(I, I, I){(vt, unsafe, f) =>
+              ???
+            },
             "registerNatives()V".value(V)(()),
             "getUnsafe()Lsun/misc/Unsafe;".func(I){vt => vt.vm.theUnsafe.address()},
             "<clinit>()V".value(V)(())
@@ -429,6 +431,11 @@ trait Default extends Bindings{
               vm.ClsTable(str).accessFlags
             }
           )
+        )
+      ),
+      "metascala"/(
+        "Virtualizer"/(
+            "unsafe()Lsun/misc/Unsafe;".func(I){vt => vt.vm.theUnsafe.address()}
         )
       )
     ).toRoute()
