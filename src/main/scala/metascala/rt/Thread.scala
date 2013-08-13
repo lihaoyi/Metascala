@@ -103,7 +103,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       case New(target, cls) =>
         cls.checkInitialized()
         val obj = vm.alloc(rt.Obj.allocate(cls.name)(_))
-        frame.locals(target) = obj.address
+        frame.locals(target) = obj.address()
         advancePc()
 
       case InvokeStatic(target, sources, owner, m) =>
@@ -150,7 +150,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         advancePc()
       case NewArray(src, dest, typeRef) =>
         val newArray = vm.alloc(rt.Arr.allocate(typeRef, frame.locals(src))(_))
-        frame.locals(dest) = newArray.address
+        frame.locals(dest) = newArray.address()
         advancePc()
       case PutArray(src, index, array, prim) =>
         val arr = frame.locals(array).arr
@@ -180,7 +180,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
             val clsObj = vm.typeObjCache(imm.Type.read(t.getInternalName))
 
-            frame.locals(target) = clsObj
+            frame.locals(target) = clsObj()
           case x: scala.Byte  => B.write(x, w)
           case x: scala.Char  => C.write(x, w)
           case x: scala.Short => S.write(x, w)
@@ -287,10 +287,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
               for(i <- 0 until size){
                 newArr(i) = rec(tail, innerType)
               }
-              newArr.address
+              newArr.address()
 
             case (size :: Nil, imm.Type.Arr(innerType)) =>
-              vm.alloc(rt.Arr.allocate(innerType, size)(_)).address
+              vm.alloc(rt.Arr.allocate(innerType, size)(_)).address()
            }
         }
         val dimValues = dims.map(frame.locals).toList
@@ -360,13 +360,13 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
             threadStack.pop()
             throwException(ex, false)
           case Some(TryCatchBlock(start, end, handler, dest, blockType)) =>
-            frame.locals(dest) = ex.address
+            frame.locals(dest) = ex.address()
             frame.pc = (handler, 0)
 
         }
       case None =>
         throw new UncaughtVmException(
-          ex.address.toRealObj[Throwable]
+          ex.address().toRealObj[Throwable]
         )
     }
   }

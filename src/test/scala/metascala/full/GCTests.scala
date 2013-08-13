@@ -117,32 +117,32 @@ class GCTests extends FreeSpec with Util{
     val tester = new Tester("metascala.full.ScalaLib", memorySize = 9 * 1024)
     for(i <- 1 to 5) tester.run("parseClass")
   }
-  "gcInterruptNegative" in {
+
+  "gcInterrupt" in {
     val tester = new Tester("metascala.full.ScalaLib", memorySize = 10)
     implicit val vm = tester.svm
     import metascala.pimpedString
-
-    vm.alloc("java/lang/Object".allocObj()(_))
-    vm.alloc("java/lang/Object".allocObj()(_))
-    vm.alloc("java/lang/Object".allocObj()(_))
-    println(vm.heap.dump(0, 20))
-    vm.heap.collect(vm.heap.start)
-
-    // everything got GCed, nothing in the second memory space
-    assert(vm.heap.memory.slice(10, 20).forall(_ == 0))
-  }
-  "gcInterruptPositive" in {
-    val tester = new Tester("metascala.full.ScalaLib", memorySize = 10)
-    implicit val vm = tester.svm
-    import metascala.pimpedString
-    vm.alloc{ implicit r =>
+    val (p1, p2, p3) = vm.alloc{ implicit r =>
       val p1 = "java/lang/Object".allocObj()
       val p2 = "java/lang/Object".allocObj()
       val p3 = "java/lang/Object".allocObj()
-      println(vm.heap.dump(0, 20))
+      assert(Set(p1(), p2(), p3()) == Set(1, 3, 5))
+      assert(Set(p1, p2, p3).forall(p => vm.heap(p()) == -1))
       vm.heap.collect(vm.heap.start)
-      println(vm.heap.dump(0, 20))
-      // everything got GCed
+      // These guys got moved together to the new space (maybe in a new order)
+      assert(Set(p1(), p2(), p3()) == Set(11, 13, 15))
+      assert(Set(p1, p2, p3).forall(p => vm.heap(p()) == -1))
+      vm.heap.collect(vm.heap.start)
+      assert(Set(p1(), p2(), p3()) == Set(1, 3, 5))
+      assert(Set(p1, p2, p3).forall(p => vm.heap(p()) == -1))
+      (p1, p2, p3)
     }
+
+    vm.heap.collect(vm.heap.start)
+    vm.heap.collect(vm.heap.start)
+    // These guys got moved together to the new space (maybe in a new order)
+    assert(Set(p1(), p2(), p3()) == Set(1, 3, 5))
+
+    assert(Set(p1, p2, p3).forall(p => vm.heap(p()) == 0))
   }
 }

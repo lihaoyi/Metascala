@@ -34,8 +34,8 @@ class VM(val natives: Bindings = Bindings.default,
   def alloc[T](func: Registrar => T) = {
     val tempRegistry = mutable.Set[Ref]()
     val res = func(
-      new Registrar({i =>
-        val ref = new ManualRef(i)
+      new Registrar({ref =>
+
         tempRegistry.add(ref)
         registry.add(ref)
       }, this)
@@ -74,7 +74,7 @@ class VM(val natives: Bindings = Bindings.default,
   /**
    * Identify the list of all root object references within the virtual machine.
    */
-  def getRoots() = {
+  def getRoots(): Seq[Ref] = {
     val stackRoots = for{
       thread <- threads
       frame <- thread.threadStack

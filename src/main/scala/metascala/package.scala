@@ -11,8 +11,8 @@ package object metascala {
    */
   type Sym = Int
 
-  class Registrar(f: Int => Unit, val vm: VM) extends Function1[Int, Unit]{
-    def apply(i: Int) = f(i)
+  class Registrar(f: Ref => Unit, val vm: VM) extends Function1[Ref, Unit]{
+    def apply(i: Ref) = f(i)
   }
   private[metascala] implicit class castable(val x: Any) extends AnyVal{
     def cast[T] = x.asInstanceOf[T]
@@ -62,6 +62,7 @@ package object metascala {
   implicit class ManualRef(var x: Int) extends Ref{
     def apply() = x
     def update(i: Int) = x = i
+
   }
 
   object Val{
@@ -103,7 +104,7 @@ package object metascala {
       implicit val vm = registrar.vm
       rt.Obj.allocate(s, initMembers:_*).address
     }
-    def allocArr(backing: Seq[Int])(implicit registrar: Registrar) = {
+    def allocArr(backing: Seq[Ref])(implicit registrar: Registrar) = {
       implicit val vm = registrar.vm
       rt.Arr.allocate(s, backing.toArray).address
     }

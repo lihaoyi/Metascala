@@ -12,11 +12,11 @@ object Obj{
     implicit val vm = registrar.vm
     val address = vm.heap.allocate(headerSize + cls.fieldList.length)
 //    println("Allocating " + cls.name + " at " + address)
-    vm.heap(address) = -cls.index
-    vm.heap(address + 1) = cls.fieldList.length
+    vm.heap(address()) = -cls.index
+    vm.heap(address() + 1) = cls.fieldList.length
     val obj = new Obj(address)
     for ((s, v) <- initMembers){
-      obj(s) = v
+      obj(s) = v()
     }
     obj
   }
@@ -93,17 +93,17 @@ object Arr{
    * calculating the total amount of memory benig allocated
    */
   def allocate(t: imm.Type, n: scala.Int)(implicit registrar: Registrar): Arr = {
-    rt.Arr.allocate(t, Array.fill[Int](n * t.size)(0))
+    rt.Arr.allocate(t, Array.fill[Int](n * t.size)(0).map(x => new ManualRef(x): Ref))
   }
-  def allocate(innerType: imm.Type, backing: Array[Int])(implicit registrar: Registrar): Arr = {
+  def allocate(innerType: imm.Type, backing: Array[Ref])(implicit registrar: Registrar): Arr = {
     implicit val vm = registrar.vm
     val address = vm.heap.allocate(Arr.headerSize + backing.length)
 //    println("Allocating Array[" + innerType.name + "] at " + address)
-    vm.heap(address) = vm.arrayTypeCache.length
+    vm.heap(address()) = vm.arrayTypeCache.length
 
     vm.arrayTypeCache.append(innerType)
-    vm.heap(address + 1) = backing.length / innerType.size
-    backing.copyToArray(vm.heap.memory, address + Arr.headerSize)
+    vm.heap(address() + 1) = backing.length / innerType.size
+    backing.map(_()).copyToArray(vm.heap.memory, address() + Arr.headerSize)
 
     new Arr(address)
   }

@@ -84,11 +84,12 @@ object Virtualizer {
       case b: Double  => D.write(b, out)
       case b: Array[_] =>
         val arr =
-          rt.Arr.allocate(imm.Type.Arr.read(b.getClass.getName.replace('.', '/')).innerType,
-            b.flatMap(pushVirtual)
+          rt.Arr.allocate(
+            imm.Type.Arr.read(b.getClass.getName.replace('.', '/')).innerType,
+            b.flatMap(pushVirtual).map(x => new ManualRef(x): Ref)
           )
 
-        out(arr.address)
+        out(arr.address())
       case b: Any =>
         var index = 0
         val contents = mutable.Buffer.empty[Int]
@@ -99,8 +100,8 @@ object Virtualizer {
           index += field.desc.size
         }
         val obj = rt.Obj.allocate(b.getClass.getName.toSlash)
-        contents.map(writer(vm.heap.memory, obj.address + rt.Obj.headerSize))
-        out(obj.address)
+        contents.map(writer(vm.heap.memory, obj.address() + rt.Obj.headerSize))
+        out(obj.address())
     }
   }
 }
