@@ -114,7 +114,7 @@ object Type{
       "double" -> (D: Prim[_])
     )
     
-    def unapply(p: Prim[_]) = Some(p.size)
+    def unapply(p: Prim[_]) = Some(p.javaName)
 
     case object V extends Prim[Unit](0, "void"){
       def apply(x: Val) = ???

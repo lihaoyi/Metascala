@@ -27,6 +27,8 @@ object MetacircularTest{
   def bubbleSort = {
     val x = new metascala.VM()
     x.invoke("metascala/features/arrays/ArrayStuff", "bubbleSort", Seq(Array(6, 5, 2, 7, 3, 4, 9, 1, 8)))
+     .cast[Array[Int]]
+     .toSeq
   }
   def getAndSet = {
     val x = new metascala.VM()

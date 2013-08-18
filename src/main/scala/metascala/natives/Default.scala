@@ -340,8 +340,16 @@ trait Default extends Bindings{
         "Predef$"/(
           "println(Ljava/lang/Object;)V".func(I, I, V){ (vt, predef, o) =>
             import vt.vm
-            val thing = o.obj
-            println("Virtual\t" + thing.address().toRealObj[Object])
+
+            if (o.isObj){
+              val thing = o.obj
+              println("Virtual\t" + thing.address().toRealObj[Object])
+            }else if(o.isArr){
+              val s = Virtualizer.popVirtual(imm.Type.Arr(vt.vm.arrayTypeCache(vt.vm.heap(o + 1))), () => o)
+              println("Virtual\t" + s)
+            }else{
+              println("Virtual\t" + null)
+            }
           }
         )
       ),
