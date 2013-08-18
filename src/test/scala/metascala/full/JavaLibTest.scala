@@ -6,10 +6,12 @@ import metascala.Gen._
 import util.{Failure, Try}
 import metascala.{UncaughtVmException, BufferLog, Gen, Util}
 import metascala.Util.SingleClassVM
+import java.io.DataInputStream
+import metascala.natives.Default
+import org.scalatest.exceptions.TestFailedException
+import org.scalatest.matchers.ShouldMatchers
 
 class JavaLibTest extends FreeSpec with Util{
-
-
   implicit val intAll10 = 10 ** Gen.intAll
 
   "stuff" - {
@@ -23,6 +25,8 @@ class JavaLibTest extends FreeSpec with Util{
     "atomicIntegers" in tester.run("atomicIntegers")
     "atomicLongs" in tester.run("atomicLongs")
     "randoms" in tester.run("randoms")
+
   }
+
 }
 

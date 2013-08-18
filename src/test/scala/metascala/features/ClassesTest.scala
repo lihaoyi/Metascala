@@ -1,19 +1,51 @@
-package metascala.features
+package metascala
+package features
 
 import org.scalatest.FreeSpec
 import metascala.Util
+import java.lang.String
+import scala.Predef.String
 
 class ClassesTest extends FreeSpec with Util{
 
   "classes" - {
-    val tester = new Tester("metascala.features.classes.ClassStuff")
-    "customClass" in tester.run("customClass")
-    "stringConcat" in tester.run("stringConcat")
-    "inheritance" in tester.run("inheritance")
-    "constructor" in tester.run("constructor")
-    "superConstructor" in tester.run("superConstructor")
-    "override" in tester.run("override")
-    "innerClass" in tester.run("innerClass")
+    val tester = new VM()
+    "customClass" in tester.testFunc{() =>
+      val c1 = new Cow()
+      val c2 = new Cow()
+      c1.moo.length() + c2.moo.length();
+    }
+    "stringConcat" in tester.testFunc{() =>
+      val x = new StringBuilder()
+      x.append('a')
+      x.toString()
+    }
+    "inheritance" in tester.testFunc{() =>
+      val b = new Bull
+      b.mooTwice
+    }
+    "constructor" in tester.testFunc{() =>
+      val m = new Matrix(5, 7, -1, 3)
+      m.determinant
+    }
+    "superConstructor" in tester.testFunc{() =>
+      val m = new DoubleMatrix(2, 4, -8, 4)
+      m.determinant
+    }
+    "override" in tester.testFunc{() =>
+      val m = new DoubleDetMatrix(1, 2, 3, 4)
+      m.determinant
+    }
+    "innerClass" in tester.testFunc{() =>
+      val l: LinkedList = new LinkedList
+      var i: Int = 0
+      while (i < 2) {
+        l.push(i)
+        i += 1
+      }
+
+      l.sum
+    }
 
   }
   "inheritance" - {
@@ -26,3 +58,54 @@ class ClassesTest extends FreeSpec with Util{
     "staticInheritance" in tester.run("staticInheritance")
   }
 }
+
+class Cow {
+  def moo: String = {
+    return "moooo"
+  }
+}
+
+class Bull extends Cow {
+  def mooTwice: String = {
+    return moo + moo
+  }
+}
+
+class Matrix(aa: Float, ab: Float, ba: Float, bb: Float) {
+  def determinant: Float = {
+    return aa * bb - ab * ba
+  }
+}
+
+class DoubleMatrix(aa: Float, ab: Float, ba: Float, bb: Float)
+  extends Matrix(aa*2, ab*2, ba*2, bb*2)
+
+class DoubleDetMatrix(aa: Float, ab: Float, ba: Float, bb: Float)
+  extends Matrix(aa*2, ab*2, ba*2, bb*2){
+
+  override def determinant: Float = {
+    return super.determinant * 2
+  }
+}
+
+class LinkedList {
+  def push(i: Int) {
+    val n = new Inner(i, head)
+    head = n
+  }
+
+  def sum: Int = {
+    var curr: Inner = head
+    var total: Int = 0
+    while (curr != null) {
+      total = total + head.value
+      curr = curr.next
+    }
+    return total
+  }
+
+  var head: Inner = null
+
+  class Inner(val value: Int, val next: Inner)
+}
+

@@ -15,80 +15,79 @@ class MathTest extends FreeSpec with Util{
   implicit def floatAll110 = 10 ** Gen.floatAll
   implicit def longAll10 = 10 ** Gen.longAll
   implicit def doubleAll110 = 10 ** Gen.doubleAll
+  val tester = new VM()
+
   "single precision" - {
-    val tester = new Tester("metascala.features.math.HelloMath")
     "hello math" - {
-      "imain" in tester.run("imain")
-      "fmain" in tester.run("fmain")
+      "imain" in tester.testFunc{ () => 1337 }
+      "fmain" in tester.testFunc{ () => 1.337f }
     }
     "basic math" - {
       "int" - {
-        "ineg" in chk(tester.run("ineg", _: Int))
-        "iadd" in chk(tester.run("iadd", _: Int, _: Int))
-        "isub" in chk(tester.run("isub", _: Int, _: Int))
-        "imul" in chk(tester.run("imul", _: Int, _: Int))
-        "idiv" in chk(tester.run("idiv", _: Int, _: Int))
-        "imod" in chk(tester.run("imod", _: Int, _: Int))
+        "ineg" in chk(tester.testFunc( -(_: Int) ) _)
+        "iadd" in chk(tester.testFunc( (_: Int) + (_: Int) ) _)
+        "isub" in chk(tester.testFunc( (_: Int) - (_: Int) ) _)
+        "imul" in chk(tester.testFunc( (_: Int) * (_: Int) ) _)
+        "idiv" in chk(tester.testFunc( (_: Int) / (_: Int) ) _)
+        "imod" in chk(tester.testFunc( (_: Int) % (_: Int) ) _)
       }
       "float" - {
-        "fneg" in chk(tester.run("fneg", _: Float))
-        "fadd" in chk(tester.run("fadd", _: Float, _: Float))
-        "fsub" in chk(tester.run("fsub", _: Float, _: Float))
-        "fmul" in chk(tester.run("fmul", _: Float, _: Float))
-        "fdiv" in chk(tester.run("fdiv", _: Float, _: Float))
-        "fmod" in chk(tester.run("fmod", _: Float, _: Float))
+        "fneg" in chk(tester.testFunc( -(_: Float) ) _)          
+        "fadd" in chk(tester.testFunc( (_: Float) + (_: Float) ) _)
+        "fsub" in chk(tester.testFunc( (_: Float) - (_: Float) ) _)
+        "fmul" in chk(tester.testFunc( (_: Float) * (_: Float) ) _)
+        "fdiv" in chk(tester.testFunc( (_: Float) / (_: Float) ) _)
+        "fmod" in chk(tester.testFunc( (_: Float) % (_: Float) ) _)
       }
       "more int stuff" - {
-        "ishl" in chk(tester.run("ishl", _: Int, _: Int))(10 ** Gen.intAll, 10 ** Gen.int(5))
-        "ishr" in chk(tester.run("ishr", _: Int, _: Int))(10 ** Gen.intAll, 10 ** Gen.int(5))
-        "iushr" in chk(tester.run("iushr", _: Int, _: Int))(10 ** Gen.intAll, 10 ** Gen.int(5))
-        "iand" in chk(tester.run("iand", _: Int, _: Int))
-        "ior" in chk(tester.run("ior", _: Int, _: Int))
-        "ixor" in chk(tester.run("ixor", _: Int, _: Int))
+        "ishl" in chk(tester.testFunc( (_: Int) << (_: Int)) _)(10 ** Gen.intAll, 10 ** Gen.int(5))
+        "ishr" in chk(tester.testFunc( (_: Int) >> (_: Int)) _)(10 ** Gen.intAll, 10 ** Gen.int(5))
+        "iushr" in chk(tester.testFunc( (_: Int) >>> (_: Int)) _)(10 ** Gen.intAll, 10 ** Gen.int(5))
+        "iand" in chk(tester.testFunc( (_: Int) & (_: Int)) _)
+        "ior" in chk(tester.testFunc( (_: Int) | (_: Int)) _)
+        "ixor" in chk(tester.testFunc( (_: Int) ^ (_: Int)) _)
       }
-
     }
   }
   "double precision" - {
-    val tester = new Tester("metascala.features.math.HelloLongs")
-    "hello longs" - {
 
-      "lmain" in tester.run("lmain")
-      "dmain" in tester.run("dmain")
+    "hello math" - {
+      "lmain" in tester.testFunc{ () => 313373133731337L }
+      "dmain" in tester.testFunc{ () => 31.337 }
     }
     "basic math" - {
       "long" - {
-        "lneg" in chk(tester.run("lneg", _: Long))
-        "ladd" in chk(tester.run("ladd", _: Long, _: Long))
-        "lsub" in chk(tester.run("lsub", _: Long, _: Long))
-        "lmul" in chk(tester.run("lmul", _: Long, _: Long))
-        "ldiv" in chk(tester.run("ldiv", _: Long, _: Long))
-        "lmod" in chk(tester.run("lmod", _: Long, _: Long))
+        "lneg" in chk(tester.testFunc( -(_: Long) ) _)
+        "ladd" in chk(tester.testFunc( (_: Long) + (_: Long) ) _)
+        "lsub" in chk(tester.testFunc( (_: Long) - (_: Long) ) _)
+        "lmul" in chk(tester.testFunc( (_: Long) * (_: Long) ) _)
+        "ldiv" in chk(tester.testFunc( (_: Long) / (_: Long) ) _)
+        "lmod" in chk(tester.testFunc( (_: Long) % (_: Long) ) _)
       }
       "double" - {
-        "dneg" in chk(tester.run("dneg", _: Double))
-        "dadd" in chk(tester.run("dadd", _: Double, _: Double))
-        "dsub" in chk(tester.run("dsub", _: Double, _: Double))
-        "dmul" in chk(tester.run("dmul", _: Double, _: Double))
-        "ddiv" in chk(tester.run("ddiv", _: Double, _: Double))
-        "dmod" in chk(tester.run("dmod", _: Double, _: Double))
+        "dneg" in chk(tester.testFunc( -(_: Double) ) _)
+        "dadd" in chk(tester.testFunc( (_: Double) + (_: Double) ) _)
+        "dsub" in chk(tester.testFunc( (_: Double) - (_: Double) ) _)
+        "dmul" in chk(tester.testFunc( (_: Double) * (_: Double) ) _)
+        "ddiv" in chk(tester.testFunc( (_: Double) / (_: Double) ) _)
+        "dmod" in chk(tester.testFunc( (_: Double) % (_: Double) ) _)
       }
-
       "more long stuff" - {
-        "lshl" in chk(tester.run("lshl", _: Long, _: Int))(10 ** Gen.longAll, 10 ** Gen.int(6))
-        "lshr" in chk(tester.run("lshr", _: Long, _: Int))(10 ** Gen.longAll, 10 ** Gen.int(6))
-        "lushr" in chk(tester.run("lushr", _: Long, _: Int))(10 ** Gen.longAll, 10 ** Gen.int(6))
-        "land" in chk(tester.run("land", _: Long, _: Long))
-        "lor" in chk(tester.run("lor", _: Long, _: Long))
-        "lxor" in chk(tester.run("lxor", _: Long, _: Long))
+        "ishl" in chk(tester.testFunc( (_: Long) << (_: Int)) _)(10 ** Gen.longAll, 10 ** Gen.int(5))
+        "ishr" in chk(tester.testFunc( (_: Long) >> (_: Int)) _)(10 ** Gen.longAll, 10 ** Gen.int(5))
+        "iushr" in chk(tester.testFunc( (_: Long) >>> (_: Int)) _)(10 ** Gen.longAll, 10 ** Gen.int(5))
+        "iand" in chk(tester.testFunc( (_: Long) & (_: Long)) _)
+        "ior" in chk(tester.testFunc( (_: Long) | (_: Long)) _)
+        "ixor" in chk(tester.testFunc( (_: Long) ^ (_: Long)) _)
       }
     }
   }
 
   "combined" - {
-    val tester = new Tester("metascala.features.math.Combined")
     "hmsToDays" in
-      chk(tester.run("hmsToDays", _: Double, _: Double, _: Double))(
+      chk(tester.testFunc(
+        (h: Double, m: Double, s: Double) => (((h*60)+m)*60+s) / 86400
+      ) _)(
         Seq.fill(0)(Random.nextInt(24).toDouble),
         Seq.fill(0)(Random.nextInt(60).toDouble),
         Seq.fill(0)(Random.nextInt(60).toDouble)

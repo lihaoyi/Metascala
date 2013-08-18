@@ -19,9 +19,9 @@ object MetacircularTest{
     x.invoke("metascala/features/methods/Statics", "fibonacci", Seq(12))
   }
 
-  def innerClass = {
+  def inheritance = {
     val x = new metascala.VM()
-    x.invoke("metascala/features/classes/ClassStuff", "innerClass")
+    x.invoke("metascala/features/classes/Inheritance", "shadowedInheritedSet")
   }
 
   def bubbleSort = {
@@ -75,9 +75,9 @@ class MetacircularTest extends FreeSpec with Util{
     for(i <- 0 to 2) tester.run("fibonacci")
   }
 
-  "innerClass" in {
+  "inheritance" in {
     val tester = new Tester("metascala.full.MetacircularTest", memorySize = 3 * 1014 * 1024)
-    for(i <- 0 to 2) tester.run("innerClass")
+    for(i <- 0 to 2) tester.run("inheritance")
   }
 
   "bubbleSort" in {

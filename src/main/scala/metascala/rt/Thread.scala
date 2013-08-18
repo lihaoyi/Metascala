@@ -265,8 +265,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
       case CheckCast(src, dest, desc) =>
         frame.locals(src) match{
-          case top if (top.isArr && !check(top.arr.tpe, desc)) || (top.isObj && !check(top.obj.tpe, desc)) =>
-            println("DYING " + top.arr.tpe + " " + desc)
+          case top
+            if (top.isArr && !check(top.arr.tpe, desc))
+            || (top.isObj && !check(top.obj.tpe, desc)) =>
+
             throwExWithTrace("java/lang/ClassCastException", "")
           case _ =>
             frame.locals(dest) = frame.locals(src)

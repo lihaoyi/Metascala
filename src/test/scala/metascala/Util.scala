@@ -6,6 +6,7 @@ import org.scalatest.FreeSpec
 import org.scalatest.matchers.ShouldMatchers
 import org.scalatest.exceptions.TestFailedException
 import scala.util.Random
+import metascala.natives.Default
 
 
 object Gen{
@@ -82,8 +83,6 @@ object Util{
   }
 }
 trait Util extends ShouldMatchers { this: FreeSpec  =>
-
-
   class ReflectiveRunner(className: String){
     def run(main: String, args: Any*) = {
       val method = java.lang.Class.forName(className)
@@ -108,6 +107,52 @@ trait Util extends ShouldMatchers { this: FreeSpec  =>
       println("svmRes " + svmRes)
       println("refRes " + refRes)
       println("args " + args)
+      try{
+        svmRes should be === refRes
+      }catch {case ex: TestFailedException =>
+        println("Test failed for input")
+        println(inString)
+
+        throw ex
+      }
+    }
+  }
+
+  implicit class DoStuff(val vm: VM) extends ShouldMatchers {
+
+    def testFunc[A, B, C, R](t: (A, B, C) => R)(a: A, b: B, c: C) = {
+      func(t, Seq(a, b, c))
+    }
+
+    def testFunc[A, B, R](t: (A, B) => R)(a: A, b: B) = {
+      func(t, Seq(a, b))
+    }
+    def testFunc[A, R](t: (A) => R)(a: A) = {
+      func(t, Seq(a))
+    }
+    def testFunc[R](t: () => R) = {
+      func(t, Nil)
+    }
+    def func(t: Any, args: Seq[Any]) = {
+      val path = t.getClass.getName.replace('.', '/')
+      println(path)
+      println(getClass.getResourceAsStream(path + ".class"))
+      println("args " + args)
+
+
+      val method = t.getClass
+        .getMethods()
+        .find(_.getName == "apply")
+        .get
+
+      val svmRes = vm.invoke(path, "apply", Seq(t) ++ args.map(_.asInstanceOf[AnyRef]))
+
+      val refRes = method.invoke(t, args.map(_.asInstanceOf[AnyRef]):_*)
+
+      val inString = args.toString
+      println("svmRes " + svmRes)
+      println("refRes " + refRes)
+
       try{
         svmRes should be === refRes
       }catch {case ex: TestFailedException =>
