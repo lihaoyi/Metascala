@@ -253,7 +253,7 @@ object Conversion {
       (buffer, types, localMap, blockFrames.head, blockFrames.last, lineMap)
     }
 
-    if (method.name == "ensureObj") {
+    if (false && method.name == "ensureObj") {
       println(s"--------------------- Converting ${method.name} ---------------------")
       for(i <- 0 until blockMap.length){
         if (i == 0 || blockMap(i) != blockMap(i-1)) println("-------------- BasicBlock " + blockMap(i) + " --------------")
@@ -297,7 +297,7 @@ object Conversion {
       BasicBlock(buffer, phis, types, lines)
     }
 
-    if (method.name == "ensureObj") {
+    if (false && method.name == "ensureObj") {
       for ((block, i) <- basicBlocks.zipWithIndex){
         println("")
         println(i + "\t" + block.phi.toList)

@@ -59,11 +59,13 @@ trait Default extends Bindings{
               vm.alloc(implicit r =>
                 "java/lang/reflect/Field".allocArr(
                   realFields.zipWithIndex.map{ case (f, i) =>
+                    println("FIELDX " + f.name + " " + (if (f.static) cls.staticList else cls.fieldList).indexOf(f))
                     "java/lang/reflect/Field".allocObj(
                       "clazz" -> obj.address,
                       "slot" -> (if (f.static) cls.staticList else cls.fieldList).indexOf(f),
                       "name" -> vt.vm.internedStrings.getOrElseUpdate(f.name, f.name.toVirtObj),
-                      "modifiers" -> f.access
+                      "modifiers" -> f.access,
+                      "type" -> vm.typeObjCache(f.desc)
                     )
                   }
                 )
@@ -362,6 +364,15 @@ trait Default extends Bindings{
           "Unsafe"/(
             "arrayBaseOffset(Ljava/lang/Class;)I".value(I)(2),
             "arrayIndexScale(Ljava/lang/Class;)I".value(I)(1),
+            "allocateInstance(Ljava/lang/Class;)Ljava/lang/Object;".func(I, I, I){ (vt, unsafe, clsPtr) =>
+              import vt.vm
+              val name = clsPtr.obj.apply("name").toRealObj[String].toSlash
+              val x = vt.vm.alloc{ implicit r =>
+                name.allocObj()
+              }()
+              println("allocating! " + x + " " + vt.vm.heap(x))
+              x
+            },
             "addressSize()I".value(I)(4),
             "compareAndSwapInt(Ljava/lang/Object;JII)Z".func(I, I, J, I, I, Z){ (vt, unsafe, o, slot, expected ,x) =>
               import vt.vm
@@ -392,14 +403,76 @@ trait Default extends Bindings{
                 import vt.vm
                 o.obj.members(offset.toInt)
             },
+            "getBooleanVolatile(Ljava/lang/Object;J)Z".func(I, I, J, Z){ (vt, unsafe, o, offset) =>
+              import vt.vm
+              o.obj.members(offset.toInt) != 0
+            },
+            "putBooleanVolatile(Ljava/lang/Object;JZ)V".func(I, I, J, Z, V){ (vt, unsafe, o, offset, bool) =>
+              import vt.vm
+              Z.write(bool, o.obj.members(offset.toInt) = _)
+            },
+            "getByteVolatile(Ljava/lang/Object;J)B".func(I, I, J, B){ (vt, unsafe, o, offset) =>
+              import vt.vm
+              o.obj.members(offset.toInt).toByte
+            },
+            "putByteVolatile(Ljava/lang/Object;JB)V".func(I, I, J, B, V){ (vt, unsafe, o, offset, byte) =>
+              import vt.vm
+              B.write(byte, o.obj.members(offset.toInt) = _)
+            },
+            "getCharVolatile(Ljava/lang/Object;J)C".func(I, I, J, C){ (vt, unsafe, o, offset) =>
+              import vt.vm
+              o.obj.members(offset.toInt).toChar
+            },
+            "putCharVolatile(Ljava/lang/Object;JC)V".func(I, I, J, C, V){ (vt, unsafe, o, offset, char) =>
+              import vt.vm
+              C.write(char, o.obj.members(offset.toInt) = _)
+            },
+            "getInt(Ljava/lang/Object;J)I".func(I, I, J, I){ (vt, unsafe, o, offset) =>
+              import vt.vm
+              o.obj.members(offset.toInt)
+            },
+            "putInt(Ljava/lang/Object;JI)V".func(I, I, J, I, V){ (vt, unsafe, o, offset, int) =>
+              import vt.vm
+              I.write(int, o.obj.members(offset.toInt) = _)
+            },
+            "getFloat(Ljava/lang/Object;J)F".func(I, I, J, F){ (vt, unsafe, o, offset) =>
+              import vt.vm
+              F.read(() => o.obj.members(offset.toInt))
+            },
+            "putFloat(Ljava/lang/Object;JF)V".func(I, I, J, F, V){ (vt, unsafe, o, offset, float) =>
+              import vt.vm
+              F.write(float, o.obj.members(offset.toInt) = _)
+            },
+            "getLongVolatile(Ljava/lang/Object;J)J".func(I, I, J, J){ (vt, unsafe, o, offset) =>
+              import vt.vm
+              J.read(reader(o.obj.members, offset.toInt))
+            },
+            "putLongVolatile(Ljava/lang/Object;JJ)V".func(I, I, J, J, V){ (vt, unsafe, o, offset, long) =>
+              import vt.vm
+              J.write(long, writer(o.obj.members, offset.toInt))
+            },
+            "getDouble(Ljava/lang/Object;J)D".func(I, I, J, D){ (vt, unsafe, o, offset) =>
+              import vt.vm
+              D.read(reader(o.obj.members, offset.toInt))
+            },
+            "putDouble(Ljava/lang/Object;JD)V".func(I, I, J, D, V){ (vt, unsafe, o, offset, double) =>
+              import vt.vm
+              D.write(double, writer(o.obj.members, offset.toInt))
+            },
             "getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;".func(I, I, J, I){ (vt, unsafe, o, offset) =>
               import vt.vm
               o.obj.members(offset.toInt)
             },
-            "objectFieldOffset(Ljava/lang/reflect/Field;)J".func(I, I, I){(vt, unsafe, f) =>
+            "putObjectVolatile(Ljava/lang/Object;JLjava/lang/Object;)V".func(I, I, J, I, V){ (vt, unsafe, o, offset, ref) =>
+              import vt.vm
+              o.obj.members(offset.toInt) = ref
+            },
+            "objectFieldOffset(Ljava/lang/reflect/Field;)J".func(I, I, J){(vt, unsafe, f) =>
               import vt.vm
               val field = f.obj
-              field.apply("slot")
+              val s = field.apply("slot")
+              println("objectFieldOffset " + s)
+              s
             },
             "staticFieldOffset(Ljava/lang/reflect/Field;)J".func(I, I, J){ (vt, unsafe, f) =>
               import vt.vm
@@ -437,16 +510,19 @@ trait Default extends Bindings{
               import vt.vm
               val addr = o.obj.apply("name")
               val str = addr.toRealObj[String]
-              vm.ClsTable(str).accessFlags
+              vm.ClsTable(str.toSlash).accessFlags
             }
           )
         )
-      )/*,
+      ),
       "metascala"/(
-        "Virtualizer"/(
-            "unsafe()Lsun/misc/Unsafe;".func(I){vt => vt.vm.theUnsafe.address()}
+        "Virtualizer$"/(
+            "unsafe()Lsun/misc/Unsafe;".func(I){vt =>
+              println("TRAPPED LOL")
+              vt.vm.theUnsafe.address()
+            }
         )
-      )*/
+      )
     ).toRoute()
   }
 }

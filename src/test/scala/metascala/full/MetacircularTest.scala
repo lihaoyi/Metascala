@@ -69,7 +69,7 @@ class MetacircularTest extends FreeSpec {
 //  "helloWorld" in {
 //    tester.run("helloWorld")
 //  }
-/*
+
   "sqrtFinder" in {
     val tester = new Tester("metascala.full.MetacircularTest", memorySize = 256 * 1024)
     for(i <- 0 to 2)tester.run("sqrtFinder")
@@ -83,25 +83,24 @@ class MetacircularTest extends FreeSpec {
 
   "inheritance" in {
     val tester = new Tester("metascala.full.MetacircularTest", memorySize = 8 * 1014 * 1024)
-    for(i <- 0 to 2) tester.run("inheritance")
+    tester.run("inheritance")
   }
 
   "bubbleSort" in {
     val tester = new Tester("metascala.full.MetacircularTest", memorySize = 6 * 1014 * 1024)
     tester.run("bubbleSort")
-
   }
 
   "getAndSet" in {
     val tester = new Tester("metascala.full.MetacircularTest", memorySize = 15 * 1014 * 1024)
-    for(i <- 0 to 2) tester.run("getAndSet")
+    tester.run("getAndSet")
   }
 
   "multiCatch" in {
-    val buffer = new BufferLog(1000)
-    val tester = new Tester("metascala.full.MetacircularTest", buffer, memorySize = 16 * 1014 * 1024)
+
+    val tester = new Tester("metascala.full.MetacircularTest", memorySize = 16 * 1014 * 1024)
     tester.run("multiCatch")
-  }*/
+  }
   /*"doubleMetaOne" in {
     tester.run("doubleMetaOne")
     println(tester.svm.threads(0).getOpCount)

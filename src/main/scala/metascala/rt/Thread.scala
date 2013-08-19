@@ -65,7 +65,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     val r = reader(frame.locals, 0)
 
-    if (false && threadStack.exists(_.method.sig.name == "bubbleSort") && !threadStack.exists(_.method.sig.name == "<clinit>")) {
+    if (false && !threadStack.exists(_.method.sig.name == "<clinit>")) {
       lazy val localSnapshot =
         block.locals
              .flatMap(x => Seq(x.prettyRead(r)).padTo(x.size, "~"))
