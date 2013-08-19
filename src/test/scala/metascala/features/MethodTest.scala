@@ -7,8 +7,8 @@ import metascala.{Gen, Util}
 import metascala.Gen._
 import java.awt.Point
 
-class MethodTest extends FreeSpec with Util{
-
+class MethodTest extends FreeSpec {
+  import Util._
 
   implicit val intAll10 = 10 ** Gen.intAll
 

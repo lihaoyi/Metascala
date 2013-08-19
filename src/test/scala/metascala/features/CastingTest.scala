@@ -7,7 +7,8 @@ import metascala.{BufferLog, Gen, Util}
 import Gen.chk
 import java.awt.geom.Point2D
 
-class CastingTest extends FreeSpec with Util{
+class CastingTest extends FreeSpec {
+  import Util._
 
   val buffer = new BufferLog(4000)
   "if else" - {

@@ -6,14 +6,15 @@ import metascala.Util
 import java.lang.String
 import scala.Predef.String
 
-class ClassesTest extends FreeSpec with Util{
+class ClassesTest extends FreeSpec {
+  import Util._
 
   "classes" - {
     val tester = new VM()
     "customClass" in tester.testFunc{() =>
       val c1 = new Cow()
       val c2 = new Cow()
-      c1.moo.length() + c2.moo.length();
+      c1.moo.length() + c2.moo.length()
     }
     "stringConcat" in tester.testFunc{() =>
       val x = new StringBuilder()

@@ -1,30 +1,124 @@
-package metascala.full
+package metascala
+package full
 
 import org.scalatest.FreeSpec
 
 import metascala.Gen._
-import util.{Failure, Try}
-import metascala.{UncaughtVmException, BufferLog, Gen, Util}
-import metascala.Util.SingleClassVM
-import java.io.DataInputStream
-import metascala.natives.Default
-import org.scalatest.exceptions.TestFailedException
-import org.scalatest.matchers.ShouldMatchers
+import metascala.{Gen, Util}
+import scalaxy.loops._
+import java.math.BigInteger
+import java.util.regex.{Matcher, Pattern}
+import java.util.concurrent.atomic.{AtomicLong, AtomicInteger, AtomicBoolean}
 
-class JavaLibTest extends FreeSpec with Util{
+
+class JavaLibTest extends FreeSpec {
   implicit val intAll10 = 10 ** Gen.intAll
-
+  import Util._
+  "sudoku" in {
+    val tester = new Tester("metascala.full.Sudoku")
+    tester.run("run")
+  }
   "stuff" - {
-    val tester = new Tester("metascala.full.JavaLib")
-    "sorting" in tester.run("sorting")
-    "collections" in tester.run("collections", 10)
-    "sudoku" in tester.run("sudoku")
-    "bigInteger" in tester.run("bigInteger")
-    "regex" in tester.run("regex")
-    "atomicBooleans" in tester.run("atomicBooleans")
-    "atomicIntegers" in tester.run("atomicIntegers")
-    "atomicLongs" in tester.run("atomicLongs")
-    "randoms" in tester.run("randoms")
+    val tester = new VM()
+    "sorting" in tester.testFunc{ () =>
+      val arr: Array[Int] = new Array[Int](250)
+
+      var current: Int = 94664704
+      for(i <- (0 until arr.length).optimized){
+        current = 23 * current % 100000000 + 1
+        arr(i) = current % 100000
+      }
+
+      java.util.Arrays.sort(arr)
+      arr(52)
+    }
+    "collections" in tester.testFunc{(n: Int) =>
+      val vec = new java.util.Vector[Integer]()
+      for(i <- (0 until n).optimized){
+        vec.add(i)
+      }
+      val map = new java.util.HashMap[Integer, String]()
+      var total = 0
+      for(i <- (0 until n).optimized){
+        total = total + vec.get(i)
+        map.put(vec.get(i), ""+total)
+      }
+
+      Integer.parseInt(map.get(n/2))
+    }(10)
+
+    "bigInteger" in tester.testFunc{() =>
+      val a: BigInteger = new BigInteger("1237923896771092385")
+      val b: BigInteger = new BigInteger("498658982734992345912340")
+      val c: BigInteger = new BigInteger("08968240235478367717203984123")
+
+      val d: BigInteger = a.add(b)
+      val e: BigInteger = d.subtract(c)
+      val f: BigInteger = e.multiply(b)
+      val g: BigInteger = f.divide(a)
+
+      g.toString
+    }
+    "regex" in tester.testFunc{ () =>
+      val p: Pattern = Pattern.compile("\\d+([_-]\\d+)*(:? )")
+      val m: Matcher = p.matcher("123_321_12 i am a cow 123_3-" + "12_990 but my ip is 192-168-1-1 lolz")
+
+      var s: String = ""
+      while (m.find) {
+        s += m.group(0)
+      }
+
+      s
+    }
+    "atomicBooleans" in tester.testFunc{() =>
+      val b: AtomicBoolean = new AtomicBoolean
+      val values: Array[Boolean] = new Array[Boolean](4)
+
+      b.set(true)
+      values(0) = b.get
+      b.compareAndSet(false, false)
+      values(1) = b.get
+      values(2) = b.getAndSet(false)
+      b.compareAndSet(false, true)
+      values(3) = b.get
+
+      values
+    }
+    "atomicIntegers" in tester.testFunc{() =>
+      val b: AtomicInteger = new AtomicInteger
+      val values: Array[Int] = new Array[Int](4)
+
+      b.set(192)
+      values(0) = b.get
+      b.compareAndSet(12, 3123)
+      values(1) = b.get
+      values(2) = b.getAndSet(31241)
+      b.compareAndSet(31241, 12451)
+      values(3) = b.get
+
+      values
+    }
+    "atomicLongs" in tester.testFunc{ () =>
+      val b: AtomicLong = new AtomicLong
+      val values: Array[Long] = new Array[Long](4)
+
+      b.set(1921231231234124124L)
+      values(0) = b.get
+      b.compareAndSet(12124124164865234L, 34934198359342123L)
+      values(1) = b.get
+      values(2) = b.getAndSet(98172271923198732L)
+      b.compareAndSet(981724127399231987L, 123517894187923123L)
+      values(3) = b.get
+
+      values
+    }
+    "randoms" in tester.testFunc{() =>
+      val r = new java.util.Random(241231241251241123L)
+      for(i <- (0 until 100).optimized){
+        r.nextLong()
+      }
+      r.nextLong()
+    }
 
   }
 

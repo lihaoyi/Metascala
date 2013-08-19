@@ -54,7 +54,8 @@ trait Default extends Bindings{
               val name = obj("name").toRealObj[String]
               val cls = vm.ClsTable(imm.Type.Cls.readJava(name))
               val realFields = cls.fieldList ++ cls.staticList
-
+              println("Getting Declared Fields! " + name)
+              realFields.map(_.name).foreach(println)
               vm.alloc(implicit r =>
                 "java/lang/reflect/Field".allocArr(
                   realFields.zipWithIndex.map{ case (f, i) =>
@@ -440,12 +441,12 @@ trait Default extends Bindings{
             }
           )
         )
-      ),
+      )/*,
       "metascala"/(
         "Virtualizer"/(
             "unsafe()Lsun/misc/Unsafe;".func(I){vt => vt.vm.theUnsafe.address()}
         )
-      )
+      )*/
     ).toRoute()
   }
 }

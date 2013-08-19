@@ -1,4 +1,5 @@
-package metascala.full
+package metascala
+package full
 
 import org.scalatest.FreeSpec
 
@@ -7,18 +8,23 @@ import scala.Some
 import java.util.Arrays
 import metascala.Gen._
 
-class ClassTest extends FreeSpec with Util{
+class ClassTest extends FreeSpec {
+  import Util._
   "class stuff" - {
-    val tester = new Tester("metascala.full.ClassObject", x => println(x))
+    val tester = new VM()
 
-    "name" in tester.run("name")
-    "namePrim" in tester.run("namePrim")
-    "nameArray" in tester.run("nameArray")
-    "nameObjArray" in tester.run("nameObjArray")
+    "name" in tester.testFunc{ () => new Object().getClass.getName }
+    "namePrim" in tester.testFunc{ () => classOf[Int].getName }
+    "nameArray" in tester.testFunc{ () => new Array[Object](10).getClass.getName }
+    "nameObjArray" in tester.testFunc{ () => new Array[Long](100).getClass.getName }
 
     "forName" in {
-      chk(tester.run("forName", _: String))(Seq(
-        "metascala.full.ClassObject",
+      val func = {(s: String) =>
+        val x = Class.forName(s)
+        x.getCanonicalName
+      }
+      chk(tester.testFunc(func) _)(Seq(
+        "java.lang.Object",
         "java.lang.Object",
         "java.util.AbstractCollection",
         "[I",
@@ -26,14 +32,31 @@ class ClassTest extends FreeSpec with Util{
       ))
     }
 
-    "isPrimitive" in tester.run("isPrimitive")
-    "isArray" in {
-      tester.run("isArray")
+    "isPrimitive" in tester.testFunc{ () =>
+      Array(
+        new Object().getClass.isPrimitive,
+        new java.lang.Float(10).getClass.isPrimitive,
+        new java.lang.Integer(12).getClass.isPrimitive,
+        new java.lang.Boolean(true).getClass.isPrimitive,
+        new Array[Int](0).getClass.isPrimitive
+      )
+    }
+    "isArray" in tester.testFunc{ () =>
+      Array(
+        new Object().getClass.isArray,
+        new java.lang.Float(10).getClass.isArray,
+        new java.lang.Integer(12).getClass.isArray,
+        new java.lang.Boolean(true).getClass.isArray,
+        new Array[Int](0).getClass.isArray
+      )
     }
   }
   "classloaders" - {
-    val tester = new Tester("metascala.full.ClassLoaders")
-    "name" in tester.run("name")
+    val tester = new VM()
+    "name" in tester.testFunc{ () =>
+      val cl = classOf[String].getClassLoader
+      "omg" + cl
+    }
     //"create" in tester.run("create")
   }
 }

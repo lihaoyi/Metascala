@@ -63,7 +63,8 @@ object GCTestsBasic{
 }
 class Cons(val value: Int, var next: Cons)
 
-class GCTests extends FreeSpec with Util{
+class GCTests extends FreeSpec {
+  import Util._
 
   "helloObj" in {
     for{

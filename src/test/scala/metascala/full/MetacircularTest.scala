@@ -3,9 +3,10 @@ package full
 
 //import metascala.{UncaughtVmException, Gen, Util}
 import org.scalatest.FreeSpec
-import metascala.Util.{SingleClassVM}
+import metascala.Util._
 
 import collection.GenSeq
+import metascala.features.Bull
 
 object MetacircularTest{
 
@@ -19,14 +20,18 @@ object MetacircularTest{
     x.invoke("metascala/features/methods/Statics", "fibonacci", Seq(12))
   }
 
+  def doInheritance = {
+    val b = new Bull
+    b.mooTwice
+  }
   def inheritance = {
     val x = new metascala.VM()
-    x.invoke("metascala/features/classes/Inheritance", "shadowedInheritedSet")
+    x.invoke("metascala/full/MetacircularTest", "doInheritance", Nil)
   }
 
   def bubbleSort = {
     val x = new metascala.VM()
-    x.invoke("metascala/features/arrays/ArrayStuff", "bubbleSort", Seq(Array(6, 5, 2, 7, 3, 4, 9, 1, 8)))
+    x.invoke("metascala/features/ArrayTest", "bubbleSort", Seq(Array(6, 5, 2, 7, 3, 4, 9, 1, 8)))
      .cast[Array[Int]]
      .toSeq
   }
@@ -53,7 +58,8 @@ object MetacircularTest{
   }
 }
 
-class MetacircularTest extends FreeSpec with Util{
+class MetacircularTest extends FreeSpec {
+  import Util._
 
   val buffer = new BufferLog(1900)
   var count = 0
@@ -63,7 +69,7 @@ class MetacircularTest extends FreeSpec with Util{
 //  "helloWorld" in {
 //    tester.run("helloWorld")
 //  }
-
+/*
   "sqrtFinder" in {
     val tester = new Tester("metascala.full.MetacircularTest", memorySize = 256 * 1024)
     for(i <- 0 to 2)tester.run("sqrtFinder")
@@ -76,7 +82,7 @@ class MetacircularTest extends FreeSpec with Util{
   }
 
   "inheritance" in {
-    val tester = new Tester("metascala.full.MetacircularTest", memorySize = 3 * 1014 * 1024)
+    val tester = new Tester("metascala.full.MetacircularTest", memorySize = 8 * 1014 * 1024)
     for(i <- 0 to 2) tester.run("inheritance")
   }
 
@@ -95,7 +101,7 @@ class MetacircularTest extends FreeSpec with Util{
     val buffer = new BufferLog(1000)
     val tester = new Tester("metascala.full.MetacircularTest", buffer, memorySize = 16 * 1014 * 1024)
     tester.run("multiCatch")
-  }
+  }*/
   /*"doubleMetaOne" in {
     tester.run("doubleMetaOne")
     println(tester.svm.threads(0).getOpCount)

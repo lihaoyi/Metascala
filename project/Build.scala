@@ -17,12 +17,14 @@ object Build extends sbt.Build{
 
       resolvers ++= Seq(
         "typesafe repo"      at "http://repo.typesafe.com/typesafe/releases/",
-        "spray nightly"      at "http://nightlies.spray.io/"
+        "spray nightly"      at "http://nightlies.spray.io/",
+        Resolver.sonatypeRepo("snapshots")
       ),
       libraryDependencies ++= Seq(
         "org.ow2.asm" % "asm-debug-all" % "4.1",
         "org.scalatest" 		   % "scalatest_2.10.0" % "2.0.M5" % "test",
-        "org.mozilla" % "rhino" % "1.7R4"
+        "org.mozilla" % "rhino" % "1.7R4",
+        "com.nativelibs4java" %% "scalaxy-loops" % "0.3-SNAPSHOT" % "provided"
       )
     )
   )

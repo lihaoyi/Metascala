@@ -1,11 +1,12 @@
 package metascala
-
+import scalaxy.loops._
 import scala.collection.mutable
 import imm.Type.Prim
 import imm.Type.Prim._
 import metascala.rt.{Arr, Obj}
 
 object Virtualizer {
+
   lazy val unsafe = {
     val field = Class.forName("sun.misc.Unsafe").getDeclaredField("theUnsafe")
     field.setAccessible(true)
@@ -94,10 +95,15 @@ object Virtualizer {
       case b: Any =>
         var index = 0
         val contents = mutable.Buffer.empty[Int]
+
         for(field <- vm.ClsTable(imm.Type.Cls(b.getClass.getName.toSlash)).fieldList.distinct) yield {
+//          println("field\t" + field.name + "\t" + b.getClass.getName)
           val f = b.getClass.getDeclaredField(field.name)
+//          println("a")
           f.setAccessible(true)
+//          println("b")
           pushVirtual(f.get(b), contents.append(_))
+//          println("c")
           index += field.desc.size
         }
         val obj = rt.Obj.allocate(b.getClass.getName.toSlash)

@@ -9,8 +9,8 @@ import util.Random
 
 
 
-class MathTest extends FreeSpec with Util{
-
+class MathTest extends FreeSpec {
+  import Util._
   implicit def intAll10 = 10 ** Gen.intAll
   implicit def floatAll110 = 10 ** Gen.floatAll
   implicit def longAll10 = 10 ** Gen.longAll

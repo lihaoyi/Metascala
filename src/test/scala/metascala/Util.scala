@@ -60,7 +60,8 @@ object Gen{
 
 }
 
-object Util{
+object Util {
+  import ShouldMatchers._
   def loadClass(name: String) = {
     val slashName = s"/${name.replace(".", "/")}.class"
 
@@ -81,43 +82,6 @@ object Util{
       res
     }
   }
-}
-trait Util extends ShouldMatchers { this: FreeSpec  =>
-  class ReflectiveRunner(className: String){
-    def run(main: String, args: Any*) = {
-      val method = java.lang.Class.forName(className)
-        .getMethods()
-        .find(_.getName == main)
-        .get
-
-
-
-      method.invoke(null, args.map(x => x.asInstanceOf[AnyRef]):_*)
-    }
-  }
-  class Tester(className: String, log: (=>String) => Unit = x => (), memorySize: Int = 1 * 1024 * 1024){
-
-    implicit val svm = new Util.SingleClassVM(className, log, memorySize)
-    val ref = new ReflectiveRunner(className)
-    def run(main: String, args: Any*) = {
-
-      val svmRes = svm.run(main, args:_*)
-      val refRes = ref.run(main, args:_*)
-      val inString = args.toString
-      println("svmRes " + svmRes)
-      println("refRes " + refRes)
-      println("args " + args)
-      try{
-        svmRes should be === refRes
-      }catch {case ex: TestFailedException =>
-        println("Test failed for input")
-        println(inString)
-
-        throw ex
-      }
-    }
-  }
-
   implicit class DoStuff(val vm: VM) extends ShouldMatchers {
 
     def testFunc[A, B, C, R](t: (A, B, C) => R)(a: A, b: B, c: C) = {
@@ -163,7 +127,40 @@ trait Util extends ShouldMatchers { this: FreeSpec  =>
       }
     }
   }
+  class ReflectiveRunner(className: String){
+    def run(main: String, args: Any*) = {
+      val method = java.lang.Class.forName(className)
+        .getMethods()
+        .find(_.getName == main)
+        .get
 
+
+
+      method.invoke(null, args.map(x => x.asInstanceOf[AnyRef]):_*)
+    }
+  }
+  class Tester(className: String, log: (=>String) => Unit = x => (), memorySize: Int = 1 * 1024 * 1024){
+
+    implicit val svm = new Util.SingleClassVM(className, log, memorySize)
+    val ref = new ReflectiveRunner(className)
+    def run(main: String, args: Any*) = {
+
+      val svmRes = svm.run(main, args:_*)
+      val refRes = ref.run(main, args:_*)
+      val inString = args.toString
+      println("svmRes " + svmRes)
+      println("refRes " + refRes)
+      println("args " + args)
+      try{
+        svmRes should be === refRes
+      }catch {case ex: TestFailedException =>
+        println("Test failed for input")
+        println(inString)
+
+        throw ex
+      }
+    }
+  }
 
 }
 class BufferLog(size: Int, delay: Long  = 0) extends ((=> String) => Unit){

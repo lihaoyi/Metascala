@@ -8,9 +8,9 @@ import util.{Failure, Try}
 import metascala.{UncaughtVmException, BufferLog, Gen, Util}
 import metascala.Util.SingleClassVM
 
-class IOTest extends FreeSpec with Util{
+class IOTest extends FreeSpec {
 
-
+  import Util._
   implicit val intAll10 = 10 ** Gen.intAll
   val tester = new VM()
   "primitives" - {

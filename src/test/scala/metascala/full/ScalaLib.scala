@@ -87,7 +87,8 @@ object ScalaLib{
     0
   }
 }
-class ScalaLib extends FreeSpec with Util{
+class ScalaLib extends FreeSpec {
+  import Util._
   val buffer = new BufferLog(4000)
 
   val tester = new Tester("metascala.full.ScalaLib", memorySize = 128 * 1024 * 1024, log=buffer)
