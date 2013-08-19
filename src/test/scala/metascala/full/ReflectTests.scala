@@ -15,9 +15,9 @@ import java.awt.geom.Point2D
 class ReflectTests extends FreeSpec {
   implicit val intAll10 = 10 ** Gen.intAll
   import Util._
-
+  val tester = new VM()
   "getSetX" - {
-    val tester = new VM()
+
     "obj" in tester.testFunc{ () =>
       val string = new String("i am a cow")
       val f = classOf[String].getDeclaredField("value")
@@ -76,5 +76,22 @@ class ReflectTests extends FreeSpec {
       f.getDouble(point)
     }
   }
+  "getSetStatic" - {
+    "double" in tester.testFunc{ () =>
+      val f = classOf[Point2D.Double].getDeclaredField("serialVersionUID")
+      f.setAccessible(true)
+      f.setDouble(null, 3133.7)
+      f.getDouble(null)
+    }
+  }
+  "allocate" in {
+    val p = Virtualizer.unsafe
+                       .allocateInstance(classOf[Point2D.Float])
+                       .asInstanceOf[Point2D.Float]
+    p.x = 10
+    p.y = 20
+    p.x * p.x + p.y * p.y
+  }
+
 }
 
