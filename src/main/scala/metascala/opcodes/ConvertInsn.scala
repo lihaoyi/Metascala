@@ -63,7 +63,7 @@ object ConvertInsn {
         case _ => imm.Type.Cls("java/lang/Object")
       }
 
-      val args = for(j <- (0 until desc.args.length + 1).reverse)yield{
+      val args = for(j <- (0 until desc.args.length + 1).reverse) yield {
         frame.top(j)
       }
       getBox(args.last)
@@ -80,7 +80,7 @@ object ConvertInsn {
       val desc = imm.Desc.read(insn.desc)
       val m = vm.resolveDirectRef(insn.owner, imm.Sig(insn.name, desc)).get
 
-      val args = for(j <- (0 until desc.args.length + self).reverse)yield{
+      val args = for(j <- (0 until desc.args.length + self).reverse) yield {
         frame.top(j)
       }
 

@@ -10,6 +10,7 @@ import org.objectweb.asm.tree.MethodNode
  */
 trait Method{
   def sig: imm.Sig
+  lazy val argSize = sig.desc.args.foldLeft(0)(_ + _.size)
 }
 object Method{
   case class Native(clsName: String,

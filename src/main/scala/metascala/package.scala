@@ -17,7 +17,7 @@ package object metascala {
   private[metascala] implicit class castable(val x: Any) extends AnyVal{
     def cast[T] = x.asInstanceOf[T]
   }
-  implicit class splitAllable[T](c: Seq[T]){
+  implicit class splitAllable[T](val c: Seq[T]) extends AnyVal{
     def splitAll(positions: List[Int], index: Int = 0): Seq[Seq[T]] = positions match{
       case Nil => Seq(c)
       case firstPos :: restPos =>
@@ -25,14 +25,14 @@ package object metascala {
         first +: rest.splitAll(restPos, firstPos)
     }
   }
-  implicit class pimpedAny(x: Any){
+  implicit class pimpedAny(val x: Any) extends AnyVal{
     def toVirtObj(implicit registrar: Registrar) = {
       Virtualizer.pushVirtual(x).apply(0)
     }
   }
   def isObj(i: Int) = i < 0
   def isArr(i: Int) = i > 0
-  implicit class pimpedVal(v: Val){
+  implicit class pimpedVal(val v: Val) extends AnyVal{
     def isObj(implicit vm: VM) = metascala.isObj(vm.heap(v))
     def isArr(implicit vm: VM) = metascala.isArr(vm.heap(v))
     def obj(implicit vm: VM) = {
@@ -97,7 +97,7 @@ package object metascala {
   implicit def stringToClass(s: String)(implicit vm: VM) = vm.ClsTable(imm.Type.Cls(s))
   implicit def stringToClsType(s: String) = imm.Type.Cls(s)
   implicit def stringToDesc(x: String) = imm.Desc.read(x)
-  implicit class pimpedString(val s: String){
+  implicit class pimpedString(val s: String) extends AnyVal{
     def toDot = s.replace('/', '.')
     def toSlash = s.replace('.', '/')
     def allocObj(initMembers: (String, Ref)*)(implicit registrar: Registrar) = {

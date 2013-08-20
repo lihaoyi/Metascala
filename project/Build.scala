@@ -13,7 +13,7 @@ object Build extends sbt.Build{
       Defaults.defaultSettings ++ assemblySettings ++ Seq(
       organization  := "com.example",
       version       := "0.1",
-      scalaVersion  := "2.10.0",
+      scalaVersion  := "2.10.2",
 
       resolvers ++= Seq(
         "typesafe repo"      at "http://repo.typesafe.com/typesafe/releases/",
@@ -22,9 +22,9 @@ object Build extends sbt.Build{
       ),
       libraryDependencies ++= Seq(
         "org.ow2.asm" % "asm-debug-all" % "4.1",
-        "org.scalatest" 		   % "scalatest_2.10.0" % "2.0.M5" % "test",
+        "org.scalatest" % "scalatest_2.10" % "2.0.M5b" % "test",
         "org.mozilla" % "rhino" % "1.7R4",
-        "com.nativelibs4java" %% "scalaxy-loops" % "0.3-SNAPSHOT" % "provided"
+        "com.nativelibs4java" % "scalaxy-loops_2.10" % "0.3-SNAPSHOT" % "provided"
       )
     )
   )

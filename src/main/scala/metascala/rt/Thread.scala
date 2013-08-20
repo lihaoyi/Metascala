@@ -16,7 +16,7 @@ import scala.Some
 import metascala.{rt, UncaughtVmException}
 import Insn.ReturnVal
 import imm.Type.Prim._
-
+import scalaxy.loops._
 /**
  * A single thread within the Metascala VM.
  */
@@ -289,7 +289,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
           (dims, tpe) match {
             case (size :: tail, imm.Type.Arr(innerType: imm.Type.Ref)) =>
               val newArr = vm.alloc(rt.Arr.allocate(innerType, size)(_))
-              for(i <- 0 until size){
+              for(i <- (0 until size).optimized){
                 newArr(i) = rec(tail, innerType)
               }
               newArr.address()
@@ -330,7 +330,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
   def returnVal(size: Int, index: Int) = {
 //    println(s"Returning size: $size, index: $index")
-    for (i <- 0 until size){
+    for(i <- (0 until size).optimized){
       frame.returnTo(frame.locals(index + i))
     }
     this.threadStack.pop

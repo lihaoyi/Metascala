@@ -2,6 +2,7 @@ package metascala
 
 import metascala.imm.Type.Prim
 import scala.collection.mutable
+import scalaxy.loops._
 class Heap(memorySize: Int,
            getRoots: () => Seq[Ref],
            getLinks: (Int, Int) => Seq[Int]){
@@ -61,7 +62,7 @@ class Heap(memorySize: Int,
   }
   def collect(from: Int){
     val to = (from + memorySize) % (2 * memorySize)
-    for(i <- to until (to+memorySize)){
+    for(i <- to.until(to+memorySize).optimized){
       memory(i) = 0
     }
     println("===============Collecting==================")
