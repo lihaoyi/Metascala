@@ -123,18 +123,19 @@ class GCTests extends FreeSpec {
     val tester = new Tester("metascala.full.ScalaLib", memorySize = 10)
     implicit val vm = tester.svm
     import metascala.pimpedString
+    var initialSet: Set[Int] = null
     val (p1, p2, p3) = vm.alloc{ implicit r =>
       val p1 = "java/lang/Object".allocObj()
       val p2 = "java/lang/Object".allocObj()
       val p3 = "java/lang/Object".allocObj()
-      assert(Set(p1(), p2(), p3()) == Set(1, 3, 5))
-      assert(Set(p1, p2, p3).forall(p => vm.heap(p()) == -1))
+      initialSet = Set(p1(), p2(), p3())
+      assert(initialSet.forall(p => vm.heap(p) == -1))
       vm.heap.collect(vm.heap.start)
       // These guys got moved together to the new space (maybe in a new order)
-      assert(Set(p1(), p2(), p3()) == Set(11, 13, 15))
+      assert(Set(p1(), p2(), p3()) == initialSet.map(_+10))
       assert(Set(p1, p2, p3).forall(p => vm.heap(p()) == -1))
       vm.heap.collect(vm.heap.start)
-      assert(Set(p1(), p2(), p3()) == Set(1, 3, 5))
+      assert(Set(p1(), p2(), p3()) == initialSet)
       assert(Set(p1, p2, p3).forall(p => vm.heap(p()) == -1))
       (p1, p2, p3)
     }
@@ -143,7 +144,7 @@ class GCTests extends FreeSpec {
     vm.heap.collect(vm.heap.start)
     // after exiting the `alloc{}` block, the refs become meaningless
     // as the things they are pointing to get GCed
-    assert(Set(p1(), p2(), p3()) == Set(1, 3, 5))
+    assert(Set(p1(), p2(), p3()) == initialSet)
     assert(Set(p1, p2, p3).forall(p => vm.heap(p()) == 0))
   }
 }
