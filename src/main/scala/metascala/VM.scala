@@ -65,7 +65,7 @@ class VM(val natives: Bindings = Bindings.default,
         if x.desc.isRef
       } yield i + rt.Obj.headerSize
     } else{
-      if (arrayTypeCache(tpe).isRef){
+        if (arrayTypeCache(tpe).isRef){
         for (i <- 0 until length) yield i + rt.Arr.headerSize
       }else Nil
     }
@@ -91,9 +91,17 @@ class VM(val natives: Bindings = Bindings.default,
       cls <- ClsTable.clsIndex.drop(1)
     } yield cls.statics.address
 
+    val classRoots2 = for{
+      cls <- ClsTable.clsIndex.drop(1)
+      i <- 0 until cls.staticList.length
+      if cls.staticList(i).desc.isRef
+    } yield new ArrRef(
+      () => heap(cls.statics.address() + i + rt.Arr.headerSize),
+      heap(cls.statics.address() + i + rt.Arr.headerSize) = _
+    )
     val clsObjRoots = typeObjCache.values
 
-    stackRoots ++ classRoots ++ clsObjRoots ++ registry
+    classRoots ++ classRoots2 ++ stackRoots ++ clsObjRoots ++ registry
 
   }
   /**

@@ -67,8 +67,8 @@ class Heap(memorySize: Int,
     }
     println("===============Collecting==================")
     //vm.threads(0).threadStack.map(x => x.runningClass.name + "/" + x.method.sig + "\t" + x.method.code.blocks(x.pc._1).insns(x.pc._2)).foreach(println)
-//    println("starting " + (freePointer - from))
-    println(dump())
+    println("starting " + (freePointer - from))
+//    println(dump())
     val roots = getRoots()
 //    println(roots.map(_()))
 //        println(s"allRoots ${roots.map(_())}")
@@ -87,11 +87,21 @@ class Heap(memorySize: Int,
       val oldRoot = root()
       val (newRoot, nfp) = blit(freePointer, oldRoot)
       freePointer = nfp
+//      println()
+//      println("Moving Root\t" + oldRoot + "\t" + newRoot)
+
       root() = newRoot
+//      println(memory.drop(newRoot / 10 * 10).take(10).toList)
+//      println(dump())
+
     }
-
+//    println("Done With Roots")
     while(scanPointer != freePointer){
+//      println()
+//      println("Scanning " + scanPointer + "\t" + memory(scanPointer))
 
+//      println(memory.drop(scanPointer / 10 * 10).take(10).toList)
+//      println(dump())
       assert(scanPointer <= freePointer, s"scanPointer $scanPointer > freePointer $freePointer")
 
       val links = getLinks(memory(scanPointer), memory(scanPointer+1))

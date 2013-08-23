@@ -16,13 +16,11 @@ object Virtualizer {
   }
 
   def popVirtual(tpe: imm.Type, src: () => Val, refs: mutable.Map[Int, Any] = mutable.Map.empty)(implicit vm: VM): Any = {
-    println("Popping")
     val x = tpe match {
       case V => ()
       case p: imm.Type.Prim[_] => p.read(src)
       case _ => //reference type
         val address = src()
-        println("Address " + address)
         if(address == 0) null
         else if (refs.contains(address)) refs(address)
         else tpe match{
@@ -73,7 +71,6 @@ object Virtualizer {
   }
 
   def pushVirtual(thing: Any, out: Val => Unit)(implicit registrar: Registrar): Unit = {
-    println("Push " + thing)
 
     implicit val vm = registrar.vm
     thing match {

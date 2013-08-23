@@ -65,14 +65,14 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     val r = reader(frame.locals, 0)
 
-    if (false && !threadStack.exists(_.method.sig.name == "<clinit>")) {
+    if (!threadStack.exists(_.method.sig.name == "<clinit>")) {
       lazy val localSnapshot =
         block.locals
              .flatMap(x => Seq(x.prettyRead(r)).padTo(x.size, "~"))
              .toList
 
-      println(indent + "::\t" + frame.runningClass.shortName + "/" + frame.method.sig.shortName + ":" + block.lines(frame.pc._2) + "\t"  + localSnapshot)
-      println(indent + "::\t" + frame.pc + "\t" + node )
+//      println(indent + "::\t" + frame.runningClass.shortName + "/" + frame.method.sig.shortName + ":" + block.lines(frame.pc._2) + "\t"  + localSnapshot)
+//      println(indent + "::\t" + frame.pc + "\t" + node )
       //println(indent + "::\t" + vm.heap.dump().replace("\n", "\n" + indent + "::\t"))
     }
 
@@ -151,10 +151,12 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       case ArrayLength(src, dest) =>
         frame.locals(dest) = frame.locals(src).arr.arrayLength
         advancePc()
+
       case NewArray(src, dest, typeRef) =>
         val newArray = vm.alloc(rt.Arr.allocate(typeRef, frame.locals(src))(_))
         frame.locals(dest) = newArray.address()
         advancePc()
+
       case PutArray(src, index, array, prim) =>
         val arr = frame.locals(array).arr
         if (0 <= frame.locals(index) && frame.locals(index) < arr.arrayLength){
@@ -165,6 +167,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         }
 
       case GetArray(dest, index, array, prim) =>
+        vm.log("Arr Index " + vm.heap(frame.locals(array)))
         val arr = frame.locals(array).arr
         if (0 <= frame.locals(index) && frame.locals(index) < arr.arrayLength){
           blit(arr, frame.locals(index) * prim.size, frame.locals, dest, prim.size)

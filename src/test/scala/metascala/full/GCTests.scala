@@ -1,7 +1,8 @@
 package metascala.full
 
-import metascala.Util
+import metascala.{BufferLog, Util}
 import org.scalatest.FreeSpec
+import scalaxy.loops._
 object GCTestsBasic{
   def helloObj(n: Int) = {
     var i = 0
@@ -41,6 +42,16 @@ object GCTestsBasic{
     }
     front.value
   }
+  def static() = {
+    var o = StaticHolder.x
+    var i = 0
+    while(i < 10){
+      o = new Array[Int](2)
+      i += 1
+    }
+    o = StaticHolder.x
+    o
+  }
   def interned(n: Int) = {
     var i = 0
     while(i < n){
@@ -60,6 +71,9 @@ object GCTestsBasic{
     }
     interned(10)
   }
+}
+object StaticHolder{
+  val x = new Array[Int](2)
 }
 class Cons(val value: Int, var next: Cons)
 
@@ -114,9 +128,19 @@ class GCTests extends FreeSpec {
       tester.run("mixed")
     }
   }
+  "static" in {
+    val tester = new Tester("metascala.full.GCTestsBasic", memorySize = 40)
+    tester.run("static")
+  }
   "parseClass" in {
-    val tester = new Tester("metascala.full.ScalaLib", memorySize = 9 * 1024)
-    for(i <- 1 to 5) tester.run("parseClass")
+    val bl = new BufferLog(4000)
+    val tester = new Tester("metascala.full.ScalaLib", log=bl, memorySize = 10 * 1024)
+    try{
+      for(i <- 1 to 5) tester.run("parseClass")
+    } catch{case e =>
+//      bl.lines.foreach(println)
+      throw e
+    }
   }
 
   "gcInterrupt" in {
