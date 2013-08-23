@@ -91,7 +91,9 @@ class Cls(val tpe: imm.Type.Cls,
   }
 
   val isInterface = (accessFlags & Access.Interface) != 0
-  val statics = new Array[Int](staticList.length)
+  val statics = vm.alloc(implicit i =>
+    rt.Arr.allocate(I, staticList.length)
+  )
 
   def method(name: String, desc: imm.Desc): Option[rt.Method] = {
     clsAncestry.flatMap(_.methods)

@@ -89,9 +89,7 @@ class VM(val natives: Bindings = Bindings.default,
 
     val classRoots = for{
       cls <- ClsTable.clsIndex.drop(1)
-      (field, i) <- cls.staticList.zipWithIndex
-      if field.desc.isRef
-    } yield new ArrRef(() => cls.statics(i), cls.statics(i) = _)
+    } yield cls.statics.address
 
     val clsObjRoots = typeObjCache.values
 

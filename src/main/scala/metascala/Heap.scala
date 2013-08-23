@@ -67,10 +67,10 @@ class Heap(memorySize: Int,
     }
     println("===============Collecting==================")
     //vm.threads(0).threadStack.map(x => x.runningClass.name + "/" + x.method.sig + "\t" + x.method.code.blocks(x.pc._1).insns(x.pc._2)).foreach(println)
-    println("starting " + (freePointer - from))
-
+//    println("starting " + (freePointer - from))
+    println(dump())
     val roots = getRoots()
-
+//    println(roots.map(_()))
 //        println(s"allRoots ${roots.map(_())}")
 
     var scanPointer = 0
@@ -112,8 +112,9 @@ class Heap(memorySize: Int,
 
     println("ending " + (freePointer - start))
 
-//    println("==================Collectiong Compelete====================")
+    println("==================Collectiong Compelete====================")
 //    println(dump())
+//    println(roots.map(_()))
 //    vm.getRoots
     //System.exit(0)
   }

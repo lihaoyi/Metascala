@@ -16,13 +16,13 @@ object Virtualizer {
   }
 
   def popVirtual(tpe: imm.Type, src: () => Val, refs: mutable.Map[Int, Any] = mutable.Map.empty)(implicit vm: VM): Any = {
-
+    println("Popping")
     val x = tpe match {
       case V => ()
       case p: imm.Type.Prim[_] => p.read(src)
       case _ => //reference type
         val address = src()
-
+        println("Address " + address)
         if(address == 0) null
         else if (refs.contains(address)) refs(address)
         else tpe match{
@@ -73,6 +73,8 @@ object Virtualizer {
   }
 
   def pushVirtual(thing: Any, out: Val => Unit)(implicit registrar: Registrar): Unit = {
+    println("Push " + thing)
+
     implicit val vm = registrar.vm
     thing match {
       case null => out(0)
@@ -85,29 +87,39 @@ object Virtualizer {
       case b: Long    => J.write(b, out)
       case b: Double  => D.write(b, out)
       case b: Array[_] =>
+
+        val tpe = imm.Type.Arr.read(b.getClass.getName.replace('.', '/')).innerType
         val arr =
           rt.Arr.allocate(
-            imm.Type.Arr.read(b.getClass.getName.replace('.', '/')).innerType,
-            b.flatMap(pushVirtual).map(x => new ManualRef(x): Ref)
+            tpe,
+            b.flatMap(pushVirtual).map{x =>
+              val ref : Ref = new ManualRef(x)
+              if (!b.getClass.getComponentType.isPrimitive) {
+                registrar(ref)
+              }
+              ref
+            }
           )
 
         out(arr.address())
       case b: Any =>
         var index = 0
-        val contents = mutable.Buffer.empty[Int]
+        val contents = mutable.Buffer.empty[Ref]
 
         for(field <- vm.ClsTable(imm.Type.Cls(b.getClass.getName.toSlash)).fieldList.distinct) yield {
-//          println("field\t" + field.name + "\t" + b.getClass.getName)
           val f = b.getClass.getDeclaredField(field.name)
-//          println("a")
           f.setAccessible(true)
-//          println("b")
-          pushVirtual(f.get(b), contents.append(_))
-//          println("c")
+          pushVirtual(f.get(b), x => {
+            contents.append(x)
+            if (!f.getType.isPrimitive) {
+              registrar(contents.last)
+            }
+          })
           index += field.desc.size
         }
+
         val obj = rt.Obj.allocate(b.getClass.getName.toSlash)
-        contents.map(writer(vm.heap.memory, obj.address() + rt.Obj.headerSize))
+        contents.map(_()).map(writer(vm.heap.memory, obj.address() + rt.Obj.headerSize))
         out(obj.address())
     }
   }

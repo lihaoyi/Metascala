@@ -209,11 +209,11 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         advancePc()
       case PutStatic(src, cls, index, prim) =>
         cls.checkInitialized()
-        System.arraycopy(frame.locals, src, cls.statics, index, prim.size)
+        blit(frame.locals, src, cls.statics, index, prim.size)
         advancePc()
       case GetStatic(src, cls, index, prim) =>
         cls.checkInitialized()
-        System.arraycopy(cls.statics, index, frame.locals, src, prim.size)
+        blit(cls.statics, index, frame.locals, src, prim.size)
         advancePc()
 
       case PutField(src, obj, index, prim) =>

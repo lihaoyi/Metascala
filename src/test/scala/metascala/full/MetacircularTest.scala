@@ -69,7 +69,7 @@ class MetacircularTest extends FreeSpec {
 //  "helloWorld" in {
 //    tester.run("helloWorld")
 //  }
-
+/*
   "sqrtFinder" in {
     val tester = new Tester("metascala.full.MetacircularTest", memorySize = 256 * 1024)
     for(i <- 0 to 2)tester.run("sqrtFinder")
@@ -100,7 +100,7 @@ class MetacircularTest extends FreeSpec {
 
     val tester = new Tester("metascala.full.MetacircularTest", memorySize = 16 * 1014 * 1024)
     tester.run("multiCatch")
-  }
+  }*/
   /*"doubleMetaOne" in {
     tester.run("doubleMetaOne")
     println(tester.svm.threads(0).getOpCount)
