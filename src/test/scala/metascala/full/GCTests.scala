@@ -1,77 +1,11 @@
-package metascala.full
+package metascala
+package full
 
 import metascala.{BufferLog, Util}
+import metascala.Util._
 import org.scalatest.FreeSpec
 import scalaxy.loops._
-object GCTestsBasic{
-  def helloObj(n: Int) = {
-    var i = 0
-    while(i < n){
-      val p = new Object()
-      i += 1
-    }
-    i
-  }
-  def helloArr(n: Int) = {
-    var i = 0
-    val p = new Array[Int](2)
-    p(0) = 5
-    p(1) = 6
-    val p2 = new Array[Array[Int]](1)
-    p2(0) = p
 
-    while(i < n){
-      val p = new Array[Int](3)
-      p(0) = 9
-      p(1) = 8
-      p(2) = 7
-      i += 1
-    }
-    p2(0)(1)
-  }
-
-  def chain(n: Int) = {
-    var i = 0
-    var front = new Cons(1, null)
-    var back = new Cons(5, new Cons(4, new Cons(3, new Cons(2, front))))
-    while (i < n){
-      front.next = new Cons(front.value + 1, null)
-      front = front.next
-      back = back.next
-      i += 1
-    }
-    front.value
-  }
-  def static() = {
-    var o = StaticHolder.x
-    var i = 0
-    while(i < 10){
-      o = new Array[Int](2)
-      i += 1
-    }
-    o = StaticHolder.x
-    o
-  }
-  def interned(n: Int) = {
-    var i = 0
-    while(i < n){
-      val p = new Object()
-      i += 1
-    }
-    "aaaaa"
-  }
-  def mixed() = {
-    var i = 0
-    while(i < 100){
-      i += 1
-      helloObj(i)
-      helloArr(i)
-      chain(i)
-      interned(i)
-    }
-    interned(10)
-  }
-}
 object StaticHolder{
   val x = new Array[Int](2)
 }
@@ -85,8 +19,15 @@ class GCTests extends FreeSpec {
       memory <- List(20, 30, 67, 121)
       count <- List(0, 1, 5, 19, 30, 67)
     }{
-      val tester = new Tester("metascala.full.GCTestsBasic", memorySize = memory)
-      tester.run("helloObj", count)
+      val tester = new VM(memorySize = memory)
+      tester.test{
+        var i = 0
+        while(i < count){
+          val p = new Object()
+          i += 1
+        }
+        i
+      }
     }
   }
 
@@ -96,8 +37,24 @@ class GCTests extends FreeSpec {
       count <- List(0, 3, 9, 12, 30)
     }{
       println(memory + " " + count)
-      val tester = new Tester("metascala.full.GCTestsBasic", memorySize = memory)
-      tester.run("helloArr", count)
+      val tester = new VM(memorySize = memory)
+      tester.test{
+        var i = 0
+        val p = new Array[Int](2)
+        p(0) = 5
+        p(1) = 6
+        val p2 = new Array[Array[Int]](1)
+        p2(0) = p
+
+        while(i < count){
+          val p = new Array[Int](3)
+          p(0) = 9
+          p(1) = 8
+          p(2) = 7
+          i += 1
+        }
+        p2(0)(1)
+      }
     }
   }
 
@@ -106,8 +63,19 @@ class GCTests extends FreeSpec {
       memory <- 40 to 45 by 2
       count <- 20 to 30 by 3
     }{
-      val tester = new Tester("metascala.full.GCTestsBasic", memorySize = 40)
-      tester.run("chain", count)
+      val tester = new VM(memorySize = 40)
+      tester.test{
+        var i = 0
+        var front = new Cons(1, null)
+        var back = new Cons(5, new Cons(4, new Cons(3, new Cons(2, front))))
+        while (i < count){
+          front.next = new Cons(front.value + 1, null)
+          front = front.next
+          back = back.next
+          i += 1
+        }
+        front.value
+      }
     }
   }
 
@@ -116,21 +84,30 @@ class GCTests extends FreeSpec {
       memory <- 40 to 45 by 2
       count <- 20 to 30 by 3
     }{
-      val tester = new Tester("metascala.full.GCTestsBasic", memorySize = memory)
-      tester.run("interned", count)
+      val tester = new VM(memorySize = memory)
+      tester.test{
+        var i = 0
+        while(i < count){
+          val p = new Object()
+          i += 1
+        }
+        "aaaaa"
+      }
     }
   }
-  "mixed" in {
-    for {
-      memory <- Seq(500)
-    }{
-      val tester = new Tester("metascala.full.GCTestsBasic", memorySize = memory)
-      tester.run("mixed")
-    }
-  }
+
   "static" in {
-    val tester = new Tester("metascala.full.GCTestsBasic", memorySize = 40)
-    tester.run("static")
+    val tester = new VM(memorySize = 40)
+    tester.test{
+      var o = StaticHolder.x
+      var i = 0
+      while(i < 10){
+        o = new Array[Int](2)
+        i += 1
+      }
+      o = StaticHolder.x
+      o
+    }
   }
   "parseClass" in {
     val bl = new BufferLog(4000)

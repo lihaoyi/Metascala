@@ -19,8 +19,8 @@ class MathTest extends FreeSpec {
 
   "single precision" - {
     "hello math" - {
-      "imain" in tester.testFunc{ () => 1337 }
-      "fmain" in tester.testFunc{ () => 1.337f }
+      "imain" in tester.test{ 1337 }
+      "fmain" in tester.test{ 1.337f }
     }
     "basic math" - {
       "int" - {

@@ -1,4 +1,5 @@
-package metascala.full
+package metascala
+package full
 
 import metascala.{imm, BufferLog, Util}
 import org.scalatest.FreeSpec
@@ -15,33 +16,8 @@ import scala.collection.JavaConversions._
 import org.mozilla.javascript.Context
 
 object ScalaLib{
-  def hello = "hello"
-  def predef(n: Int) = {
-    Predef
-    0
-  }
-  def palindrome(min: Int, max: Int) = {
-    def isPalindrome(s: String): Boolean = s.reverse.mkString == s
-    val palindromes = for {
-      a <- (min until max)
-      b <- (a until max)
-      p = a*b
-      if isPalindrome(p.toString)
-    } yield p
-    palindromes
 
-  }
 
-  def bigFibonacci(n: Int) = {
-    lazy val fs: Stream[BigInt] =
-      0 #:: 1 #:: fs.zip(fs.tail).map(p => p._1 + p._2)
-
-    fs.view.takeWhile(_.toString.length < n).size
-
-  }
-  def main(args: Array[String]){
-    println(parseClass())
-  }
   def parseClass() = {
 
     val slashName = "/java/lang/Object.class"
@@ -91,12 +67,40 @@ class ScalaLib extends FreeSpec {
   import Util._
   val buffer = new BufferLog(4000)
 
-  val tester = new Tester("metascala.full.ScalaLib", memorySize = 128 * 1024 * 1024, log=buffer)
-  "hello world" in tester.run("hello")
-  "predef" in tester.run("predef", 5)
-  "palindrome" in tester.run("palindrome", 100, 130)
-  "bigFibonacci" in tester.run("bigFibonacci", 30)
-  "parseClass" in tester.run("parseClass")
+  val tester = new VM(memorySize = 128 * 1024 * 1024)
+
+  "predef" in {
+    val x = 5
+    tester.test{
+      Predef
+      0
+    }
+  }
+  "palindrome" in {
+    val min = 100
+    val max = 130
+    tester.test{
+      def isPalindrome(s: String): Boolean = s.reverse.mkString == s
+      val palindromes = for {
+        a <- (min until max)
+        b <- (a until max)
+        p = a*b
+        if isPalindrome(p.toString)
+      } yield p
+      palindromes
+
+    }
+  }
+  "bigFibonacci" in {
+    val n = 10
+    tester.test{
+      lazy val fs: Stream[BigInt] =
+        0 #:: 1 #:: fs.zip(fs.tail).map(p => p._1 + p._2)
+
+      fs.view.takeWhile(_.toString.length < n).size
+    }
+  }
+
 //  "lol" in tester.run("lol")
 
 }

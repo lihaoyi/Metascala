@@ -37,11 +37,11 @@ package object metascala {
     def isArr(implicit vm: VM) = metascala.isArr(vm.heap(v))
     def obj(implicit vm: VM) = {
 
-      assert(isObj, v + " " + vm.heap.memory.slice(v / 10 * 10, v / 10 * 10 + 10).toList)
+      //assert(isObj, v + " " + vm.heap.memory.slice(v / 10 * 10, v / 10 * 10 + 10).toList)
       new Obj(v)
     }
     def arr(implicit vm: VM) = {
-      assert(isArr, v)
+//      assert(isArr, v)
       new Arr(v)
     }
 

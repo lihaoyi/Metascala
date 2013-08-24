@@ -13,26 +13,26 @@ class ClassTest extends FreeSpec {
   "class stuff" - {
     val tester = new VM()
 
-    "name" in tester.testFunc{ () => new Object().getClass.getName }
-    "namePrim" in tester.testFunc{ () => classOf[Int].getName }
-    "nameArray" in tester.testFunc{ () => new Array[Object](10).getClass.getName }
-    "nameObjArray" in tester.testFunc{ () => new Array[Long](100).getClass.getName }
+    "name" in tester.test{ new Object().getClass.getName }
+    "namePrim" in tester.test{ classOf[Int].getName }
+    "nameArray" in tester.test{ new Array[Object](10).getClass.getName }
+    "nameObjArray" in tester.test{ new Array[Long](100).getClass.getName }
 
     "forName" in {
-      val func = {(s: String) =>
-        val x = Class.forName(s)
-        x.getCanonicalName
-      }
-      chk(tester.testFunc(func) _)(Seq(
+      val cases = Seq(
         "java.lang.Object",
         "java.lang.Object",
         "java.util.AbstractCollection",
         "[I",
         "[Ljava.lang.Object;"
-      ))
+      )
+      for(s <- cases) tester.test{
+        val x = Class.forName(s)
+        x.getCanonicalName
+      }
     }
 
-    "isPrimitive" in tester.testFunc{ () =>
+    "isPrimitive" in tester.test{
       Array(
         new Object().getClass.isPrimitive,
         new java.lang.Float(10).getClass.isPrimitive,
@@ -41,7 +41,7 @@ class ClassTest extends FreeSpec {
         new Array[Int](0).getClass.isPrimitive
       )
     }
-    "isArray" in tester.testFunc{ () =>
+    "isArray" in tester.test{
       Array(
         new Object().getClass.isArray,
         new java.lang.Float(10).getClass.isArray,
@@ -53,7 +53,7 @@ class ClassTest extends FreeSpec {
   }
   "classloaders" - {
     val tester = new VM()
-    "name" in tester.testFunc{ () =>
+    "name" in tester.test{
       val cl = classOf[String].getClassLoader
       "omg" + cl
     }

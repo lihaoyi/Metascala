@@ -233,7 +233,8 @@ trait Default extends Bindings{
           ),
 
           "Runtime"/(
-            "freeMemory()J".value(J)(4*1024*1024)
+            "freeMemory()J".value(J)(4*1024*1024),
+            "availableProcessors()I".value(I)(1)
           ),
 
           "System"/(
@@ -467,6 +468,14 @@ trait Default extends Bindings{
               import vt.vm
               o.obj.members(offset.toInt) = ref
             },
+            "putOrderedObject(Ljava/lang/Object;JLjava/lang/Object;)V".func(I, I, J, I, V){ (vt, unsafe, o, offset, ref) =>
+              import vt.vm
+              if (o.isObj)
+                o.obj.members(offset.toInt) = ref
+              else{
+                o.arr(offset.toInt) = ref
+              }
+            },
             "objectFieldOffset(Ljava/lang/reflect/Field;)J".func(I, I, J){(vt, unsafe, f) =>
               import vt.vm
               val field = f.obj
@@ -480,7 +489,8 @@ trait Default extends Bindings{
               field.apply("slot")
             },
             "staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;".func(I, I, I){(vt, unsafe, f) =>
-              ???
+              import vt.vm
+              vm.ClsTable(f.obj.apply("clazz").obj.apply("name").toRealObj[String].toSlash).statics.address()
             },
             "registerNatives()V".value(V)(()),
             "getUnsafe()Lsun/misc/Unsafe;".func(I){vt => vt.vm.theUnsafe.address()},

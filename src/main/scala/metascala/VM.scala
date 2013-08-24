@@ -171,7 +171,10 @@ class VM(val natives: Bindings = Bindings.default,
     res
   }
 
-
+  def exec[T](thunk: => T): T = {
+    val wrapped = () => thunk
+    invoke(wrapped.getClass.getName.toSlash, "apply", Seq(wrapped)).cast[T]
+  }
   println("Initialized VM")
 
   def resolveDirectRef(owner: Type.Cls, sig: imm.Sig)(implicit vm: VM): Option[rt.Method] = {

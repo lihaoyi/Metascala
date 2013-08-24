@@ -11,33 +11,33 @@ class ClassesTest extends FreeSpec {
 
   "classes" - {
     val tester = new VM()
-    "customClass" in tester.testFunc{() =>
+    "customClass" in tester.test{
       val c1 = new Cow()
       val c2 = new Cow()
       c1.moo.length() + c2.moo.length()
     }
-    "stringConcat" in tester.testFunc{() =>
+    "stringConcat" in tester.test{
       val x = new StringBuilder()
       x.append('a')
       x.toString()
     }
-    "inheritance" in tester.testFunc{() =>
+    "inheritance" in tester.test{
       val b = new Bull
       b.mooTwice
     }
-    "constructor" in tester.testFunc{() =>
+    "constructor" in tester.test{
       val m = new Matrix(5, 7, -1, 3)
       m.determinant
     }
-    "superConstructor" in tester.testFunc{() =>
+    "superConstructor" in tester.test{
       val m = new DoubleMatrix(2, 4, -8, 4)
       m.determinant
     }
-    "override" in tester.testFunc{() =>
+    "override" in tester.test{
       val m = new DoubleDetMatrix(1, 2, 3, 4)
       m.determinant
     }
-    "innerClass" in tester.testFunc{() =>
+    "innerClass" in tester.test{
       val l: LinkedList = new LinkedList
       var i: Int = 0
       while (i < 2) {

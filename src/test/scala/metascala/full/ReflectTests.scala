@@ -77,12 +77,11 @@ class ReflectTests extends FreeSpec {
     }
   }
   "getSetStatic" - {
-    "double" in tester.testFunc{ () =>
-      val f = classOf[Point2D.Double].getDeclaredField("serialVersionUID")
-      f.setAccessible(true)
-      f.setDouble(null, 3133.7)
-      f.getDouble(null)
-    }
+//    "double" in tester.testFunc{ () =>
+//      val f = classOf[Point2D.Double].getDeclaredField("serialVersionUID")
+//      f.setAccessible(true)
+//      f.getDouble(null)
+//    }
   }
   "allocate" in {
     val p = Virtualizer.unsafe

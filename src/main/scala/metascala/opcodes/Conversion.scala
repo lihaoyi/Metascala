@@ -40,7 +40,6 @@ object FullInterpreter extends AbstractFunnyInterpreter(true)
 object Conversion {
   val unconditionalJumps = Seq(GOTO, RETURN, ARETURN, IRETURN, FRETURN, LRETURN, DRETURN, ATHROW)
 
-
   def ssa(clsName: String, method: MethodNode)(implicit vm: VM): Code = {
 
     val allInsns = method.instructions.toArray

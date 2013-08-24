@@ -9,6 +9,7 @@ import scalaxy.loops._
 import java.math.BigInteger
 import java.util.regex.{Matcher, Pattern}
 import java.util.concurrent.atomic.{AtomicLong, AtomicInteger, AtomicBoolean}
+import org.mozilla.javascript.Context
 
 
 class JavaLibTest extends FreeSpec {
@@ -20,7 +21,7 @@ class JavaLibTest extends FreeSpec {
   }
   "stuff" - {
     val tester = new VM()
-    "sorting" in tester.testFunc{ () =>
+    "sorting" in tester.test{
       val arr: Array[Int] = new Array[Int](250)
 
       var current: Int = 94664704
@@ -32,22 +33,22 @@ class JavaLibTest extends FreeSpec {
       java.util.Arrays.sort(arr)
       arr(52)
     }
-    "collections" in tester.testFunc{(n: Int) =>
+    "collections" in tester.test{
       val vec = new java.util.Vector[Integer]()
-      for(i <- (0 until n).optimized){
+      for(i <- (0 until 10).optimized){
         vec.add(i)
       }
       val map = new java.util.HashMap[Integer, String]()
       var total = 0
-      for(i <- (0 until n).optimized){
+      for(i <- (0 until 10).optimized){
         total = total + vec.get(i)
         map.put(vec.get(i), ""+total)
       }
 
-      Integer.parseInt(map.get(n/2))
-    }(10)
+      Integer.parseInt(map.get(10/2))
+    }
 
-    "bigInteger" in tester.testFunc{() =>
+    "bigInteger" in tester.test{
       val a: BigInteger = new BigInteger("1237923896771092385")
       val b: BigInteger = new BigInteger("498658982734992345912340")
       val c: BigInteger = new BigInteger("08968240235478367717203984123")
@@ -59,7 +60,7 @@ class JavaLibTest extends FreeSpec {
 
       g.toString
     }
-    "regex" in tester.testFunc{ () =>
+    "regex" in tester.test{
       val p: Pattern = Pattern.compile("\\d+([_-]\\d+)*(:? )")
       val m: Matcher = p.matcher("123_321_12 i am a cow 123_3-" + "12_990 but my ip is 192-168-1-1 lolz")
 
@@ -70,7 +71,7 @@ class JavaLibTest extends FreeSpec {
 
       s
     }
-    "atomicBooleans" in tester.testFunc{() =>
+    "atomicBooleans" in tester.test{
       val b: AtomicBoolean = new AtomicBoolean
       val values: Array[Boolean] = new Array[Boolean](4)
 
@@ -84,7 +85,7 @@ class JavaLibTest extends FreeSpec {
 
       values
     }
-    "atomicIntegers" in tester.testFunc{() =>
+    "atomicIntegers" in tester.test{
       val b: AtomicInteger = new AtomicInteger
       val values: Array[Int] = new Array[Int](4)
 
@@ -98,7 +99,7 @@ class JavaLibTest extends FreeSpec {
 
       values
     }
-    "atomicLongs" in tester.testFunc{ () =>
+    "atomicLongs" in tester.test{
       val b: AtomicLong = new AtomicLong
       val values: Array[Long] = new Array[Long](4)
 
@@ -112,14 +113,21 @@ class JavaLibTest extends FreeSpec {
 
       values
     }
-    "randoms" in tester.testFunc{() =>
+    "randoms" in tester.test{
       val r = new java.util.Random(241231241251241123L)
       for(i <- (0 until 100).optimized){
         r.nextLong()
       }
       r.nextLong()
     }
-
+    "thing" in {
+      val i = 15
+      val x = tester.exec{
+        val z = for(i <- 0 until 15) yield i
+        z.reduce(_ + _)
+      }
+      println(x)
+    }
   }
 
 }

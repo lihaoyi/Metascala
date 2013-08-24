@@ -26,35 +26,44 @@ class ArrayTest extends FreeSpec{
   import Util._
   "array stuff" - {
     val tester = new VM()
-    "makeIntArray" in chk(
-      tester.testFunc((x: Int) => new Array[Int](x)) _
-    )(Seq(0, 1, 2, 3, 4, 5, 6, 7, 8, 9))
-    "makeFloatArray" in tester.testFunc{() =>
+    "makeIntArray" in {
+      for(i <- Seq(0, 1, 2, 3, 4, 5, 6, 7, 8, 9)){
+        tester.test(new Array[Int](i))
+      }
+    }
+    "makeFloatArray" in tester.test{
       val arr = new Array[Float](3)
       arr(0) = 0.25f; arr(1) = 0.5f; arr(2) = 0.75f
       arr
     }
-    "makeStringArray" in tester.testFunc{() =>
+    "makeStringArray" in tester.test{
       val arr = new Array[String](3)
       arr(0) = "omg"; arr(1) = "wtf"; arr(2) = "bbq"
       arr
     }
-    "longArrayOps" in chk(tester.testFunc{ (n: Int) =>
-      val arr = new Array[Long](3)
-      arr(0) = 12345; arr(1) = 67890; arr(2) = 12345
-      arr(n)
-    } _)(Seq(0, 1, 2))
-    "doubleArrayOps" in tester.testFunc{(in: Array[Double]) =>
-      for(i <- (0 until in.length).optimized){
-        in(i) = in(i) + i
+    "longArrayOps" in {
+      for(i <- Seq(0, 1, 2)){
+        tester.test{
+          val arr = new Array[Long](3)
+          arr(0) = 12345; arr(1) = 67890; arr(2) = 12345
+          arr(i)
+        }
       }
-      for(i <- (0 until in.length).optimized){
-        in(i) = in(i) + i
+    }
+    "doubleArrayOps" in {
+    val in = Array(2.1, 2.72)
+      tester.test{
+        for(i <- (0 until in.length).optimized){
+          in(i) = in(i) + i
+        }
+        for(i <- (0 until in.length).optimized){
+          in(i) = in(i) + i
+        }
+        in
       }
-      in
-    }(Array(2.1, 2.72))
+    }
 
-    "arrayLength" in tester.testFunc{() =>
+    "arrayLength" in tester.test{
       val arr0 = new Array[String](0)
       val arr1 = new Array[Int](5)
       arr1(0) = 1; arr1(1) = 2; arr1(2) = 3; arr1(3) = 4; arr1(4) = 5
@@ -62,14 +71,14 @@ class ArrayTest extends FreeSpec{
       arr2(0) = 0.1; arr2(1) = 0.2; arr2(2) = 0.3; arr2(3) = 0.4
       arr0.length + arr1.length + arr2.length
     }
-    "arraySet" in tester.testFunc{ () =>
+    "arraySet" in tester.test{
       val arr = new Array[Int](10)
       for(i <- (0 until 10).optimized){
         arr(i) = i
       }
       arr
     }
-    "arrayGet" in tester.testFunc{() =>
+    "arrayGet" in tester.test{
       var total = 0
       val arr = new Array[Int](10)
       for(i <- (0 until 10).optimized){
@@ -80,7 +89,7 @@ class ArrayTest extends FreeSpec{
       }
       total
     }
-    "getSet" in tester.testFunc{ () =>
+    "getSet" in tester.test{
       val buf = new Array[Char](10)
       val digits = new Array[Char](10)
       digits(0) = '0';  digits(1) = '1'

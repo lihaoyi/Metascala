@@ -105,6 +105,7 @@ object Virtualizer {
 
         for(field <- vm.ClsTable(imm.Type.Cls(b.getClass.getName.toSlash)).fieldList.distinct) yield {
           val f = b.getClass.getDeclaredField(field.name)
+
           f.setAccessible(true)
           pushVirtual(f.get(b), x => {
             contents.append(x)

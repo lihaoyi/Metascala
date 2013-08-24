@@ -84,6 +84,13 @@ object Util {
   }
   implicit class DoStuff(val vm: VM) extends ShouldMatchers {
 
+    def test[T](thunk: => T) = {
+      val svmRes = vm.exec(thunk)
+      val refRes = thunk
+      println("svmRes " + svmRes)
+      println("refRes " + refRes)
+      svmRes should be === refRes
+    }
     def testFunc[A, B, C, R](t: (A, B, C) => R)(a: A, b: B, c: C) = {
       func(t, Seq(a, b, c))
     }

@@ -23,16 +23,18 @@ class MethodTest extends FreeSpec {
   }
   "natives" - {
     val tester = new VM()
-    "intBitsToFloat" in chk(tester.testFunc((n: Int) =>
-      java.lang.Float.intBitsToFloat(n)) _
-    )
-    "currentTimeMillis" in tester.testFunc(() =>
+    "intBitsToFloat" in {
+      for(n <- intAll10){
+        tester.test(java.lang.Float.intBitsToFloat(n))
+      }
+    }
+    "currentTimeMillis" in tester.test(
       System.currentTimeMillis() / 100000
     )
-    "inheritedNative" in tester.testFunc(() =>
+    "inheritedNative" in tester.test(
       "omg".getClass().getName()
     )
-    "arrayCopy" in tester.testFunc{() =>
+    "arrayCopy" in tester.test{
       val x = new Array[Int](5)
       x(0) = 1
       x(1) = 2
@@ -55,35 +57,39 @@ class MethodTest extends FreeSpec {
   }
   "objects" - {
     val tester = new VM()
-    "helloWorld" in tester.testFunc{(n: Int) =>
-      val d = new DumbObject(n)
+    "helloWorld" in tester.test{
+      val d = new DumbObject(5)
       d.getTwoN
-    }(5)
-    "stringEquals" in chk(
-      tester.testFunc((a: Int, b: String) => ""+a == b) _
-    )(
-      Seq(0), Seq("0")
-    )
-    "inheritance" in tester.testFunc{(n: Int) =>
-      val d = new DumbObjectSubClass(n)
+    }
+    "stringEquals" in {
+      val a = 0
+      val b = "0"
+      tester.test(""+a == b)
+    }
+    "inheritance" in tester.test{
+      val d = new DumbObjectSubClass(5)
       d.getTwoN
-    }(5)
+    }
 
-    "points" in chk(
-      tester.testFunc{(n: Int) =>
-        val p = new Point(10, 10)
-        p.getX
-      } _
+    "points" in (
+      for(i <- intAll10){
+        tester.test{
+          val p = new Point(i, i)
+          p.getX
+        }
+      }
     )
-    "points2" in chk(
-      tester.testFunc{(n: Int) =>
-        val p = new Point(10, 10)
-        p.translate(5, -5)
-        p.setLocation(p.x * n, p.y * n)
-        p.setLocation(p.getY, p.getX)
-        p.translate(n, -n)
-        p.distanceSq(0, n)
-      } _
+    "points2" in (
+      for(n <- intAll10){
+        tester.test{
+          val p = new Point(10, 10)
+          p.translate(5, -5)
+          p.setLocation(p.x * n, p.y * n)
+          p.setLocation(p.getY, p.getX)
+          p.translate(n, -n)
+          p.distanceSq(0, n)
+        }
+      }
     )
   }
 
