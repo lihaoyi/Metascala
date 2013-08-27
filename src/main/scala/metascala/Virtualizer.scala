@@ -51,8 +51,8 @@ object Virtualizer {
               else{
                 val f = getAllFields(obj.getClass).find(_.getName == field.name).get
                 f.setAccessible(true)
-
-                f.set(obj, popVirtual(field.desc, reader(vm.heap.memory, address + rt.Obj.headerSize + index), refs))
+                val popped = popVirtual(field.desc, reader(vm.heap.memory, address + rt.Obj.headerSize + index), refs)
+                f.set(obj, popped )
                 index += field.desc.size
               }
             }
@@ -102,10 +102,19 @@ object Virtualizer {
       case b: Any =>
         var index = 0
         val contents = mutable.Buffer.empty[Ref]
-
+        val decFields = b.getClass.getDeclaredFields
+        registrar.vm.log("push Object " + b.getClass.getName)
+        decFields.foreach(x =>
+          registrar.vm.log(x.getName)
+        )
+        vm.log("---------------------")
+        for(field <- vm.ClsTable(imm.Type.Cls(b.getClass.getName.toSlash)).fieldList.distinct){
+          registrar.vm.log(field.name)
+        }
+        vm.log("=====================")
         for(field <- vm.ClsTable(imm.Type.Cls(b.getClass.getName.toSlash)).fieldList.distinct) yield {
-          val f = b.getClass.getDeclaredField(field.name)
-
+          vm.log("Loop: " + field.name)
+          val f = decFields.find(_.getName == field.name).get
           f.setAccessible(true)
           pushVirtual(f.get(b), x => {
             contents.append(x)

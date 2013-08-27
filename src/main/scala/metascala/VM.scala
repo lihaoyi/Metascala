@@ -24,6 +24,7 @@ class VM(val natives: Bindings = Bindings.default,
 
   private[this] implicit val vm = this
 
+
   val internedStrings = mutable.Map[String, Int]()
   val heap = new Heap(
     memorySize,
@@ -45,6 +46,9 @@ class VM(val natives: Bindings = Bindings.default,
   }
 
   val registry = mutable.Set[Ref]()
+
+  val interned = mutable.Buffer[Ref]()
+
 
   val arrayTypeCache = mutable.Buffer[imm.Type](null)
 
@@ -99,9 +103,11 @@ class VM(val natives: Bindings = Bindings.default,
       () => heap(cls.statics.address() + i + rt.Arr.headerSize),
       heap(cls.statics.address() + i + rt.Arr.headerSize) = _
     )
+
+
     val clsObjRoots = typeObjCache.values
 
-    classRoots ++ classRoots2 ++ stackRoots ++ clsObjRoots ++ registry
+    classRoots ++ classRoots2 ++ stackRoots ++ clsObjRoots ++ registry ++ interned
 
   }
   /**

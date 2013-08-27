@@ -47,7 +47,7 @@ object Insn{
   case class InstanceOf(src: Sym, dest: Sym, desc: Type) extends Insn
 
   case class Push[T](dest: Sym, prim: Prim[T], value: T) extends Insn
-  case class Ldc(dest: Sym, value: Any) extends Insn
+  case class Ldc(dest: Sym, value: Int) extends Insn
 
 
   case class InvokeStatic(dest: Sym, srcs: Seq[Sym], owner: Type.Cls, method: rt.Method) extends Invoke

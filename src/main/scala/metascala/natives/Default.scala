@@ -54,12 +54,10 @@ trait Default extends Bindings{
               val name = obj("name").toRealObj[String]
               val cls = vm.ClsTable(imm.Type.Cls.readJava(name))
               val realFields = cls.fieldList ++ cls.staticList
-              println("Getting Declared Fields! " + name)
-              realFields.map(_.name).foreach(println)
+
               vm.alloc(implicit r =>
                 "java/lang/reflect/Field".allocArr(
                   realFields.zipWithIndex.map{ case (f, i) =>
-                    println("FIELDX " + f.name + " " + (if (f.static) cls.staticList else cls.fieldList).indexOf(f))
                     "java/lang/reflect/Field".allocObj(
                       "clazz" -> obj.address,
                       "slot" -> (if (f.static) cls.staticList else cls.fieldList).indexOf(f),
@@ -198,11 +196,16 @@ trait Default extends Bindings{
               import vt.vm
 
               val name = o.toRealObj[String]
-              val realResult = new DataInputStream(ClassLoader.getSystemResourceAsStream(name))
-              val bytes = new Array[Byte](realResult.available())
-              realResult.readFully(bytes)
-              val byteStream = new ByteArrayInputStream(bytes)
-              vm.alloc(byteStream.toVirtObj(_))
+              val stream = ClassLoader.getSystemResourceAsStream(name)
+              if (stream == null) 0
+              else{
+                val realResult = new DataInputStream(stream)
+
+                val bytes = new Array[Byte](realResult.available())
+                realResult.readFully(bytes)
+                val byteStream = new ByteArrayInputStream(bytes)
+                vm.alloc(byteStream.toVirtObj(_))
+              }
             },
             "registerNatives()V".value(V)(())
           ),
@@ -371,7 +374,6 @@ trait Default extends Bindings{
               val x = vt.vm.alloc{ implicit r =>
                 name.allocObj()
               }()
-              println("allocating! " + x + " " + vt.vm.heap(x))
               x
             },
             "addressSize()I".value(I)(4),
@@ -480,7 +482,6 @@ trait Default extends Bindings{
               import vt.vm
               val field = f.obj
               val s = field.apply("slot")
-              println("objectFieldOffset " + s)
               s
             },
             "staticFieldOffset(Ljava/lang/reflect/Field;)J".func(I, I, J){ (vt, unsafe, f) =>
@@ -528,7 +529,6 @@ trait Default extends Bindings{
       "metascala"/(
         "Virtualizer$"/(
             "unsafe()Lsun/misc/Unsafe;".func(I){vt =>
-              println("TRAPPED LOL")
               vt.vm.theUnsafe.address()
             }
         )

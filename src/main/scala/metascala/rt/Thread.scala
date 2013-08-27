@@ -28,7 +28,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   def frame = threadStack.top
 
   val returnedVal = Array(0, 0)
-
+  private[this] var insnCount = 0L
+  def count = insnCount
   def indent = "\t" * threadStack.filter(_.method.sig.name != "Dummy").length
 
 
@@ -54,7 +55,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   final def step(): Unit = try {
     //  println(frame.pc)
     val code = frame.method.code
-
+    insnCount += 1
     var block = code.blocks(frame.pc._1)
     while(block.insns.length == 0){
       jumpPhis(frame.pc._1 + 1)
@@ -167,7 +168,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         }
 
       case GetArray(dest, index, array, prim) =>
-        vm.log("Arr Index " + vm.heap(frame.locals(array)))
         val arr = frame.locals(array).arr
         if (0 <= frame.locals(index) && frame.locals(index) < arr.arrayLength){
           blit(arr, frame.locals(index) * prim.size, frame.locals, dest, prim.size)
@@ -176,25 +176,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
           throwExWithTrace("java/lang/ArrayIndexOutOfBoundsException", frame.locals(index).toString)
         }
 
-      case Ldc(target, thing) =>
-        val w = writer(frame.locals, target)
-        thing match{
-          case s: String =>
-            val top = vm.alloc(Virtualizer.pushVirtual(s)(_)).apply(0)
-            frame.locals(target) = top
-          case t: org.objectweb.asm.Type =>
-
-            val clsObj = vm.typeObjCache(imm.Type.read(t.getInternalName))
-
-            frame.locals(target) = clsObj()
-          case x: scala.Byte  => B.write(x, w)
-          case x: scala.Char  => C.write(x, w)
-          case x: scala.Short => S.write(x, w)
-          case x: scala.Int   => I.write(x, w)
-          case x: scala.Float => F.write(x, w)
-          case x: scala.Long  => J.write(x, w)
-          case x: scala.Double => D.write(x, w)
-        }
+      case Ldc(target, index) =>
+        frame.locals(target) = vm.interned(index())()
         advancePc()
 
       case UnaryOp(src, psrc, dest, pout, func) =>

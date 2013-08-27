@@ -132,7 +132,30 @@ object ConvertInsn {
       case DCONST_1 => push(1D, D)
       case BIPUSH => push(insn.operand, I)
       case SIPUSH => push(insn.operand, I)
-      case LDC => append(Insn.Ldc(nextFrame.top(), insn.cast[LdcInsnNode].cst))
+      case LDC =>
+        def iBox = nextFrame.top()
+        def lBox = nextFrame.top()
+
+        insn.cast[LdcInsnNode].cst match{
+          case s: String =>
+            val top = vm.alloc(Virtualizer.pushVirtual(s)(_)).apply(0)
+            val index = vm.interned.length
+            vm.interned.append(new ManualRef(top))
+            append(Ldc(iBox, index))
+          case t: org.objectweb.asm.Type =>
+            val clsObj = vm.typeObjCache(imm.Type.read(t.getInternalName))
+            val index = vm.interned.length
+            vm.interned.append(new ManualRef(clsObj()))
+            append(Ldc(iBox, index))
+          case x: java.lang.Byte  => append(Insn.Push(iBox, B, x: Byte))
+          case x: java.lang.Character  => append(Insn.Push(iBox, C, x: Char))
+          case x: java.lang.Short => append(Insn.Push(iBox, S, x: Short))
+          case x: java.lang.Integer   => append(Insn.Push(iBox, I, x: Int))
+          case x: java.lang.Float => append(Insn.Push(iBox, F, x: Float))
+          case x: java.lang.Long  => append(Insn.Push(lBox, J, x: Long))
+          case x: java.lang.Double => append(Insn.Push(lBox, D, x: Double))
+        }
+
       case IALOAD => aLoad(I, I)
       case LALOAD => aLoad(J, J)
       case FALOAD => aLoad(F, F)
