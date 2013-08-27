@@ -1,5 +1,6 @@
 package metascala
 import imm.Type.Prim
+import collection.mutable
 /**
  * `natives` contains the bindings between method calls internal to the Metascala
  * VM and external functionality of the host JVM. It defines bindings in a
@@ -20,20 +21,12 @@ package object natives {
       m.flatMap{ case (k, v) =>
         v match{
           case thing: Seq[(String, Any)] =>
-            thing.toRoute(k :: parts).map {
-              case rt.Method.Native(clsName, sig, func) => rt.Method.Native(if (clsName == "") k else k + "/" + clsName, sig, func)
+            thing.toRoute(k :: parts).map { case rt.Method.Native(clsName, sig, func) =>
+              rt.Method.Native(if (clsName == "") k else k + "/" + clsName, sig, func)
             }
-
           case func: ((`rt`.Thread, () => Val, Int => Unit) => Unit) =>
             val (name, descString) = k.splitAt(k.indexOf('('))
-            val p = parts.reverse
-
-            val fullDescString =
-              descString
-                .replaceAllLiterally("L//", s"L${p(0)}/${p(1)}/")
-                .replaceAllLiterally("L/", s"L${p(0)}/")
-
-            val desc = imm.Desc.read(fullDescString)
+            val desc = imm.Desc.read(descString)
             Vector(rt.Method.Native("", imm.Sig(name, desc), func))
         }
       }

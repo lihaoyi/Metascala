@@ -1,6 +1,6 @@
 package metascala
 package imm
-
+import collection.mutable
 import reflect.ClassTag
 
 
@@ -248,7 +248,7 @@ trait Type{
 object Desc{
   def read(s: String) = {
     val scala.Array(argString, ret) = s.drop(1).split(')')
-    var args = Seq[String]()
+    val args = mutable.Buffer.empty[String]
     var index = 0
     while(index < argString.length){
       val firstChar = argString.indexWhere(x => "BCDFIJSZL".contains(x), index)
@@ -257,7 +257,7 @@ object Desc{
         case _ => argString.indexWhere(x => "BCDFIJSZ".contains(x), index)
       }
 
-      args = args :+ argString.substring(index, split+1)
+      args.append(argString.substring(index, split+1))
       index = split +1
     }
     Desc(args.map(Type.read), Type.read(ret))

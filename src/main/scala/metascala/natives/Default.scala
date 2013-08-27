@@ -318,7 +318,7 @@ trait Default extends Bindings{
 
               vt.returnedVal(0)
             },
-            "doPrivileged(L//PrivilegedAction;)L/lang/Object;".func(I, I){ (vt, a) =>
+            "doPrivileged(Ljava/security/PrivilegedAction;)Ljava/lang/Object;".func(I, I){ (vt, a) =>
 
               import vt.vm
               val pa = a.obj

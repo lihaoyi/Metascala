@@ -34,16 +34,12 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
 
   def doPhi(frame: Frame, oldBlock: Int, newBlock: Int) = {
-//    println(indent + "doPhi")
-//    println(indent + oldBlock + "\t" + newBlock)
-
     val (srcs, dests) = frame.method.code.blocks(newBlock).phi(oldBlock).unzip
-//    println(indent + (srcs, dests))
     val temp = srcs.map(frame.locals)
     java.util.Arrays.fill(frame.locals, 0)
-    for ((i, dest) <- temp.zip(dests)){
-
-      frame.locals(dest) = i
+    for (i <- (0 until temp.length).optimized){
+      val (src, dest) = (temp(i), dests(i))
+      frame.locals(dest) = src
     }
     (srcs, dests)
   }
@@ -132,9 +128,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         }
         val phis = advancePc()
         val ptarget = phis.toMap.getOrElse(target, target)
-        val isNull = args(0) == 0
-        if(isNull) {
 
+        val isNull = args(0) == 0
+
+        if(isNull) {
           throwExWithTrace("java/lang/NullPointerException", "null")
         } else {
           val mRef = mIndex match{
