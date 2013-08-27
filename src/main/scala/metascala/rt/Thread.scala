@@ -35,11 +35,11 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
   def doPhi(frame: Frame, oldBlock: Int, newBlock: Int) = {
     val phi = frame.method.code.blocks(newBlock).phi(oldBlock)
-    val (srcs, dests) = phi.unzip
-    val temp = srcs.map(frame.locals)
+    val temp = phi.map(x => frame.locals(x._1))
     java.util.Arrays.fill(frame.locals, 0)
     for (i <- (0 until temp.length).optimized){
-      frame.locals(dests(i)) = temp(i)
+      val (src, dest) = (temp(i), phi(i)._2)
+      frame.locals(dest) = src
     }
     phi
   }
@@ -48,7 +48,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     doPhi(frame, frame.pc._1, target)
     frame.pc = (target, 0)
   }
-
   final def step(): Unit = try {
     //  println(frame.pc)
     val code = frame.method.code
@@ -82,9 +81,9 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         currentFrame.pc =(currentFrame.pc._1, currentFrame.pc._2 + 1)
         Nil
       }else if(currentFrame.pc._1 + 1 < code.blocks.length){
-        val phis = doPhi(currentFrame, currentFrame.pc._1, currentFrame.pc._1+1)
+        val phi = doPhi(currentFrame, currentFrame.pc._1, currentFrame.pc._1+1)
         currentFrame.pc = (currentFrame.pc._1+1, 0)
-        phis
+        phi
       }else {
         Nil
       }
