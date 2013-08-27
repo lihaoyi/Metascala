@@ -34,14 +34,14 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
 
   def doPhi(frame: Frame, oldBlock: Int, newBlock: Int) = {
-    val (srcs, dests) = frame.method.code.blocks(newBlock).phi(oldBlock).unzip
-    val temp = srcs.map(frame.locals)
+    val phi = frame.method.code.blocks(newBlock).phi(oldBlock)
+    val temp = phi.map(x => frame.locals(x._1))
     java.util.Arrays.fill(frame.locals, 0)
     for (i <- (0 until temp.length).optimized){
-      val (src, dest) = (temp(i), dests(i))
+      val (src, dest) = (temp(i), phi(i)._2)
       frame.locals(dest) = src
     }
-    (srcs, dests)
+    phi
   }
 
   def jumpPhis(target: Int) = {
@@ -81,9 +81,9 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         currentFrame.pc =(currentFrame.pc._1, currentFrame.pc._2 + 1)
         Nil
       }else if(currentFrame.pc._1 + 1 < code.blocks.length){
-        val phis = doPhi(currentFrame, currentFrame.pc._1, currentFrame.pc._1+1)
+        val phi = doPhi(currentFrame, currentFrame.pc._1, currentFrame.pc._1+1)
         currentFrame.pc = (currentFrame.pc._1+1, 0)
-        phis._1.zip(phis._2)
+        phi
       }else {
         Nil
       }
@@ -117,7 +117,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
           throwExWithTrace("java/lang/NullPointerException", "null")
         }else{
           val phis = advancePc()
-          val ptarget = phis.toMap.getOrElse(target, target)
+          val ptarget = phis.find(_._1 == target).fold(target)(_._2)
           prepInvoke(m, args, writer(frame.locals, ptarget))
         }
 
@@ -127,7 +127,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
           frame.locals.slice(s, s + t)
         }
         val phis = advancePc()
-        val ptarget = phis.toMap.getOrElse(target, target)
+
 
         val isNull = args(0) == 0
 
@@ -143,6 +143,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
                 else owner.cls
               cls.vTable(mIndex)
           }
+          val ptarget = phis.find(_._1 == target).fold(target)(_._2)
           prepInvoke(mRef, args, writer(frame.locals, ptarget))
         }
 

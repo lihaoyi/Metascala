@@ -13,14 +13,14 @@ class MetacircularTest extends FreeSpec {
 
   val buffer = new BufferLog(1900)
   var count = 0
-/*
+
   "sqrtFinder" in {
-    new VM(memorySize = 280 * 1024).test{
+    new VM(memorySize = 200 * 1024).test{
       val x = new VM(memorySize = 1024)
       x.invoke("metascala/features/controlflow/Loops", "sqrtFinder", Seq(5.0))
     }
   }
-
+/*
   "fibonacci" in {
     new VM(memorySize = 3 * 1024 * 1024).test{
       val x = new metascala.VM()
