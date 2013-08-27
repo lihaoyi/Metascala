@@ -87,5 +87,7 @@ class MetacircularTest extends FreeSpec {
       }
     }
   }
+  */
 }
+
 
