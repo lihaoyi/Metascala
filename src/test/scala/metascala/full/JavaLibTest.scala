@@ -10,6 +10,7 @@ import java.math.BigInteger
 import java.util.regex.{Matcher, Pattern}
 import java.util.concurrent.atomic.{AtomicLong, AtomicInteger, AtomicBoolean}
 import org.mozilla.javascript.Context
+import java.util.concurrent.{ConcurrentLinkedQueue, ConcurrentHashMap}
 
 
 class JavaLibTest extends FreeSpec {
@@ -120,13 +121,12 @@ class JavaLibTest extends FreeSpec {
       }
       r.nextLong()
     }
-    "thing" in {
-      val i = 15
-      val x = tester.exec{
-        val z = for(i <- 0 until 15) yield i
-        z.reduce(_ + _)
-      }
-      println(x)
+    "concurrentLinkedQueue" in tester.test{
+      val struct = new ConcurrentLinkedQueue[Int]()
+      struct.add(123)
+      struct.add(456)
+      val i = struct.poll()
+      struct.peek() + i + struct.peek()
     }
   }
 

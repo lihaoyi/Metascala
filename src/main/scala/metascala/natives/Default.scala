@@ -388,6 +388,17 @@ trait Default extends Bindings{
               }
 
             },
+            "compareAndSwapObject(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z".func(I, I, J, I, I, Z){ (vt, unsafe, o, slot, expected ,x) =>
+              import vt.vm
+              val obj = o.obj
+              if (obj.members(slot.toInt) == expected){
+                obj.members(slot.toInt) = x
+                true
+              }else{
+                false
+              }
+
+            },
             "compareAndSwapLong(Ljava/lang/Object;JJJ)Z".func(I, I, J, J, J, Z){ (vt, unsafe, o, slot, expected ,x) =>
               import vt.vm
               val obj = o.obj
@@ -467,6 +478,10 @@ trait Default extends Bindings{
               o.obj.members(offset.toInt)
             },
             "putObjectVolatile(Ljava/lang/Object;JLjava/lang/Object;)V".func(I, I, J, I, V){ (vt, unsafe, o, offset, ref) =>
+              import vt.vm
+              o.obj.members(offset.toInt) = ref
+            },
+            "putObject(Ljava/lang/Object;JLjava/lang/Object;)V".func(I, I, J, I, V){ (vt, unsafe, o, offset, ref) =>
               import vt.vm
               o.obj.members(offset.toInt) = ref
             },
