@@ -26,6 +26,8 @@ class VM(val natives: Bindings = Bindings.default,
 
 
   val internedStrings = mutable.Map[String, Int]()
+
+
   val heap = new Heap(
     memorySize,
     () => getRoots(),
@@ -47,10 +49,19 @@ class VM(val natives: Bindings = Bindings.default,
 
   val registry = mutable.Set[Ref]()
 
-  val interned = mutable.Buffer[Ref]()
+
+  val interned = mutable.Buffer[Ref](currentThread)
 
 
   val arrayTypeCache = mutable.Buffer[imm.Type](null)
+
+  val currentThread = alloc(implicit r =>
+    "java/lang/Thread".allocObj(
+      "group" -> "java/lang/ThreadGroup".allocObj(),
+      "priority" -> 5
+    )
+  )()
+
 
   val typeObjCache = new mutable.HashMap[imm.Type, Ref] {
     override def apply(x: imm.Type) = this.getOrElseUpdate(x,

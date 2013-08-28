@@ -11,6 +11,7 @@ import java.util.regex.{Matcher, Pattern}
 import java.util.concurrent.atomic.{AtomicLong, AtomicInteger, AtomicBoolean}
 import org.mozilla.javascript.Context
 import java.util.concurrent.{ConcurrentLinkedQueue, ConcurrentHashMap}
+import java.util.concurrent.locks.ReentrantLock
 
 
 class JavaLibTest extends FreeSpec {
@@ -127,6 +128,15 @@ class JavaLibTest extends FreeSpec {
       struct.add(456)
       val i = struct.poll()
       struct.peek() + i + struct.peek()
+    }
+    "locks" in tester.test{
+      val lock = new ReentrantLock()
+      lock.lock()
+      lock.unlock()
+    }
+    "concurrentHashMap" in tester.test{
+      val map = new ConcurrentHashMap[Int, Int]()
+      map.put(123, 456)
     }
   }
 

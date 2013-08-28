@@ -79,7 +79,7 @@ class Obj(val address: Ref)
   def view = address + " " + vm.heap.memory.slice(address(), address() + heapSize).toList
 
   override def toString = {
-    s"vrt.Obj(${cls.name} + )"
+    s"vrt.Obj(${cls.name})"
   }
 }
 

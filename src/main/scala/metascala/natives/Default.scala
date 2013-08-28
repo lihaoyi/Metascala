@@ -266,12 +266,7 @@ trait Default extends Bindings{
             "currentThread()Ljava/lang/Thread;".func(I){ vt =>
               import vt.vm
 
-              vm.alloc(implicit r =>
-                "java/lang/Thread".allocObj(
-                  "group" -> "java/lang/ThreadGroup".allocObj(),
-                  "priority" -> 5
-                )
-              )()
+              vm.currentThread
             },
             "setPriority0(I)V".value(V)(()),
             "isAlive()Z".value(Z)(false),
@@ -414,8 +409,8 @@ trait Default extends Bindings{
               ()
             },
             "getObject(Ljava/lang/Object;J)Ljava/lang/Object;".func(I, I, J, I){ (vt, unsafe, o, offset) =>
-                import vt.vm
-                o.obj.members(offset.toInt)
+              import vt.vm
+              o.obj.members(offset.toInt)
             },
             "getBooleanVolatile(Ljava/lang/Object;J)Z".func(I, I, J, Z){ (vt, unsafe, o, offset) =>
               import vt.vm
