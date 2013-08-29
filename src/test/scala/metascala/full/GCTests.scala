@@ -16,7 +16,7 @@ class GCTests extends FreeSpec {
 
   "helloObj" in {
     for{
-      memory <- List(20, 30, 67, 121)
+      memory <- List(30, 67, 121)
       count <- List(0, 1, 5, 19, 30, 67)
     }{
       val tester = new VM(memorySize = memory)

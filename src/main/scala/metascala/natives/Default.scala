@@ -35,7 +35,16 @@ trait Default extends Bindings{
             "forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;".func(I, I, I, I){
               (vt, name, boolean, classLoader) =>
                 import vt.vm
-                vt.vm.typeObjCache(imm.Type.readJava(name.toRealObj[String]))()
+                val nameString = name.toRealObj[String]
+                val tpe = imm.Type.readJava(nameString)
+                try{
+                  vm.ClsTable(tpe.cast[imm.Type.Cls])
+                  vt.vm.typeObjCache(tpe)()
+                } catch{case e: Exception =>
+                  vt.throwExWithTrace("java/lang/ClassNotFoundException", nameString)
+                  0
+                }
+
             },
             "getClassLoader0()Ljava/lang/ClassLoader;".value(I)(0),
             "getComponentType()Ljava/lang/Class;".func(I, I){ (vt, o) =>
@@ -361,7 +370,7 @@ trait Default extends Bindings{
             "randomHashSeed(Ljava/lang/Object;)I".value(I)(31337) // sufficiently random
           ),
           "Unsafe"/(
-            "arrayBaseOffset(Ljava/lang/Class;)I".value(I)(2),
+            "arrayBaseOffset(Ljava/lang/Class;)I".value(I)(0),
             "arrayIndexScale(Ljava/lang/Class;)I".value(I)(1),
             "allocateInstance(Ljava/lang/Class;)Ljava/lang/Object;".func(I, I, I){ (vt, unsafe, clsPtr) =>
               import vt.vm

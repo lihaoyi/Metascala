@@ -62,16 +62,16 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     val r = reader(frame.locals, 0)
 
-    if (!threadStack.exists(_.method.sig.name == "<clinit>")) {
-      lazy val localSnapshot =
-        block.locals
-             .flatMap(x => Seq(x.prettyRead(r)).padTo(x.size, "~"))
-             .toList
-
-      println(indent + "::\t" + frame.runningClass.shortName + "/" + frame.method.sig.shortName + ":" + block.lines(frame.pc._2) + "\t"  + localSnapshot)
-      println(indent + "::\t" + frame.pc + "\t" + node )
-      //println(indent + "::\t" + vm.heap.dump().replace("\n", "\n" + indent + "::\t"))
-    }
+//    if (!threadStack.exists(_.method.sig.name == "<clinit>")) {
+//      lazy val localSnapshot =
+//        block.locals
+//             .flatMap(x => Seq(x.prettyRead(r)).padTo(x.size, "~"))
+//             .toList
+//
+////      println(indent + "::\t" + frame.runningClass.shortName + "/" + frame.method.sig.shortName + ":" + block.lines(frame.pc._2) + "\t"  + localSnapshot)
+////      println(indent + "::\t" + frame.pc + "\t" + node )
+//      //println(indent + "::\t" + vm.heap.dump().replace("\n", "\n" + indent + "::\t"))
+//    }
 
 
     val currentFrame = frame

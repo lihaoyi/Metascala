@@ -31,6 +31,14 @@ class ClassTest extends FreeSpec {
         x.getCanonicalName
       }
     }
+    "forNameBad" in tester.test{
+      try{
+        val cls = Class.forName("lol")
+        cls.getName
+      }catch {case x: ClassNotFoundException =>
+        x.getMessage
+      }
+    }
 
     "isPrimitive" in tester.test{
       Array(

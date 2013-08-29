@@ -138,6 +138,14 @@ class JavaLibTest extends FreeSpec {
       val map = new ConcurrentHashMap[Int, Int]()
       map.put(123, 456)
     }
+    "rhino" in tester.test{
+      val cx = Context.enter()
+      val scope = cx.initStandardObjects()
+      val script = "var s = 'omg'"
+      val obj = cx.evaluateString(scope, script, "Test Script", 1, null)
+      println(obj)
+      1
+    }
   }
 
 }

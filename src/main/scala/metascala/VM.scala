@@ -24,7 +24,7 @@ class VM(val natives: Bindings = Bindings.default,
 
   private[this] implicit val vm = this
 
-
+  var ready = false
   val internedStrings = mutable.Map[String, Int]()
 
 
@@ -50,18 +50,22 @@ class VM(val natives: Bindings = Bindings.default,
   val registry = mutable.Set[Ref]()
 
 
-  val interned = mutable.Buffer[Ref](currentThread)
 
 
   val arrayTypeCache = mutable.Buffer[imm.Type](null)
 
-  val currentThread = alloc(implicit r =>
-    "java/lang/Thread".allocObj(
-      "group" -> "java/lang/ThreadGroup".allocObj(),
-      "priority" -> 5
-    )
-  )()
+  lazy val currentThread = {
+    val thread = alloc(implicit r =>
+      "java/lang/Thread".allocObj(
+        "group" -> "java/lang/ThreadGroup".allocObj(),
+        "priority" -> 5
+      )
+    )()
+    interned.append(thread)
+    thread
+  }
 
+  val interned = mutable.Buffer[Ref]()
 
   val typeObjCache = new mutable.HashMap[imm.Type, Ref] {
     override def apply(x: imm.Type) = this.getOrElseUpdate(x,
@@ -73,6 +77,7 @@ class VM(val natives: Bindings = Bindings.default,
     )
   }
 
+  ready = true
   def getLinks(tpe: Int, length: Int) = {
     if (isObj(tpe)){
       for{
@@ -90,6 +95,7 @@ class VM(val natives: Bindings = Bindings.default,
    * Identify the list of all root object references within the virtual machine.
    */
   def getRoots(): Seq[Ref] = {
+    assert(ready)
     val stackRoots = for{
       thread <- threads
       frame <- thread.threadStack
