@@ -19,6 +19,7 @@ import org.objectweb.asm.tree.ClassNode
  * its bytecode operations
  */
 class VM(val natives: Bindings = Bindings.default,
+         val insnLimit: Long = Long.MaxValue,
          val log: ((=>String) => Unit) = s => (),
          val memorySize: Int = 1 * 1024 * 1024) {
 

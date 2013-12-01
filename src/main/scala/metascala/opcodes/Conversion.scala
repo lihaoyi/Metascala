@@ -295,16 +295,15 @@ object Conversion {
       BasicBlock(buffer, phis, types, lines)
     }
 
-    if (false && method.name == "ensureObj") {
+    if (false) {
+
       for ((block, i) <- basicBlocks.zipWithIndex){
         println("")
         println(i + "\t" + block.phi.toList)
-        //println(i + "\t" + block.locals.toList)
-        println (""+blockBuffers(i)._3)
+        println ("" + blockBuffers(i)._3)
         for(i <- 0 until block.insns.length){
           println(block.lines(i) + "\t" + block.insns(i))
         }
-
       }
       println("")
       println("")

@@ -38,11 +38,15 @@ trait Default extends Bindings{
                 val nameString = name.toRealObj[String]
                 val tpe = imm.Type.readJava(nameString)
                 try{
-                  vm.ClsTable(tpe.cast[imm.Type.Cls])
-                  vt.vm.typeObjCache(tpe)()
+                  if (!nameString.contains("["))vm.ClsTable(tpe.cast[imm.Type.Cls])
+                  val x = vt.vm.typeObjCache(tpe)()
+                  println("Success! " + x + " " + nameString)
+                  println("view " + vm.heap.memory.drop(x).take(20).toList)
+                  println("Name! " + x.obj.apply("name").toRealObj[String])
+                  x
                 } catch{case e: Exception =>
-                  vt.throwExWithTrace("java/lang/ClassNotFoundException", nameString)
-                  0
+                  println("Error! " + nameString)
+                  throw new java.lang.ClassNotFoundException(nameString)
                 }
 
             },
@@ -57,6 +61,7 @@ trait Default extends Bindings{
 
             "getDeclaredFields0(Z)[Ljava/lang/reflect/Field;".func(I, I, I){ (vt, o, public) =>
               import vt.vm
+
 
               val obj = o.obj
 
@@ -80,13 +85,18 @@ trait Default extends Bindings{
               // if (f.static) cls.staticList else cls.fieldList).indexOf(f)
               // f.static(cls.staticList, cls.fieldList).indexOf(f)
             },
-            "getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;".func(I, I, I){ (vt, bool, o) =>
+            "getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;".func(I, I, I){ (vt, o, bool) =>
               import vt.vm
-
+              println("A " + o)
+              println("view " + vm.heap.memory.drop(o).take(20).toList)
               val clsObj = o.obj
-              val clsName = clsObj("name").toRealObj[String]
+              println("B " + clsObj.view)
+              val clsName = clsObj("name").toRealObj[String].toSlash
+              println("C")
               val cls = vm.ClsTable(clsName)
+              println("D")
               val realMethods = cls.methods.filter(_.sig.name == "<init>")
+              println("E")
               val vrtArr = vm.alloc(implicit r =>
                 "java/lang/reflect/Constructor".allocArr(
                   realMethods.zipWithIndex.map{ case (f, i) =>
@@ -130,6 +140,12 @@ trait Default extends Bindings{
                      .map(x => vt.vm.typeObjCache(x.cls.tpe))
                 )
               )()
+            },
+            "getModifiers()I".func(I, I){ (vt, o) =>
+              import vt.vm
+              val topClsName = o.obj.apply("name").toRealObj[String].toSlash
+
+              vm.ClsTable(topClsName).accessFlags
             },
             "getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;".func(I, I){ (vt, o) =>
               import vt.vm
@@ -306,6 +322,16 @@ trait Default extends Bindings{
                   Seq(arr, index, obj)
                 )
               }
+            ),
+            "NativeConstructorAccessorImpl"/(
+              "newInstance0(Ljava/lang/reflect/Constructor;[Ljava/lang/Object;)Ljava/lang/Object;".func(I, I, I){
+                (vt, cons, args) =>
+                  import vt.vm
+                  val name = cons.obj.apply("clazz").obj.apply("name").toRealObj[String].toSlash
+                  vm.alloc(implicit r =>
+                    rt.Obj.allocate(name)
+                  ).address()
+              }
             )
           )
         ),
@@ -449,6 +475,10 @@ trait Default extends Bindings{
               import vt.vm
               o.obj.members(offset.toInt)
             },
+            "getIntVolatile(Ljava/lang/Object;J)I".func(I, I, J, I){ (vt, unsafe, o, offset) =>
+              import vt.vm
+              o.obj.members(offset.toInt)
+            },
             "putInt(Ljava/lang/Object;JI)V".func(I, I, J, I, V){ (vt, unsafe, o, offset, int) =>
               import vt.vm
               I.write(int, o.obj.members(offset.toInt) = _)
@@ -530,6 +560,15 @@ trait Default extends Bindings{
             },
             "getCallerClass(I)Ljava/lang/Class;".func(I, I){ (vt, n) =>
               import vt.vm
+              if (n >= vt.threadStack.length) 0
+              else {
+                val name = vt.threadStack(n).runningClass.name
+                vt.vm.typeObjCache(imm.Type.readJava(name))()
+              }
+            },
+            "getCallerClass()Ljava/lang/Class;".func(I){ (vt) =>
+              import vt.vm
+              val n = 1
               if (n >= vt.threadStack.length) 0
               else {
                 val name = vt.threadStack(n).runningClass.name

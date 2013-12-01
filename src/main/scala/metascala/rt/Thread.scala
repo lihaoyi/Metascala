@@ -62,16 +62,16 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     val r = reader(frame.locals, 0)
 
-//    if (!threadStack.exists(_.method.sig.name == "<clinit>")) {
-//      lazy val localSnapshot =
-//        block.locals
-//             .flatMap(x => Seq(x.prettyRead(r)).padTo(x.size, "~"))
-//             .toList
-//
-////      println(indent + "::\t" + frame.runningClass.shortName + "/" + frame.method.sig.shortName + ":" + block.lines(frame.pc._2) + "\t"  + localSnapshot)
-////      println(indent + "::\t" + frame.pc + "\t" + node )
-//      //println(indent + "::\t" + vm.heap.dump().replace("\n", "\n" + indent + "::\t"))
-//    }
+    if (!threadStack.exists(x => x.method.sig.name == "<clinit>" && x.runningClass.name.contains("java/"))) {
+      lazy val localSnapshot =
+        block.locals
+             .flatMap(x => Seq(x.prettyRead(r)).padTo(x.size, "~"))
+             .toList
+
+//      println(indent + "::\t" + frame.runningClass.shortName + "/" + frame.method.sig.shortName + ":" + block.lines(frame.pc._2) + "\t"  + localSnapshot)
+//      println(indent + "::\t" + frame.pc + "\t" + node )
+//      println(indent + "::\t" + vm.heap.dump().replace("\n", "\n" + indent + "::\t"))
+    }
 
 
     val currentFrame = frame
@@ -293,6 +293,9 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
 
     opCount += 1
+    if (opCount > vm.insnLimit){
+      throw new Exception("Ran out of instructions! Limit: " + vm.insnLimit)
+    }
 
   }catch{case e: Throwable if !e.isInstanceOf[WrappedVmException] =>
     val newEx = new InternalVmException(e)
@@ -333,7 +336,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
   @tailrec final def throwException(ex: Obj, print: Boolean = true): Unit = {
     import math.Ordering.Implicits._
-
+    println("Throwing!")
     threadStack.headOption match{
       case Some(frame)=>
         val handler =
@@ -367,7 +370,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     mRef match{
       case rt.Method.Native(clsName, imm.Sig(name, desc), op) =>
-        op(this, reader(args, 0), returnTo)
+        try op(this, reader(args, 0), returnTo)
+        catch{case e: Exception =>
+          throwExWithTrace(e.getClass.getName.toSlash, e.getMessage)
+        }
       case m @ rt.Method.Cls(clsIndex, methodIndex, sig, static, codethunk) =>
 
         assert(!m.native, "method cannot be native: " + ClsTable.clsIndex(clsIndex).name + " " + sig.unparse)

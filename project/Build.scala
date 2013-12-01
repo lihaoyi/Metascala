@@ -22,7 +22,7 @@ object Build extends sbt.Build{
       ),
       libraryDependencies ++= Seq(
         "org.ow2.asm" % "asm-debug-all" % "4.1",
-        "org.scalatest" % "scalatest_2.10" % "2.0.M5b" % "test",
+        "org.scalatest" % "scalatest_2.10" % "2.0" % "test",
         "org.mozilla" % "rhino" % "1.7R4",
         "com.nativelibs4java" % "scalaxy-loops_2.10" % "0.3-SNAPSHOT" % "provided"
       )

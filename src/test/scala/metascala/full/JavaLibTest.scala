@@ -9,9 +9,10 @@ import scalaxy.loops._
 import java.math.BigInteger
 import java.util.regex.{Matcher, Pattern}
 import java.util.concurrent.atomic.{AtomicLong, AtomicInteger, AtomicBoolean}
-import org.mozilla.javascript.Context
+import org.mozilla.javascript.{VMBridge, Kit, Context}
 import java.util.concurrent.{ConcurrentLinkedQueue, ConcurrentHashMap}
 import java.util.concurrent.locks.ReentrantLock
+import org.mozilla.javascript.jdk15.VMBridge_jdk15
 
 
 class JavaLibTest extends FreeSpec {
@@ -138,14 +139,15 @@ class JavaLibTest extends FreeSpec {
       val map = new ConcurrentHashMap[Int, Int]()
       map.put(123, 456)
     }
-    "rhino" in tester.test{
-      val cx = Context.enter()
-      val scope = cx.initStandardObjects()
-      val script = "var s = 'omg'"
-      val obj = cx.evaluateString(scope, script, "Test Script", 1, null)
-      println(obj)
-      1
-    }
+//    "rhino" in tester.test{
+//      classOf[VMBridge_jdk15].newInstance()
+//      /*val cx = Context.enter()
+//      val scope = cx.initStandardObjects()
+//      val script = "var s = 'omg'"
+//      val obj = cx.evaluateString(scope, script, "Test Script", 1, null)
+//      println(obj)
+//      1*/
+//    }
   }
 
 }
