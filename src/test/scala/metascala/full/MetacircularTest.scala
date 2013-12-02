@@ -15,7 +15,7 @@ class MetacircularTest extends FreeSpec {
   var count = 0
 
   "sqrtFinder" in {
-    new VM(memorySize = 185 * 1024).test{
+    new VM(memorySize = 225 * 1024).test{
       val x = new VM(memorySize = 1024)
       x.invoke("metascala/features/controlflow/Loops", "sqrtFinder", Seq(5.0))
     }
