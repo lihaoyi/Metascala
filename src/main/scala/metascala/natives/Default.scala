@@ -32,8 +32,8 @@ trait Default extends Bindings{
           "Class"/(
             "desiredAssertionStatus0(Ljava/lang/Class;)Z".value(I)(0),
             "desiredAssertionStatus()Z".value(I)(0),
-            "forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;".func(I, I, I, I){
-              (vt, name, boolean, classLoader) =>
+            "forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;Ljava/lang/Class;)Ljava/lang/Class;".func(I, I, I, I, I) {
+              (vt, name, boolean, classLoader, cls) =>
                 import vt.vm
                 val nameString = name.toRealObj[String]
                 val tpe = imm.Type.readJava(nameString)
@@ -264,6 +264,10 @@ trait Default extends Bindings{
             "freeMemory()J".value(J)(4*1024*1024),
             "availableProcessors()I".value(I)(1)
           ),
+
+          "StrictMath"/
+            "log(D)D".func(D, D) { (vt, a) => java.lang.StrictMath.log(a); }
+          ,
 
           "System"/(
             "arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V".func(I, I, I, I, I, V){ (vt, src, srcIndex, dest, destIndex, length) =>
