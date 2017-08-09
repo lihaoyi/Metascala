@@ -9,7 +9,6 @@ import scala.collection.JavaConverters._
 import org.objectweb.asm.tree.analysis._
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.util.Printer.OPCODES
-import scalaxy.loops._
 class Box(val value: BasicValue) extends Value{
   override def getSize = value.getSize
   override def toString = Math.abs(hashCode).toString.take(2) + "" + value + " "
@@ -80,7 +79,7 @@ object Conversion {
           method.tryCatchBlocks.asScala.map(_.handler)
 
       val map = new Array[Int](allInsns.length)
-      for(i <- (1 until allInsns.length).optimized){
+      for(i <- 1 until allInsns.length){
         val prev = map(i - 1)
         map(i) = prev max map(i)
         if (bases.contains(allInsns(i)) && i + 1 < map.length){
@@ -95,7 +94,7 @@ object Conversion {
     val insnMap: Array[Int] = {
       val map = new Array[Int](allInsns.length)
       var count = 0
-      for(i <- (1 until allInsns.length).optimized){
+      for(i <- 1 until allInsns.length){
         count += 1
         if (blockMap(i) != blockMap(i-1)) count = 0
         map(i) = count

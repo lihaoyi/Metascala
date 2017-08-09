@@ -32,20 +32,16 @@ trait Default extends Bindings{
           "Class"/(
             "desiredAssertionStatus0(Ljava/lang/Class;)Z".value(I)(0),
             "desiredAssertionStatus()Z".value(I)(0),
-            "forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;)Ljava/lang/Class;".func(I, I, I, I){
-              (vt, name, boolean, classLoader) =>
+            "forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;Ljava/lang/Class;)Ljava/lang/Class;".func(I, I, I, I, I){
+              (vt, name, boolean, classLoader, caller) =>
                 import vt.vm
                 val nameString = name.toRealObj[String]
                 val tpe = imm.Type.readJava(nameString)
                 try{
                   if (!nameString.contains("["))vm.ClsTable(tpe.cast[imm.Type.Cls])
                   val x = vt.vm.typeObjCache(tpe)()
-                  println("Success! " + x + " " + nameString)
-                  println("view " + vm.heap.memory.drop(x).take(20).toList)
-                  println("Name! " + x.obj.apply("name").toRealObj[String])
                   x
                 } catch{case e: Exception =>
-                  println("Error! " + nameString)
                   throw new java.lang.ClassNotFoundException(nameString)
                 }
 
@@ -87,16 +83,10 @@ trait Default extends Bindings{
             },
             "getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;".func(I, I, I){ (vt, o, bool) =>
               import vt.vm
-              println("A " + o)
-              println("view " + vm.heap.memory.drop(o).take(20).toList)
               val clsObj = o.obj
-              println("B " + clsObj.view)
               val clsName = clsObj("name").toRealObj[String].toSlash
-              println("C")
               val cls = vm.ClsTable(clsName)
-              println("D")
               val realMethods = cls.methods.filter(_.sig.name == "<init>")
-              println("E")
               val vrtArr = vm.alloc(implicit r =>
                 "java/lang/reflect/Constructor".allocArr(
                   realMethods.zipWithIndex.map{ case (f, i) =>
@@ -221,7 +211,12 @@ trait Default extends Bindings{
               import vt.vm
 
               val name = o.toRealObj[String]
-              val stream = ClassLoader.getSystemResourceAsStream(name)
+              val stream = getClass.getResourceAsStream("/" + name)
+//              println("getSystemResourceAsStream " + name + " " + stream)
+//              println(getClass.getClassLoader)
+//              println("XXX " + name + " " + getClass.getResourceAsStream(name))
+//              println("YYY " + name + " " + getClass.getResourceAsStream("/" + name))
+
               if (stream == null) 0
               else{
                 val realResult = new DataInputStream(stream)
@@ -332,6 +327,11 @@ trait Default extends Bindings{
                     rt.Obj.allocate(name)
                   ).address()
               }
+            )
+          ),
+          "StrictMath"/(
+            "log(D)D".func(D, D)( (vt, value) =>
+              math.log(value)
             )
           )
         ),

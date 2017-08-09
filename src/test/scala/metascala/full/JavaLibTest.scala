@@ -4,15 +4,11 @@ package full
 import org.scalatest.FreeSpec
 
 import metascala.Gen._
-import metascala.{Gen, Util}
-import scalaxy.loops._
 import java.math.BigInteger
 import java.util.regex.{Matcher, Pattern}
 import java.util.concurrent.atomic.{AtomicLong, AtomicInteger, AtomicBoolean}
-import org.mozilla.javascript.{VMBridge, Kit, Context}
 import java.util.concurrent.{ConcurrentLinkedQueue, ConcurrentHashMap}
 import java.util.concurrent.locks.ReentrantLock
-import org.mozilla.javascript.jdk15.VMBridge_jdk15
 
 
 class JavaLibTest extends FreeSpec {
@@ -28,7 +24,7 @@ class JavaLibTest extends FreeSpec {
       val arr: Array[Int] = new Array[Int](250)
 
       var current: Int = 94664704
-      for(i <- (0 until arr.length).optimized){
+      for(i <- 0 until arr.length){
         current = 23 * current % 100000000 + 1
         arr(i) = current % 100000
       }
@@ -38,12 +34,12 @@ class JavaLibTest extends FreeSpec {
     }
     "collections" in tester.test{
       val vec = new java.util.Vector[Integer]()
-      for(i <- (0 until 10).optimized){
+      for(i <- 0 until 10 ){
         vec.add(i)
       }
       val map = new java.util.HashMap[Integer, String]()
       var total = 0
-      for(i <- (0 until 10).optimized){
+      for(i <- 0 until 10){
         total = total + vec.get(i)
         map.put(vec.get(i), ""+total)
       }
@@ -118,7 +114,7 @@ class JavaLibTest extends FreeSpec {
     }
     "randoms" in tester.test{
       val r = new java.util.Random(241231241251241123L)
-      for(i <- (0 until 100).optimized){
+      for(i <- 0 until 100){
         r.nextLong()
       }
       r.nextLong()

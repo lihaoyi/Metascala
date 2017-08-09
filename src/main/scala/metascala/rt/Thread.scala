@@ -12,11 +12,7 @@ import Insn._
 
 import Insn.Push
 import Insn.InvokeStatic
-import scala.Some
-import metascala.{rt, UncaughtVmException}
 import Insn.ReturnVal
-import imm.Type.Prim._
-import scalaxy.loops._
 /**
  * A single thread within the Metascala VM.
  */
@@ -37,7 +33,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     val phi = frame.method.code.blocks(newBlock).phi(oldBlock)
     val temp = phi.map(x => frame.locals(x._1))
     java.util.Arrays.fill(frame.locals, 0)
-    for (i <- (0 until temp.length).optimized){
+    for (i <- 0 until temp.length){
       val (src, dest) = (temp(i), phi(i)._2)
       frame.locals(dest) = src
     }
@@ -62,16 +58,16 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     val r = reader(frame.locals, 0)
 
-    if (!threadStack.exists(x => x.method.sig.name == "<clinit>" && x.runningClass.name.contains("java/"))) {
-      lazy val localSnapshot =
-        block.locals
-             .flatMap(x => Seq(x.prettyRead(r)).padTo(x.size, "~"))
-             .toList
-
+//    if (!threadStack.exists(x => x.method.sig.name == "<clinit>" && x.runningClass.name.contains("java/"))) {
+//      lazy val localSnapshot =
+//        block.locals
+//             .flatMap(x => Seq(x.prettyRead(r)).padTo(x.size, "~"))
+//             .toList
+//
 //      println(indent + "::\t" + frame.runningClass.shortName + "/" + frame.method.sig.shortName + ":" + block.lines(frame.pc._2) + "\t"  + localSnapshot)
 //      println(indent + "::\t" + frame.pc + "\t" + node )
 //      println(indent + "::\t" + vm.heap.dump().replace("\n", "\n" + indent + "::\t"))
-    }
+//    }
 
 
     val currentFrame = frame
@@ -273,7 +269,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
           (dims, tpe) match {
             case (size :: tail, imm.Type.Arr(innerType: imm.Type.Ref)) =>
               val newArr = vm.alloc(rt.Arr.allocate(innerType, size)(_))
-              for(i <- (0 until size).optimized){
+              for(i <- 0 until size){
                 newArr(i) = rec(tail, innerType)
               }
               newArr.address()
@@ -317,7 +313,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
   def returnVal(size: Int, index: Int) = {
 //    println(s"Returning size: $size, index: $index")
-    for(i <- (0 until size).optimized){
+    for(i <- 0 until size){
       frame.returnTo(frame.locals(index + i))
     }
     this.threadStack.pop

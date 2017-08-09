@@ -3,7 +3,6 @@ package metascala
 import java.io.{IOException, DataInputStream}
 import java.util
 import org.scalatest.FreeSpec
-import org.scalatest.matchers.ShouldMatchers
 import org.scalatest.exceptions.TestFailedException
 import scala.util.Random
 import metascala.natives.Default
@@ -61,7 +60,6 @@ object Gen{
 }
 
 object Util {
-  import ShouldMatchers._
   def loadClass(name: String) = {
     val slashName = s"/${name.replace(".", "/")}.class"
 
@@ -82,14 +80,15 @@ object Util {
       res
     }
   }
-  implicit class DoStuff(val vm: VM) extends ShouldMatchers {
+  def assertEquals(svmRes: Any, refRes: Any) = (svmRes, refRes)  match{
+    case (a: Double, b: Double) if java.lang.Double.isNaN(a) && java.lang.Double.isNaN(b) =>
+    case (a: Array[_], b: Array[_]) if a.length == b.length && a.sameElements(b)=>
+    case _ => assert(svmRes == refRes, (svmRes, refRes))
+  }
+  implicit class DoStuff(val vm: VM) {
 
     def test[T](thunk: => T) = {
-      val svmRes = vm.exec(thunk)
-      val refRes = thunk
-      println("svmRes " + svmRes)
-      println("refRes " + refRes)
-      svmRes should be === refRes
+      assertEquals(vm.exec(thunk), thunk)
     }
     def testFunc[A, B, C, R](t: (A, B, C) => R)(a: A, b: B, c: C) = {
       func(t, Seq(a, b, c))
@@ -125,7 +124,7 @@ object Util {
       println("refRes " + refRes)
 
       try{
-        svmRes should be === refRes
+        assertEquals(svmRes, refRes)
       }catch {case ex: TestFailedException =>
         println("Test failed for input")
         println(inString)
@@ -159,7 +158,7 @@ object Util {
       println("refRes " + refRes)
       println("args " + args)
       try{
-        svmRes should be === refRes
+        assertEquals(svmRes, refRes)
       }catch {case ex: TestFailedException =>
         println("Test failed for input")
         println(inString)

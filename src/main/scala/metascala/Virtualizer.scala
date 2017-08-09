@@ -1,9 +1,6 @@
 package metascala
-import scalaxy.loops._
 import scala.collection.mutable
-import imm.Type.Prim
 import imm.Type.Prim._
-import metascala.rt.{Arr, Obj}
 
 object Virtualizer {
 
@@ -31,7 +28,7 @@ object Virtualizer {
             val clsObj = forName(tpe.name.toDot)
             val newArr = java.lang.reflect.Array.newInstance(clsObj, address.arr.arrayLength)
 
-            for(i <- (0 until address.arr.arrayLength).optimized){
+            for(i <- 0 until address.arr.arrayLength){
 
               val cooked = tpe match{
                 case p: imm.Type.Prim[_] => p.read(reader(vm.heap.memory, address + rt.Arr.headerSize + i * tpe.size))

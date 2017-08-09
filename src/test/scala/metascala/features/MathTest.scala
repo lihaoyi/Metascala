@@ -32,7 +32,7 @@ class MathTest extends FreeSpec {
         "imod" in chk(tester.testFunc( (_: Int) % (_: Int) ) _)
       }
       "float" - {
-        "fneg" in chk(tester.testFunc( -(_: Float) ) _)          
+        "fneg" in chk(tester.testFunc( -(_: Float) ) _)
         "fadd" in chk(tester.testFunc( (_: Float) + (_: Float) ) _)
         "fsub" in chk(tester.testFunc( (_: Float) - (_: Float) ) _)
         "fmul" in chk(tester.testFunc( (_: Float) * (_: Float) ) _)

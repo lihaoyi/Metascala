@@ -4,11 +4,6 @@ package full
 import org.scalatest.FreeSpec
 
 import metascala.Gen._
-import metascala.{Gen, Util}
-import scalaxy.loops._
-import java.math.BigInteger
-import java.util.regex.{Matcher, Pattern}
-import java.util.concurrent.atomic.{AtomicLong, AtomicInteger, AtomicBoolean}
 import java.awt.geom.Point2D
 
 
