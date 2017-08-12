@@ -4,11 +4,9 @@ package rt
 import collection.mutable
 
 
-import  metascala.{VM, imm}
-import metascala.imm.{Sig, Type}
-import metascala.opcodes.{Conversion, Insn}
+
+import metascala.imm.Sig
 import metascala.imm.Type.Prim.I
-import org.objectweb.asm.tree.ClassNode
 
 /**
  * A handle to a readable and writable value.
@@ -20,43 +18,6 @@ class Var(var x: Val){
   }
 }
 
-object Cls{
-  def apply(cn: ClassNode, index: Int)(implicit vm: VM) = {
-
-    val fields = NullSafe(cn.fields).map(imm.Field.read)
-    val superType = NullSafe(cn.superName).map(Type.Cls.apply)
-    new Cls(
-      tpe = imm.Type.Cls.apply(cn.name),
-      superType = superType,
-      sourceFile = NullSafe(cn.sourceFile),
-      interfaces = NullSafe(cn.interfaces).map(Type.Cls.apply),
-      accessFlags = cn.access,
-      methods =
-        NullSafe(cn.methods)
-          .zipWithIndex
-          .map{case (mn, i) =>
-          new rt.Method.Cls(
-            index,
-            i,
-            Sig(mn.name, imm.Desc.read(mn.desc)),
-            mn.access,
-            () => Conversion.ssa(cn.name, mn)
-          )
-        },
-      fieldList =
-        superType.toSeq.flatMap(_.cls.fieldList) ++
-          fields.filter(!_.static).flatMap{x =>
-            Seq.fill(x.desc.size)(x)
-          },
-      staticList =
-        fields.filter(_.static).flatMap{x =>
-          Seq.fill(x.desc.size)(x)
-        },
-      outerCls = NullSafe(cn.outerClass).map(Type.Cls.apply),
-      index
-    )
-  }
-}
 /**
  * The runtime mutable and VM-specific data of a Java Class
  */
@@ -70,13 +31,13 @@ class Cls(val tpe: imm.Type.Cls,
           val staticList: Seq[imm.Field],
           val outerCls: Option[imm.Type.Cls],
           val index: Int)
-         (implicit vm: VM){
+         (implicit vm: VMInterface){
   import vm._
 
   var initialized = false
 
 
-  def checkInitialized()(implicit vm: VM): Unit = {
+  def checkInitialized()(implicit vm: VMInterface): Unit = {
     if (!initialized){
       initialized = true
       vm.resolveDirectRef(tpe, Sig("<clinit>", imm.Desc.read("()V")))
@@ -108,7 +69,7 @@ class Cls(val tpe: imm.Type.Cls,
   lazy val clsAncestry: List[imm.Type.Cls] = {
     superType match{
       case None => List(tpe)
-      case Some(superT) => tpe :: superT.cls.clsAncestry
+      case Some(superT) => tpe :: ClsTable(superT).clsAncestry
     }
   }
 
@@ -117,8 +78,8 @@ class Cls(val tpe: imm.Type.Cls,
    */
   lazy val typeAncestry: Set[imm.Type.Cls] = {
     Set(tpe) ++
-    superType.toSeq.flatMap(_.cls.typeAncestry) ++
-    interfaces.flatMap(_.cls.typeAncestry)
+    superType.toSeq.flatMap(ClsTable(_).typeAncestry) ++
+    interfaces.flatMap(ClsTable(_).typeAncestry)
   }
 
 
@@ -167,7 +128,7 @@ class Cls(val tpe: imm.Type.Cls,
 
   def shortName = Util.shorten(tpe.name)
 
-  def heapSize = fieldList.length + rt.Obj.headerSize
+  def heapSize = fieldList.length + Constants.objectHeaderSize
 }
 
 

@@ -1,8 +1,7 @@
 package metascala
 package rt
 
-import metascala.opcodes.{Code, Conversion}
-import org.objectweb.asm.tree.MethodNode
+import metascala.opcodes.Code
 
 
 /**
@@ -29,7 +28,7 @@ object Method{
                  sig: imm.Sig,
                  accessFlags: Int,
                  codeThunk: () => Code)
-                (implicit vm: VM) extends Method{
+                (implicit vm: VMInterface) extends Method{
     lazy val cls = vm.ClsTable.clsIndex(clsIndex)
     lazy val code = codeThunk()
 

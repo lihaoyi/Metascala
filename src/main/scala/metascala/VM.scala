@@ -4,10 +4,11 @@ import java.io.Writer
 
 import collection.mutable
 import annotation.tailrec
-import metascala.imm.Type
-import metascala.rt.{FrameDump, Obj, Thread}
+import metascala.imm.{Sig, Type}
+import metascala.rt.{Cls, FrameDump, Obj, Thread}
 import metascala.natives.Bindings
 import metascala.imm.Type.Prim
+import metascala.opcodes.Conversion
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
 
@@ -25,11 +26,11 @@ class DummyWriter extends Writer {
  * native bindings, as well as a logging function which it will use to log all of
  * its bytecode operations
  */
-class VM(val natives: Bindings = Bindings.default,
+class VM(val natives: Bindings.type = Bindings,
          val insnLimit: Long = Long.MaxValue,
          val log: ((=>String) => Unit) = s => (),
          val memorySize: Int = 1 * 1024 * 1024,
-         initializeStdout: Boolean = false) {
+         initializeStdout: Boolean = false) extends VMInterface{
 
   private[this] implicit val vm = this
 
@@ -45,7 +46,7 @@ class VM(val natives: Bindings = Bindings.default,
     getLinks
   )
 
-  def alloc[T](func: Registrar => T) = {
+  def alloc[T](func: Registrar => T): T = {
     val tempRegistry = mutable.Set[Ref]()
     val res = func(
       new Registrar({ ref =>
@@ -80,7 +81,7 @@ class VM(val natives: Bindings = Bindings.default,
     override def apply(x: imm.Type) = this.getOrElseUpdate(x,
       vm.alloc(implicit r =>
         rt.Obj.alloc("java/lang/Class",
-          "name" -> x.javaName.toVirtObj
+          "name" -> Virtualizer.toVirtObj(x.javaName)
         )
       )
     )
@@ -93,10 +94,10 @@ class VM(val natives: Bindings = Bindings.default,
       for {
         (x, i) <- ClsTable.clsIndex(-tpe).fieldList.zipWithIndex
         if x.desc.isRef
-      } yield i + rt.Obj.headerSize
+      } yield i + Constants.objectHeaderSize
     } else {
       if (arrayTypeCache(tpe).isRef) {
-        for (i <- 0 until length) yield i + rt.Arr.headerSize
+        for (i <- 0 until length) yield i + Constants.arrayHeaderSize
       } else Nil
     }
   }
@@ -114,7 +115,7 @@ class VM(val natives: Bindings = Bindings.default,
       (x, i) <- block.locals.zipWithIndex
       if x.isRef
       _ = if (frame.locals(i) == -1) println(frame.locals.toList, i)
-    } yield new ArrRef(() => frame.locals(i), frame.locals(i) = _)
+    } yield new Ref.ArrRef(() => frame.locals(i), frame.locals(i) = _)
 
     //    println(s"stackRoots ${stackRoots.map(_())}")
 
@@ -126,9 +127,9 @@ class VM(val natives: Bindings = Bindings.default,
       cls <- ClsTable.clsIndex.drop(1)
       i <- 0 until cls.staticList.length
       if cls.staticList(i).desc.isRef
-    } yield new ArrRef(
-      () => heap(cls.statics.address() + i + rt.Arr.headerSize),
-      heap(cls.statics.address() + i + rt.Arr.headerSize) = _
+    } yield new Ref.ArrRef(
+      () => heap(cls.statics.address() + i + Constants.arrayHeaderSize),
+      heap(cls.statics.address() + i + Constants.arrayHeaderSize) = _
     )
 
     val clsObjRoots = typeObjCache.values
@@ -159,7 +160,38 @@ class VM(val natives: Bindings = Bindings.default,
       cr.accept(classNode, ClassReader.EXPAND_FRAMES)
 
       Option(classNode.superName).map(Type.Cls.apply).map(vm.ClsTable)
-      rt.Cls(classNode, clsIndex.length)
+      val fields = NullSafe(classNode.fields).map(imm.Field.read)
+      val superType = NullSafe(classNode.superName).map(Type.Cls.apply)
+      new Cls(
+        tpe = imm.Type.Cls.apply(classNode.name),
+        superType = superType,
+        sourceFile = NullSafe(classNode.sourceFile),
+        interfaces = NullSafe(classNode.interfaces).map(Type.Cls.apply),
+        accessFlags = classNode.access,
+        methods =
+          NullSafe(classNode.methods)
+            .zipWithIndex
+            .map{case (mn, i) =>
+              new rt.Method.Cls(
+                clsIndex.length,
+                i,
+                Sig(mn.name, imm.Desc.read(mn.desc)),
+                mn.access,
+                () => Conversion.ssa(classNode.name, mn)
+              )
+            },
+        fieldList =
+          superType.toSeq.flatMap(ClsTable.apply(_).fieldList) ++
+            fields.filter(!_.static).flatMap{x =>
+              Seq.fill(x.desc.size)(x)
+            },
+        staticList =
+          fields.filter(_.static).flatMap{x =>
+            Seq.fill(x.desc.size)(x)
+          },
+        outerCls = NullSafe(classNode.outerClass).map(Type.Cls.apply),
+        clsIndex.length
+      )
     }
 
     var startTime = System.currentTimeMillis()
@@ -186,7 +218,7 @@ class VM(val natives: Bindings = Bindings.default,
 
     (s, t) match{
 
-      case (s: imm.Type.Cls, t: imm.Type.Cls) => s.cls.typeAncestry.contains(t)
+      case (s: imm.Type.Cls, t: imm.Type.Cls) => ClsTable(s).typeAncestry.contains(t)
       case (s: imm.Type.Arr, imm.Type.Cls("java/lang/Object")) => true
       case (s: imm.Type.Arr, imm.Type.Cls("java/lang/Cloneable")) => true
       case (s: imm.Type.Arr, imm.Type.Cls("java/io/Serializable")) => true
@@ -205,8 +237,7 @@ class VM(val natives: Bindings = Bindings.default,
       imm.Type.Cls.apply(bootClass),
       imm.Sig(
         mainMethod,
-        imm.Type.Cls(bootClass)
-          .cls
+        ClsTable(imm.Type.Cls(bootClass))
           .methods
           .find(x => x.sig.name == mainMethod)
           .map(_.sig.desc)
@@ -223,7 +254,7 @@ class VM(val natives: Bindings = Bindings.default,
   }
   println("Initialized VM")
 
-  def resolveDirectRef(owner: Type.Cls, sig: imm.Sig)(implicit vm: VM): Option[rt.Method] = {
+  def resolveDirectRef(owner: Type.Cls, sig: imm.Sig): Option[rt.Method] = {
 
     val native =
       vm.natives
@@ -231,7 +262,7 @@ class VM(val natives: Bindings = Bindings.default,
         .find(x => x.sig == sig && x.clsName == owner.name)
 
     val method =
-      owner.cls
+      ClsTable(owner)
            .methods
            .find(_.sig == sig)
 

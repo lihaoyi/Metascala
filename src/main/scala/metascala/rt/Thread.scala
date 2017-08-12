@@ -135,7 +135,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
             case _ =>
               val cls =
                 if (argZero.isObj) argZero.obj.cls
-                else owner.cls
+                else ClsTable(owner)
               cls.vTable(mIndex)
           }
 
@@ -187,7 +187,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         }
 
       case Ldc(target, index) =>
-        frame.locals(target) = vm.interned(index())()
+        frame.locals(target) = vm.interned(index)()
         advancePc()
 
       case UnaryOp(src, psrc, dest, pout, func) =>
@@ -345,8 +345,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     throwException(
       vm.alloc( implicit r =>
         rt.Obj.alloc(clsName,
-          "stackTrace" -> trace.toVirtObj,
-          "detailMessage" -> detailMessage.toVirtObj
+          "stackTrace" -> Virtualizer.toVirtObj(trace),
+          "detailMessage" -> Virtualizer.toVirtObj(detailMessage)
         )
       )
     )
@@ -376,7 +376,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         }
       case None =>
         throw new UncaughtVmException(
-          ex.address().toRealObj[Throwable]
+          Virtualizer.toRealObj[Throwable](ex.address())
         )
     }
   }

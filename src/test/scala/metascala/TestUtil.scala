@@ -1,11 +1,8 @@
 package metascala
 
-import java.io.{IOException, DataInputStream}
-import java.util
-import org.scalatest.FreeSpec
+import java.io.DataInputStream
 import org.scalatest.exceptions.TestFailedException
 import scala.util.Random
-import metascala.natives.Default
 
 
 object Gen{

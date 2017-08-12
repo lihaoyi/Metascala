@@ -9,11 +9,7 @@ import scala.collection.JavaConverters._
 import org.objectweb.asm.tree.analysis._
 import org.objectweb.asm.Opcodes._
 import org.objectweb.asm.util.Printer.OPCODES
-class Box(val value: BasicValue) extends Value{
-  override def getSize = value.getSize
-  override def toString = Math.abs(hashCode).toString.take(2) + "" + value + " "
 
-}
 class AbstractFunnyInterpreter(b: Boolean) extends Interpreter[Box](ASM4){
   val internal = new BasicInterpreter()
   type AIN = AbstractInsnNode
@@ -53,7 +49,7 @@ object Conversion {
 
   }
 
-  def ssa(clsName: String, method: MethodNode)(implicit vm: VM): Code = {
+  def ssa(clsName: String, method: MethodNode)(implicit vm: VMInterface): Code = {
 
     val allInsns = method.instructions.toArray
 

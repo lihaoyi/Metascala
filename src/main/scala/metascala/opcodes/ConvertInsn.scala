@@ -28,7 +28,7 @@ object ConvertInsn {
               frame: Frame[Box],
               nextFrame: Frame[Box],
               blockMap: Array[Int])
-             (implicit vm: VM, getBox: Box => Int, deref: LabelNode => Int) = {
+             (implicit vm: VMInterface, getBox: Box => Int, deref: LabelNode => Int) = {
 
     def push[T](v: T, tpe: Prim[T]) = {
       append(Push(top(nextFrame), tpe, v))
@@ -105,15 +105,15 @@ object ConvertInsn {
 
       def resolve(cls: rt.Cls): (Int, rt.Cls) = {
         list(cls).lastIndexWhere(_.name == insn.name) match{
-          case -1 => resolve(cls.clsAncestry(1).cls)
+          case -1 => resolve(vm.ClsTable(cls.clsAncestry(1)))
           case x =>  (x, cls)
         }
       }
-      val (index, cls) = resolve(insn.owner.cls)
+      val (index, cls) = resolve(vm.ClsTable(insn.owner))
       assert(
         index >= 0,
         s"no field found in ${insn.owner}: ${insn.name}\n" +
-        "Fields\n" + list(insn.owner.cls).map(_.name).mkString("\n")
+        "Fields\n" + list(vm.ClsTable(insn.owner)).map(_.name).mkString("\n")
       )
       val prim = list(cls)(index).desc
       append(func(cls, index - prim.size + 1, prim))
@@ -140,12 +140,12 @@ object ConvertInsn {
         insn.asInstanceOf[LdcInsnNode].cst match{
           case s: String =>
             val index = vm.interned.length
-            vm.interned.append(new ManualRef(vm.alloc(Virtualizer.pushVirtual(s)(_)).apply(0)))
+            vm.interned.append(new Ref.ManualRef(vm.alloc(Virtualizer.pushVirtual(s)(_)).apply(0)))
             append(Ldc(top(nextFrame), index))
           case t: org.objectweb.asm.Type =>
             val clsObj = vm.typeObjCache(imm.Type.read(t.getInternalName))
             val index = vm.interned.length
-            vm.interned.append(new ManualRef(clsObj()))
+            vm.interned.append(new Ref.ManualRef(clsObj()))
             append(Ldc(top(nextFrame), index))
           case x: java.lang.Byte  => append(Insn.Push(top(nextFrame), B, x: Byte))
           case x: java.lang.Character  => append(Insn.Push(top(nextFrame), C, x: Char))

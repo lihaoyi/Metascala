@@ -3,7 +3,16 @@ import scala.collection.mutable
 import imm.Type.Prim._
 import metascala.imm.Type.Prim
 
+import scala.reflect.ClassTag
+
 object Virtualizer {
+  def toRealObj[T](v: Val)(implicit vm: VMInterface, ct: ClassTag[T]) = {
+    Virtualizer.popVirtual(imm.Type.Cls(ct.runtimeClass.getName.replace('.', '/')), () => v)
+      .asInstanceOf[T]
+  }
+  def toVirtObj(x: Any)(implicit registrar: Registrar) = {
+    Virtualizer.pushVirtual(x).apply(0)
+  }
 
   lazy val unsafe = {
     val field = Class.forName("sun.misc.Unsafe").getDeclaredField("theUnsafe")
@@ -13,7 +22,7 @@ object Virtualizer {
     g
   }
 
-  def popVirtual(tpe: imm.Type, src: () => Val, refs: mutable.Map[Int, Any] = mutable.Map.empty)(implicit vm: VM): Any = {
+  def popVirtual(tpe: imm.Type, src: () => Val, refs: mutable.Map[Int, Any] = mutable.Map.empty)(implicit vm: VMInterface): Any = {
     val x = tpe match {
       case V => ()
       case p: imm.Type.Prim[_] => p.read(src)
@@ -36,8 +45,8 @@ object Virtualizer {
             for(i <- 0 until address.arr.arrayLength){
 
               val cooked = tpe match{
-                case p: imm.Type.Prim[_] => p.read(reader(vm.heap.memory, address + rt.Arr.headerSize + i * tpe.size))
-                case x => popVirtual(tpe, reader(vm.heap.memory, address + rt.Arr.headerSize + i * tpe.size))
+                case p: imm.Type.Prim[_] => p.read(reader(vm.heap.memory, address + Constants.arrayHeaderSize + i * tpe.size))
+                case x => popVirtual(tpe, reader(vm.heap.memory, address + Constants.arrayHeaderSize + i * tpe.size))
               }
               java.lang.reflect.Array.set(newArr, i, cooked)
             }
@@ -53,7 +62,7 @@ object Virtualizer {
               else{
                 val f = getAllFields(obj.getClass).find(_.getName == field.name).get
                 f.setAccessible(true)
-                val popped = popVirtual(field.desc, reader(vm.heap.memory, address + rt.Obj.headerSize + index), refs)
+                val popped = popVirtual(field.desc, reader(vm.heap.memory, address + Constants.objectHeaderSize + index), refs)
                 f.set(obj, popped )
                 index += field.desc.size
               }
@@ -99,7 +108,7 @@ object Virtualizer {
           rt.Arr.alloc(
             tpe,
             b.flatMap(pushVirtual).map{x =>
-              val ref : Ref = new ManualRef(x)
+              val ref : Ref = new Ref.ManualRef(x)
               if (!b.getClass.getComponentType.isPrimitive) {
                 registrar(ref)
               }
@@ -135,7 +144,7 @@ object Virtualizer {
         }
 
         val obj = rt.Obj.alloc(b.getClass.getName)
-        contents.map(_()).map(writer(vm.heap.memory, obj.address() + rt.Obj.headerSize))
+        contents.map(_()).map(writer(vm.heap.memory, obj.address() + Constants.objectHeaderSize))
         out(obj.address())
     }
   }

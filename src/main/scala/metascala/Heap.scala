@@ -18,7 +18,7 @@ class Heap(memorySize: Int,
     }
     val newFree = freePointer
     freePointer += n
-    val ref = new ManualRef(newFree)
+    val ref = new Ref.ManualRef(newFree)
     registrar(ref)
     ref
   }
@@ -43,7 +43,7 @@ class Heap(memorySize: Int,
     } else if (memory(src) == 0){
       throw new Exception("Can't point to nothing! " + src + " -> " + memory(src))
     }else if (memory(src + 1) >= 0){
-      val headerSize = if (isObj(memory(src))) rt.Obj.headerSize else rt.Arr.headerSize
+      val headerSize = if (isObj(memory(src))) Constants.objectHeaderSize else Constants.arrayHeaderSize
       val length =  memory(src+1) + headerSize
 
       //        println(s"blit obj length: ${obj.heapSize}")
@@ -102,7 +102,7 @@ class Heap(memorySize: Int,
       assert(scanPointer <= freePointer, s"scanPointer $scanPointer > freePointer $freePointer")
 
       val links = getLinks(memory(scanPointer), memory(scanPointer+1))
-      val length = memory(scanPointer + 1) + rt.Obj.headerSize
+      val length = memory(scanPointer + 1) + Constants.objectHeaderSize
 
       for(i <- links){
         val (newRoot, nfp) = blit(freePointer, memory(scanPointer + i))

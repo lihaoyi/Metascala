@@ -23,7 +23,7 @@ object Type{
    */
   trait Ref extends Type{
     def methodType: Type.Cls
-    def parent(implicit vm: VM): Option[Type]
+    def parent(implicit vm: VMInterface): Option[Type]
   }
   object Arr{
     def read(s: String) = Arr(Type.read(s.drop(1)))
@@ -41,7 +41,7 @@ object Type{
   case class Arr(innerType: Type) extends Ref{
     def size = 1
     def name = "[" + innerType.name
-    def parent(implicit vm: VM) = Some(imm.Type.Cls("java/lang/Object"))
+    def parent(implicit vm: VMInterface) = Some(imm.Type.Cls("java/lang/Object"))
     def realCls = innerType.realCls
     def methodType = Type.Cls("java/lang/Object")
     def prettyRead(x: () => Val) = "[" + innerType.shortName + "#" + x()
@@ -65,8 +65,8 @@ object Type{
     assert(!name.contains('.'), "Cls name cannot contain . " + name)
     assert(!name.contains('['), "Cls name cannot contain [ " + name)
     def size = 1
-    def cls(implicit vm: VM) = vm.ClsTable(this)
-    def parent(implicit vm: VM) = this.cls.superType
+
+    def parent(implicit vm: VMInterface) = vm.ClsTable(this).superType
     def realCls = classOf[Object]
     def methodType: Type.Cls = this
 
