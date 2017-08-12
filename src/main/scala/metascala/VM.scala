@@ -146,7 +146,7 @@ class VM(val natives: Bindings.type = Bindings,
   /**
     * Cache of all the classes loaded so far within the Metascala VM.
     */
-  implicit object ClsTable extends Cache[imm.Type.Cls, rt.Cls] {
+  implicit object ClsTable extends ClsTable with Cache[imm.Type.Cls, rt.Cls] {
     val clsIndex = mutable.ArrayBuffer[rt.Cls](null)
 
     def calc(t: imm.Type.Cls): rt.Cls = {

@@ -12,7 +12,9 @@ trait VMInterface {
   def heap: Heap
   def alloc[T](func: Registrar => T): T
   val arrayTypeCache: mutable.Buffer[imm.Type]
-  implicit val ClsTable: (imm.Type.Cls => rt.Cls){
+
+  implicit val ClsTable: ClsTable
+  trait ClsTable extends(imm.Type.Cls => rt.Cls){
     val clsIndex: mutable.ArrayBuffer[rt.Cls]
   }
   def resolveDirectRef(owner: imm.Type.Cls, sig: imm.Sig): Option[rt.Method]
