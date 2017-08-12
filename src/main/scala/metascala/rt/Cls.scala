@@ -5,7 +5,7 @@ import collection.mutable
 
 
 import  metascala.{VM, imm}
-import metascala.imm.{Sig, Access, Type}
+import metascala.imm.{Sig, Type}
 import metascala.opcodes.{Conversion, Insn}
 import metascala.imm.Type.Prim.I
 import org.objectweb.asm.tree.ClassNode
@@ -23,18 +23,16 @@ class Var(var x: Val){
 object Cls{
   def apply(cn: ClassNode, index: Int)(implicit vm: VM) = {
 
-    import imm.NullSafe._
-    val fields = cn.fields.safeSeq.map(imm.Field.read)
-    val superType = cn.superName.safeOpt.map(Type.Cls.read)
+    val fields = NullSafe(cn.fields).map(imm.Field.read)
+    val superType = NullSafe(cn.superName).map(Type.Cls.read)
     new Cls(
       tpe = imm.Type.Cls.read(cn.name),
       superType = superType,
-      sourceFile = cn.sourceFile.safeOpt,
-      interfaces = cn.interfaces.safeSeq.map(Type.Cls.read),
+      sourceFile = NullSafe(cn.sourceFile),
+      interfaces = NullSafe(cn.interfaces).map(Type.Cls.read),
       accessFlags = cn.access,
       methods =
-        cn.methods
-          .safeSeq
+        NullSafe(cn.methods)
           .zipWithIndex
           .map{case (mn, i) =>
           new rt.Method.Cls(
@@ -54,7 +52,7 @@ object Cls{
         fields.filter(_.static).flatMap{x =>
           Seq.fill(x.desc.size)(x)
         },
-      outerCls = cn.outerClass.safeOpt.map(Type.Cls.read),
+      outerCls = NullSafe(cn.outerClass).map(Type.Cls.read),
       index
     )
   }

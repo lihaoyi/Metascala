@@ -3,9 +3,6 @@ package rt
 
 import scala.collection.mutable
 import annotation.tailrec
-
-
-import imm.Access
 import metascala.opcodes.{TryCatchBlock, Invoke, Jump, Insn}
 import Insn._
 

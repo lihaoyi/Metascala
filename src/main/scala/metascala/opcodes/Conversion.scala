@@ -39,6 +39,20 @@ object FullInterpreter extends AbstractFunnyInterpreter(true)
 object Conversion {
   val unconditionalJumps = Seq(GOTO, RETURN, ARETURN, IRETURN, FRETURN, LRETURN, DRETURN, ATHROW)
 
+  def boxes(x: Frame[Box]) = {
+    val locals = (0 until x.getLocals).map{ localId =>
+      val local = x.getLocal(localId)
+      if (local != null && local.value.getType != null) Some(local)
+      else None
+    }
+
+    val stackVals =
+      for (stackId <- 0 until x.getStackSize)
+        yield Some(x.getStack(stackId))
+    locals ++ stackVals
+
+  }
+
   def ssa(clsName: String, method: MethodNode)(implicit vm: VM): Code = {
 
     val allInsns = method.instructions.toArray
@@ -227,7 +241,7 @@ object Conversion {
         localMap(b)
       }
 
-      blockFrames(0).boxes.flatten.map(getBox)
+      boxes(blockFrames(0)).flatten.map(getBox)
 
       for ((insn, i) <- blockInsns(blockId).zipWithIndex) try {
 
@@ -280,7 +294,7 @@ object Conversion {
 //            "Start frame doesn't line up with End frame"
 //          )
           val zipped = for{
-            (Some(e), Some(s)) <- endFrame.boxes zip startFrame.boxes
+            (Some(e), Some(s)) <- boxes(endFrame) zip boxes(startFrame)
             a <- endMap.get(e).toSeq
             b <- startMap.get(s).toSeq
 
@@ -317,7 +331,7 @@ object Conversion {
         (b.start.block, b.start.insn),
         (b.end.block, b.end.insn),
         b.handler.block,
-        blockBuffers(b.handler.block)._3(allFrames(blockMap(allInsns.indexOf(b.handler))).head.top()),
+        blockBuffers(b.handler.block)._3(ConvertInsn.top(allFrames(blockMap(allInsns.indexOf(b.handler))).head)),
         Option(b.`type`).map(imm.Type.Cls.read)
       )
     }

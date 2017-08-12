@@ -15,7 +15,7 @@ object Field {
       fn.access,
       fn.name,
       imm.Type.read(fn.desc),
-      fn.signature.safeOpt,
+      NullSafe(fn.signature),
       fn.value
     )
   }

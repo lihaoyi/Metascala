@@ -16,6 +16,7 @@ import org.objectweb.asm.Opcodes._
 
 import Insn._
 object ConvertInsn {
+  def top(x: Frame[Box], n: Int = 0) = x.getStack(x.getStackSize - 1 - n)
   case class F1[A, B](a: A => B, override val toString: String) extends Function1[A, B]{
     def apply(x: A) = a(x)
   }
@@ -30,30 +31,30 @@ object ConvertInsn {
              (implicit vm: VM, getBox: Box => Int, deref: LabelNode => Int) = {
 
     def push[T](v: T, tpe: Prim[T]) = {
-      append(Push(nextFrame.top(), tpe, v))
+      append(Push(top(nextFrame), tpe, v))
     }
     def aLoad[T](p: Prim[T], tpe: imm.Type) ={
-      append(GetArray(nextFrame.top(), frame.top(), frame.top(1), tpe))
+      append(GetArray(top(nextFrame), top(frame), top(frame, 1), tpe))
     }
     def aStore[T](p: Prim[T], tpe: imm.Type) ={
-      append(PutArray(frame.top(), frame.top(1), frame.top(2), tpe))
+      append(PutArray(top(frame), top(frame, 1), top(frame, 2), tpe))
     }
     def binOp1[A](a: Prim[A])(f: (A, A) => A) = binOp(a, a, a)(f)
     def binOp[A, B, C](a: Prim[A], b: Prim[B], c: Prim[C])(f: (A, B) => C) = {
-      val (bb, aa) = (getBox(frame.top()), getBox(frame.top(1)))
-      append(BinOp(aa, a, bb, b, nextFrame.top(), c, f))
+      val (bb, aa) = (getBox(top(frame)), getBox(top(frame, 1)))
+      append(BinOp(aa, a, bb, b, top(nextFrame), c, f))
     }
     def unaryOp[A, B](a: Prim[A], b: Prim[B])(f: A => B) = {
-      append(UnaryOp(frame.top(), a, nextFrame.top(), b, f))
+      append(UnaryOp(top(frame), a, top(nextFrame), b, f))
     }
     def unaryBranch(label: LabelNode, f: Int => Boolean) = {
-      append(Insn.UnaryBranch(frame.top(), label, f))
+      append(Insn.UnaryBranch(top(frame), label, f))
     }
     def binaryBranch(label: LabelNode, f: (Int, Int) => Boolean) = {
-      append(Insn.BinaryBranch(frame.top(), frame.top(1), label, f))
+      append(Insn.BinaryBranch(top(frame), top(frame, 1), label, f))
     }
     def returnVal(tpe: imm.Type) = {
-      append(Insn.ReturnVal(if (tpe == V) 0 else frame.top()))
+      append(Insn.ReturnVal(if (tpe == V) 0 else top(frame)))
     }
     def invokeVirtual(insn: MethodInsnNode, indexed: Boolean) = {
       val desc = imm.Desc.read(insn.desc)
@@ -64,11 +65,11 @@ object ConvertInsn {
       }
 
       val args = for(j <- (0 until desc.args.length + 1).reverse) yield {
-        frame.top(j)
+        top(frame, j)
       }
       getBox(args.last)
       val sig = new imm.Sig(insn.name, desc)
-      val target = if (desc.ret == V) 0 else nextFrame.top(): Int
+      val target = if (desc.ret == V) 0 else top(nextFrame): Int
 
       val mIndex =
         if (!indexed) -1
@@ -82,10 +83,10 @@ object ConvertInsn {
       val m = vm.resolveDirectRef(insn.owner, imm.Sig(insn.name, desc)).get
 
       val args = for(j <- (0 until desc.args.length + self).reverse) yield {
-        frame.top(j)
+        top(frame, j)
       }
 
-      val target = if (desc.ret == V) 0 else nextFrame.top(): Int
+      val target = if (desc.ret == V) 0 else top(nextFrame): Int
 
       append(Insn.InvokeStatic(target, Agg.from(args.map(getBox)), insn.owner, m))
     }
@@ -138,22 +139,21 @@ object ConvertInsn {
       case LDC =>
         insn.cast[LdcInsnNode].cst match{
           case s: String =>
-            val top = vm.alloc(Virtualizer.pushVirtual(s)(_)).apply(0)
             val index = vm.interned.length
-            vm.interned.append(new ManualRef(top))
-            append(Ldc(nextFrame.top(), index))
+            vm.interned.append(new ManualRef(vm.alloc(Virtualizer.pushVirtual(s)(_)).apply(0)))
+            append(Ldc(top(nextFrame), index))
           case t: org.objectweb.asm.Type =>
             val clsObj = vm.typeObjCache(imm.Type.read(t.getInternalName))
             val index = vm.interned.length
             vm.interned.append(new ManualRef(clsObj()))
-            append(Ldc(nextFrame.top(), index))
-          case x: java.lang.Byte  => append(Insn.Push(nextFrame.top(), B, x: Byte))
-          case x: java.lang.Character  => append(Insn.Push(nextFrame.top(), C, x: Char))
-          case x: java.lang.Short => append(Insn.Push(nextFrame.top(), S, x: Short))
-          case x: java.lang.Integer   => append(Insn.Push(nextFrame.top(), I, x: Int))
-          case x: java.lang.Float => append(Insn.Push(nextFrame.top(), F, x: Float))
-          case x: java.lang.Long  => append(Insn.Push(nextFrame.top(), J, x: Long))
-          case x: java.lang.Double => append(Insn.Push(nextFrame.top(), D, x: Double))
+            append(Ldc(top(nextFrame), index))
+          case x: java.lang.Byte  => append(Insn.Push(top(nextFrame), B, x: Byte))
+          case x: java.lang.Character  => append(Insn.Push(top(nextFrame), C, x: Char))
+          case x: java.lang.Short => append(Insn.Push(top(nextFrame), S, x: Short))
+          case x: java.lang.Integer   => append(Insn.Push(top(nextFrame), I, x: Int))
+          case x: java.lang.Float => append(Insn.Push(top(nextFrame), F, x: Float))
+          case x: java.lang.Long  => append(Insn.Push(top(nextFrame), J, x: Long))
+          case x: java.lang.Double => append(Insn.Push(top(nextFrame), D, x: Double))
         }
 
       case IALOAD => aLoad(I, I)
@@ -250,26 +250,26 @@ object ConvertInsn {
       case GOTO => append(Insn.Goto(insn.label))
       case TABLESWITCH   =>
         val x = insn.cast[TableSwitchInsnNode]
-        append(Insn.TableSwitch(frame.top(), x.min, x.max, x.dflt, Agg.from(x.labels.map(deref))))
+        append(Insn.TableSwitch(top(frame), x.min, x.max, x.dflt, Agg.from(x.labels.map(deref))))
       case LOOKUPSWITCH =>
         val x = insn.cast[LookupSwitchInsnNode]
-        append(Insn.LookupSwitch(frame.top(), x.dflt, Agg.from(x.keys.asScala.map(_.intValue)), Agg.from(x.labels.map(deref))))
+        append(Insn.LookupSwitch(top(frame), x.dflt, Agg.from(x.keys.asScala.map(_.intValue)), Agg.from(x.labels.map(deref))))
       case IRETURN => returnVal(I)
       case LRETURN => returnVal(J)
       case FRETURN => returnVal(F)
       case DRETURN => returnVal(D)
       case ARETURN => returnVal(imm.Type.Cls("java/lang/Object"))
       case RETURN => returnVal(V)
-      case GETSTATIC => refField(_.staticList, Insn.GetStatic(nextFrame.top(), _, _, _))
-      case PUTSTATIC => refField(_.staticList, Insn.PutStatic(frame.top(), _, _, _))
-      case GETFIELD  => refField(_.fieldList, (a, b, c) => Insn.GetField(nextFrame.top(), frame.top(), b, c))
-      case PUTFIELD  => refField(_.fieldList, (a, b, c) => Insn.PutField(frame.top(), frame.top(1), b, c))
+      case GETSTATIC => refField(_.staticList, Insn.GetStatic(top(nextFrame), _, _, _))
+      case PUTSTATIC => refField(_.staticList, Insn.PutStatic(top(frame), _, _, _))
+      case GETFIELD  => refField(_.fieldList, (a, b, c) => Insn.GetField(top(nextFrame), top(frame), b, c))
+      case PUTFIELD  => refField(_.fieldList, (a, b, c) => Insn.PutField(top(frame), top(frame, 1), b, c))
       case INVOKESTATIC    => invokeStatic(insn, 0)
       case INVOKESPECIAL   => invokeStatic(insn, 1)
       case INVOKEVIRTUAL   => invokeVirtual(insn, indexed=true)
       case INVOKEINTERFACE => invokeVirtual(insn, indexed=false)
 //      case INVOKEDYNAMIC => invokeDynamic(insn)
-      case NEW => append(Insn.New(nextFrame.top(), vm.ClsTable(insn.cast[TypeInsnNode].desc)))
+      case NEW => append(Insn.New(top(nextFrame), vm.ClsTable(insn.cast[TypeInsnNode].desc)))
       case NEWARRAY =>
         val typeRef: imm.Type = insn.operand match{
           case 4  => Z: imm.Type
@@ -281,16 +281,16 @@ object ConvertInsn {
           case 10 => I: imm.Type
           case 11 => J: imm.Type
         }
-        append(Insn.NewArray(frame.top(), nextFrame.top(), typeRef))
-      case ANEWARRAY   => append(Insn.NewArray(frame.top(), nextFrame.top(), imm.Type.read(insn.cast[TypeInsnNode].desc)))
-      case ARRAYLENGTH => append(Insn.ArrayLength(frame.top(), nextFrame.top()))
-      case ATHROW      => append(Insn.AThrow(frame.top()))
-      case CHECKCAST   => append(Insn.CheckCast(frame.top(), nextFrame.top(), imm.Type.read(insn.cast[TypeInsnNode].desc)))
-      case INSTANCEOF  => append(Insn.InstanceOf(frame.top(), nextFrame.top(), imm.Type.read(insn.cast[TypeInsnNode].desc)))
+        append(Insn.NewArray(top(frame), top(nextFrame), typeRef))
+      case ANEWARRAY   => append(Insn.NewArray(top(frame), top(nextFrame), imm.Type.read(insn.cast[TypeInsnNode].desc)))
+      case ARRAYLENGTH => append(Insn.ArrayLength(top(frame), top(nextFrame)))
+      case ATHROW      => append(Insn.AThrow(top(frame)))
+      case CHECKCAST   => append(Insn.CheckCast(top(frame), top(nextFrame), imm.Type.read(insn.cast[TypeInsnNode].desc)))
+      case INSTANCEOF  => append(Insn.InstanceOf(top(frame), top(nextFrame), imm.Type.read(insn.cast[TypeInsnNode].desc)))
       case MULTIANEWARRAY =>
         val x = insn.cast[MultiANewArrayInsnNode]
-        val dims = (0 until x.dims).reverse.map(frame.top)
-        append(Insn.MultiANewArray(imm.Type.read(x.desc), nextFrame.top(), dims.map(getBox)))
+        val dims = (0 until x.dims).reverse.map(top(frame, _))
+        append(Insn.MultiANewArray(imm.Type.read(x.desc), top(nextFrame), dims.map(getBox)))
       case IFNULL    => unaryBranch(insn.label, F1(_ == 0, "IfNull"))
       case IFNONNULL => unaryBranch(insn.label, F1(_ != 0, "IfNonNull"))
       case ACONST_NULL | POP | POP2 | DUP | DUP_X1 | DUP_X2 | DUP2 |
