@@ -1,17 +1,11 @@
 package metascala
 package full
 
-import metascala.{imm, BufferLog, Util}
 import org.scalatest.FreeSpec
-import org.scalatest._
-import scala.collection.immutable.Range.Inclusive
-import scala.collection.immutable.Range
-import scala.runtime.RichInt
 import scala.concurrent.{Await, Promise}
 import java.io.DataInputStream
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
-import java.util
 import scala.collection.JavaConversions._
 import org.mozilla.javascript.Context
 
@@ -100,7 +94,49 @@ class ScalaLib extends FreeSpec {
       fs.view.takeWhile(_.toString.length < n).size
     }
   }
+  "Euler1" in {
+    tester.test {
+      val r = (1 until 1000).view.filter(n => n % 3 == 0 || n % 5 == 0).sum
+      r
+    }
 
-//  "lol" in tester.run("lol")
+  }
+  "Euler2" in {
+    tester.test {
+      lazy val fs: Stream[Int] = 0 #:: 1 #:: fs.zip(fs.tail).map(p => p._1 + p._2)
 
+      val r = fs.view.takeWhile(_ <= 4000000).filter(_ % 2 == 0).sum
+      r
+    }
+  }
+  "Euler4" in {
+    tester.test {
+      (10 to 99).view
+                .flatMap(i => (i to 99).map(i *))
+                .filter(n => n.toString == n.toString.reverse)
+                .max
+    }
+  }
+  "Euler10" in {
+    tester.test {
+      lazy val ps: Stream[Int] = 2 #:: Stream.from(3).filter(i =>
+      ps.takeWhile(j => j * j <= i).forall(i % _ > 0))
+      ps.view.takeWhile(_ < 2000).foldLeft(0L)(_ + _)
+    }
+  }
+
+  "Euler16" in {
+    tester.test {
+      BigInt(2).pow(1000).toString.view.map(_.asDigit).sum
+    }
+  }
+  "Euler29" in {
+    tester.test {
+      (2 to 10).flatMap(a => (2 to 10)
+        .map(b => BigInt(a).pow(b)))
+        .distinct
+        .size
+
+    }
+  }
 }

@@ -332,6 +332,9 @@ trait Default extends Bindings{
           "StrictMath"/(
             "log(D)D".func(D, D)( (vt, value) =>
               math.log(value)
+            ),
+            "pow(DD)D".func(D, D, D)( (vt, value, value2) =>
+              math.pow(value, value2)
             )
           )
         ),
