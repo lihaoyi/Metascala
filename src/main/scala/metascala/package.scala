@@ -61,17 +61,6 @@ package object metascala {
   implicit def stringToClass(s: String)(implicit vm: VM) = vm.ClsTable(imm.Type.Cls(s))
   implicit def stringToClsType(s: String) = imm.Type.Cls.apply(s)
 
-  implicit class pimpedString(val s: String) extends AnyVal{
-
-    def allocObj(initMembers: (String, Ref)*)(implicit registrar: Registrar) = {
-      implicit val vm = registrar.vm
-      rt.Obj.allocate(s, initMembers:_*).address
-    }
-    def allocArr(backing: TraversableOnce[Ref])(implicit registrar: Registrar) = {
-      implicit val vm = registrar.vm
-      rt.Arr.allocate(s, backing.toArray).address
-    }
-  }
   def reader(src: Seq[Val], index: Int) = {
     var i = index
     () => {
@@ -86,16 +75,7 @@ package object metascala {
       src(i - 1) = x
     }
   }
-  def blit(src: Seq[Int], srcIndex: Int, dest: mutable.Seq[Int], destIndex: Int, length: Int) = {
-    var i = 0
-    while(i < length){
-      dest(destIndex + i) = src(srcIndex + i)
-      i+= 1
-    }
-  }
 
-  def shorten(name: String) = {
-    val some :+ last = name.split("/").toSeq
-    (some.map(_(0)) :+ last).mkString("/")
-  }
+
+
 }

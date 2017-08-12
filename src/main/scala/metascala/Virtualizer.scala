@@ -96,7 +96,7 @@ object Virtualizer {
 
         val tpe = imm.Type.Arr.read(b.getClass.getName.replace('.', '/')).innerType
         val arr =
-          rt.Arr.allocate(
+          rt.Arr.alloc(
             tpe,
             b.flatMap(pushVirtual).map{x =>
               val ref : Ref = new ManualRef(x)
@@ -134,7 +134,7 @@ object Virtualizer {
           index += field.desc.size
         }
 
-        val obj = rt.Obj.allocate(b.getClass.getName)
+        val obj = rt.Obj.alloc(b.getClass.getName)
         contents.map(_()).map(writer(vm.heap.memory, obj.address() + rt.Obj.headerSize))
         out(obj.address())
     }

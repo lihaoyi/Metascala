@@ -92,18 +92,18 @@ trait Default extends Bindings{
               val realFields = cls.fieldList ++ cls.staticList
 
               vm.alloc(implicit r =>
-                "java/lang/reflect/Field".allocArr(
+                rt.Arr.alloc("java/lang/reflect/Field",
                   realFields.zipWithIndex.map{ case (f, i) =>
-                    "java/lang/reflect/Field".allocObj(
+                    rt.Obj.alloc("java/lang/reflect/Field",
                       "clazz" -> obj.address,
                       "slot" -> (if (f.static) cls.staticList else cls.fieldList).indexOf(f),
                       "name" -> vt.vm.internedStrings.getOrElseUpdate(f.name, f.name.toVirtObj),
                       "modifiers" -> f.access,
                       "type" -> vm.typeObjCache(f.desc)
-                    )
+                    ).address
                   }
                 )
-              )()
+              )
               // if (f.static) cls.staticList else cls.fieldList).indexOf(f)
               // f.static(cls.staticList, cls.fieldList).indexOf(f)
             },
@@ -114,32 +114,30 @@ trait Default extends Bindings{
               val cls = vm.ClsTable(clsName)
               val realMethods = cls.methods.filter(_.sig.name == "<init>")
               val vrtArr = vm.alloc(implicit r =>
-                "java/lang/reflect/Constructor".allocArr(
+                rt.Arr.alloc("java/lang/reflect/Constructor",
                   realMethods.zipWithIndex.map{ case (f, i) =>
-                    "java/lang/reflect/Constructor".allocObj(
+                    rt.Obj.alloc("java/lang/reflect/Constructor",
                       "clazz" -> clsObj.address,
                       "slot" -> i,
                       "signature" -> f.sig.desc.unparse.toVirtObj,
-                      "parameterTypes" -> "java/lang/Class".allocArr(
+                      "parameterTypes" -> rt.Arr.alloc("java/lang/Class",
                         f.sig.desc.args.map(t =>
                           vt.vm.typeObjCache(imm.Type.readJava(t.realCls.getName))
                         )
                       )
-                    )
+                    ).address
                   }
                 )
               )
-              vrtArr()
+              vrtArr
             },
             "getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;".func(I, Z, I){ (vt, clsAddr, pub) =>
               import vt.vm
               val cls = vt.vm.ClsTable(clsAddr.obj.apply("name").toRealObj[String])
               vm.alloc(implicit r =>
-                "java/lang/reflect/Method".allocArr(
+                rt.Arr.alloc("java/lang/reflect/Method",
                   cls.methods.map{ m =>
-                    "java/lang/reflect/Method".allocObj(
-                    )
-
+                    rt.Obj.alloc("java/lang/reflect/Method").address
                   }
                 )
               )()
@@ -150,13 +148,13 @@ trait Default extends Bindings{
               import vt.vm
               val cls = vt.vm.ClsTable(clsAddr.obj.apply("name").toRealObj[String])
               vm.alloc(implicit r =>
-                "java/lang/Class".allocArr(
+                rt.Arr.alloc("java/lang/Class",
                   cls.typeAncestry
                      .filter(x => !cls.clsAncestry.contains(x))
                      .toSeq
                      .map(x => vt.vm.typeObjCache(x.cls.tpe))
                 )
-              )()
+              )
             },
             "getModifiers()I".func(I, I){ (vt, o) =>
               import vt.vm
@@ -340,7 +338,7 @@ trait Default extends Bindings{
                 import vt.vm
                 val clsObj = cls.obj
                 val clsName = clsObj("name").toRealObj[String]
-                vm.alloc(rt.Arr.allocate(imm.Type.readJava(clsName), length)(_)).address()
+                vm.alloc(rt.Arr.alloc(imm.Type.readJava(clsName), length)(_)).address()
               },
               "set(Ljava/lang/Object;ILjava/lang/Object;)V".func(I, I, I, V){ (vt, arr, index, obj) =>
                 vt.invoke(
@@ -357,7 +355,7 @@ trait Default extends Bindings{
                   val cls = new rt.Obj(constr).apply("clazz")
                   val name = new rt.Obj(cls).apply("name").toRealObj[String].replace('.', '/')
                   val newObj = vm.alloc { implicit r =>
-                    rt.Obj.allocate(name).address()
+                    rt.Obj.alloc(name).address()
                   }
 
                   val descStr = new rt.Obj(constr).apply("signature").toRealObj[String]
@@ -381,7 +379,7 @@ trait Default extends Bindings{
                   import vt.vm
                   val name = cons.obj.apply("clazz").obj.apply("name").toRealObj[String]
                   vm.alloc(implicit r =>
-                    rt.Obj.allocate(name)
+                    rt.Obj.alloc(name)
                   ).address()
               }
             )
@@ -484,8 +482,8 @@ trait Default extends Bindings{
               import vt.vm
               val name = clsPtr.obj.apply("name").toRealObj[String]
               val x = vt.vm.alloc{ implicit r =>
-                name.allocObj()
-              }()
+                rt.Obj.alloc(name).address()
+              }
               x
             },
             "addressSize()I".value(I)(4),

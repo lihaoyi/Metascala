@@ -76,7 +76,7 @@ object Type{
       case _ => false
     }
     override def toString = s"Cls($name)"
-    def prettyRead(x: () => Val) = shorten(name) + "#" + x()
+    def prettyRead(x: () => Val) = Util.shorten(name) + "#" + x()
     def internalName = "L" + name + ";"
     def javaName = name.replace('/', '.')
   }
@@ -219,7 +219,7 @@ trait Type{
    * - V Z B C S I F J D
    * - j/l/Object [j/l/String
    */
-  def shortName = shorten(name)
+  def shortName = Util.shorten(name)
 
   /**
    * The thing that's returned by Java's getName method
@@ -288,5 +288,7 @@ case class Desc(args: Agg[Type], ret: Type){
     baseArgSize + longArgSize
   }
   override def toString = unparse
-  def shortName = "(" + args.map(Desc.unparse).map(shorten).foldLeft("")(_+_) + ")" + shorten(Desc.unparse(ret))
+  def shortName = {
+    "(" + args.map(Desc.unparse).map(Util.shorten).foldLeft("")(_ + _) + ")" + Util.shorten(Desc.unparse(ret))
+  }
 }

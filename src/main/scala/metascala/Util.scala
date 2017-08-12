@@ -1,5 +1,7 @@
 package metascala
 
+import scala.collection.mutable
+
 
 /**
   * Convenience methods to provide a safe way of converting null Lists, Arrays
@@ -30,4 +32,19 @@ object Access{
   val Interface = 0x0200 // 512
   val Abstract  = 0x0400 // 1024
   val Strict    = 0x0800 // 2048
+}
+
+object Util{
+  def shorten(name: String) = {
+    val some :+ last = name.split("/").toSeq
+    (some.map(_(0)) :+ last).mkString("/")
+  }
+
+  def blit(src: Seq[Int], srcIndex: Int, dest: mutable.Seq[Int], destIndex: Int, length: Int) = {
+    var i = 0
+    while(i < length){
+      dest(destIndex + i) = src(srcIndex + i)
+      i+= 1
+    }
+  }
 }

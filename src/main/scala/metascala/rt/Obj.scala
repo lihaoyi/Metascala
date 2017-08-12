@@ -8,7 +8,7 @@ import scala.Some
 
 object Obj{
   val headerSize = 2
-  def allocate(cls: rt.Cls, initMembers: (String, Ref)*)(implicit registrar: Registrar): Obj = {
+  def alloc(cls: rt.Cls, initMembers: (String, Ref)*)(implicit registrar: Registrar): Obj = {
     implicit val vm = registrar.vm
     val address = vm.heap.allocate(headerSize + cls.fieldList.length)
 //    println("Allocating " + cls.name + " at " + address)
@@ -21,6 +21,8 @@ object Obj{
     obj
   }
 
+  implicit def unwrap1(x: Obj): Int = x.address.apply()
+  implicit def unwrap2(x: Obj): Ref = x.address
   def unapply(x: Val)(implicit vm: VM) = new Obj(x)
 }
 
@@ -92,11 +94,12 @@ object Arr{
    * This is multiplied with the size of the type being allocated when
    * calculating the total amount of memory benig allocated
    */
-  def allocate(t: imm.Type, n: scala.Int)(implicit registrar: Registrar): Arr = {
-    rt.Arr.allocate(t, Array.fill[Int](n * t.size)(0).map(x => new ManualRef(x): Ref))
+  def alloc(t: imm.Type, n: scala.Int)(implicit registrar: Registrar): Arr = {
+    rt.Arr.alloc(t, Array.fill[Int](n * t.size)(0).map(x => new ManualRef(x): Ref))
   }
-  def allocate(innerType: imm.Type, backing: Array[Ref])(implicit registrar: Registrar): Arr = {
+  def alloc(innerType: imm.Type, backing0: TraversableOnce[Ref])(implicit registrar: Registrar): Arr = {
     implicit val vm = registrar.vm
+    val backing = backing0.toArray
     val address = vm.heap.allocate(Arr.headerSize + backing.length)
 //    println("Allocating Array[" + innerType.name + "] at " + address)
     vm.heap(address()) = vm.arrayTypeCache.length
@@ -108,6 +111,9 @@ object Arr{
     new Arr(address)
   }
   def unapply(x: Int)(implicit vm: VM): Option[Arr] = Some(new Arr(x))
+
+  implicit def unwrap1(x: Arr): Int = x.address.apply()
+  implicit def unwrap2(x: Arr): Ref = x.address
 }
 
 /**

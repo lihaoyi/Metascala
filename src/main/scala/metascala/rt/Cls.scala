@@ -90,7 +90,7 @@ class Cls(val tpe: imm.Type.Cls,
 
   val isInterface = (accessFlags & Access.Interface) != 0
   val statics = vm.alloc(implicit i =>
-    rt.Arr.allocate(I, staticList.length)
+    rt.Arr.alloc(I, staticList.length)
   )
 
   def method(name: String, desc: imm.Desc): Option[rt.Method] = {
@@ -165,7 +165,7 @@ class Cls(val tpe: imm.Type.Cls,
     s"Cls($index, ${tpe.name})"
   }
 
-  def shortName = shorten(tpe.name)
+  def shortName = Util.shorten(tpe.name)
 
   def heapSize = fieldList.length + rt.Obj.headerSize
 }

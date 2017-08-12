@@ -1,7 +1,6 @@
 package metascala
 package full
 
-import metascala.{BufferLog, Util}
 import metascala.Util._
 import org.scalatest.FreeSpec
 
@@ -122,12 +121,11 @@ class GCTests extends FreeSpec {
   "gcInterrupt" in {
     val tester = new Tester("metascala.full.ScalaLib", memorySize = 10)
     implicit val vm = tester.svm
-    import metascala.pimpedString
     var initialSet: Set[Int] = null
     val (p1, p2, p3) = vm.alloc{ implicit r =>
-      val p1 = "java/lang/Object".allocObj()
-      val p2 = "java/lang/Object".allocObj()
-      val p3 = "java/lang/Object".allocObj()
+      val p1 = rt.Obj.alloc("java/lang/Object").address
+      val p2 = rt.Obj.alloc("java/lang/Object").address
+      val p3 = rt.Obj.alloc("java/lang/Object").address
       initialSet = Set(p1(), p2(), p3())
       assert(initialSet.forall(p => vm.heap(p) == -1))
       vm.heap.collect(vm.heap.start)

@@ -91,7 +91,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
       case New(target, cls) =>
         cls.checkInitialized()
-        val obj = vm.alloc(rt.Obj.allocate(cls.name)(_))
+        val obj = vm.alloc(rt.Obj.alloc(cls.name)(_))
         frame.locals(target) = obj.address()
         advancePc()
 
@@ -164,14 +164,14 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         advancePc()
 
       case NewArray(src, dest, typeRef) =>
-        val newArray = vm.alloc(rt.Arr.allocate(typeRef, frame.locals(src))(_))
+        val newArray = vm.alloc(rt.Arr.alloc(typeRef, frame.locals(src))(_))
         frame.locals(dest) = newArray.address()
         advancePc()
 
       case PutArray(src, index, array, prim) =>
         val arr = frame.locals(array).arr
         if (0 <= frame.locals(index) && frame.locals(index) < arr.arrayLength){
-          blit(frame.locals, src, arr, frame.locals(index) * prim.size, prim.size)
+          Util.blit(frame.locals, src, arr, frame.locals(index) * prim.size, prim.size)
           advancePc()
         }else{
           throwExWithTrace("java/lang/ArrayIndexOutOfBoundsException", frame.locals(index).toString)
@@ -180,7 +180,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       case GetArray(dest, index, array, prim) =>
         val arr = frame.locals(array).arr
         if (0 <= frame.locals(index) && frame.locals(index) < arr.arrayLength){
-          blit(arr, frame.locals(index) * prim.size, frame.locals, dest, prim.size)
+          Util.blit(arr, frame.locals(index) * prim.size, frame.locals, dest, prim.size)
           advancePc()
         }else{
           throwExWithTrace("java/lang/ArrayIndexOutOfBoundsException", frame.locals(index).toString)
@@ -204,19 +204,19 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         advancePc()
       case PutStatic(src, cls, index, prim) =>
         cls.checkInitialized()
-        blit(frame.locals, src, cls.statics, index, prim.size)
+        Util.blit(frame.locals, src, cls.statics, index, prim.size)
         advancePc()
       case GetStatic(src, cls, index, prim) =>
 
         cls.checkInitialized()
-        blit(cls.statics, index, frame.locals, src, prim.size)
+        Util.blit(cls.statics, index, frame.locals, src, prim.size)
         advancePc()
 
       case PutField(src, obj, index, prim) =>
         if (frame.locals(obj) == 0){
           throwExWithTrace("java/lang/NullPointerException", "null")
         }else{
-          blit(frame.locals, src, frame.locals(obj).obj.members, index, prim.size)
+          Util.blit(frame.locals, src, frame.locals(obj).obj.members, index, prim.size)
           advancePc()
         }
 
@@ -224,7 +224,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         if (frame.locals(obj) == 0){
           throwExWithTrace("java/lang/NullPointerException", "null")
         }else{
-          blit(frame.locals(obj).obj.members, index, frame.locals, src, prim.size)
+          Util.blit(frame.locals(obj).obj.members, index, frame.locals, src, prim.size)
           advancePc()
         }
 
@@ -289,14 +289,14 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
           (dims, tpe) match {
             case (size :: tail, imm.Type.Arr(innerType: imm.Type.Ref)) =>
-              val newArr = vm.alloc(rt.Arr.allocate(innerType, size)(_))
+              val newArr = vm.alloc(rt.Arr.alloc(innerType, size)(_))
               for(i <- 0 until size){
                 newArr(i) = rec(tail, innerType)
               }
               newArr.address()
 
             case (size :: Nil, imm.Type.Arr(innerType)) =>
-              vm.alloc(rt.Arr.allocate(innerType, size)(_)).address()
+              vm.alloc(rt.Arr.alloc(innerType, size)(_)).address()
            }
         }
         val dimValues = dims.map(frame.locals).toList
@@ -344,7 +344,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     throwException(
       vm.alloc( implicit r =>
-        rt.Obj.allocate(clsName,
+        rt.Obj.alloc(clsName,
           "stackTrace" -> trace.toVirtObj,
           "detailMessage" -> detailMessage.toVirtObj
         )
