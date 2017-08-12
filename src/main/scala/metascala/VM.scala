@@ -158,7 +158,7 @@ class VM(val natives: Bindings = Bindings.default,
       val classNode = new ClassNode()
       cr.accept(classNode, ClassReader.EXPAND_FRAMES)
 
-      Option(classNode.superName).map(Type.Cls.read).map(vm.ClsTable)
+      Option(classNode.superName).map(Type.Cls.apply).map(vm.ClsTable)
       rt.Cls(classNode, clsIndex.length)
     }
 
@@ -202,7 +202,7 @@ class VM(val natives: Bindings = Bindings.default,
     println(s"Invoking VM with $bootClass.$mainMethod")
 
     val res = threads(0).invoke(
-      imm.Type.Cls(bootClass),
+      imm.Type.Cls.apply(bootClass),
       imm.Sig(
         mainMethod,
         imm.Type.Cls(bootClass)
@@ -219,7 +219,7 @@ class VM(val natives: Bindings = Bindings.default,
 
   def exec[T](thunk: => T): T = {
     val wrapped = () => thunk
-    invoke(wrapped.getClass.getName.toSlash, "apply", Seq(wrapped)).cast[T]
+    invoke(wrapped.getClass.getName, "apply", Seq(wrapped)).asInstanceOf[T]
   }
   println("Initialized VM")
 

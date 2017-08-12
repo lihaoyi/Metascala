@@ -1,6 +1,7 @@
 package metascala
 import scala.collection.mutable
 import imm.Type.Prim._
+import metascala.imm.Type.Prim
 
 object Virtualizer {
 
@@ -25,7 +26,11 @@ object Virtualizer {
 
             val tpe = vm.arrayTypeCache(vm.heap(address))
 
-            val clsObj = forName(tpe.name.toDot)
+            val clsObj = Prim.all.get(tpe.name(0)) match{
+              case Some(v) => v.primClass
+              case None => Class.forName(tpe.name.replace('/', '.'))
+            }
+
             val newArr = java.lang.reflect.Array.newInstance(clsObj, address.arr.arrayLength)
 
             for(i <- 0 until address.arr.arrayLength){
@@ -39,7 +44,7 @@ object Virtualizer {
 
             newArr
           case t @ imm.Type.Cls(name)=>
-            val obj = unsafe.allocateInstance(Class.forName(address.obj.cls.name.toDot))
+            val obj = unsafe.allocateInstance(Class.forName(address.obj.cls.name.replace('/', '.')))
             refs += (address -> obj)
             var index = 0
             for(field <- address.obj.cls.fieldList.distinct){
@@ -59,6 +64,13 @@ object Virtualizer {
     }
 
     x
+  }
+
+  def getAllFields(cls: Class[_]): Seq[java.lang.reflect.Field] = {
+    Option(cls.getSuperclass)
+      .toSeq
+      .flatMap(getAllFields)
+      .++(cls.getDeclaredFields)
   }
 
   def pushVirtual(thing: Any)(implicit registrar: Registrar): Seq[Int] = {
@@ -105,11 +117,11 @@ object Virtualizer {
           registrar.vm.log(x.getName)
         )
         vm.log("---------------------")
-        for(field <- vm.ClsTable(imm.Type.Cls(b.getClass.getName.toSlash)).fieldList.distinct){
+        for(field <- vm.ClsTable(imm.Type.Cls.apply(b.getClass.getName)).fieldList.distinct){
           registrar.vm.log(field.name)
         }
         vm.log("=====================")
-        for(field <- vm.ClsTable(imm.Type.Cls(b.getClass.getName.toSlash)).fieldList.distinct) yield {
+        for(field <- vm.ClsTable(imm.Type.Cls.apply(b.getClass.getName)).fieldList.distinct) yield {
           vm.log("Loop: " + field.name)
           val f = decFields.find(_.getName == field.name).get
           f.setAccessible(true)
@@ -122,7 +134,7 @@ object Virtualizer {
           index += field.desc.size
         }
 
-        val obj = rt.Obj.allocate(b.getClass.getName.toSlash)
+        val obj = rt.Obj.allocate(b.getClass.getName)
         contents.map(_()).map(writer(vm.heap.memory, obj.address() + rt.Obj.headerSize))
         out(obj.address())
     }

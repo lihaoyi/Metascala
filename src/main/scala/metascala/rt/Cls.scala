@@ -24,12 +24,12 @@ object Cls{
   def apply(cn: ClassNode, index: Int)(implicit vm: VM) = {
 
     val fields = NullSafe(cn.fields).map(imm.Field.read)
-    val superType = NullSafe(cn.superName).map(Type.Cls.read)
+    val superType = NullSafe(cn.superName).map(Type.Cls.apply)
     new Cls(
-      tpe = imm.Type.Cls.read(cn.name),
+      tpe = imm.Type.Cls.apply(cn.name),
       superType = superType,
       sourceFile = NullSafe(cn.sourceFile),
-      interfaces = NullSafe(cn.interfaces).map(Type.Cls.read),
+      interfaces = NullSafe(cn.interfaces).map(Type.Cls.apply),
       accessFlags = cn.access,
       methods =
         NullSafe(cn.methods)
@@ -52,7 +52,7 @@ object Cls{
         fields.filter(_.static).flatMap{x =>
           Seq.fill(x.desc.size)(x)
         },
-      outerCls = NullSafe(cn.outerClass).map(Type.Cls.read),
+      outerCls = NullSafe(cn.outerClass).map(Type.Cls.apply),
       index
     )
   }

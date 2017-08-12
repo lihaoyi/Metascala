@@ -14,17 +14,7 @@ package object metascala {
   class Registrar(f: Ref => Unit, val vm: VM) extends Function1[Ref, Unit]{
     def apply(i: Ref) = f(i)
   }
-  private[metascala] implicit class castable(val x: Any) extends AnyVal{
-    def cast[T] = x.asInstanceOf[T]
-  }
-  implicit class splitAllable[T](val c: Seq[T]) extends AnyVal{
-    def splitAll(positions: List[Int], index: Int = 0): Seq[Seq[T]] = positions match{
-      case Nil => Seq(c)
-      case firstPos :: restPos =>
-        val (first, rest) = c.splitAt(firstPos - index)
-        first +: rest.splitAll(restPos, firstPos)
-    }
-  }
+
   implicit class pimpedAny(val x: Any) extends AnyVal{
     def toVirtObj(implicit registrar: Registrar) = {
       Virtualizer.pushVirtual(x).apply(0)
@@ -46,8 +36,8 @@ package object metascala {
     }
 
     def toRealObj[T](implicit vm: VM, ct: ClassTag[T]) = {
-      Virtualizer.popVirtual(imm.Type.Cls(ct.runtimeClass.getName.toSlash), () => v)
-                 .cast[T]
+      Virtualizer.popVirtual(imm.Type.Cls(ct.runtimeClass.getName.replace('.', '/')), () => v)
+                 .asInstanceOf[T]
     }
   }
 
@@ -62,44 +52,17 @@ package object metascala {
   implicit class ManualRef(var x: Int) extends Ref{
     def apply() = x
     def update(i: Int) = x = i
-
-  }
-
-  object Val{
-    val Null = 0
-    implicit def objToVal(x: Obj) = x.address
-    implicit def arrToVal(x: Arr) = x.address
   }
 
   type Val = Int
 
-  def forNameBoxed(name: String) = {
-    if(Prim.all.contains(name(0)))
-      Prim.all(name(0)).boxedClass
-    else
-      Class.forName(name)
 
-  }
-  def forName(name: String) = {
-    if(Prim.all.contains(name(0)))
-      Prim.all(name(0)).primClass
-    else
-      Class.forName(name)
-  }
-
-  def getAllFields(cls: Class[_]): Seq[java.lang.reflect.Field] = {
-    Option(cls.getSuperclass)
-      .toSeq
-      .flatMap(getAllFields)
-      .++(cls.getDeclaredFields)
-  }
 
   implicit def stringToClass(s: String)(implicit vm: VM) = vm.ClsTable(imm.Type.Cls(s))
-  implicit def stringToClsType(s: String) = imm.Type.Cls(s)
-  implicit def stringToDesc(x: String) = imm.Desc.read(x)
+  implicit def stringToClsType(s: String) = imm.Type.Cls.apply(s)
+
   implicit class pimpedString(val s: String) extends AnyVal{
-    def toDot = s.replace('/', '.')
-    def toSlash = s.replace('.', '/')
+
     def allocObj(initMembers: (String, Ref)*)(implicit registrar: Registrar) = {
       implicit val vm = registrar.vm
       rt.Obj.allocate(s, initMembers:_*).address

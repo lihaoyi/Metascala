@@ -7,15 +7,15 @@ import reflect.ClassTag
 object Type{
   def read(s: String): Type = s match{
     case x if Prim.all.contains(x(0)) => Prim.all(x(0))
-    case s if s.startsWith("L") && s.endsWith(";") => Cls.read(s.drop(1).dropRight(1))
+    case s if s.startsWith("L") && s.endsWith(";") => Cls.apply(s.drop(1).dropRight(1))
     case s if s.startsWith("[") => Arr.read(s)
-    case s => Cls.read(s)
+    case s => Cls.apply(s)
   }
 
   def readJava(s: String): Type = s match {
     case x if Prim.allJava.contains(x) => Prim.allJava(x)
     case s if s.startsWith("[") => Arr.readJava(s)
-    case s => Cls.readJava(s)
+    case s => Cls.apply(s)
   }
 
   /**
@@ -29,7 +29,7 @@ object Type{
     def read(s: String) = Arr(Type.read(s.drop(1)))
     def readJava(s: String) = Arr(s.drop(1) match {
       case x if Prim.all.contains(x(0)) => Prim.all(x(0))
-      case x if x.startsWith("L") => Cls.read(x.drop(1).dropRight(1).toSlash)
+      case x if x.startsWith("L") => Cls.apply(x.drop(1).dropRight(1))
       case x => Type.readJava(x)
     })
   }
@@ -53,15 +53,15 @@ object Type{
     def internalName = "[" + innerType.internalName
   }
   object Cls{
-    def read(s: String) = Cls(s)
-    def readJava(s: String) = Cls(s.toSlash)
+    def apply(name: String): Cls = new Cls(name.replace('.', '/'))
+    def unapply(cls: Cls): Option[String] = Some(cls.name)
   }
 
   /**
    * Class Types
    * @param name the fuly qualified name of the class
    */
-  case class Cls(name: String) extends Ref {
+  class Cls(val name: String) extends Ref {
     assert(!name.contains('.'), "Cls name cannot contain . " + name)
     assert(!name.contains('['), "Cls name cannot contain [ " + name)
     def size = 1
@@ -71,6 +71,11 @@ object Type{
     def methodType: Type.Cls = this
 
     override val hashCode = name.hashCode
+    override def equals(other: Any) = other match{
+      case o: Cls => o.name == name
+      case _ => false
+    }
+    override def toString = s"Cls($name)"
     def prettyRead(x: () => Val) = shorten(name) + "#" + x()
     def internalName = "L" + name + ";"
     def javaName = name.replace('/', '.')
@@ -113,7 +118,7 @@ object Type{
       "long" -> (J: Prim[_]),
       "double" -> (D: Prim[_])
     )
-    
+
     def unapply(p: Prim[_]) = Some(p.javaName)
 
     case object V extends Prim[Unit](0, "void"){

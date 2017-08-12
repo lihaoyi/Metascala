@@ -75,7 +75,7 @@ object ConvertInsn {
         if (!indexed) -1
         else vm.ClsTable(cls).vTable.indexWhere(_.sig == sig)
 
-      append(Insn.InvokeVirtual(target, Agg.from(args.map(getBox)), cls.cast[imm.Type.Cls], sig, mIndex))
+      append(Insn.InvokeVirtual(target, Agg.from(args.map(getBox)), cls.asInstanceOf[imm.Type.Cls], sig, mIndex))
     }
 
     def invokeStatic(insn: MethodInsnNode, self: Int) = {
@@ -93,8 +93,8 @@ object ConvertInsn {
 //    def invokeDynamic(insn: InvokeDynamicInsnNode) = {
 //      append(Insn.InvokeDynamic(insn.name, insn.desc, insn.bsm, insn.bsmArgs))
 //    }
-    implicit def intInsnNode(x: AbstractInsnNode) = x.cast[IntInsnNode]
-    implicit def jumpInsnNode(x: AbstractInsnNode) = x.cast[JumpInsnNode]
+    implicit def intInsnNode(x: AbstractInsnNode) = x.asInstanceOf[IntInsnNode]
+    implicit def jumpInsnNode(x: AbstractInsnNode) = x.asInstanceOf[JumpInsnNode]
     implicit def methodInsnNode(x: AbstractInsnNode) = {
       x match {
         case x: MethodInsnNode => x
@@ -137,7 +137,7 @@ object ConvertInsn {
       case BIPUSH => push(insn.operand, I)
       case SIPUSH => push(insn.operand, I)
       case LDC =>
-        insn.cast[LdcInsnNode].cst match{
+        insn.asInstanceOf[LdcInsnNode].cst match{
           case s: String =>
             val index = vm.interned.length
             vm.interned.append(new ManualRef(vm.alloc(Virtualizer.pushVirtual(s)(_)).apply(0)))
@@ -209,7 +209,7 @@ object ConvertInsn {
       case IXOR => binOp(I, I, I)(F2(_ ^ _, "IXOr"))
       case LXOR => binOp(J, J, J)(F2(_ ^ _, "LXOr"))
       case IINC =>
-        val x = insn.cast[IincInsnNode]
+        val x = insn.asInstanceOf[IincInsnNode]
         val bvalue = new Box(new BasicValue(org.objectweb.asm.Type.INT_TYPE))
         append(Insn.Push(bvalue, I, x.incr))
         append(Insn.BinOp[I, I, I](bvalue, I, frame.getLocal(x.`var`), I, nextFrame.getLocal(x.`var`), I, F2[Int, Int, Int](_+_, "IInc")))
@@ -249,10 +249,10 @@ object ConvertInsn {
       case IF_ACMPNE => binaryBranch(insn.label, F2(_ != _, "IfACmpNe"))
       case GOTO => append(Insn.Goto(insn.label))
       case TABLESWITCH   =>
-        val x = insn.cast[TableSwitchInsnNode]
+        val x = insn.asInstanceOf[TableSwitchInsnNode]
         append(Insn.TableSwitch(top(frame), x.min, x.max, x.dflt, Agg.from(x.labels.map(deref))))
       case LOOKUPSWITCH =>
-        val x = insn.cast[LookupSwitchInsnNode]
+        val x = insn.asInstanceOf[LookupSwitchInsnNode]
         append(Insn.LookupSwitch(top(frame), x.dflt, Agg.from(x.keys.asScala.map(_.intValue)), Agg.from(x.labels.map(deref))))
       case IRETURN => returnVal(I)
       case LRETURN => returnVal(J)
@@ -269,7 +269,7 @@ object ConvertInsn {
       case INVOKEVIRTUAL   => invokeVirtual(insn, indexed=true)
       case INVOKEINTERFACE => invokeVirtual(insn, indexed=false)
 //      case INVOKEDYNAMIC => invokeDynamic(insn)
-      case NEW => append(Insn.New(top(nextFrame), vm.ClsTable(insn.cast[TypeInsnNode].desc)))
+      case NEW => append(Insn.New(top(nextFrame), vm.ClsTable(insn.asInstanceOf[TypeInsnNode].desc)))
       case NEWARRAY =>
         val typeRef: imm.Type = insn.operand match{
           case 4  => Z: imm.Type
@@ -282,13 +282,13 @@ object ConvertInsn {
           case 11 => J: imm.Type
         }
         append(Insn.NewArray(top(frame), top(nextFrame), typeRef))
-      case ANEWARRAY   => append(Insn.NewArray(top(frame), top(nextFrame), imm.Type.read(insn.cast[TypeInsnNode].desc)))
+      case ANEWARRAY   => append(Insn.NewArray(top(frame), top(nextFrame), imm.Type.read(insn.asInstanceOf[TypeInsnNode].desc)))
       case ARRAYLENGTH => append(Insn.ArrayLength(top(frame), top(nextFrame)))
       case ATHROW      => append(Insn.AThrow(top(frame)))
-      case CHECKCAST   => append(Insn.CheckCast(top(frame), top(nextFrame), imm.Type.read(insn.cast[TypeInsnNode].desc)))
-      case INSTANCEOF  => append(Insn.InstanceOf(top(frame), top(nextFrame), imm.Type.read(insn.cast[TypeInsnNode].desc)))
+      case CHECKCAST   => append(Insn.CheckCast(top(frame), top(nextFrame), imm.Type.read(insn.asInstanceOf[TypeInsnNode].desc)))
+      case INSTANCEOF  => append(Insn.InstanceOf(top(frame), top(nextFrame), imm.Type.read(insn.asInstanceOf[TypeInsnNode].desc)))
       case MULTIANEWARRAY =>
-        val x = insn.cast[MultiANewArrayInsnNode]
+        val x = insn.asInstanceOf[MultiANewArrayInsnNode]
         val dims = (0 until x.dims).reverse.map(top(frame, _))
         append(Insn.MultiANewArray(imm.Type.read(x.desc), top(nextFrame), dims.map(getBox)))
       case IFNULL    => unaryBranch(insn.label, F1(_ == 0, "IfNull"))

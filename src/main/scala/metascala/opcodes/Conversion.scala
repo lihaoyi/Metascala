@@ -332,7 +332,7 @@ object Conversion {
         (b.end.block, b.end.insn),
         b.handler.block,
         blockBuffers(b.handler.block)._3(ConvertInsn.top(allFrames(blockMap(allInsns.indexOf(b.handler))).head)),
-        Option(b.`type`).map(imm.Type.Cls.read)
+        Option(b.`type`).map(imm.Type.Cls.apply)
       )
     }
 

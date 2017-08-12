@@ -324,7 +324,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     threadStack.map( f =>
       new StackTraceElement(
-        f.runningClass.name.toDot,
+        f.runningClass.name.replace('/', '.'),
         f.method.sig.name,
         f.runningClass.sourceFile.getOrElse("<unknown file>"),
         try f.method.code.blocks(f.pc._1).lines(f.pc._2)
@@ -390,7 +390,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       case rt.Method.Native(clsName, imm.Sig(name, desc), op) =>
         try op(this, reader(args.toArray, 0), returnTo)
         catch{case e: Exception =>
-          throwExWithTrace(e.getClass.getName.toSlash, e.getMessage)
+          throwExWithTrace(e.getClass.getName, e.getMessage)
         }
       case m @ rt.Method.Cls(clsIndex, methodIndex, sig, static, codethunk) =>
 
@@ -421,7 +421,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
 
       prepInvoke(
-        vm.resolveDirectRef(tpe.cast[imm.Type.Cls], sig).get,
+        vm.resolveDirectRef(tpe.asInstanceOf[imm.Type.Cls], sig).get,
         tmp,
         returnTo
       )

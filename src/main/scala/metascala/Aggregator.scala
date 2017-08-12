@@ -12,7 +12,7 @@ object Agg {
   }
 
   def from[T: ClassTag](xs: TraversableOnce[T]) = {
-    val x = new Aggregator[T]()
+    val x = new Aggregator[T](1)
     xs.foreach(x.append)
     x
   }
