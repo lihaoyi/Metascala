@@ -5,5 +5,7 @@ scalaVersion  := "2.11.11"
 libraryDependencies ++= Seq(
   "org.ow2.asm" % "asm-debug-all" % "5.1",
   "org.scalatest" %% "scalatest" % "3.0.1" % "test",
-  "org.mozilla" % "rhino" % "1.7R4"
+  "org.mozilla" % "rhino" % "1.7R4",
+  "com.lihaoyi" %% "classparse" % "0.4.3",
+  "com.lihaoyi" %% "fansi" % "0.2.4"
 )

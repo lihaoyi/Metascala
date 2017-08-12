@@ -262,7 +262,14 @@ trait Default extends Bindings{
 
           "System"/(
             "arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V".func(I, I, I, I, I, V){ (vt, src, srcIndex, dest, destIndex, length) =>
-              System.arraycopy(vt.vm.heap.memory, src + srcIndex + rt.Arr.headerSize, vt.vm.heap.memory, dest + destIndex + rt.Arr.headerSize, length)
+              val size = vt.vm.arrayTypeCache(vt.vm.heap(src)).size
+              System.arraycopy(
+                vt.vm.heap.memory,
+                src + (srcIndex * size) + rt.Arr.headerSize,
+                vt.vm.heap.memory,
+                dest + (destIndex * size) + rt.Arr.headerSize,
+                length * size
+              )
             },
 
             "identityHashCode(Ljava/lang/Object;)I".func(I, I){(vt, l) => l},
