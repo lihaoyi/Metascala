@@ -28,14 +28,16 @@ class DummyWriter extends Writer {
 class VM(val natives: Bindings = Bindings.default,
          val insnLimit: Long = Long.MaxValue,
          val log: ((=>String) => Unit) = s => (),
-         val memorySize: Int = 1 * 1024 * 1024) {
+         val memorySize: Int = 1 * 1024 * 1024,
+         initializeStdout: Boolean = false) {
 
   private[this] implicit val vm = this
 
   var ready = false
   val internedStrings = mutable.Map[String, Int]()
 
-  val offHeap = new Array[Byte](9999)
+  // Doesn't grow for now; we can make it grow when we need it to.
+  val offHeap = new Array[Byte](10)
   var offHeapPointer = 0L
   val heap = new Heap(
     memorySize,
@@ -46,7 +48,7 @@ class VM(val natives: Bindings = Bindings.default,
   def alloc[T](func: Registrar => T) = {
     val tempRegistry = mutable.Set[Ref]()
     val res = func(
-      new Registrar({ref =>
+      new Registrar({ ref =>
 
         tempRegistry.add(ref)
         registry.add(ref)
@@ -57,8 +59,6 @@ class VM(val natives: Bindings = Bindings.default,
   }
 
   val registry = mutable.Set[Ref]()
-
-
 
 
   val arrayTypeCache = mutable.Buffer[imm.Type](null)
@@ -78,7 +78,7 @@ class VM(val natives: Bindings = Bindings.default,
 
   val typeObjCache = new mutable.HashMap[imm.Type, Ref] {
     override def apply(x: imm.Type) = this.getOrElseUpdate(x,
-      vm.alloc( implicit r =>
+      vm.alloc(implicit r =>
         "java/lang/Class".allocObj(
           "name" -> x.javaName.toVirtObj
         )
@@ -87,25 +87,26 @@ class VM(val natives: Bindings = Bindings.default,
   }
 
   ready = true
+
   def getLinks(tpe: Int, length: Int) = {
-    if (isObj(tpe)){
-      for{
+    if (isObj(tpe)) {
+      for {
         (x, i) <- ClsTable.clsIndex(-tpe).fieldList.zipWithIndex
         if x.desc.isRef
       } yield i + rt.Obj.headerSize
-    } else{
-        if (arrayTypeCache(tpe).isRef){
+    } else {
+      if (arrayTypeCache(tpe).isRef) {
         for (i <- 0 until length) yield i + rt.Arr.headerSize
-      }else Nil
+      } else Nil
     }
   }
 
   /**
-   * Identify the list of all root object references within the virtual machine.
-   */
+    * Identify the list of all root object references within the virtual machine.
+    */
   def getRoots(): Seq[Ref] = {
     assert(ready)
-    val stackRoots = for{
+    val stackRoots = for {
       thread <- threads
       frame <- thread.threadStack
       (blockId, index) = frame.pc
@@ -115,13 +116,13 @@ class VM(val natives: Bindings = Bindings.default,
       _ = if (frame.locals(i) == -1) println(frame.locals.toList, i)
     } yield new ArrRef(() => frame.locals(i), frame.locals(i) = _)
 
-//    println(s"stackRoots ${stackRoots.map(_())}")
+    //    println(s"stackRoots ${stackRoots.map(_())}")
 
-    val classRoots = for{
+    val classRoots = for {
       cls <- ClsTable.clsIndex.drop(1)
     } yield cls.statics.address
 
-    val classRoots2 = for{
+    val classRoots2 = for {
       cls <- ClsTable.clsIndex.drop(1)
       i <- 0 until cls.staticList.length
       if cls.staticList(i).desc.isRef
@@ -135,15 +136,16 @@ class VM(val natives: Bindings = Bindings.default,
     classRoots ++ classRoots2 ++ stackRoots ++ clsObjRoots ++ registry ++ interned
 
   }
+
   /**
-   * Globally shared sun.misc.Unsafe object.
-   */
+    * Globally shared sun.misc.Unsafe object.
+    */
   lazy val theUnsafe = vm.alloc(rt.Obj.allocate("sun/misc/Unsafe")(_))
 
   /**
-   * Cache of all the classes loaded so far within the Metascala VM.
-   */
-  implicit object ClsTable extends Cache[imm.Type.Cls, rt.Cls]{
+    * Cache of all the classes loaded so far within the Metascala VM.
+    */
+  implicit object ClsTable extends Cache[imm.Type.Cls, rt.Cls] {
     val clsIndex = mutable.ArrayBuffer[rt.Cls](null)
 
     def calc(t: imm.Type.Cls): rt.Cls = {
@@ -167,18 +169,19 @@ class VM(val natives: Bindings = Bindings.default,
     }
   }
 
-  val systemCls = ClsTable.apply("java/lang/System")
-  systemCls.checkInitialized()
 
-  val dummyWriter = vm.alloc( implicit r =>
-    rt.Obj.allocate("java/io/PrintWriter",
-      "out" -> rt.Obj.allocate("metascala/DummyWriter").address
-    ).address()
-  )
+  if (initializeStdout) {
+    val systemCls = ClsTable.apply("java/lang/System")
+    systemCls.checkInitialized()
+    val dummyWriter = vm.alloc(implicit r =>
+      rt.Obj.allocate("java/io/PrintWriter",
+        "out" -> rt.Obj.allocate("metascala/DummyWriter").address
+      ).address()
+    )
 
-  systemCls.statics(systemCls.staticList.indexWhere(_.name == "out")) = dummyWriter
-  systemCls.statics(systemCls.staticList.indexWhere(_.name == "err")) = dummyWriter
-
+    systemCls.statics(systemCls.staticList.indexWhere(_.name == "out")) = dummyWriter
+    systemCls.statics(systemCls.staticList.indexWhere(_.name == "err")) = dummyWriter
+  }
   def check(s: imm.Type, t: imm.Type): Boolean = {
 
     (s, t) match{

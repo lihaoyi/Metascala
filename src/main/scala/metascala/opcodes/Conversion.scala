@@ -293,22 +293,22 @@ object Conversion {
       }
       BasicBlock(buffer, phis, types, lines)
     }
-
-    if (clsName.contains("Bits") && method.name == "<clinit>") {
-      def flatten[T](x: Iterable[T]): String = x.mkString("[", ", ", "]")
-      def arrow(x: (Any, Any)): String = x._1 + " -> " + x._2
-      println("=" * 20 + method.name + "=" * 20)
-      for ((block, i) <- basicBlocks.zipWithIndex){
-        println("")
-        println(i + "\t" + flatten(block.phi.map(x => flatten(x.map(arrow)))))
-        println("" + flatten(blockBuffers(i)._3.map(arrow)))
-        for(i <- 0 until block.insns.length){
-          println("\t" + block.lines(i) + "\t" + block.insns(i))
-        }
-      }
-      println("")
-      println("")
-    }
+//
+//    if (clsName.contains("Bits") && method.name == "<clinit>") {
+//      def flatten[T](x: Iterable[T]): String = x.mkString("[", ", ", "]")
+//      def arrow(x: (Any, Any)): String = x._1 + " -> " + x._2
+//      println("=" * 20 + method.name + "=" * 20)
+//      for ((block, i) <- basicBlocks.zipWithIndex){
+//        println("")
+//        println(i + "\t" + flatten(block.phi.map(x => flatten(x.map(arrow)))))
+//        println("" + flatten(blockBuffers(i)._3.map(arrow)))
+//        for(i <- 0 until block.insns.length){
+//          println("\t" + block.lines(i) + "\t" + block.insns(i))
+//        }
+//      }
+//      println("")
+//      println("")
+//    }
 
 
 

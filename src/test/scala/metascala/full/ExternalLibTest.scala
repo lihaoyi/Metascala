@@ -87,6 +87,7 @@ class ExternalLibTest extends FreeSpec {
   }
 
 //  "javac" in {
+//    val tester = new VM(memorySize = 15 * 1014 * 1024, initializeStdout = true)
 //    tester.test{
 //      println(metascala.DummyCharset.getValue)
 ////      val pw = new PrintWriter(new ByteArrayOutputStream())
