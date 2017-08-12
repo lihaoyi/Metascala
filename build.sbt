@@ -9,6 +9,7 @@ libraryDependencies ++= Seq(
   "com.lihaoyi" %% "classparse" % "0.4.3" % "test",
   "com.lihaoyi" %% "fansi" % "0.2.4" % "test",
   "com.lihaoyi" %% "scalatags" % "0.6.5" % "test",
-  "com.lihaoyi" %% "pprint" % "0.5.2" % "test"
+  "com.lihaoyi" %% "pprint" % "0.5.2" % "test",
+  "com.google.errorprone" % "javac" % "9-dev-r4023-2"
 
 )

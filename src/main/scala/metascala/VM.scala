@@ -1,15 +1,22 @@
 package metascala
 
+import java.io.Writer
+
 import collection.mutable
 import annotation.tailrec
 import metascala.imm.Type
-import metascala.rt.{Obj, FrameDump, Thread}
+import metascala.rt.{FrameDump, Obj, Thread}
 import metascala.natives.Bindings
 import metascala.imm.Type.Prim
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
 
 
+class DummyWriter extends Writer {
+  def flush() = ()
+  def close() = ()
+  def write(cbuf: Array[Char], off: Val, len: Val) = ()
+}
 
 
 /**
@@ -28,7 +35,8 @@ class VM(val natives: Bindings = Bindings.default,
   var ready = false
   val internedStrings = mutable.Map[String, Int]()
 
-
+  val offHeap = new Array[Byte](9999)
+  var offHeapPointer = 0L
   val heap = new Heap(
     memorySize,
     () => getRoots(),
@@ -158,6 +166,18 @@ class VM(val natives: Bindings = Bindings.default,
       clsIndex.append(cls)
     }
   }
+
+  val systemCls = ClsTable.apply("java/lang/System")
+  systemCls.checkInitialized()
+
+  val dummyWriter = vm.alloc( implicit r =>
+    rt.Obj.allocate("java/io/PrintWriter",
+      "out" -> rt.Obj.allocate("metascala/DummyWriter").address
+    ).address()
+  )
+
+  systemCls.statics(systemCls.staticList.indexWhere(_.name == "out")) = dummyWriter
+  systemCls.statics(systemCls.staticList.indexWhere(_.name == "err")) = dummyWriter
 
   def check(s: imm.Type, t: imm.Type): Boolean = {
 

@@ -2,8 +2,12 @@ package metascala.full
 
 
 
+import java.io._
+import javax.tools.{JavaCompiler, ToolProvider}
+
 import metascala.Util._
 import metascala.VM
+import metascala.features.javac.MemoryJavaCompiler
 import org.scalatest.FreeSpec
 
 object ExternalLibTest{
@@ -11,7 +15,7 @@ object ExternalLibTest{
 }
 class ExternalLibTest extends FreeSpec {
 
-  val tester = new VM()
+  val tester = new VM(memorySize = 15 * 1014 * 1024)
   "fansi" in tester.test{
     (fansi.Color.Red("Hello") ++ fansi.Color.Red("World"))
       .overlay(fansi.Underlined.On, 3, 7)
@@ -81,5 +85,27 @@ class ExternalLibTest extends FreeSpec {
       )
     )
   }
-}
 
+//  "javac" in {
+//    tester.test{
+//      println(metascala.DummyCharset.getValue)
+////      val pw = new PrintWriter(new ByteArrayOutputStream())
+//      val compiler = new MemoryJavaCompiler()
+////      val source =
+////        "public final class Solution {\n" +
+////          "public static String greeting(String name) {\n" +
+////          "\treturn \"Hello \" + name;\n" +
+////          "}\n}\n"
+////      val greeting = compiler.compileStaticMethod("greeting", "Solution", source)
+////      val result = greeting.invoke(null, "soulmachine")
+////      println(result.toString)
+//    }
+//  }
+//  "rhino" in tester.test{
+//    val scope = cx.initStandardObjects()
+//    val script = "var s = 'omg'"
+//    val obj = cx.evaluateString(scope, script, "Test Script", 1, null)
+//    println(obj)
+//    1
+//  }
+}

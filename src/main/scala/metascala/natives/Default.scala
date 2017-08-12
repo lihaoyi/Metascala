@@ -3,9 +3,12 @@ package natives
 
 
 import java.io.{ByteArrayInputStream, DataInputStream}
+import java.nio.ByteBuffer
+
 import collection.mutable
 import metascala.rt
 import imm.Type.Prim._
+import metascala.imm.Desc
 import metascala.imm.Type.Prim
 import metascala.rt.Arr
 
@@ -25,9 +28,33 @@ trait Default extends Bindings{
   }
 
 
+
   val trapped = {
     Seq(
       "java"/(
+        "nio"/(
+          "charset"/(
+            "Charset"/(
+              "defaultCharset()Ljava/nio/charset/Charset;".func(I){ (vt) =>
+                import vt.vm
+                vt.invoke(
+                  "metascala/DummyCharset",
+                  imm.Sig("getValue", imm.Desc.read("()Ljava/nio/charset/Charset;")),
+                  Seq()
+                )
+                val res = vt.returnedVal(0)
+
+                println("RES: " + res)
+                res
+              }
+            )
+          )
+        ),
+        "io"/(
+          "UnixFileSystem"/(
+            "initIDs()V".value(V)(())
+          )
+        ),
         "lang"/(
           "Class"/(
             "desiredAssertionStatus0(Ljava/lang/Class;)Z".value(I)(0),
@@ -93,6 +120,7 @@ trait Default extends Bindings{
                     "java/lang/reflect/Constructor".allocObj(
                       "clazz" -> clsObj.address,
                       "slot" -> i,
+                      "signature" -> f.sig.desc.unparse.toVirtObj,
                       "parameterTypes" -> "java/lang/Class".allocArr(
                         f.sig.desc.args.map(t =>
                           vt.vm.typeObjCache(imm.Type.readJava(t.realCls.getName))
@@ -325,9 +353,39 @@ trait Default extends Bindings{
                 )
               }
             ),
+            "Constructor"/(
+              "newInstance([Ljava/lang/Object;)Ljava/lang/Object;".func(I, I, I){
+                (vt, constr, argArr) =>
+                  try {
+                    import vt.vm
+                    val cls = new rt.Obj(constr).apply("clazz")
+                    val name = new rt.Obj(cls).apply("name").toRealObj[String].replace('.', '/')
+                    val newObj = vm.alloc { implicit r =>
+                      rt.Obj.allocate(name).address()
+                    }
+
+                    val descStr = new rt.Obj(constr).apply("signature").toRealObj[String]
+                    val mRef = name.method(
+                      "<init>",
+                      Desc.read(descStr)
+                    ).get
+
+                    vt.invoke(mRef, Seq(newObj) ++ (if (argArr == 0) Seq() else argArr.arr))
+
+                    newObj
+                  }catch{
+                    case e =>
+                      e.printStackTrace()
+                      System.exit(0)
+                      ???
+                  }
+
+              }
+            ),
             "NativeConstructorAccessorImpl"/(
               "newInstance0(Ljava/lang/reflect/Constructor;[Ljava/lang/Object;)Ljava/lang/Object;".func(I, I, I){
                 (vt, cons, args) =>
+                  println("XXX")
                   import vt.vm
                   val name = cons.obj.apply("clazz").obj.apply("name").toRealObj[String].toSlash
                   vm.alloc(implicit r =>
@@ -406,6 +464,34 @@ trait Default extends Bindings{
             "randomHashSeed(Ljava/lang/Object;)I".value(I)(31337) // sufficiently random
           ),
           "Unsafe"/(
+            "allocateMemory(J)J".func(I, J, J) { (vt, unsafe, size) =>
+              val res = vt.vm.offHeapPointer
+              vt.vm.offHeapPointer += size
+              println("Allocate Memory " + res)
+              res
+            },
+            "freeMemory(J)V".func(I, J, V) { (vt, unsafe, offset) =>
+              // Do nothing lol
+              ()
+            },
+            "putLong(JJ)V".func(I, J, J, V) { (vt, unsafe, offset, value) =>
+              println("putLong " + offset + " " + value)
+              val bs = ByteBuffer.allocate(8)
+              bs.putLong(value)
+              println(bs.toString)
+
+              for(i <- 0 until 8) {
+                println("\t" + bs.get(i))
+                vt.vm.offHeap(offset.toInt + i) = bs.get(i)
+              }
+              ()
+            },
+            "getByte(J)B".func(I, J, B) { (vt, unsafe, offset) =>
+              println("getByte " + offset)
+              val res = vt.vm.offHeap(offset.toInt)
+              println("\t" + res)
+              res
+            },
             "arrayBaseOffset(Ljava/lang/Class;)I".value(I)(0),
             "arrayIndexScale(Ljava/lang/Class;)I".value(I)(1),
             "allocateInstance(Ljava/lang/Class;)Ljava/lang/Object;".func(I, I, I){ (vt, unsafe, clsPtr) =>

@@ -58,16 +58,16 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     val r = reader(frame.locals, 0)
 
-//    if (!threadStack.exists(x => x.method.sig.name == "<clinit>" && x.runningClass.name.contains("metascala/"))) {
-//      lazy val localSnapshot =
-//        block.locals
-//             .flatMap(x => Seq(x.prettyRead(r)).padTo(x.size, "~"))
-//             .toList
-//
-//      println(indent + "::\t" + frame.runningClass.shortName + "/" + frame.method.sig.shortName + ":" + block.lines(frame.pc._2) + "\t"  + localSnapshot)
-//      println(indent + "::\t" + frame.pc + "\t" + node )
+    if (!threadStack.exists(x => x.method.sig.name == "<clinit>") && threadStack.exists(frame => frame.method.sig.name == "defaultCharset")) {
+      lazy val localSnapshot =
+        block.locals
+             .flatMap(x => Seq(x.prettyRead(r)).padTo(x.size, "~"))
+             .toList
+
+      println(indent + "::\t" + frame.runningClass.shortName + "/" + frame.method.sig.shortName + ":" + block.lines(frame.pc._2) + "\t"  + localSnapshot)
+      println(indent + "::\t" + frame.pc + "\t" + node )
 //      println(indent + "::\t" + vm.heap.dump().replace("\n", "\n" + indent + "::\t"))
-//    }
+    }
 
 
     val currentFrame = frame
@@ -127,6 +127,13 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
         val isNull = args(0) == 0
 
+        if (sig.name == "putLong"){
+          println("InvokeVirtual putLong")
+          println("frame.locals: " + frame.locals.toList)
+          println("sources: " + sources)
+          println("sig.desc: " + sig.desc)
+          println("args: " + args)
+        }
         if(isNull) {
           throwExWithTrace("java/lang/NullPointerException", "null")
         } else {
@@ -199,6 +206,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         blit(frame.locals, src, cls.statics, index, prim.size)
         advancePc()
       case GetStatic(src, cls, index, prim) =>
+
         cls.checkInitialized()
         blit(cls.statics, index, frame.locals, src, prim.size)
         advancePc()
@@ -291,6 +299,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         frame.locals(symbol) = array
         advancePc()
       case AThrow(src) =>
+
+        println("Atrhow")
         this.throwException(frame.locals(src).obj)
     }
 

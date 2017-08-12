@@ -76,6 +76,7 @@ object ConvertInsn {
 
       append(Insn.InvokeVirtual(target, args.map(getBox), cls.cast[imm.Type.Cls], sig, mIndex))
     }
+
     def invokeStatic(insn: MethodInsnNode, self: Int) = {
       val desc = imm.Desc.read(insn.desc)
       val m = vm.resolveDirectRef(insn.owner, imm.Sig(insn.name, desc)).get
@@ -88,7 +89,9 @@ object ConvertInsn {
 
       append(Insn.InvokeStatic(target, args.map(getBox), insn.owner, m))
     }
-
+//    def invokeDynamic(insn: InvokeDynamicInsnNode) = {
+//      append(Insn.InvokeDynamic(insn.name, insn.desc, insn.bsm, insn.bsmArgs))
+//    }
     implicit def intInsnNode(x: AbstractInsnNode) = x.cast[IntInsnNode]
     implicit def jumpInsnNode(x: AbstractInsnNode) = x.cast[JumpInsnNode]
     implicit def methodInsnNode(x: AbstractInsnNode) = {
@@ -265,6 +268,7 @@ object ConvertInsn {
       case INVOKESPECIAL   => invokeStatic(insn, 1)
       case INVOKEVIRTUAL   => invokeVirtual(insn, indexed=true)
       case INVOKEINTERFACE => invokeVirtual(insn, indexed=false)
+//      case INVOKEDYNAMIC => invokeDynamic(insn)
       case NEW => append(Insn.New(nextFrame.top(), vm.ClsTable(insn.cast[TypeInsnNode].desc)))
       case NEWARRAY =>
         val typeRef: imm.Type = insn.operand match{
