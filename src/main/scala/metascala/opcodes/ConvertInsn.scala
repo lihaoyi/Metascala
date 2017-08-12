@@ -74,7 +74,7 @@ object ConvertInsn {
         if (!indexed) -1
         else vm.ClsTable(cls).vTable.indexWhere(_.sig == sig)
 
-      append(Insn.InvokeVirtual(target, args.map(getBox), cls.cast[imm.Type.Cls], sig, mIndex))
+      append(Insn.InvokeVirtual(target, Agg.from(args.map(getBox)), cls.cast[imm.Type.Cls], sig, mIndex))
     }
 
     def invokeStatic(insn: MethodInsnNode, self: Int) = {
@@ -87,7 +87,7 @@ object ConvertInsn {
 
       val target = if (desc.ret == V) 0 else nextFrame.top(): Int
 
-      append(Insn.InvokeStatic(target, args.map(getBox), insn.owner, m))
+      append(Insn.InvokeStatic(target, Agg.from(args.map(getBox)), insn.owner, m))
     }
 //    def invokeDynamic(insn: InvokeDynamicInsnNode) = {
 //      append(Insn.InvokeDynamic(insn.name, insn.desc, insn.bsm, insn.bsmArgs))
@@ -250,10 +250,10 @@ object ConvertInsn {
       case GOTO => append(Insn.Goto(insn.label))
       case TABLESWITCH   =>
         val x = insn.cast[TableSwitchInsnNode]
-        append(Insn.TableSwitch(frame.top(), x.min, x.max, x.dflt, x.labels.map(deref)))
+        append(Insn.TableSwitch(frame.top(), x.min, x.max, x.dflt, Agg.from(x.labels.map(deref))))
       case LOOKUPSWITCH =>
         val x = insn.cast[LookupSwitchInsnNode]
-        append(Insn.LookupSwitch(frame.top(), x.dflt, x.keys.asScala.map(_.intValue), x.labels.map(deref)))
+        append(Insn.LookupSwitch(frame.top(), x.dflt, Agg.from(x.keys.asScala.map(_.intValue)), Agg.from(x.labels.map(deref))))
       case IRETURN => returnVal(I)
       case LRETURN => returnVal(J)
       case FRETURN => returnVal(F)

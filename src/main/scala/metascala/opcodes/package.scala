@@ -7,15 +7,15 @@ package object opcodes {
   implicit class pimpedFrame(x: Frame[Box]){
     def top(n: Int = 0) = x.getStack(x.getStackSize - 1 - n)
     def boxes = {
-      val locals = for {
-        localId <- 0 until x.getLocals
-        local <- Option(x.getLocal(localId))
+      val locals = (0 until x.getLocals).map{ localId =>
+        val local = x.getLocal(localId)
+        if (local != null && local.getType != null) Some(local)
+        else None
+      }
 
-      } yield if (local.getType != null) Some(local) else None
-      val stackVals = for {
-        stackId <- 0 until x.getStackSize
-        stackVal = x.getStack(stackId)
-      } yield Some(stackVal)
+      val stackVals =
+        for (stackId <- 0 until x.getStackSize)
+        yield Some(x.getStack(stackId))
       locals ++ stackVals
     }
   }

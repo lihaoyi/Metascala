@@ -187,17 +187,17 @@ object Conversion {
     // force in-order registration of method arguments in first block
 
     val blockBuffers = for{
-      (blockFrames, blockId) <- allFrames.zipWithIndex
+      (blockFrames, blockId) <- Agg.from(allFrames).zipWithIndex
       if blockFrames != null
     } yield {
 
-      val buffer = mutable.Buffer.empty[Insn]
+      val buffer = new Aggregator[Insn]
 
-      val srcMap = mutable.Buffer.empty[Int]
-      val lineMap = mutable.Buffer.empty[Int]
+      val srcMap = new Aggregator[Int]
+      val lineMap = new Aggregator[Int]
       val localMap = mutable.Map.empty[Box, Int]
       var symCount = 0
-      val types = mutable.Buffer.empty[imm.Type]
+      val types = new Aggregator[imm.Type]
 
 
 
@@ -242,7 +242,7 @@ object Conversion {
           blockFrames(i+1),
           blockMap
         )
-      } catch {case e =>
+      } catch {case e: Throwable =>
         println("ConvertInsn Failed " + clsName)
         throw e
       }
@@ -287,15 +287,15 @@ object Conversion {
             i <- 0 until e.getSize
           } yield (a + i, b + i)
 //          println("zipped             " + zipped)
-          zipped
-        }else Nil
+          Agg.from(zipped)
+        }else Agg.empty
 
       }
       BasicBlock(buffer, phis, types, lines)
     }
 //
-//    if (clsName.contains("Bits") && method.name == "<clinit>") {
-//      def flatten[T](x: Iterable[T]): String = x.mkString("[", ", ", "]")
+//    if (method.name == "apply") {
+//      def flatten[T](x: TraversableOnce[T]): String = x.mkString("[", ", ", "]")
 //      def arrow(x: (Any, Any)): String = x._1 + " -> " + x._2
 //      println("=" * 20 + method.name + "=" * 20)
 //      for ((block, i) <- basicBlocks.zipWithIndex){
@@ -312,7 +312,7 @@ object Conversion {
 
 
 
-    val tryCatchBlocks = for(b <- method.tryCatchBlocks.asScala) yield{
+    val tryCatchBlocks = for(b <- Agg.from(method.tryCatchBlocks.asScala)) yield{
       TryCatchBlock(
         (b.start.block, b.start.insn),
         (b.end.block, b.end.insn),

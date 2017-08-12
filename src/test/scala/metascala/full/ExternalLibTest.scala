@@ -23,19 +23,7 @@ class ExternalLibTest extends FreeSpec {
   }
 
 
-  "fastparse-regression" in tester.test{
-    // Minimized repro for a bug found in trying to get fastparse
-    // to run. In the old code, this failed because we were only propagating
-    // the return value of function calls to a single output register, rather
-    // than propagating it to all relevant output registers
-    val c = 1
-    val o = ExternalLibTest
-    val res =
-      if (0 >= c) o
-      else 1 match {case f: Int => ExternalLibTest.func(o)}
 
-    res == null
-  }
 
 
   "fastparse" in tester.test{

@@ -82,7 +82,7 @@ class Cls(val tpe: imm.Type.Cls,
     if (!initialized){
       initialized = true
       vm.resolveDirectRef(tpe, Sig("<clinit>", imm.Desc.read("()V")))
-        .foreach(threads(0).invoke(_, Nil))
+        .foreach(threads(0).invoke(_, Agg.empty))
 
       superType.foreach{ cls =>
         vm.ClsTable(cls).checkInitialized()

@@ -56,32 +56,31 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     val node = block.insns(frame.pc._2)
 
-    val r = reader(frame.locals, 0)
 
-//    if (!threadStack.exists(x => x.method.sig.name == "<clinit>") && threadStack.exists(frame => frame.method.sig.name == "defaultCharset")) {
+//    if (!threadStack.exists(x => x.method.sig.name == "<clinit>")) {
+//      val r = reader(frame.locals, 0)
 //      lazy val localSnapshot =
 //        block.locals
-//             .flatMap(x => Seq(x.prettyRead(r)).padTo(x.size, "~"))
-//             .toList
+//          .flatMap(x => Seq(x.prettyRead(r)).padTo(x.size, "~"))
+//          .toList
 //
 //      println(indent + "::\t" + frame.runningClass.shortName + "/" + frame.method.sig.shortName + ":" + block.lines(frame.pc._2) + "\t"  + localSnapshot)
 //      println(indent + "::\t" + frame.pc + "\t" + node )
-////      println(indent + "::\t" + vm.heap.dump().replace("\n", "\n" + indent + "::\t"))
+//      //      println(indent + "::\t" + vm.heap.dump().replace("\n", "\n" + indent + "::\t"))
 //    }
-
 
     val currentFrame = frame
 
     def advancePc() = {
       if (currentFrame.pc._2 + 1 < code.blocks(currentFrame.pc._1).insns.length){
         currentFrame.pc =(currentFrame.pc._1, currentFrame.pc._2 + 1)
-        Nil
+        Agg.empty
       }else if(currentFrame.pc._1 + 1 < code.blocks.length){
         val phi = doPhi(currentFrame, currentFrame.pc._1, currentFrame.pc._1+1)
         currentFrame.pc = (currentFrame.pc._1+1, 0)
         phi
       }else {
-        Nil
+        Agg.empty
       }
     }
 
@@ -102,50 +101,63 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       case InvokeStatic(target, sources, owner, m) =>
         owner.checkInitialized()
         // Check for InvokeSpecial, which gets folded into InvokeStatic
-        val thisVal = sources.length > m.sig.desc.args.length
-        val thisCell = if (thisVal) Seq(1) else Nil
+        val thisCell = sources.length > m.sig.desc.args.length
 
-        val args =
-            sources.zip(thisCell ++ m.sig.desc.args.map(_.size))
-                   .flatMap{case (s, t) => frame.locals.slice(s, s + t)}
-
-        if (thisVal && args(0) == 0){
+        if (thisCell && frame.locals(sources(0)) == 0){
           throwExWithTrace("java/lang/NullPointerException", "null")
         }else{
+          val args = new Aggregator[Int]
+
+          if (thisCell) args.append(frame.locals(sources(0)))
+
+
+          for(i <- 0 until m.sig.desc.args.length){
+            if (thisCell){
+              args.append(frame.locals(sources(i + 1)))
+              if (m.sig.desc.args(i).size == 2) args.append(frame.locals(sources(i + 1) + 1))
+            } else /* i != 0 && !thisCell.isDefined */{
+              args.append(frame.locals(sources(i)))
+              if (m.sig.desc.args(i).size == 2) args.append(frame.locals(sources(i) + 1))
+            }
+          }
+
           val phis = advancePc()
           val ptarget = phis.find(_._1 == target).fold(target)(_._2)
           prepInvoke(m, args, writer(frame.locals, ptarget))
         }
 
       case InvokeVirtual(target, sources, owner, sig, mIndex) =>
-        val args = sources.zip(1 +: sig.desc.args.map(_.size))
-                          .flatMap{case (s, t) =>
-          frame.locals.slice(s, s + t)
-        }
-        val phis = advancePc()
 
+        val argZero = frame.locals(sources(0))
 
-        val isNull = args(0) == 0
-
-        if(isNull) {
-          throwExWithTrace("java/lang/NullPointerException", "null")
-        } else {
+        if(argZero == 0) throwExWithTrace("java/lang/NullPointerException", "null")
+        else {
           val mRef = mIndex match{
             case -1 =>
-              args(0).obj.cls.vTableMap(sig)
+              argZero.obj.cls.vTableMap(sig)
             case _ =>
               val cls =
-                if (args(0).isObj) args(0).obj.cls
+                if (argZero.isObj) argZero.obj.cls
                 else owner.cls
               cls.vTable(mIndex)
           }
+
+//          println("prepInvoke! " + ptargets)
+          val args = new Aggregator[Int]
+          for(i <- sources.indices){
+            if (i == 0) args.append(frame.locals(sources(i)))
+            else for(j <- 0 until sig.desc.args(i-1).size){
+              args.append(frame.locals(sources(i) + j))
+            }
+          }
+
+          val phis = advancePc()
           val ptargets = phis.collect{case (`target`, x) => x}
           val mapped = ptargets.map(writer(frame.locals, _))
-//          println("prepInvoke! " + ptargets)
           prepInvoke(
             mRef,
             args,
-            if (mapped.isEmpty) writer(frame.locals, target)
+            if (phis.isEmpty) writer(frame.locals, target)
             else (x: Int) => mapped.foreach(_(x))
           )
         }
@@ -189,7 +201,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
         val va = pa.read(reader(frame.locals, a))
         val vb = pb.read(reader(frame.locals, b))
-
         val out = func(va, vb)
 
         pout.write(out, writer(frame.locals, dest))
@@ -234,7 +245,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
       case TableSwitch(src, min, max, default, targets) =>
         var done = false
-        for ((k, t) <- min to max zip targets) yield {
+        val keys = min to max
+        for(i <- keys.indices){
+          val k = keys(i)
+          val t = targets(i)
           if (frame.locals(src) == k && !done){
             jumpPhis(t)
             done = true
@@ -243,7 +257,9 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         if (!done) jumpPhis(default)
       case LookupSwitch(src, default, keys, targets) =>
         var done = false
-        for ((k, t) <- keys zip targets) yield {
+        for(i <- keys.indices){
+          val k = keys(i)
+          val t = targets(i)
           if (frame.locals(src) == k && !done){
             jumpPhis(t)
             done = true
@@ -292,8 +308,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         frame.locals(symbol) = array
         advancePc()
       case AThrow(src) =>
-
-        println("Atrhow")
         this.throwException(frame.locals(src).obj)
     }
 
@@ -316,7 +330,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         f.runningClass.name.toDot,
         f.method.sig.name,
         f.runningClass.sourceFile.getOrElse("<unknown file>"),
-        try f.method.code.blocks(f.pc._1).lines(f.pc._2) catch{case _ => 0 }
+        try f.method.code.blocks(f.pc._1).lines(f.pc._2)
+        catch{case _:Throwable => 0 }
       )
     ).toArray
   }
@@ -370,24 +385,25 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   }
 
   final def prepInvoke(mRef: rt.Method,
-                       args: Seq[Int],
+                       args: Agg[Int],
                        returnTo: Int => Unit) = {
 //    println(indent + "PrepInvoke " + mRef + " with " + args)
 
     mRef match{
       case rt.Method.Native(clsName, imm.Sig(name, desc), op) =>
-        try op(this, reader(args, 0), returnTo)
+        try op(this, reader(args.toArray, 0), returnTo)
         catch{case e: Exception =>
           throwExWithTrace(e.getClass.getName.toSlash, e.getMessage)
         }
       case m @ rt.Method.Cls(clsIndex, methodIndex, sig, static, codethunk) =>
 
         assert(!m.native, "method cannot be native: " + ClsTable.clsIndex(clsIndex).name + " " + sig.unparse)
+        val padded = args.toArray.padTo(m.code.localSize, 0)
         val startFrame = new Frame(
           runningClass = ClsTable.clsIndex(clsIndex),
           method = m,
           returnTo = returnTo,
-          locals = args.toArray.padTo(m.code.localSize, 0)
+          locals = padded
         )
 
         //log(indent + "locals " + startFrame.locals)
@@ -396,15 +412,16 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
   }
   final def prepInvoke(tpe: imm.Type,
                        sig: imm.Sig,
-                       args: Seq[Any],
+                       args: Agg[Any],
                        returnTo: Int => Unit)
                        : Unit = {
 
-    val tmp = mutable.Buffer.empty[Val]
+    val tmp = new Aggregator[Val]
     vm.alloc{ implicit r =>
-      args.map(
-        Virtualizer.pushVirtual(_, tmp.append(_: Int))
-      )
+      for(x <- args){
+        Virtualizer.pushVirtual(x, tmp.append(_: Int))
+      }
+
 
       prepInvoke(
         vm.resolveDirectRef(tpe.cast[imm.Type.Cls], sig).get,
@@ -414,7 +431,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     }
 
   }
-  def invoke(mRef: rt.Method, args: Seq[Int]): Any = {
+  def invoke(mRef: rt.Method, args: Agg[Int]): Any = {
     val startHeight = threadStack.length
     prepInvoke(mRef, args, writer(returnedVal, 0))
 
@@ -424,7 +441,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
     Virtualizer.popVirtual(mRef.sig.desc.ret, reader(returnedVal, 0))
   }
 
-  def invoke(cls: imm.Type.Cls, sig: imm.Sig, args: Seq[Any]): Any = {
+  def invoke(cls: imm.Type.Cls, sig: imm.Sig, args: Agg[Any]): Any = {
     val startHeight = threadStack.length
     prepInvoke(cls, sig, args, writer(returnedVal, 0))
 

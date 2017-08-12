@@ -40,11 +40,10 @@ trait Default extends Bindings{
                 vt.invoke(
                   "metascala/DummyCharset",
                   imm.Sig("getValue", imm.Desc.read("()Ljava/nio/charset/Charset;")),
-                  Seq()
+                  Agg.empty
                 )
                 val res = vt.returnedVal(0)
 
-                println("RES: " + res)
                 res
               }
             )
@@ -349,43 +348,38 @@ trait Default extends Bindings{
                 vt.invoke(
                   imm.Type.Cls("metascala/patches/java/lang/reflect/Array"),
                   imm.Sig("set", imm.Desc.read("(Ljava/lang/Object;ILjava/lang/Object;)V")),
-                  Seq(arr, index, obj)
+                  Agg(arr, index, obj)
                 )
               }
             ),
             "Constructor"/(
               "newInstance([Ljava/lang/Object;)Ljava/lang/Object;".func(I, I, I){
                 (vt, constr, argArr) =>
-                  try {
-                    import vt.vm
-                    val cls = new rt.Obj(constr).apply("clazz")
-                    val name = new rt.Obj(cls).apply("name").toRealObj[String].replace('.', '/')
-                    val newObj = vm.alloc { implicit r =>
-                      rt.Obj.allocate(name).address()
-                    }
-
-                    val descStr = new rt.Obj(constr).apply("signature").toRealObj[String]
-                    val mRef = name.method(
-                      "<init>",
-                      Desc.read(descStr)
-                    ).get
-
-                    vt.invoke(mRef, Seq(newObj) ++ (if (argArr == 0) Seq() else argArr.arr))
-
-                    newObj
-                  }catch{
-                    case e =>
-                      e.printStackTrace()
-                      System.exit(0)
-                      ???
+                  import vt.vm
+                  val cls = new rt.Obj(constr).apply("clazz")
+                  val name = new rt.Obj(cls).apply("name").toRealObj[String].replace('.', '/')
+                  val newObj = vm.alloc { implicit r =>
+                    rt.Obj.allocate(name).address()
                   }
+
+                  val descStr = new rt.Obj(constr).apply("signature").toRealObj[String]
+                  val mRef = name.method(
+                    "<init>",
+                    Desc.read(descStr)
+                  ).get
+
+                  vt.invoke(
+                    mRef,
+                    Agg(newObj) ++ (if (argArr == 0) Seq() else Agg.from(argArr.arr))
+                  )
+
+                  newObj
 
               }
             ),
             "NativeConstructorAccessorImpl"/(
               "newInstance0(Ljava/lang/reflect/Constructor;[Ljava/lang/Object;)Ljava/lang/Object;".func(I, I, I){
                 (vt, cons, args) =>
-                  println("XXX")
                   import vt.vm
                   val name = cons.obj.apply("clazz").obj.apply("name").toRealObj[String].toSlash
                   vm.alloc(implicit r =>
@@ -412,7 +406,7 @@ trait Default extends Bindings{
               val pa = a.obj
               val mRef = vt.vm.resolveDirectRef(pa.cls.tpe, pa.cls.methods.find(_.sig.name == "run").get.sig).get
               var x = 0
-              vt.invoke(mRef, Seq(pa.address()))
+              vt.invoke(mRef, Agg(pa.address()))
 
               vt.returnedVal(0)
             },
@@ -422,7 +416,7 @@ trait Default extends Bindings{
               val pa = a.obj
               val mRef = vt.vm.resolveDirectRef(pa.cls.tpe, pa.cls.methods.find(_.sig.name == "run").get.sig).get
               var x = 0
-              val ret = vt.invoke(mRef, Seq(pa.address()))
+              val ret = vt.invoke(mRef, Agg(pa.address()))
 
 
               vt.returnedVal(0)
@@ -467,7 +461,6 @@ trait Default extends Bindings{
             "allocateMemory(J)J".func(I, J, J) { (vt, unsafe, size) =>
               val res = vt.vm.offHeapPointer
               vt.vm.offHeapPointer += size
-              println("Allocate Memory " + res)
               res
             },
             "freeMemory(J)V".func(I, J, V) { (vt, unsafe, offset) =>
@@ -475,21 +468,16 @@ trait Default extends Bindings{
               ()
             },
             "putLong(JJ)V".func(I, J, J, V) { (vt, unsafe, offset, value) =>
-              println("putLong " + offset + " " + value)
               val bs = ByteBuffer.allocate(8)
               bs.putLong(value)
-              println(bs.toString)
 
               for(i <- 0 until 8) {
-                println("\t" + bs.get(i))
                 vt.vm.offHeap(offset.toInt + i) = bs.get(i)
               }
               ()
             },
             "getByte(J)B".func(I, J, B) { (vt, unsafe, offset) =>
-              println("getByte " + offset)
               val res = vt.vm.offHeap(offset.toInt)
-              println("\t" + res)
               res
             },
             "arrayBaseOffset(Ljava/lang/Class;)I".value(I)(0),

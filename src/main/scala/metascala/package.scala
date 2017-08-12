@@ -104,7 +104,7 @@ package object metascala {
       implicit val vm = registrar.vm
       rt.Obj.allocate(s, initMembers:_*).address
     }
-    def allocArr(backing: Seq[Ref])(implicit registrar: Registrar) = {
+    def allocArr(backing: TraversableOnce[Ref])(implicit registrar: Registrar) = {
       implicit val vm = registrar.vm
       rt.Arr.allocate(s, backing.toArray).address
     }

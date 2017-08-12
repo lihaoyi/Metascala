@@ -260,7 +260,7 @@ object Desc{
       args.append(argString.substring(index, split+1))
       index = split +1
     }
-    Desc(args.map(Type.read), Type.read(ret))
+    Desc(Agg.from(args.map(Type.read)), Type.read(ret))
   }
   def unparse(t: Type): String = {
     t match{
@@ -274,7 +274,7 @@ object Desc{
 /**
  * Represents the signature of a method.
  */
-case class Desc(args: Seq[Type], ret: Type){
+case class Desc(args: Agg[Type], ret: Type){
   def unparse = "(" + args.map(Desc.unparse).foldLeft("")(_+_) + ")" + Desc.unparse(ret)
   def argSize = {
     val baseArgSize = args.length

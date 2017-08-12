@@ -212,7 +212,7 @@ class VM(val natives: Bindings = Bindings.default,
           .map(_.sig.desc)
           .getOrElse(throw new IllegalArgumentException("Can't find method: " + mainMethod))
       ),
-      args
+      Agg.from(args)
     )
     res
   }
