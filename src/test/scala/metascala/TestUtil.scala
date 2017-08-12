@@ -59,7 +59,7 @@ object Gen{
 
 }
 
-object Util {
+object TestUtil {
   def loadClass(name: String) = {
     val slashName = s"/${name.replace(".", "/")}.class"
 
@@ -149,7 +149,7 @@ object Util {
   }
   class Tester(className: String, log: (=>String) => Unit = x => (), memorySize: Int = 1 * 1024 * 1024){
 
-    implicit val svm = new Util.SingleClassVM(className, log, memorySize)
+    implicit val svm = new TestUtil.SingleClassVM(className, log, memorySize)
     val ref = new ReflectiveRunner(className)
     def run(main: String, args: Any*) = {
 

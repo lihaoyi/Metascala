@@ -25,7 +25,7 @@ import metascala.Gen._
 import metascala.imm.Type.Prim._
 
 class Misc extends FreeSpec {
-  import Util._
+  import TestUtil._
   val arr = new Array[Int](2)
   def test[T](p: Prim[T])(cases: Iterable[T]){
     chk{ x: T =>

@@ -3,7 +3,7 @@ package metascala.features
 import metascala.VM
 import metascala.full.ExternalLibTest
 import org.scalatest.FreeSpec
-import metascala.Util._
+import metascala.TestUtil._
 import scala.sys.BooleanProp
 
 /**

@@ -19,7 +19,7 @@ object ArrayTest{
   }
 }
 class ArrayTest extends FreeSpec{
-  import Util._
+  import TestUtil._
   val tester = new VM()
   "array stuff" - {
     "makeIntArray" in {

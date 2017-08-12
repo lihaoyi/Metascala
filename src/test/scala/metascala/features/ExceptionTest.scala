@@ -2,10 +2,10 @@ package metascala.features
 
 import org.scalatest.FreeSpec
 
-import metascala.{BufferLog, Gen, Util}
+import metascala.{BufferLog, Gen, TestUtil}
 import Gen.chk
 class ExceptionTest extends FreeSpec {
-  import Util._
+  import TestUtil._
   "if else" - {
     val tester = new Tester("metascala.features.exceptions.Exceptions")
 

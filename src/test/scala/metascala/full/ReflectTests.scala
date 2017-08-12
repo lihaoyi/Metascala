@@ -9,7 +9,7 @@ import java.awt.geom.Point2D
 
 class ReflectTests extends FreeSpec {
   implicit val intAll10 = 10 ** Gen.intAll
-  import Util._
+  import TestUtil._
   val tester = new VM()
   "getSetX" - {
 

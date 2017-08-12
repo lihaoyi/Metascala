@@ -5,7 +5,7 @@ package metascala.full
 import java.io._
 import javax.tools.{JavaCompiler, ToolProvider}
 
-import metascala.Util._
+import metascala.TestUtil._
 import metascala.VM
 import metascala.features.javac.MemoryJavaCompiler
 import org.scalatest.FreeSpec

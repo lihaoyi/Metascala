@@ -6,7 +6,7 @@ import metascala.features.Bull
 
 
 class MetacircularTest extends FreeSpec {
-  import Util._
+  import TestUtil._
 
   val buffer = new BufferLog(1900)
   var count = 0

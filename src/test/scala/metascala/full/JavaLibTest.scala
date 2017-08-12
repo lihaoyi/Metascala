@@ -13,7 +13,7 @@ import java.util.concurrent.locks.ReentrantLock
 
 class JavaLibTest extends FreeSpec {
   implicit val intAll10 = 10 ** Gen.intAll
-  import Util._
+  import TestUtil._
   "sudoku" in {
     val tester = new Tester("metascala.full.Sudoku")
     tester.run("run")

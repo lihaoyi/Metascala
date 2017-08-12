@@ -58,7 +58,7 @@ object ScalaLib{
   }
 }
 class ScalaLib extends FreeSpec {
-  import Util._
+  import TestUtil._
   val buffer = new BufferLog(4000)
 
   val tester = new VM(memorySize = 128 * 1024 * 1024)

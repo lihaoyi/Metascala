@@ -3,12 +3,12 @@ package features
 
 import org.scalatest.FreeSpec
 
-import metascala.{BufferLog, Gen, Util}
+import metascala.{BufferLog, Gen, TestUtil}
 import Gen.chk
 import java.awt.geom.Point2D
 
 class CastingTest extends FreeSpec {
-  import Util._
+  import TestUtil._
 
   val buffer = new BufferLog(4000)
   "if else" - {

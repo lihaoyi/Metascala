@@ -13,3 +13,11 @@ libraryDependencies ++= Seq(
   "com.google.errorprone" % "javac" % "9-dev-r4023-2"
 
 )
+
+libraryDependencies += "com.lihaoyi" %% "acyclic" % "0.1.7" % "provided"
+
+autoCompilerPlugins := true
+
+//addCompilerPlugin("com.lihaoyi" %% "acyclic" % "0.1.7")
+//
+//scalacOptions += "-P:acyclic:force"

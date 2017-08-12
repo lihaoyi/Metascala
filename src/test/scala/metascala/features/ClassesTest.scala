@@ -2,12 +2,12 @@ package metascala
 package features
 
 import org.scalatest.FreeSpec
-import metascala.Util
+import metascala.TestUtil
 import java.lang.String
 import scala.Predef.String
 
 class ClassesTest extends FreeSpec {
-  import Util._
+  import TestUtil._
 
   "classes" - {
     val tester = new VM()

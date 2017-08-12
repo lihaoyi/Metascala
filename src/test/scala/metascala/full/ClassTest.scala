@@ -3,13 +3,13 @@ package full
 
 import org.scalatest.FreeSpec
 
-import metascala.Util
+import metascala.TestUtil
 import scala.Some
 import java.util.Arrays
 import metascala.Gen._
 
 class ClassTest extends FreeSpec {
-  import Util._
+  import TestUtil._
   "class stuff" - {
     val tester = new VM()
 

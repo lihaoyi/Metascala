@@ -1,7 +1,7 @@
 package metascala.imm
 
 import org.scalatest.FreeSpec
-import metascala.Util
+import metascala.TestUtil
 import metascala.imm.Type.Prim._
 import metascala.imm.Type.Prim
 

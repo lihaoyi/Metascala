@@ -4,10 +4,10 @@ package features
 
 import org.scalatest.{Tag, FreeSpec}
 
-import metascala.Util
+import metascala.TestUtil
 import Gen.chk
 class ControlFlowTest extends FreeSpec {
-  import Util._
+  import TestUtil._
 
 
   "if else" - {

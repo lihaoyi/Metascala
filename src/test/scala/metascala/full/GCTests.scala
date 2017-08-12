@@ -1,7 +1,7 @@
 package metascala
 package full
 
-import metascala.Util._
+import metascala.TestUtil._
 import org.scalatest.FreeSpec
 
 object StaticHolder{
@@ -10,7 +10,7 @@ object StaticHolder{
 class Cons(val value: Int, var next: Cons)
 
 class GCTests extends FreeSpec {
-  import Util._
+  import TestUtil._
 
   "helloObj" in {
     for{
