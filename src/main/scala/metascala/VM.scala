@@ -107,14 +107,12 @@ class VM(val natives: Bindings = Bindings.default,
       _ = if (frame.locals(i) == -1) println(frame.locals.toList, i)
     } yield new ArrRef(() => frame.locals(i), frame.locals(i) = _)
 
-    assert(stackRoots.forall(_() != -1))
 //    println(s"stackRoots ${stackRoots.map(_())}")
 
     val classRoots = for{
       cls <- ClsTable.clsIndex.drop(1)
     } yield cls.statics.address
 
-    assert(classRoots.forall(_() != -1))
     val classRoots2 = for{
       cls <- ClsTable.clsIndex.drop(1)
       i <- 0 until cls.staticList.length
@@ -124,7 +122,6 @@ class VM(val natives: Bindings = Bindings.default,
       heap(cls.statics.address() + i + rt.Arr.headerSize) = _
     )
 
-    assert(classRoots2.forall(_() != -1))
     val clsObjRoots = typeObjCache.values
 
     classRoots ++ classRoots2 ++ stackRoots ++ clsObjRoots ++ registry ++ interned

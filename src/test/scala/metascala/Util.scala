@@ -80,9 +80,11 @@ object Util {
       res
     }
   }
+
   def assertEquals(svmRes: Any, refRes: Any) = (svmRes, refRes)  match{
     case (a: Double, b: Double) if java.lang.Double.isNaN(a) && java.lang.Double.isNaN(b) =>
-    case (a: Array[_], b: Array[_]) if a.length == b.length && a.sameElements(b)=>
+    case (a: Array[_], b: Array[_]) if a.length == b.length && a.sameElements(b) =>
+    case (a: Array[AnyRef], b: Array[AnyRef]) if a.length == b.length && java.util.Arrays.deepEquals(a, b) =>
     case _ => assert(svmRes == refRes, (svmRes, refRes))
   }
   implicit class DoStuff(val vm: VM) {

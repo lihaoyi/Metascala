@@ -39,14 +39,14 @@ class MetacircularTest extends FreeSpec {
     println(vm.threads(0).count)
   }
 
-//  "bubbleSort" in {
-//    new VM(memorySize = 6 * 1014 * 1024).test{
-//      val x = new metascala.VM()
-//      x.invoke("metascala/features/ArrayTest", "bubbleSort", Seq(Array(6, 5, 2, 7, 3, 4, 9, 1, 8)))
-//        .cast[Array[Int]]
-//        .toSeq
-//    }
-//  }
+  "bubbleSort" in {
+    new VM(memorySize = 24 * 1014 * 1024).test{
+      val x = new metascala.VM()
+      x.invoke("metascala/features/ArrayTest", "bubbleSort", Seq(Array(6, 5, 2, 7, 3, 4, 9, 1, 8)))
+        .cast[Array[Int]]
+        .toSeq
+    }
+  }
 
   "getAndSet" in {
     new VM(memorySize = 15 * 1014 * 1024).test{
