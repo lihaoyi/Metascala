@@ -58,7 +58,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     val r = reader(frame.locals, 0)
 
-//    if (!threadStack.exists(x => x.method.sig.name == "<clinit>" && x.runningClass.name.contains("java/"))) {
+//    if (!threadStack.exists(x => x.method.sig.name == "<clinit>" && x.runningClass.name.contains("metascala/"))) {
 //      lazy val localSnapshot =
 //        block.locals
 //             .flatMap(x => Seq(x.prettyRead(r)).padTo(x.size, "~"))
@@ -139,8 +139,15 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
                 else owner.cls
               cls.vTable(mIndex)
           }
-          val ptarget = phis.find(_._1 == target).fold(target)(_._2)
-          prepInvoke(mRef, args, writer(frame.locals, ptarget))
+          val ptargets = phis.collect{case (`target`, x) => x}
+          val mapped = ptargets.map(writer(frame.locals, _))
+//          println("prepInvoke! " + ptargets)
+          prepInvoke(
+            mRef,
+            args,
+            if (mapped.isEmpty) writer(frame.locals, target)
+            else (x: Int) => mapped.foreach(_(x))
+          )
         }
 
       case ArrayLength(src, dest) =>

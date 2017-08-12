@@ -266,11 +266,11 @@ object Conversion {
       val phis = for(((buffer2, types2, endMap, _, endFrame, _), j) <- blockBuffers.zipWithIndex) yield {
         if (endFrame != null && startFrame != null && ((buffer2.length > 0 && buffer2.last.targets.contains(i)) || (i == j + 1))){
 //          println()
-          if (false && method.name == "getCanonicalName") {
-            println("Making Phi       " + j + "->" + i)
-            println("endFrame         " + endFrame + "\t" + endFrame.boxes.flatten.map(endMap))
-            println("startFrame       " + startFrame + "\t" + startFrame.boxes.flatten.map(startMap))
-          }
+//          if (method.name == "apply$mcZ$sp") {
+//            println("Making Phi       " + j + "->" + i)
+//            println("endFrame         " + endFrame + "\t" + endFrame.boxes.flatten.map(endMap))
+//            println("startFrame       " + startFrame + "\t" + startFrame.boxes.flatten.map(startMap))
+//          }
 //          println("endFrame.boxes   " + endFrame.boxes)
 //          println("startFrame.boxes " + startFrame.boxes)
 //          println("endMap           " + endMap)
@@ -294,19 +294,21 @@ object Conversion {
       BasicBlock(buffer, phis, types, lines)
     }
 
-    if (false) {
-
-      for ((block, i) <- basicBlocks.zipWithIndex){
-        println("")
-        println(i + "\t" + block.phi.toList)
-        println ("" + blockBuffers(i)._3)
-        for(i <- 0 until block.insns.length){
-          println(block.lines(i) + "\t" + block.insns(i))
-        }
-      }
-      println("")
-      println("")
-    }
+//    def flatten[T](x: Iterable[T]): String = x.mkString("[", ", ", "]")
+//    def arrow(x: (Any, Any)): String = x._1 + " -> " + x._2
+//    if (true) {
+//      println("=" * 20 + method.name + "=" * 20)
+//      for ((block, i) <- basicBlocks.zipWithIndex){
+//        println("")
+//        println(i + "\t" + flatten(block.phi.map(x => flatten(x.map(arrow)))))
+//        println("" + flatten(blockBuffers(i)._3.map(arrow)))
+//        for(i <- 0 until block.insns.length){
+//          println("\t" + block.lines(i) + "\t" + block.insns(i))
+//        }
+//      }
+//      println("")
+//      println("")
+//    }
 
 
 
