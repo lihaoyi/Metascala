@@ -49,7 +49,7 @@ object Insn{
   case class Push[T](dest: Sym, prim: Prim[T], value: T) extends Insn
   case class Ldc(dest: Sym, value: Int) extends Insn
 
-  case class InvokeStatic(dest: Sym, srcs: Agg[Sym], owner: Type.Cls, method: rt.Method) extends Invoke
+  case class InvokeStatic(dest: Sym, srcs: Agg[Sym], owner: Type.Cls, methodIndex: Int, special: Boolean) extends Invoke
   case class InvokeVirtual(dest: Sym, srcs: Agg[Sym], owner: Type.Cls, sig: imm.Sig, methodIndex: Int) extends Invoke
 //  case class InvokeDynamic(name: String, desc: String, bsm: String, bsmArgs: Seq[Sym]) extends Invoke
 

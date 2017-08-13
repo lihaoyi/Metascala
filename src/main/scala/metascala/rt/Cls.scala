@@ -90,23 +90,39 @@ class Cls(val tpe: imm.Type.Cls,
                .flatMap(_.vTable): _*
       )
 
-    methods.filter(!_.static)
-           .foreach{ m =>
-
+    for(m <- methods) if (!m.static){
       val index = oldMethods.indexWhere{ mRef => mRef.sig == m.sig }
-
-      val native = vm.lookupNatives(name, m.sig)
-
       val update =
         if (index == -1) oldMethods.append(_: Method)
         else oldMethods.update(index, _: Method)
 
-      native match {
+      vm.lookupNatives(name, m.sig) match {
         case None => update(m)
         case Some(native) => update(native)
       }
     }
 
+    oldMethods
+  }
+
+  /**
+   * The static function dispatch table
+   */
+  lazy val staticTable: Seq[rt.Method] = {
+    val oldMethods =
+      mutable.ArrayBuffer(
+        superType
+               .toArray
+               .flatMap(_.staticTable): _*
+      )
+
+
+    for(m <- methods) if (m.static){
+      vm.lookupNatives(name, m.sig) match {
+        case None => oldMethods.append(m)
+        case Some(native) => oldMethods.append(native)
+      }
+    }
     oldMethods
   }
 

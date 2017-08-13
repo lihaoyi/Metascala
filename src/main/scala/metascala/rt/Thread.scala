@@ -113,9 +113,13 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         frame.locals(target) = obj.address()
         advancePc()
 
-      case InvokeStatic(target, sources, owner, m) =>
+      case InvokeStatic(target, sources, owner, mIndex, special) =>
         checkInitialized(vm.ClsTable(owner))
         // Check for InvokeSpecial, which gets folded into InvokeStatic
+        val m =
+          if (special) ClsTable(owner).vTable(mIndex)
+          else ClsTable(owner).staticTable(mIndex)
+
         val thisCell = sources.length > m.sig.desc.args.length
 
         if (thisCell && frame.locals(sources(0)) == 0){

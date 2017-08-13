@@ -298,7 +298,6 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
            .methods
            .find(_.sig == sig)
 
-
     native.orElse(method)
   }
 }

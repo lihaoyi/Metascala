@@ -78,17 +78,36 @@ object ConvertInsn {
       append(Insn.InvokeVirtual(target, Agg.from(args.map(getBox)), cls.asInstanceOf[imm.Type.Cls], sig, mIndex))
     }
 
-    def invokeStatic(insn: MethodInsnNode, self: Int) = {
+    def invokeStatic(insn: MethodInsnNode, special: Boolean) = {
       val desc = imm.Desc.read(insn.desc)
       val m = vm.resolveDirectRef(imm.Type.Cls(insn.owner), imm.Sig(insn.name, desc)).get
 
-      val args = for(j <- (0 until desc.args.length + self).reverse) yield {
+      val selfArgCount = if(special) 1 else 0
+      val args = for(j <- (0 until desc.args.length + selfArgCount).reverse) yield {
         top(frame, j)
       }
+      val sig = new imm.Sig(insn.name, desc)
 
       val target = if (desc.ret == V) 0 else top(nextFrame): Int
+      val cls = imm.Type.read(insn.owner) match{
+        case c: imm.Type.Cls => c
+        case _ => imm.Type.Cls("java/lang/Object")
+      }
+      val mIndex =
+        if (special) vm.ClsTable(cls).vTable.indexWhere(_.sig == sig)
+        else vm.ClsTable(cls).staticTable.indexWhere(_.sig == sig)
 
-      append(Insn.InvokeStatic(target, Agg.from(args.map(getBox)), imm.Type.Cls(insn.owner), m))
+//      assert(
+//        mIndex != -1,
+//        cls + "\n\nstaticTable: " +
+//        vm.ClsTable(cls).staticTable.map(_.sig).mkString("\n") + "\n\nvTable: " +
+//        vm.ClsTable(cls).vTable.map(_.sig).mkString("\n") + "\n\nmethods: " +
+//        vm.ClsTable(cls).methods.map(_.sig).mkString("\n") +
+//        "\n\nDesired " + sig +
+//        "\nDirect " + m
+//
+//      )
+      append(Insn.InvokeStatic(target, Agg.from(args.map(getBox)), imm.Type.Cls(insn.owner), mIndex, special))
     }
 //    def invokeDynamic(insn: InvokeDynamicInsnNode) = {
 //      append(Insn.InvokeDynamic(insn.name, insn.desc, insn.bsm, insn.bsmArgs))
@@ -264,10 +283,10 @@ object ConvertInsn {
       case PUTSTATIC => refField(_.staticList, Insn.PutStatic(top(frame), _, _, _))
       case GETFIELD  => refField(_.fieldList, (a, b, c) => Insn.GetField(top(nextFrame), top(frame), b, c))
       case PUTFIELD  => refField(_.fieldList, (a, b, c) => Insn.PutField(top(frame), top(frame, 1), b, c))
-      case INVOKESTATIC    => invokeStatic(insn, 0)
-      case INVOKESPECIAL   => invokeStatic(insn, 1)
-      case INVOKEVIRTUAL   => invokeVirtual(insn, indexed=true)
-      case INVOKEINTERFACE => invokeVirtual(insn, indexed=false)
+      case INVOKESTATIC    => invokeStatic(insn, special = false)
+      case INVOKESPECIAL   => invokeStatic(insn, special = true)
+      case INVOKEVIRTUAL   => invokeVirtual(insn, indexed = true)
+      case INVOKEINTERFACE => invokeVirtual(insn, indexed = false)
 //      case INVOKEDYNAMIC => invokeDynamic(insn)
       case NEW => append(Insn.New(top(nextFrame), vm.ClsTable(imm.Type.Cls(insn.asInstanceOf[TypeInsnNode].desc))))
       case NEWARRAY =>
