@@ -57,7 +57,7 @@ object Obj{
 
   implicit def unwrap1(x: Obj): Int = x.address.apply()
   implicit def unwrap2(x: Obj): Ref = x.address
-  def unapply(x: Val)(implicit vm: rt.Cls.VMInterface) = new Obj(x)
+  def unapply(x: Int)(implicit vm: rt.Cls.VMInterface) = new Obj(x)
 }
 
 class Obj(val address: Ref)
@@ -76,18 +76,18 @@ class Obj(val address: Ref)
 
   def cls: rt.Cls = vm.ClsTable.clsIndex(-vm.heap(address()).toInt)
 
-  object members extends mutable.Seq[Val]{
-    def apply(n: Int): Val = {
+  object members extends mutable.Seq[Int]{
+    def apply(n: Int): Int = {
       vm.heap(address() + n + Constants.objectHeaderSize)
     }
 
-    def update(n: Int, v: Val): Unit = {
+    def update(n: Int, v: Int): Unit = {
       vm.heap(address() + n + Constants.objectHeaderSize) = v
     }
 
     def length = cls.fieldList.length
 
-    def iterator: Iterator[Val] = new Iterator[Val]{
+    def iterator: Iterator[Int] = new Iterator[Int]{
       var index = 0
       def hasNext = index < members.length
       def next() = {
@@ -102,11 +102,11 @@ class Obj(val address: Ref)
 
   def heapSize = cls.heapSize
 
-  def apply(name: String): Val = {
+  def apply(name: String): Int = {
     members(tpe.fieldList.lastIndexWhere(_.name == name))
   }
 
-  def update(name: String, value: Val) = {
+  def update(name: String, value: Int) = {
 
     val index = tpe.fieldList.lastIndexWhere(_.name == name)
     members(index + 1 - tpe.fieldList(index).desc.size) = value

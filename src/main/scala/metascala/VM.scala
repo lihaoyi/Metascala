@@ -17,7 +17,7 @@ import org.objectweb.asm.tree.ClassNode
 class DummyWriter extends Writer {
   def flush() = ()
   def close() = ()
-  def write(cbuf: Array[Char], off: Val, len: Val) = ()
+  def write(cbuf: Array[Char], off: Int, len: Int) = ()
 }
 
 

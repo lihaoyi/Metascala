@@ -106,7 +106,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         returnVal(frame.method.sig.desc.ret.size, sym)
 
       case Push(target, prim, value) =>
-        prim.write(value, writer(frame.locals, target))
+        prim.write(value, Util.writer(frame.locals, target))
         advancePc()
 
       case New(target, clsIndex) =>
@@ -146,7 +146,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
           val phis = advancePc()
           val ptarget = phis.find(_._1 == target).fold(target)(_._2)
-          prepInvoke(m, args, writer(frame.locals, ptarget))
+          prepInvoke(m, args, Util.writer(frame.locals, ptarget))
         }
 
       case InvokeVirtual(target, sources, clsIndex, sig, mIndex) =>
@@ -176,11 +176,11 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
           val phis = advancePc()
           val ptargets = phis.collect{case (`target`, x) => x}
-          val mapped = ptargets.map(writer(frame.locals, _))
+          val mapped = ptargets.map(Util.writer(frame.locals, _))
           prepInvoke(
             mRef,
             args,
-            if (phis.isEmpty) writer(frame.locals, target)
+            if (phis.isEmpty) Util.writer(frame.locals, target)
             else (x: Int) => mapped.foreach(_(x))
           )
         }
@@ -217,16 +217,16 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         advancePc()
 
       case UnaryOp(src, psrc, dest, pout, func) =>
-        pout.write(func(psrc.read(reader(frame.locals, src))), writer(frame.locals, dest))
+        pout.write(func(psrc.read(Util.reader(frame.locals, src))), Util.writer(frame.locals, dest))
         advancePc()
 
       case BinOp(a, pa, b, pb, dest, pout, func) =>
 
-        val va = pa.read(reader(frame.locals, a))
-        val vb = pb.read(reader(frame.locals, b))
+        val va = pa.read(Util.reader(frame.locals, a))
+        val vb = pb.read(Util.reader(frame.locals, b))
         val out = func(va, vb)
 
-        pout.write(out, writer(frame.locals, dest))
+        pout.write(out, Util.writer(frame.locals, dest))
         advancePc()
       case PutStatic(src, clsIndex, index, prim) =>
         val cls = ClsTable.clsIndex(clsIndex)
@@ -312,7 +312,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         advancePc()
 
       case MultiANewArray(desc, symbol, dims) =>
-        def rec(dims: List[Int], tpe: imm.Type): Val = {
+        def rec(dims: List[Int], tpe: imm.Type): Int = {
 
           (dims, tpe) match {
             case (size :: tail, imm.Type.Arr(innerType: imm.Type.Ref)) =>
@@ -410,7 +410,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
   val bindingsInterface = new Bindings.Interface{
     def invoke(cls: Type.Cls, sig: Sig, args: Agg[Any]) = thread.invoke(cls, sig, args)
 
-    def invoke(mRef: Method, args: Agg[Val]) = thread.invoke(mRef, args)
+    def invoke(mRef: Method, args: Agg[Int]) = thread.invoke(mRef, args)
 
     def returnedVal = thread.returnedVal
 
@@ -447,7 +447,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     def setOffHeapPointer(n: Long) = vm.setOffHeapPointer(n)
     def offHeapPointer = vm.offHeapPointer
 
-    def runningClassName(n: Val) = threadStack(n).runningClass.name
+    def runningClassName(n: Int) = threadStack(n).runningClass.name
 
     def threadStackLength = threadStack.length
 
@@ -455,7 +455,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     def theUnsafe = vm.theUnsafe
 
-    def toRealObj[T](x: Val)(implicit ct: ClassTag[T]) = Virtualizer.toRealObj(x)(this, ct)
+    def toRealObj[T](x: Int)(implicit ct: ClassTag[T]) = Virtualizer.toRealObj(x)(this, ct)
 
     def toVirtObj(x: Any)(implicit registrar: rt.Obj.Registrar) = vm.obj(Virtualizer.toVirtObj(x))
 
@@ -468,13 +468,13 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     def heap = vm.heap
 
-    def obj(address: Val) = vm.obj(address)
+    def obj(address: Int) = vm.obj(address)
 
-    def arr(address: Val) = vm.arr(address)
+    def arr(address: Int) = vm.arr(address)
 
-    def isArr(address: Val) = vm.isArr(address)
+    def isArr(address: Int) = vm.isArr(address)
 
-    def isObj(address: Val) = vm.isObj(address)
+    def isObj(address: Int) = vm.isObj(address)
 
     def natives = vm.natives
 
@@ -493,7 +493,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
       case rt.NativeMethod(clsName, imm.Sig(name, desc), op) =>
         try op(
           bindingsInterface,
-          reader(args.toArray, 0),
+          Util.reader(args.toArray, 0),
           returnTo
         )
         catch{case e: Exception =>
@@ -520,7 +520,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
                        returnTo: Int => Unit)
                        : Unit = {
 
-    val tmp = new Aggregator[Val]
+    val tmp = new Aggregator[Int]
     vm.alloc{ implicit r =>
       for(x <- args){
         Virtualizer.pushVirtual(x, tmp.append(_: Int))
@@ -537,20 +537,20 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
   }
   def invoke(mRef: rt.Method, args: Agg[Int]): Any = {
     val startHeight = threadStack.length
-    prepInvoke(mRef, args, writer(returnedVal, 0))
+    prepInvoke(mRef, args, Util.writer(returnedVal, 0))
 
     while(threadStack.length != startHeight) step()
 
 
-    Virtualizer.popVirtual(mRef.sig.desc.ret, reader(returnedVal, 0))(bindingsInterface)
+    Virtualizer.popVirtual(mRef.sig.desc.ret, Util.reader(returnedVal, 0))(bindingsInterface)
   }
 
   def invoke(cls: imm.Type.Cls, sig: imm.Sig, args: Agg[Any]): Any = {
     val startHeight = threadStack.length
-    prepInvoke(cls, sig, args, writer(returnedVal, 0))
+    prepInvoke(cls, sig, args, Util.writer(returnedVal, 0))
 
     while(threadStack.length != startHeight) step()
-    Virtualizer.popVirtual(sig.desc.ret, reader(returnedVal, 0))(bindingsInterface)
+    Virtualizer.popVirtual(sig.desc.ret, Util.reader(returnedVal, 0))(bindingsInterface)
   }
 }
 
@@ -568,4 +568,4 @@ class Frame(var pc: (Int, Int) = (0, 0),
             val method: rt.ClsMethod,
             var lineNum: Int = 0,
             val returnTo: Int => Unit,
-            val locals: Array[Val])
+            val locals: Array[Int])

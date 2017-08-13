@@ -44,7 +44,7 @@ object Type{
     def name = "[" + innerType.name
     def realCls = innerType.realCls
     def methodType = Type.Cls("java/lang/Object")
-    def prettyRead(x: () => Val) = "[" + innerType.shortName + "#" + x()
+    def prettyRead(x: () => Int) = "[" + innerType.shortName + "#" + x()
     def javaName = innerType match{
       case tpe: Cls => "[L" + tpe.javaName + ";"
       case tpe: Prim[_] => "[" + tpe.internalName
@@ -75,14 +75,14 @@ object Type{
       case _ => false
     }
     override def toString = s"Cls($name)"
-    def prettyRead(x: () => Val) = Util.shorten(name) + "#" + x()
+    def prettyRead(x: () => Int) = Util.shorten(name) + "#" + x()
     def internalName = "L" + name + ";"
     def javaName = name.replace('/', '.')
   }
 
   abstract class Prim[T: ClassTag](val size: Int, val javaName: String) extends imm.Type{
-    def read(x: () => Val): T
-    def write(x: T, out: Val => Unit): Unit
+    def read(x: () => Int): T
+    def write(x: T, out: Int => Unit): Unit
     def boxedClass: Class[_]
     val primClass: Class[_] = implicitly[ClassTag[T]].runtimeClass
     def realCls = Class.forName(boxedClass.getName.replace('/', '.'))
@@ -90,7 +90,7 @@ object Type{
     def productPrefix: String
     def name = productPrefix
     def internalName = name
-    def prettyRead(x: () => Val) = toString + "#" + read(x)
+    def prettyRead(x: () => Int) = toString + "#" + read(x)
   }
   object Prim extends {
     def read(s: String) = all(s(0))
@@ -121,61 +121,61 @@ object Type{
     def unapply(p: Prim[_]) = Some(p.javaName)
 
     case object V extends Prim[Unit](0, "void"){
-      def apply(x: Val) = ???
-      def read(x: () => Val) = ()
-      def write(x: Unit, out: Val => Unit) = ()
+      def apply(x: Int) = ???
+      def read(x: () => Int) = ()
+      def write(x: Unit, out: Int => Unit) = ()
       def boxedClass = classOf[java.lang.Void]
 
     }
     type Z = Boolean
     case object Z extends Prim[Boolean](1, "boolean"){
-      def apply(x: Val) = x != 0
-      def read(x: () => Val) = this(x())
-      def write(x: Boolean, out: Val => Unit) = out(if (x) 1 else 0)
+      def apply(x: Int) = x != 0
+      def read(x: () => Int) = this(x())
+      def write(x: Boolean, out: Int => Unit) = out(if (x) 1 else 0)
       def boxedClass = classOf[java.lang.Boolean]
     }
     type B = Byte
     case object B extends Prim[Byte](1, "byte"){
-      def apply(x: Val) = x.toByte
-      def read(x: () => Val) = this(x())
-      def write(x: Byte, out: Val => Unit) = out(x)
+      def apply(x: Int) = x.toByte
+      def read(x: () => Int) = this(x())
+      def write(x: Byte, out: Int => Unit) = out(x)
       def boxedClass = classOf[java.lang.Byte]
     }
     type C = Char
     case object C extends Prim[Char](1, "char"){
-      def apply(x: Val) = x.toChar
-      def read(x: () => Val) = this(x())
-      def write(x: Char, out: Val => Unit) = out(x)
+      def apply(x: Int) = x.toChar
+      def read(x: () => Int) = this(x())
+      def write(x: Char, out: Int => Unit) = out(x)
       def boxedClass = classOf[java.lang.Character]
     }
     type S = Short
     case object S extends Prim[Short](1, "short"){
-      def apply(x: Val) = x.toShort
-      def read(x: () => Val) = this(x())
-      def write(x: Short, out: Val => Unit) = out(x)
+      def apply(x: Int) = x.toShort
+      def read(x: () => Int) = this(x())
+      def write(x: Short, out: Int => Unit) = out(x)
       def boxedClass = classOf[java.lang.Short]
     }
     type I = Int
     case object I extends Prim[Int](1, "int"){
-      def apply(x: Val) = x
-      def read(x: () => Val) = this(x())
-      def write(x: Int, out: Val => Unit) = out(x)
+      def apply(x: Int) = x
+      def read(x: () => Int) = this(x())
+      def write(x: Int, out: Int => Unit) = out(x)
       def boxedClass = classOf[java.lang.Integer]
     }
     type F = Float
     case object F extends Prim[Float](1, "float"){
-      def apply(x: Val) = java.lang.Float.intBitsToFloat(x)
-      def read(x: () => Val) = this(x())
-      def write(x: Float, out: Val => Unit) = out(java.lang.Float.floatToRawIntBits(x))
+      def apply(x: Int) = java.lang.Float.intBitsToFloat(x)
+      def read(x: () => Int) = this(x())
+      def write(x: Float, out: Int => Unit) = out(java.lang.Float.floatToRawIntBits(x))
       def boxedClass = classOf[java.lang.Float]
     }
     type J = Long
     case object J extends Prim[Long](2, "long"){
-      def apply(v1: Val, v2: Val) = v1.toLong << 32 | v2 & 0xFFFFFFFFL
-      def read(x: () => Val) = {
+      def apply(v1: Int, v2: Int) = v1.toLong << 32 | v2 & 0xFFFFFFFFL
+      def read(x: () => Int) = {
         this(x(), x())
       }
-      def write(x: Long, out: Val => Unit) = {
+      def write(x: Long, out: Int => Unit) = {
         out((x >> 32).toInt)
         out(x.toInt)
       }
@@ -183,9 +183,9 @@ object Type{
     }
     type D = Double
     case object D extends Prim[Double](2, "double"){
-      def apply(v1: Val, v2: Val) = java.lang.Double.longBitsToDouble(J(v1, v2))
-      def read(x: () => Val) = java.lang.Double.longBitsToDouble(J.read(x))
-      def write(x: Double, out: Val => Unit) = J.write(java.lang.Double.doubleToRawLongBits(x), out)
+      def apply(v1: Int, v2: Int) = java.lang.Double.longBitsToDouble(J(v1, v2))
+      def read(x: () => Int) = java.lang.Double.longBitsToDouble(J.read(x))
+      def write(x: Double, out: Int => Unit) = J.write(java.lang.Double.doubleToRawLongBits(x), out)
       def boxedClass = classOf[java.lang.Double]
     }
   }
@@ -236,7 +236,7 @@ sealed trait Type{
    * Reads an object of this type from the given input stream into a readable
    * representation
    */
-  def prettyRead(x: () => Val): String
+  def prettyRead(x: () => Int): String
 
   /**
    * 0, 1 or 2 for void, most things and double/long

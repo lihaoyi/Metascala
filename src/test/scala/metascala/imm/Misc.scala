@@ -1,36 +1,21 @@
 package metascala.imm
 
 import org.scalatest.FreeSpec
-import collection.mutable
 
-
-import org.objectweb.asm.{Opcodes, ClassReader}
-import Opcodes._
-import org.objectweb.asm.tree._
-import org.objectweb.asm.tree.analysis._
-import metascala.opcodes.{Insn, BasicBlock, Code}
-import scala.collection.JavaConverters._
-import metascala.opcodes.Code
-import metascala.opcodes.Insn._
-import metascala.opcodes.Insn.GetArray
-import metascala.opcodes.Insn.Push
-import metascala.opcodes.Insn.BinOp
-
-import metascala.opcodes.Insn.PutArray
-
-import metascala.opcodes.Code
+import org.objectweb.asm.Opcodes
 import metascala._
 import metascala.imm.Type.Prim
 import metascala.Gen._
 import metascala.imm.Type.Prim._
+import metascala.util.Util
 
 class Misc extends FreeSpec {
   import TestUtil._
   val arr = new Array[Int](2)
   def test[T](p: Prim[T])(cases: Iterable[T]){
     chk{ x: T =>
-      p.write(x, writer(arr, 0))
-      assert(p.read(reader(arr, 0)) === x)
+      p.write(x, Util.writer(arr, 0))
+      assert(p.read(Util.reader(arr, 0)) === x)
     }(cases)
   }
   "making sure Prim[T] write & pops preserve the value T" - {

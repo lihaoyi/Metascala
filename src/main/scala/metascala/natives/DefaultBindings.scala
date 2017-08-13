@@ -5,13 +5,9 @@ package natives
 import java.io.{ByteArrayInputStream, DataInputStream}
 import java.nio.ByteBuffer
 
-import collection.mutable
-import metascala.rt
 import imm.Type.Prim._
-import metascala.imm.Desc
 import metascala.imm.Type.Prim
-import metascala.rt.Arr
-import metascala.util.{Agg, Constants}
+import metascala.util.{Agg, Constants, Util}
 
 object DefaultBindings extends Bindings{
 
@@ -480,9 +476,9 @@ object DefaultBindings extends Bindings{
             "compareAndSwapLong(Ljava/lang/Object;JJJ)Z".func(I, I, J, J, J, Z){ (vt, unsafe, o, slot, expected ,x) =>
               
               val obj = vt.obj(o)
-              val current = J.read(reader(obj.members, slot.toInt))
+              val current = J.read(Util.reader(obj.members, slot.toInt))
               if (current == expected){
-                J.write(x, writer(obj.members, slot.toInt))
+                J.write(x, Util.writer(obj.members, slot.toInt))
                 true
               }else{
                 false
@@ -541,19 +537,19 @@ object DefaultBindings extends Bindings{
             },
             "getLongVolatile(Ljava/lang/Object;J)J".func(I, I, J, J){ (vt, unsafe, o, offset) =>
               
-              J.read(reader(vt.obj(o).members, offset.toInt))
+              J.read(Util.reader(vt.obj(o).members, offset.toInt))
             },
             "putLongVolatile(Ljava/lang/Object;JJ)V".func(I, I, J, J, V){ (vt, unsafe, o, offset, long) =>
               
-              J.write(long, writer(vt.obj(o).members, offset.toInt))
+              J.write(long, Util.writer(vt.obj(o).members, offset.toInt))
             },
             "getDouble(Ljava/lang/Object;J)D".func(I, I, J, D){ (vt, unsafe, o, offset) =>
               
-              D.read(reader(vt.obj(o).members, offset.toInt))
+              D.read(Util.reader(vt.obj(o).members, offset.toInt))
             },
             "putDouble(Ljava/lang/Object;JD)V".func(I, I, J, D, V){ (vt, unsafe, o, offset, double) =>
               
-              D.write(double, writer(vt.obj(o).members, offset.toInt))
+              D.write(double, Util.writer(vt.obj(o).members, offset.toInt))
             },
             "getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;".func(I, I, J, I){ (vt, unsafe, o, offset) =>
 

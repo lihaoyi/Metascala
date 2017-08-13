@@ -31,6 +31,22 @@ object Util{
       i+= 1
     }
   }
+
+  def reader(src: Seq[Int], index: Int) = {
+    var i = index
+    () => {
+      i += 1
+      src(i - 1)
+    }
+  }
+  def writer(src: mutable.Seq[Int], index: Int) = {
+    var i = index
+    (x: Int) => {
+      i += 1
+      src(i - 1) = x
+    }
+  }
+
 }
 
 class WrappedVmException(wrapped: Throwable) extends Exception(wrapped)

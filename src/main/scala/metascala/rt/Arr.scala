@@ -63,7 +63,7 @@ class Arr(val address: Ref)(implicit vm: Arr.CoreVMInterface) extends mutable.Se
     */
   def length = vm.heap(address() + 1) * innerType.size
   def apply(index: scala.Int) = vm.heap(address() + index + Constants.arrayHeaderSize)
-  def update(index: scala.Int, value: Val) = vm.heap(address() + index + Constants.arrayHeaderSize) = value
+  def update(index: scala.Int, value: Int) = vm.heap(address() + index + Constants.arrayHeaderSize) = value
 
   override def toString = ""+vm.heap.memory.slice(address(), address() + heapSize).toList
 

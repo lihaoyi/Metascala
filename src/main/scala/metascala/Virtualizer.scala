@@ -3,12 +3,12 @@ import scala.collection.mutable
 import imm.Type.Prim._
 import metascala.imm.Type.Prim
 import metascala.natives.Bindings
-import metascala.util.{Constants, Ref}
+import metascala.util.{Constants, Ref, Util}
 
 import scala.reflect.ClassTag
 
 object Virtualizer {
-  def toRealObj[T](v: Val)(implicit vm: Bindings.Interface, ct: ClassTag[T]) = {
+  def toRealObj[T](v: Int)(implicit vm: Bindings.Interface, ct: ClassTag[T]) = {
     Virtualizer.popVirtual(imm.Type.Cls(ct.runtimeClass.getName.replace('.', '/')), () => v)
       .asInstanceOf[T]
   }
@@ -25,7 +25,7 @@ object Virtualizer {
   }
 
   def popVirtual(tpe: imm.Type,
-                 src: () => Val,
+                 src: () => Int,
                  refs: mutable.Map[Int, Any] = mutable.Map.empty)
                 (implicit vm: Bindings.Interface): Any = {
     val x = tpe match {
@@ -50,8 +50,8 @@ object Virtualizer {
             for(i <- 0 until vm.arr(address).arrayLength){
 
               val cooked = tpe match{
-                case p: imm.Type.Prim[_] => p.read(reader(vm.heap.memory, address + Constants.arrayHeaderSize + i * tpe.size))
-                case x => popVirtual(tpe, reader(vm.heap.memory, address + Constants.arrayHeaderSize + i * tpe.size))
+                case p: imm.Type.Prim[_] => p.read(Util.reader(vm.heap.memory, address + Constants.arrayHeaderSize + i * tpe.size))
+                case x => popVirtual(tpe, Util.reader(vm.heap.memory, address + Constants.arrayHeaderSize + i * tpe.size))
               }
               java.lang.reflect.Array.set(newArr, i, cooked)
             }
@@ -67,7 +67,7 @@ object Virtualizer {
               else{
                 val f = getAllFields(obj.getClass).find(_.getName == field.name).get
                 f.setAccessible(true)
-                val popped = popVirtual(field.desc, reader(vm.heap.memory, address + Constants.objectHeaderSize + index), refs)
+                val popped = popVirtual(field.desc, Util.reader(vm.heap.memory, address + Constants.objectHeaderSize + index), refs)
                 f.set(obj, popped )
                 index += field.desc.size
               }
@@ -93,7 +93,7 @@ object Virtualizer {
     tmp.reverse
   }
 
-  def pushVirtual(thing: Any, out: Val => Unit)(implicit registrar: rt.Obj.Registrar): Unit = {
+  def pushVirtual(thing: Any, out: Int => Unit)(implicit registrar: rt.Obj.Registrar): Unit = {
 
     implicit val vm = registrar.vm
     thing match {
@@ -149,7 +149,7 @@ object Virtualizer {
         }
 
         val obj = rt.Obj.alloc(vm.ClsTable(imm.Type.Cls(b.getClass.getName)))
-        contents.map(_()).map(writer(vm.heap.memory, obj.address() + Constants.objectHeaderSize))
+        contents.map(_()).map(Util.writer(vm.heap.memory, obj.address() + Constants.objectHeaderSize))
         out(obj.address())
     }
   }
