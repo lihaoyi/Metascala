@@ -6,7 +6,7 @@ import collection.mutable
 import metascala.imm.{Sig, Type}
 import metascala.rt.{Cls, ClsTable, Obj, Thread}
 import metascala.natives.DefaultBindings
-import metascala.opcodes.Conversion
+import metascala.opcodes.MethodSSAConverter
 import metascala.util._
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
@@ -204,7 +204,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
                 i,
                 Sig(mn.name, imm.Desc.read(mn.desc)),
                 mn.access,
-                () => Conversion.ssa(classNode.name, mn)
+                () => MethodSSAConverter.apply(classNode.name, mn)
               )
             },
         fieldList =
