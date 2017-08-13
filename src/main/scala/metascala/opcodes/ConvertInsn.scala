@@ -16,6 +16,16 @@ import org.objectweb.asm.Opcodes._
 
 import Insn._
 object ConvertInsn {
+  trait VMInterface extends rt.Obj.VMInterface{
+    val log: (=> String) => Unit
+    def alloc[T](func: rt.Obj.Registrar => T): T
+    val arrayTypeCache: mutable.Buffer[imm.Type]
+    def arr(address: Int): rt.Arr
+    def resolveDirectRef(owner: imm.Type.Cls, sig: imm.Sig): Option[rt.Method]
+    val interned: mutable.Buffer[Ref]
+    val typeObjCache: mutable.HashMap[imm.Type, Ref]
+  }
+
   def top(x: Frame[Box], n: Int = 0) = x.getStack(x.getStackSize - 1 - n)
   case class F1[A, B](a: A => B, override val toString: String) extends Function1[A, B]{
     def apply(x: A) = a(x)

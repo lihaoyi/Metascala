@@ -6,23 +6,12 @@ import scala.collection.mutable
 trait ClsTable extends(imm.Type.Cls => rt.Cls){
   val clsIndex: mutable.ArrayBuffer[rt.Cls]
 }
+object Cls{
 
-/**
-  * Created by lihaoyi on 13/8/17.
-  */
-trait VMInterface_1 extends VMInterface_2{
-  implicit def ClsTable: ClsTable
-  def lookupNatives(name: String, sig: imm.Sig): Option[rt.Method]
-  val log: (=> String) => Unit
-}
-
-/**
- * A handle to a readable and writable value.
- */
-class Var(var x: Val){
-  final def apply() = x
-  final def update(y: Val){
-    x = y
+  trait VMInterface extends rt.Arr.CoreVMInterface{
+    implicit def ClsTable: ClsTable
+    def lookupNatives(name: String, sig: imm.Sig): Option[rt.Method]
+    val log: (=> String) => Unit
   }
 }
 
@@ -39,7 +28,7 @@ class Cls(val tpe: imm.Type.Cls,
           val staticList: Seq[imm.Field],
           val outerCls: Option[imm.Type.Cls],
           val index: Int)
-         (implicit vm: VMInterface_1){
+         (implicit vm: Cls.VMInterface){
   import vm._
 
   var initialized = false

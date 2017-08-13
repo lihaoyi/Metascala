@@ -49,7 +49,7 @@ object Conversion {
 
   }
 
-  def ssa(clsName: String, method: MethodNode)(implicit vm: VMInterface): Code = {
+  def ssa(clsName: String, method: MethodNode)(implicit vm: ConvertInsn.VMInterface): Code = {
 
     val allInsns = method.instructions.toArray
 

@@ -12,8 +12,9 @@ import metascala.imm.{Desc, Sig, Type}
 import metascala.natives.Bindings
 
 import scala.reflect.ClassTag
+
 object Thread{
-  trait VMInterface extends metascala.VMInterface{
+  trait VMInterface extends opcodes.ConvertInsn.VMInterface{
     def insnLimit: Long
     def checkInitialized(cls: rt.Cls): Unit
     def invokeRun(a: Int): Int
@@ -412,7 +413,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     def returnedVal = thread.returnedVal
 
-    def alloc[T](func: (Registrar) => T) = vm.alloc(func)
+    def alloc[T](func: rt.Obj.Registrar => T) = vm.alloc(func)
 
     def invokeRun(a: Int) = vm.invokeRun(a)
     def newInstance(constr: Int, argArr: Int): Int = {
@@ -455,7 +456,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     def toRealObj[T](x: Val)(implicit ct: ClassTag[T]) = Virtualizer.toRealObj(x)(this, ct)
 
-    def toVirtObj(x: Any)(implicit registrar: Registrar) = vm.obj(Virtualizer.toVirtObj(x))
+    def toVirtObj(x: Any)(implicit registrar: rt.Obj.Registrar) = vm.obj(Virtualizer.toVirtObj(x))
 
     def trace = thread.trace
 

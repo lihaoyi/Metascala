@@ -3,7 +3,7 @@ import scala.collection.mutable
 import imm.Type.Prim._
 import metascala.imm.Type.Prim
 import metascala.natives.Bindings
-import metascala.rt.{Registrar, VMInterface0}
+
 
 import scala.reflect.ClassTag
 
@@ -12,7 +12,7 @@ object Virtualizer {
     Virtualizer.popVirtual(imm.Type.Cls(ct.runtimeClass.getName.replace('.', '/')), () => v)
       .asInstanceOf[T]
   }
-  def toVirtObj(x: Any)(implicit registrar: Registrar) = {
+  def toVirtObj(x: Any)(implicit registrar: rt.Obj.Registrar) = {
     Virtualizer.pushVirtual(x).apply(0)
   }
 
@@ -87,13 +87,13 @@ object Virtualizer {
       .++(cls.getDeclaredFields)
   }
 
-  def pushVirtual(thing: Any)(implicit registrar: Registrar): Seq[Int] = {
+  def pushVirtual(thing: Any)(implicit registrar: rt.Obj.Registrar): Seq[Int] = {
     val tmp = new mutable.Stack[Int]()
     pushVirtual(thing, tmp.push(_))
     tmp.reverse
   }
 
-  def pushVirtual(thing: Any, out: Val => Unit)(implicit registrar: Registrar): Unit = {
+  def pushVirtual(thing: Any, out: Val => Unit)(implicit registrar: rt.Obj.Registrar): Unit = {
 
     implicit val vm = registrar.vm
     thing match {

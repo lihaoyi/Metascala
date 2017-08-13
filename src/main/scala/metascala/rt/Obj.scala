@@ -3,33 +3,33 @@ package metascala.rt
 import collection.mutable
 import metascala._
 import metascala.imm
+
 import scala.Some
 
 
 
-/**
-  * Created by lihaoyi on 13/8/17.
-  */
-trait VMInterface0 extends VMInterface_1{
 
-
-
-
-
-
-  def theUnsafe: rt.Obj
-  def obj(address: Int): rt.Obj
-
-  def isArr(address: Int): Boolean
-  def isObj(address: Int): Boolean
-}
-
-
-class Registrar(f: Ref => Unit, val vm: VMInterface0) extends Function1[Ref, Unit]{
-  def apply(i: Ref) = f(i)
-}
 
 object Obj{
+  trait VMInterface extends rt.Cls.VMInterface{
+
+
+
+
+
+
+    def theUnsafe: rt.Obj
+    def obj(address: Int): rt.Obj
+
+    def isArr(address: Int): Boolean
+    def isObj(address: Int): Boolean
+  }
+
+
+  class Registrar(f: Ref => Unit, val vm: VMInterface) extends Function1[Ref, Unit]{
+    def apply(i: Ref) = f(i)
+  }
+
   /**
     * Allocates and returns an array of the specified type, with `n` elements.
     * This is multiplied with the size of the type being allocated when
@@ -66,11 +66,11 @@ object Obj{
 
   implicit def unwrap1(x: Obj): Int = x.address.apply()
   implicit def unwrap2(x: Obj): Ref = x.address
-  def unapply(x: Val)(implicit vm: VMInterface_1) = new Obj(x)
+  def unapply(x: Val)(implicit vm: rt.Cls.VMInterface) = new Obj(x)
 }
 
 class Obj(val address: Ref)
-         (implicit vm: VMInterface_1) {
+         (implicit vm: rt.Cls.VMInterface) {
   /**
    * Layout
    * ------

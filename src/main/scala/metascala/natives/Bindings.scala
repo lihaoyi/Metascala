@@ -2,17 +2,17 @@ package metascala.natives
 
 
 import metascala.imm.{Sig, Type}
-import metascala.rt.{Registrar, VMInterface0}
+import metascala.rt.Obj
 import metascala.{Agg, Ref, imm, rt}
 
 import scala.collection.mutable
 import scala.reflect.ClassTag
 object Bindings{
-  trait Interface extends VMInterface0{
+  trait Interface extends Obj.VMInterface{
     def invoke(cls: imm.Type.Cls, sig: Sig, args: Agg[Any]): Unit
 
     def returnedVal: Array[Int]
-    def alloc[T](func: Registrar => T): T
+    def alloc[T](func: Obj.Registrar => T): T
     def typeObjCache: mutable.HashMap[imm.Type, Ref]
     def offHeap: Array[Byte]
     def setOffHeapPointer(n: Long): Unit
@@ -22,7 +22,7 @@ object Bindings{
     def threadStackLength: Int // vt.threadStack.length
     def internedStrings: mutable.Map[String, Int]
     def toRealObj[T](x: Int)(implicit ct: ClassTag[T]): T
-    def toVirtObj(x: Any)(implicit registrar: Registrar): rt.Obj
+    def toVirtObj(x: Any)(implicit registrar: Obj.Registrar): rt.Obj
     def trace: Array[StackTraceElement]
     def currentThread: Int
     def invokeRun(a: Int): Int

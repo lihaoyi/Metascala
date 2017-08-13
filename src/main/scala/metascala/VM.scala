@@ -5,7 +5,7 @@ import java.io.Writer
 import collection.mutable
 import annotation.tailrec
 import metascala.imm.{Sig, Type}
-import metascala.rt.{Cls, ClsTable, FrameDump, Obj, Registrar, Thread}
+import metascala.rt.{Cls, ClsTable, FrameDump, Obj, Thread}
 import metascala.natives.DefaultBindings
 import metascala.imm.Type.Prim
 import metascala.opcodes.Conversion
@@ -30,7 +30,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
          val insnLimit: Long = Long.MaxValue,
          val log: ((=>String) => Unit) = s => (),
          val memorySize: Int = 1 * 1024 * 1024,
-         initializeStdout: Boolean = false) extends VMInterface with Thread.VMInterface{
+         initializeStdout: Boolean = false) extends Thread.VMInterface{
   def isObj(address: Int): Boolean = heap(address) < 0
   def isArr(address: Int): Boolean = heap(address) > 0
   def obj(address: Int): metascala.rt.Obj = new rt.Obj(address)
@@ -65,10 +65,10 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
       }
     }
   }
-  def alloc[T](func: Registrar => T): T = {
+  def alloc[T](func: Obj.Registrar => T): T = {
     val tempRegistry = mutable.Set[Ref]()
     val res = func(
-      new Registrar({ ref =>
+      new Obj.Registrar({ ref =>
 
         tempRegistry.add(ref)
         registry.add(ref)

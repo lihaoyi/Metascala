@@ -8,9 +8,13 @@ import scala.Some
 
 object Arr{
 
+  trait CoreVMInterface {
+    def heap: Heap
+    def arrayTypeCache: mutable.Buffer[imm.Type]
+  }
 
 
-  def unapply(x: Int)(implicit vm: VMInterface_2): Option[Arr] = Some(new Arr(x))
+  def unapply(x: Int)(implicit vm: CoreVMInterface): Option[Arr] = Some(new Arr(x))
 
   implicit def unwrap1(x: Arr): Int = x.address.apply()
   implicit def unwrap2(x: Arr): Ref = x.address
@@ -20,7 +24,7 @@ object Arr{
   * Can be treated as a mutable sequence of Ints; this representation is
   * completely unaware of differently sized contents.
   */
-class Arr(val address: Ref)(implicit vm: VMInterface_2) extends mutable.Seq[Int]{
+class Arr(val address: Ref)(implicit vm: Arr.CoreVMInterface) extends mutable.Seq[Int]{
   /**
     * Layout
     * ------
