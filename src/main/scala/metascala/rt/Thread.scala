@@ -394,9 +394,6 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
   @tailrec final def throwException(ex: Obj, print: Boolean = true): Unit = {
     import math.Ordering.Implicits._
     if (print)println("Throwing!")
-    for(head <- threadStack.headOption){
-      println(head.runningClass + ":" + head.lineNum)
-    }
 
     threadStack.headOption match{
       case Some(frame)=>

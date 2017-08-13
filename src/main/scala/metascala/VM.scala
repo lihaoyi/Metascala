@@ -1,12 +1,10 @@
 package metascala
 
-import java.io.Writer
-
 import collection.mutable
 import metascala.imm.{Sig, Type}
 import metascala.rt.{Cls, ClsTable, Obj, Thread}
 import metascala.natives.DefaultBindings
-import metascala.opcodes.MethodSSAConverter
+import metascala.opcodes.{LocalType, MethodSSAConverter}
 import metascala.util._
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
@@ -132,7 +130,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
       (blockId, index) = frame.pc
       block = frame.method.code.blocks(blockId)
       (x, i) <- block.locals.zipWithIndex
-      if x.isRef
+      if x == LocalType.Ref
       _ = if (frame.locals(i) == -1) println(frame.locals.toList, i)
     } yield new Ref.ArrRef(() => frame.locals(i), frame.locals(i) = _)
 

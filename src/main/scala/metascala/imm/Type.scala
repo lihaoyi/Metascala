@@ -44,7 +44,6 @@ object Type{
     def name = "[" + innerType.name
     def realCls = innerType.realCls
     def methodType = Type.Cls("java/lang/Object")
-    def prettyRead(x: () => Int) = "[" + innerType.shortName + "#" + x()
     def javaName = innerType match{
       case tpe: Cls => "[L" + tpe.javaName + ";"
       case tpe: Prim[_] => "[" + tpe.internalName
@@ -75,7 +74,6 @@ object Type{
       case _ => false
     }
     override def toString = s"Cls($name)"
-    def prettyRead(x: () => Int) = Util.shorten(name) + "#" + x()
     def internalName = "L" + name + ";"
     def javaName = name.replace('/', '.')
   }
@@ -90,7 +88,6 @@ object Type{
     def productPrefix: String
     def name = productPrefix
     def internalName = name
-    def prettyRead(x: () => Int) = toString + "#" + read(x)
   }
   object Prim extends {
     def read(s: String) = all(s(0))
@@ -231,12 +228,6 @@ sealed trait Type{
    * given Type inside the Metascala VM
    */
   def realCls: Class[_]
-
-  /**
-   * Reads an object of this type from the given input stream into a readable
-   * representation
-   */
-  def prettyRead(x: () => Int): String
 
   /**
    * 0, 1 or 2 for void, most things and double/long

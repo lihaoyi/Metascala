@@ -220,7 +220,7 @@ object MethodSSAConverter {
       val lineMap = new Aggregator[I]
       val localMap = mutable.Map.empty[Box, I]
       var symCount = 0
-      val types = new Aggregator[imm.Type]
+      val types = new Aggregator[LocalType]
 
 
       implicit def getBox(b: Box) = {
@@ -232,18 +232,12 @@ object MethodSSAConverter {
           assert(b.value != null)
           assert(b.value.getType != null, "fail " + b.value)
 
-          types.append(b.value.getType.getSort match {
-            case Type.BOOLEAN => Z
-            case Type.CHAR => C
-            case Type.BYTE => B
-            case Type.SHORT => S
-            case Type.INT => I
-            case Type.FLOAT => F
-            case Type.LONG => J
-            case Type.DOUBLE => D
-            case Type.ARRAY => imm.Type.Cls("java/lang/Object")
-            case Type.OBJECT => imm.Type.Cls("java/lang/Object")
-            case _ => ???
+          types.append(b.value match {
+            case BasicValue.INT_VALUE => LocalType.Int
+            case BasicValue.FLOAT_VALUE => LocalType.Float
+            case BasicValue.LONG_VALUE => LocalType.Long
+            case BasicValue.DOUBLE_VALUE => LocalType.Double
+            case BasicValue.REFERENCE_VALUE => LocalType.Ref
           })
         }
         localMap(b)
@@ -341,7 +335,7 @@ object MethodSSAConverter {
 
   }
 
-  def computeBasicBlocks(blockBuffers:  Agg[(Agg[Insn], Agg[imm.Type], mutable.Map[Box, Int], Frame[Box], Frame[Box], Agg[Int])]) = {
+  def computeBasicBlocks(blockBuffers:  Agg[(Agg[Insn], Agg[LocalType], mutable.Map[Box, Int], Frame[Box], Frame[Box], Agg[Int])]) = {
     for(((buffer, types, startMap, startFrame, _, lines), i) <- blockBuffers.zipWithIndex) yield {
       val phis = for(((buffer2, types2, endMap, _, endFrame, _), j) <- blockBuffers.zipWithIndex) yield {
         if (endFrame != null && startFrame != null && ((buffer2.length > 0 && buffer2.last.targets.contains(i)) || (i == j + 1))){

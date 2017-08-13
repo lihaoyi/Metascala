@@ -12,7 +12,7 @@ case class ClsMethod(clsIndex: Int,
                      methodIndex: Int,
                      sig: imm.Sig,
                      accessFlags: Int,
-                     codeThunk: () => Code)extends Method{
+                     codeThunk: () => Code) extends Method{
   lazy val code = codeThunk()
 
   def static = (accessFlags & Access.Static) != 0

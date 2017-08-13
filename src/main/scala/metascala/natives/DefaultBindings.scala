@@ -7,7 +7,7 @@ import java.nio.ByteBuffer
 
 import imm.Type.Prim._
 import metascala.imm.Type.Prim
-import metascala.util.{Agg, Constants, Util}
+import metascala.util.{Agg, Constants, Util, WrappedVmException}
 
 object DefaultBindings extends Bindings{
 
@@ -67,7 +67,7 @@ object DefaultBindings extends Bindings{
                   val x = vt.typeObjCache(tpe)()
                   x
                 } catch{case e: Exception =>
-                  throw new java.lang.ClassNotFoundException(nameString)
+                  throw new WrappedVmException(new java.lang.ClassNotFoundException(nameString))
                 }
 
             },

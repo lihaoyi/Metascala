@@ -13,9 +13,17 @@ case class Code(blocks: Agg[BasicBlock] = Agg.empty,
                 tryCatches: Agg[TryCatchBlock] = Agg.empty){
   lazy val localSize = blocks.map(_.locals.map(_.size).sum).max
 }
+sealed class LocalType(val size: Int, toString: String, val prettyRead: (() => Int) => String)
+object LocalType{
+  val Int = new LocalType(1, "I", "I#" + imm.Type.Prim.I.read(_).toString)
+  val Long = new LocalType(2, "J", "J#" + imm.Type.Prim.J.read(_).toString)
+  val Float = new LocalType(1, "F", "F#" + imm.Type.Prim.F.read(_).toString)
+  val Double = new LocalType(2, "D", "D#" + imm.Type.Prim.D.read(_).toString)
+  val Ref = new LocalType(1, "L", "L#" + _().toString)
+}
 case class BasicBlock(insns: Agg[Insn],
                       phi: Agg[Agg[(Int, Int)]],
-                      locals: Agg[imm.Type],
+                      locals: Agg[LocalType],
                       lines: Agg[Int])
 
 case class TryCatchBlock(start: (Int, Int),
