@@ -10,6 +10,7 @@ import Insn.InvokeStatic
 import Insn.ReturnVal
 import metascala.imm.{Desc, Sig, Type}
 import metascala.natives.Bindings
+import metascala.util._
 
 import scala.reflect.ClassTag
 

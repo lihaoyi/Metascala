@@ -3,20 +3,11 @@ package metascala.rt
 import collection.mutable
 import metascala._
 import metascala.imm
-
-import scala.Some
-
-
-
+import metascala.util.{Constants, Ref}
 
 
 object Obj{
   trait VMInterface extends rt.Cls.VMInterface{
-
-
-
-
-
 
     def theUnsafe: rt.Obj
     def obj(address: Int): rt.Obj

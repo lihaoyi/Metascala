@@ -2,9 +2,12 @@ package metascala
 package opcodes
 
 import org.objectweb.asm.Type
+
 import scala.collection.mutable
 import imm.Type.Prim._
+import metascala.util.{Agg, Aggregator}
 import org.objectweb.asm.tree._
+
 import scala.collection.JavaConverters._
 import org.objectweb.asm.tree.analysis._
 import org.objectweb.asm.Opcodes._

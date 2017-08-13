@@ -3,7 +3,8 @@ package metascala.natives
 
 import metascala.imm.{Sig, Type}
 import metascala.rt.Obj
-import metascala.{Agg, Ref, imm, rt}
+import metascala.util.{Agg, Ref}
+import metascala.{imm, rt}
 
 import scala.collection.mutable
 import scala.reflect.ClassTag

@@ -1,5 +1,7 @@
 package metascala
 package imm
+import metascala.util.{Agg, Util}
+
 import collection.mutable
 import reflect.ClassTag
 

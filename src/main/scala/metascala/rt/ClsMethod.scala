@@ -1,7 +1,8 @@
 package metascala.rt
 
-import metascala.{Access, imm}
+import metascala.imm
 import metascala.opcodes.Code
+import metascala.util.Access
 
 
 /**

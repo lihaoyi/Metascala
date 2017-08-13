@@ -1,4 +1,4 @@
-package metascala
+package metascala.util
 
 trait Ref{
   def apply(): Int

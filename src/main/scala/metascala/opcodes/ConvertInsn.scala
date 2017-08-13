@@ -4,17 +4,20 @@ package opcodes
 
 
 import org.objectweb.asm.Type
+
 import scala.collection.mutable
 import metascala.imm.Type.Prim
 import metascala.imm.Type.Prim._
+
 import scala.annotation.tailrec
 import org.objectweb.asm.tree._
+
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 import org.objectweb.asm.tree.analysis._
 import org.objectweb.asm.Opcodes._
-
 import Insn._
+import metascala.util.{Agg, Ref}
 object ConvertInsn {
   trait VMInterface extends rt.Obj.VMInterface{
     val log: (=> String) => Unit

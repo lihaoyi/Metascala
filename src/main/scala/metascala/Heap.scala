@@ -1,5 +1,7 @@
 package metascala
 
+import metascala.util.{Constants, Ref}
+
 class Heap(memorySize: Int,
            getRoots: () => Seq[Ref],
            getLinks: (Int, Int) => Seq[Int]){

@@ -1,5 +1,4 @@
-package metascala
-
+package metascala.util
 
 import scala.reflect.ClassTag
 

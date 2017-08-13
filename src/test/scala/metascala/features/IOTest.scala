@@ -2,11 +2,12 @@ package metascala
 package features
 
 import org.scalatest.FreeSpec
-
 import metascala.Gen._
-import util.{Failure, Try}
-import metascala.{UncaughtVmException, BufferLog, Gen, TestUtil}
+
+import scala.util.{Failure, Try}
+import metascala.{BufferLog, Gen, TestUtil}
 import metascala.TestUtil.SingleClassVM
+import metascala.util.UncaughtVmException
 
 class IOTest extends FreeSpec {
 

@@ -11,6 +11,7 @@ import imm.Type.Prim._
 import metascala.imm.Desc
 import metascala.imm.Type.Prim
 import metascala.rt.Arr
+import metascala.util.{Agg, Constants}
 
 object DefaultBindings extends Bindings{
 

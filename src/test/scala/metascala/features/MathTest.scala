@@ -5,7 +5,7 @@ package features
 import org.scalatest.FreeSpec
 import Gen._
 import metascala.TestUtil
-import util.Random
+import scala.util.Random
 
 
 

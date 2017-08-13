@@ -2,11 +2,8 @@ package metascala
 package imm
 
 import org.objectweb.asm.tree._
+import metascala.util.{Access, NullSafe}
 
-import org.objectweb.asm
-import asm.Label
-import collection.mutable
-import NullSafe._
 
 object Field {
   def read(fn: FieldNode) = {

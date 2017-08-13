@@ -3,6 +3,8 @@ package metascala.rt
 import collection.mutable
 import metascala._
 import metascala.imm
+import metascala.util.{Constants, Ref}
+
 import scala.Some
 
 

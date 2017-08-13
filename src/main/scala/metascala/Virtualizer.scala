@@ -3,7 +3,7 @@ import scala.collection.mutable
 import imm.Type.Prim._
 import metascala.imm.Type.Prim
 import metascala.natives.Bindings
-
+import metascala.util.{Constants, Ref}
 
 import scala.reflect.ClassTag
 

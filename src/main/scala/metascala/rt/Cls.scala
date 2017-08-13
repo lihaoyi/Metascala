@@ -1,6 +1,8 @@
 package metascala
 package rt
 
+import metascala.util.{Access, Constants, Ref, Util}
+
 import scala.collection.mutable
 
 trait ClsTable extends(imm.Type.Cls => rt.Cls){

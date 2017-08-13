@@ -109,8 +109,8 @@ class ArrayTest extends FreeSpec{
         Array(0, 1, 2, 3, 4, 5, 6, 7),
         Array(7, 6, 5, 4, 3, 2, 1, 0),
         Array(0, 1, 2, 3, 4, 5, 6, 7),
-        Array.fill(10)(util.Random.nextInt()),
-        Array.fill(20)(util.Random.nextInt())
+        Array.fill(10)(scala.util.Random.nextInt()),
+        Array.fill(20)(scala.util.Random.nextInt())
       )
       for (input <- inputs) tester.test{
         ArrayTest.bubbleSort(input)

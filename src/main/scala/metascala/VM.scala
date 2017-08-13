@@ -9,6 +9,7 @@ import metascala.rt.{Cls, ClsTable, FrameDump, Obj, Thread}
 import metascala.natives.DefaultBindings
 import metascala.imm.Type.Prim
 import metascala.opcodes.Conversion
+import metascala.util._
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
 
