@@ -93,7 +93,7 @@ object DefaultBindings extends Bindings{
               val realFields = cls.fieldList ++ cls.staticList
 
               vt.alloc(implicit r =>
-                rt.Arr.alloc(imm.Type.Cls("java/lang/reflect/Field"),
+                rt.Obj.allocArr(imm.Type.Cls("java/lang/reflect/Field"),
                   realFields.zipWithIndex.map{ case (f, i) =>
                     rt.Obj.alloc(vt.ClsTable(imm.Type.Cls("java/lang/reflect/Field")),
                       "clazz" -> obj.address,
@@ -115,13 +115,13 @@ object DefaultBindings extends Bindings{
               val cls = vt.ClsTable(imm.Type.Cls(clsName))
               val realMethods = cls.methods.filter(_.sig.name == "<init>")
               val vrtArr = vt.alloc(implicit r =>
-                rt.Arr.alloc(imm.Type.Cls("java/lang/reflect/Constructor"),
+                rt.Obj.allocArr(imm.Type.Cls("java/lang/reflect/Constructor"),
                   realMethods.zipWithIndex.map{ case (f, i) =>
                     rt.Obj.alloc(vt.ClsTable(imm.Type.Cls("java/lang/reflect/Constructor")),
                       "clazz" -> clsObj.address,
                       "slot" -> i,
                       "signature" -> vt.toVirtObj(f.sig.desc.unparse),
-                      "parameterTypes" -> rt.Arr.alloc(imm.Type.Cls("java/lang/Class"),
+                      "parameterTypes" -> rt.Obj.allocArr(imm.Type.Cls("java/lang/Class"),
                         f.sig.desc.args.map(t =>
                           vt.typeObjCache(imm.Type.readJava(t.realCls.getName))
                         )
@@ -136,7 +136,7 @@ object DefaultBindings extends Bindings{
               
               val cls = vt.ClsTable(imm.Type.Cls(vt.toRealObj[String](vt.obj(clsAddr).apply("name"))))
               vt.alloc(implicit r =>
-                rt.Arr.alloc(imm.Type.Cls("java/lang/reflect/Method"),
+                rt.Obj.allocArr(imm.Type.Cls("java/lang/reflect/Method"),
                   cls.methods.map{ m =>
                     rt.Obj.alloc(vt.ClsTable(imm.Type.Cls("java/lang/reflect/Method"))).address
                   }
@@ -149,7 +149,7 @@ object DefaultBindings extends Bindings{
               
               val cls = vt.ClsTable(imm.Type.Cls(vt.toRealObj[String](vt.obj(clsAddr).apply("name"))))
               vt.alloc(implicit r =>
-                rt.Arr.alloc(imm.Type.Cls("java/lang/Class"),
+                rt.Obj.allocArr(imm.Type.Cls("java/lang/Class"),
                   cls.typeAncestry
                      .filter(x => !cls.clsAncestry.contains(x))
                      .toSeq
@@ -339,7 +339,7 @@ object DefaultBindings extends Bindings{
                 
                 val clsObj = vt.obj(cls)
                 val clsName = vt.toRealObj[String](clsObj("name"))
-                vt.alloc(rt.Arr.alloc(imm.Type.readJava(clsName), length)(_)).address()
+                vt.alloc(rt.Obj.allocArr(imm.Type.readJava(clsName), length)(_)).address()
               },
               "set(Ljava/lang/Object;ILjava/lang/Object;)V".func(I, I, I, V){ (vt, arr, index, obj) =>
                 vt.invoke(
@@ -351,26 +351,7 @@ object DefaultBindings extends Bindings{
             ),
             "Constructor"/(
               "newInstance([Ljava/lang/Object;)Ljava/lang/Object;".func(I, I, I){
-                (vt, constr, argArr) =>
-                  
-                  val cls = new rt.Obj(constr)(vt).apply("clazz")
-                  val name = vt.toRealObj[String](new rt.Obj(cls)(vt).apply("name")).replace('.', '/')
-                  val newObj = vt.alloc { implicit r =>
-                    rt.Obj.alloc(vt.ClsTable(imm.Type.Cls(name))).address()
-                  }
-
-                  val descStr = vt.toRealObj[String](new rt.Obj(constr)(vt).apply("signature"))
-                  val mRef = vt.ClsTable(imm.Type.Cls(name)).method(
-                    "<init>",
-                    Desc.read(descStr)
-                  ).get
-
-                  vt.invoke(
-                    mRef,
-                    Agg(newObj) ++ (if (argArr == 0) Seq() else Agg.from(vt.arr(argArr)))
-                  )
-
-                  newObj
+                (vt, constr, argArr) => vt.newInstance(constr, argArr)
 
               }
             ),
@@ -398,25 +379,10 @@ object DefaultBindings extends Bindings{
         "security"/(
           "AccessController"/(
             "doPrivileged(Ljava/security/PrivilegedExceptionAction;)Ljava/lang/Object;".func(I, I){ (vt, a) =>
-
-              
-              val pa = vt.obj(a)
-              val mRef = vt.resolveDirectRef(pa.cls.tpe, pa.cls.methods.find(_.sig.name == "run").get.sig).get
-              var x = 0
-              vt.invoke(mRef, Agg(pa.address()))
-
-              vt.returnedVal(0)
+              vt.invokeRun(a)
             },
             "doPrivileged(Ljava/security/PrivilegedAction;)Ljava/lang/Object;".func(I, I){ (vt, a) =>
-
-              
-              val pa = vt.obj(a)
-              val mRef = vt.resolveDirectRef(pa.cls.tpe, pa.cls.methods.find(_.sig.name == "run").get.sig).get
-              var x = 0
-              val ret = vt.invoke(mRef, Agg(pa.address()))
-
-
-              vt.returnedVal(0)
+              vt.invokeRun(a)
             },
             "getStackAccessControlContext()Ljava/security/AccessControlContext;".value(I)(0)
 

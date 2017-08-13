@@ -110,7 +110,7 @@ object Virtualizer {
 
         val tpe = imm.Type.Arr.read(b.getClass.getName.replace('.', '/')).innerType
         val arr =
-          rt.Arr.alloc(
+          rt.Obj.allocArr(
             tpe,
             b.flatMap(pushVirtual).map{x =>
               val ref : Ref = new Ref.ManualRef(x)

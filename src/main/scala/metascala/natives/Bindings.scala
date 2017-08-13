@@ -10,10 +10,9 @@ import scala.reflect.ClassTag
 object Bindings{
   trait Interface extends VMInterface0{
     def invoke(cls: imm.Type.Cls, sig: Sig, args: Agg[Any]): Unit
-    def invoke(mRef: rt.Method, args: Agg[Int]): Any
+
     def returnedVal: Array[Int]
     def alloc[T](func: Registrar => T): T
-    def resolveDirectRef(owner: Type.Cls, sig: imm.Sig): Option[rt.Method]
     def typeObjCache: mutable.HashMap[imm.Type, Ref]
     def offHeap: Array[Byte]
     def setOffHeapPointer(n: Long): Unit
@@ -26,6 +25,8 @@ object Bindings{
     def toVirtObj(x: Any)(implicit registrar: Registrar): rt.Obj
     def trace: Array[StackTraceElement]
     def currentThread: Int
+    def invokeRun(a: Int): Int
+    def newInstance(constr: Int, argArr: Int): Int
   }
 }
 trait Bindings{

@@ -8,15 +8,30 @@ import Insn._
 import Insn.Push
 import Insn.InvokeStatic
 import Insn.ReturnVal
-import metascala.imm.{Sig, Type}
+import metascala.imm.{Desc, Sig, Type}
 import metascala.natives.Bindings
 
 import scala.reflect.ClassTag
+object Thread{
+  trait VMInterface extends metascala.VMInterface{
+    def insnLimit: Long
+    def checkInitialized(cls: rt.Cls): Unit
+    def invokeRun(a: Int): Int
+    def threads: Seq[Thread]
+    def offHeap: Array[Byte]
+    def setOffHeapPointer(n: Long): Unit
+    def offHeapPointer: Long
+    def currentThread: Int
+    def internedStrings: mutable.Map[String, Int]
+    def natives: Bindings
+    def check(s: imm.Type, t: imm.Type): Boolean
+  }
+}
 /**
  * A single thread within the Metascala VM.
  */
 class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
-            (implicit val vm: VM) { thread =>
+            (implicit val vm: Thread.VMInterface) { thread =>
   import vm._
 
   private[this] var opCount = 0L
@@ -167,7 +182,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         advancePc()
 
       case NewArray(src, dest, typeRef) =>
-        val newArray = vm.alloc(rt.Arr.alloc(typeRef, frame.locals(src))(_))
+        val newArray = vm.alloc(rt.Obj.allocArr(typeRef, frame.locals(src))(_))
         frame.locals(dest) = newArray.address()
         advancePc()
 
@@ -292,14 +307,14 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
           (dims, tpe) match {
             case (size :: tail, imm.Type.Arr(innerType: imm.Type.Ref)) =>
-              val newArr = vm.alloc(rt.Arr.alloc(innerType, size)(_))
+              val newArr = vm.alloc(rt.Obj.allocArr(innerType, size)(_))
               for(i <- 0 until size){
                 newArr(i) = rec(tail, innerType)
               }
               newArr.address()
 
             case (size :: Nil, imm.Type.Arr(innerType)) =>
-              vm.alloc(rt.Arr.alloc(innerType, size)(_)).address()
+              vm.alloc(rt.Obj.allocArr(innerType, size)(_)).address()
            }
         }
         val dimValues = dims.map(frame.locals).toList
@@ -379,11 +394,11 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         }
       case None =>
         throw new UncaughtVmException(
-          Virtualizer.toRealObj[Throwable](ex.address())
+          Virtualizer.toRealObj[Throwable](ex.address())(bindingsInterface, implicitly)
         )
     }
   }
-  implicit val bindingsInterface = new Bindings.Interface{
+  val bindingsInterface = new Bindings.Interface{
     def invoke(cls: Type.Cls, sig: Sig, args: Agg[Any]) = thread.invoke(cls, sig, args)
 
     def invoke(mRef: Method, args: Agg[Val]) = thread.invoke(mRef, args)
@@ -392,14 +407,35 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     def alloc[T](func: (Registrar) => T) = vm.alloc(func)
 
-    def resolveDirectRef(owner: Type.Cls, sig: Sig) = vm.resolveDirectRef(owner, sig)
+    def invokeRun(a: Int) = vm.invokeRun(a)
+    def newInstance(constr: Int, argArr: Int): Int = {
+      val cls = new rt.Obj(constr)(this).apply("clazz")
+      val name = toRealObj[String](new rt.Obj(cls)(this).apply("name")).replace('.', '/')
+      val newObj = alloc { implicit r =>
+        rt.Obj.alloc(ClsTable(imm.Type.Cls(name))).address()
+      }
+
+      val descStr = toRealObj[String](new rt.Obj(constr)(this).apply("signature"))
+
+      val mRef = ClsTable(imm.Type.Cls(name)).method(
+        "<init>",
+        Desc.read(descStr)
+      ).get
+
+      invoke(
+        mRef,
+        Agg(newObj) ++ (if (argArr == 0) Seq() else Agg.from(arr(argArr)))
+      )
+
+      newObj
+    }
 
     def typeObjCache = vm.typeObjCache
 
     def threads = vm.threads
 
     def offHeap = vm.offHeap
-    def setOffHeapPointer(n: Long) = vm.offHeapPointer = n
+    def setOffHeapPointer(n: Long) = vm.setOffHeapPointer(n)
     def offHeapPointer = vm.offHeapPointer
 
     def runningClassName(n: Val) = threadStack(n).runningClass.name
@@ -434,6 +470,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     def natives = vm.natives
 
     val log = vm.log
+
+    def lookupNatives(lookupName: String, lookupSig: imm.Sig) = vm.natives.trapped.find{case rt.Method.Native(clsName, sig, func) =>
+      (lookupName == clsName) && sig == lookupSig
+    }
   }
   final def prepInvoke(mRef: rt.Method,
                        args: Agg[Int],
@@ -493,7 +533,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     while(threadStack.length != startHeight) step()
 
 
-    Virtualizer.popVirtual(mRef.sig.desc.ret, reader(returnedVal, 0))
+    Virtualizer.popVirtual(mRef.sig.desc.ret, reader(returnedVal, 0))(bindingsInterface)
   }
 
   def invoke(cls: imm.Type.Cls, sig: imm.Sig, args: Agg[Any]): Any = {
@@ -501,7 +541,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     prepInvoke(cls, sig, args, writer(returnedVal, 0))
 
     while(threadStack.length != startHeight) step()
-    Virtualizer.popVirtual(sig.desc.ret, reader(returnedVal, 0))
+    Virtualizer.popVirtual(sig.desc.ret, reader(returnedVal, 0))(bindingsInterface)
   }
 }
 

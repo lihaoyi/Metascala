@@ -1,9 +1,6 @@
 package metascala
 package rt
 
-import metascala.natives.Bindings
-
-import collection.mutable
 import scala.collection.mutable
 
 trait ClsTable extends(imm.Type.Cls => rt.Cls){
@@ -15,7 +12,7 @@ trait ClsTable extends(imm.Type.Cls => rt.Cls){
   */
 trait VMInterface_1 extends VMInterface_2{
   implicit def ClsTable: ClsTable
-  def natives: Bindings
+  def lookupNatives(name: String, sig: imm.Sig): Option[rt.Method]
   val log: (=> String) => Unit
 }
 
@@ -98,9 +95,7 @@ class Cls(val tpe: imm.Type.Cls,
 
       val index = oldMethods.indexWhere{ mRef => mRef.sig == m.sig }
 
-      val native = vm.natives.trapped.find{case rt.Method.Native(clsName, sig, func) =>
-        (name == clsName) && sig == m.sig
-      }
+      val native = vm.lookupNatives(name, m.sig)
 
       val update =
         if (index == -1) oldMethods.append(_: Method)

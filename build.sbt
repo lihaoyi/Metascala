@@ -20,4 +20,4 @@ autoCompilerPlugins := true
 
 addCompilerPlugin("com.lihaoyi" %% "acyclic" % "0.1.7")
 
-//scalacOptions += "-P:acyclic:force"
+scalacOptions += "-P:acyclic:force"

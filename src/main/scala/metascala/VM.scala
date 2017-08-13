@@ -30,7 +30,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
          val insnLimit: Long = Long.MaxValue,
          val log: ((=>String) => Unit) = s => (),
          val memorySize: Int = 1 * 1024 * 1024,
-         initializeStdout: Boolean = false) extends VMInterface{
+         initializeStdout: Boolean = false) extends VMInterface with Thread.VMInterface{
   def isObj(address: Int): Boolean = heap(address) < 0
   def isArr(address: Int): Boolean = heap(address) > 0
   def obj(address: Int): metascala.rt.Obj = new rt.Obj(address)
@@ -44,15 +44,17 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
   // Doesn't grow for now; we can make it grow when we need it to.
   val offHeap = new Array[Byte](10)
   var offHeapPointer = 0L
+  def setOffHeapPointer(n: Long) = offHeapPointer = n
   val heap = new Heap(
     memorySize,
     () => getRoots(),
     getLinks
   )
-  def checkInitialized(cls: rt.Cls)(implicit vm: VMInterface): Unit = {
+
+  def checkInitialized(cls: rt.Cls): Unit = {
     if (!cls.initialized){
       cls.statics = vm.alloc(implicit i =>
-        rt.Arr.alloc(imm.Type.Prim.I, cls.staticList.length)
+        rt.Obj.allocArr(imm.Type.Prim.I, cls.staticList.length)
       )
       cls.initialized = true
       vm.resolveDirectRef(cls.tpe, Sig("<clinit>", imm.Desc.read("()V")))
@@ -105,6 +107,17 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
     )
   }
 
+  def invokeRun(a: Int) = {
+    val pa = obj(a)
+    val mRef = resolveDirectRef(pa.cls.tpe, pa.cls.methods.find(_.sig.name == "run").get.sig).get
+    var x = 0
+    threads(0).invoke(mRef, Agg(pa.address()))
+
+    threads(0).returnedVal(0)
+  }
+  def lookupNatives(lookupName: String, lookupSig: imm.Sig) = vm.natives.trapped.find{case rt.Method.Native(clsName, sig, func) =>
+    (lookupName == clsName) && sig == lookupSig
+  }
   ready = true
 
   def getLinks(tpe: Int, length: Int): Seq[Int] = {
@@ -290,27 +303,3 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
   }
 }
 
-class WrappedVmException(wrapped: Throwable) extends Exception(wrapped)
-case class UncaughtVmException(wrapped: Throwable) extends WrappedVmException(wrapped)
-case class InternalVmException(wrapped: Throwable) extends WrappedVmException(wrapped)
-
-/**
- * A generic cache, which provides pre-processing of keys and post processing of values.
- */
-trait Cache[In, Out] extends (In => Out){
-  val cache = mutable.Map.empty[Any, Out]
-  def pre(x: In): Any = x
-  def calc(x: In): Out
-  def post(y: Out): Unit = ()
-  def apply(x: In) = {
-    val newX = pre(x)
-    cache.get(newX) match{
-      case Some(y) => y
-      case None =>
-        val newY = calc(x)
-        cache(newX) = newY
-        post(newY)
-        newY
-    }
-  }
-}

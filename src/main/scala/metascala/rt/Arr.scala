@@ -9,27 +9,7 @@ import scala.Some
 object Arr{
 
 
-  /**
-    * Allocates and returns an array of the specified type, with `n` elements.
-    * This is multiplied with the size of the type being allocated when
-    * calculating the total amount of memory benig allocated
-    */
-  def alloc(t: imm.Type, n: scala.Int)(implicit registrar: Registrar): Arr = {
-    rt.Arr.alloc(t, Array.fill[Int](n * t.size)(0).map(x => new Ref.ManualRef(x): Ref))
-  }
-  def alloc(innerType: imm.Type, backing0: TraversableOnce[Ref])(implicit registrar: Registrar): Arr = {
-    implicit val vm = registrar.vm
-    val backing = backing0.toArray
-    val address = vm.heap.allocate(Constants.arrayHeaderSize+ backing.length)(registrar.apply)
-    //    println("Allocating Array[" + innerType.name + "] at " + address)
-    vm.heap(address()) = vm.arrayTypeCache.length
 
-    vm.arrayTypeCache.append(innerType)
-    vm.heap(address() + 1) = backing.length / innerType.size
-    backing.map(_()).copyToArray(vm.heap.memory, address() + Constants.arrayHeaderSize)
-
-    new Arr(address)
-  }
   def unapply(x: Int)(implicit vm: VMInterface_2): Option[Arr] = Some(new Arr(x))
 
   implicit def unwrap1(x: Arr): Int = x.address.apply()
