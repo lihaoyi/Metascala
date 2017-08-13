@@ -54,6 +54,7 @@ object DefaultBindings extends Bindings{
         ),
         "lang"/(
           "Class"/(
+            "getProtectionDomain0()Ljava/security/ProtectionDomain;".value(I)(0),
             "desiredAssertionStatus0(Ljava/lang/Class;)Z".value(I)(0),
             "desiredAssertionStatus()Z".value(I)(0),
             "forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;Ljava/lang/Class;)Ljava/lang/Class;".func(I, I, I, I, I){
@@ -379,6 +380,9 @@ object DefaultBindings extends Bindings{
               vt.invokeRun(a)
             },
             "doPrivileged(Ljava/security/PrivilegedAction;)Ljava/lang/Object;".func(I, I){ (vt, a) =>
+              vt.invokeRun(a)
+            },
+            "doPrivileged(Ljava/security/PrivilegedAction;Ljava/security/AccessControlContext;)Ljava/lang/Object;".func(I, I, I){ (vt, a, b) =>
               vt.invokeRun(a)
             },
             "getStackAccessControlContext()Ljava/security/AccessControlContext;".value(I)(0)

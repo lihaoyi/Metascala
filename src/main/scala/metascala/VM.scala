@@ -100,14 +100,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
     )
   }
 
-  def invokeRun(a: Int) = {
-    val pa = obj(a)
-    val mRef = resolveDirectRef(pa.cls.tpe, pa.cls.methods.find(_.sig.name == "run").get.sig).get
-    var x = 0
-    threads(0).invoke(mRef, Agg(pa.address()))
 
-    threads(0).returnedVal(0)
-  }
   def lookupNatives(lookupName: String, lookupSig: imm.Sig) =
     vm.natives.trapped.find{case rt.NativeMethod(clsName, sig, func) =>
       (lookupName == clsName) && sig == lookupSig

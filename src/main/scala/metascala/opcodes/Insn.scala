@@ -51,7 +51,13 @@ object Insn{
 
   case class InvokeStatic(dest: Int, srcs: Agg[Int], clsIndex: Int, methodIndex: Int, special: Boolean) extends Invoke
   case class InvokeVirtual(dest: Int, srcs: Agg[Int], clsIndex: Int, sig: imm.Sig, methodIndex: Int) extends Invoke
-//  case class InvokeDynamic(name: String, desc: String, bsm: String, bsmArgs: Seq[Sym]) extends Invoke
+  case class InvokeDynamic(name: String,
+                           desc: String,
+                           bsTag: Int,
+                           bsOwner: String,
+                           bsName: String,
+                           bsDesc: String,
+                           bsArgs: Seq[AnyRef]) extends Invoke
 
   case class New(target: Int, clsIndex: Int) extends Insn
   case class NewArray(src: Int, dest: Int, typeRef: imm.Type) extends Insn

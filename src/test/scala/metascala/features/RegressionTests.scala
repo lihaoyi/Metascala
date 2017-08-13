@@ -1,9 +1,14 @@
 package metascala.features
 
+import java.security.AccessController
+import java.util.PropertyPermission
+
 import metascala.VM
 import metascala.full.ExternalLibTest
 import org.scalatest.FreeSpec
 import metascala.TestUtil._
+import sun.security.action.GetPropertyAction
+
 import scala.sys.BooleanProp
 
 /**
@@ -33,5 +38,17 @@ class RegressionTests extends FreeSpec{
 
     res == null
   }
-
+  "invokeDynamic" in {
+    // Exposed a problem where we were unnecessarily de-virtualizing the
+    // result of methods invoked from native methods, which causes problems
+    // when they return things like java.lang.Class instances which cannot
+    // be de-virtualized
+    val tester = new VM()
+    tester.test {
+      val key = "jdk.internal.lambda.dumpProxyClasses"
+      val action = new GetPropertyAction(key)
+      val permission = new PropertyPermission(key, "read")
+      AccessController.doPrivileged(action, null, permission)
+    }
+  }
 }

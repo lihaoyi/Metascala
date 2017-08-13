@@ -18,7 +18,6 @@ object Thread{
   trait VMInterface extends opcodes.SingleInsnSSAConverter.VMInterface{
     def insnLimit: Long
     def checkInitialized(cls: rt.Cls): Unit
-    def invokeRun(a: Int): Int
     def threads: Seq[Thread]
     def offHeap: Array[Byte]
     def setOffHeapPointer(n: Long): Unit
@@ -85,8 +84,8 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
     val node = block.insns(frame.pc._2)
 
 
-//    if (!threadStack.exists(x => x.method.sig.name == "<clinit>")) {
-//      val r = reader(frame.locals, 0)
+//    if (true) {
+//      val r = Util.reader(frame.locals, 0)
 //      lazy val localSnapshot =
 //        block.locals
 //          .flatMap(x => Seq(x.prettyRead(r)).padTo(x.size, "~"))
@@ -195,7 +194,9 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
             else (x: Int) => mapped.foreach(_(x))
           )
         }
-
+      case InvokeDynamic(name, desc, bsTag, bsOwner, bsName, bsDesc, bsArgs) =>
+        invoke(imm.Type.Cls(bsOwner), imm.Sig(bsName, Desc.read(bsDesc)), Agg.from(bsArgs))
+        ???
       case ArrayLength(src, dest) =>
         frame.locals(dest) = vm.arr(frame.locals(src)).arrayLength
         advancePc()
@@ -392,15 +393,19 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
 
   @tailrec final def throwException(ex: Obj, print: Boolean = true): Unit = {
     import math.Ordering.Implicits._
-    println("Throwing!")
+    if (print)println("Throwing!")
+    for(head <- threadStack.headOption){
+      println(head.runningClass + ":" + head.lineNum)
+    }
+
     threadStack.headOption match{
       case Some(frame)=>
         val handler =
           frame.method.code.tryCatches.find{x =>
             (x.start <= frame.pc) &&
-              (x.end >= frame.pc) &&
-              !x.blockType.isDefined ||
-              x.blockType.map(ex.cls.typeAncestry.contains).getOrElse(false)
+            (x.end >= frame.pc) &&
+            !x.blockType.isDefined ||
+            x.blockType.map(ex.cls.typeAncestry.contains).getOrElse(false)
           }
 
         handler match{
@@ -419,15 +424,22 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
     }
   }
   val bindingsInterface = new Bindings.Interface{
-    def invoke(cls: Type.Cls, sig: Sig, args: Agg[Any]) = thread.invoke(cls, sig, args)
+    def invoke(cls: Type.Cls, sig: Sig, args: Agg[Any]) = thread.invoke0(cls, sig, args)
 
-    def invoke(mRef: Method, args: Agg[Int]) = thread.invoke(mRef, args)
+    def invoke(mRef: Method, args: Agg[Int]) = thread.invoke0(mRef, args)
 
     def returnedVal = thread.returnedVal
 
     def alloc[T](func: rt.Obj.Registrar => T) = vm.alloc(func)
 
-    def invokeRun(a: Int) = vm.invokeRun(a)
+    def invokeRun(a: Int) = {
+      val pa = obj(a)
+      val mRef = resolveDirectRef(pa.cls.tpe, pa.cls.methods.find(_.sig.name == "run").get.sig).get
+      var x = 0
+      threads(0).invoke0(mRef, Agg(pa.address()))
+
+      threads(0).returnedVal(0)
+    }
     def newInstance(constr: Int, argArr: Int): Int = {
       val cls = new rt.Obj(constr)(this).apply("clazz")
       val name = toRealObj[String](new rt.Obj(cls)(this).apply("name")).replace('.', '/')
@@ -502,14 +514,7 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
 
     mRef match{
       case rt.NativeMethod(clsName, imm.Sig(name, desc), op) =>
-        try op(
-          bindingsInterface,
-          Util.reader(args.toArray, 0),
-          returnTo
-        )
-        catch{case e: Exception =>
-          throwExWithTrace(e.getClass.getName, e.getMessage)
-        }
+          op(bindingsInterface, Util.reader(args.toArray, 0), returnTo)
       case m @ rt.ClsMethod(clsIndex, methodIndex, sig, static, codethunk) =>
 
         assert(!m.native, "method cannot be native: " + ClsTable.clsIndex(clsIndex).name + " " + sig.unparse)
@@ -547,21 +552,29 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
 
   }
   def invoke(mRef: rt.Method, args: Agg[Int]): Any = {
+    invoke0(mRef, args)
+    Virtualizer.popVirtual(mRef.sig.desc.ret, Util.reader(returnedVal, 0))(bindingsInterface)
+  }
+  def invoke0(mRef: rt.Method, args: Agg[Int]): Any = {
     val startHeight = threadStack.length
     prepInvoke(mRef, args, Util.writer(returnedVal, 0))
 
     while(threadStack.length != startHeight) step()
 
 
-    Virtualizer.popVirtual(mRef.sig.desc.ret, Util.reader(returnedVal, 0))(bindingsInterface)
+
   }
 
   def invoke(cls: imm.Type.Cls, sig: imm.Sig, args: Agg[Any]): Any = {
+    invoke0(cls, sig, args)
+    Virtualizer.popVirtual(sig.desc.ret, Util.reader(returnedVal, 0))(bindingsInterface)
+  }
+  def invoke0(cls: imm.Type.Cls, sig: imm.Sig, args: Agg[Any]): Any = {
     val startHeight = threadStack.length
     prepInvoke(cls, sig, args, Util.writer(returnedVal, 0))
 
     while(threadStack.length != startHeight) step()
-    Virtualizer.popVirtual(sig.desc.ret, Util.reader(returnedVal, 0))(bindingsInterface)
+
   }
 }
 

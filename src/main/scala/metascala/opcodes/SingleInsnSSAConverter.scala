@@ -112,9 +112,17 @@ object SingleInsnSSAConverter {
       val clsIndex = vm.ClsTable.clsIndex.indexOf(runtimeCls)
       append(Insn.InvokeStatic(target, Agg.from(args.map(getBox)), clsIndex, mIndex, special))
     }
-//    def invokeDynamic(insn: InvokeDynamicInsnNode) = {
-//      append(Insn.InvokeDynamic(insn.name, insn.desc, insn.bsm, insn.bsmArgs))
-//    }
+    def invokeDynamic(insn: InvokeDynamicInsnNode) = {
+      append(Insn.InvokeDynamic(
+        insn.name,
+        insn.desc,
+        insn.bsm.getTag,
+        insn.bsm.getOwner,
+        insn.bsm.getName,
+        insn.bsm.getDesc,
+        insn.bsmArgs
+      ))
+    }
     implicit def intInsnNode(x: AbstractInsnNode) = x.asInstanceOf[IntInsnNode]
     implicit def jumpInsnNode(x: AbstractInsnNode) = x.asInstanceOf[JumpInsnNode]
     implicit def methodInsnNode(x: AbstractInsnNode) = {
@@ -290,7 +298,7 @@ object SingleInsnSSAConverter {
       case INVOKESPECIAL   => invokeStatic(insn, special = true)
       case INVOKEVIRTUAL   => invokeVirtual(insn, indexed = true)
       case INVOKEINTERFACE => invokeVirtual(insn, indexed = false)
-//      case INVOKEDYNAMIC => invokeDynamic(insn)
+      case INVOKEDYNAMIC => invokeDynamic(insn.asInstanceOf[InvokeDynamicInsnNode])
       case NEW =>
         append(Insn.New(
           top(nextFrame),
