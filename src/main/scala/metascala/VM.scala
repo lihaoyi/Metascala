@@ -5,7 +5,7 @@ import java.io.Writer
 import collection.mutable
 import annotation.tailrec
 import metascala.imm.{Sig, Type}
-import metascala.rt.{Cls, FrameDump, Obj, Thread}
+import metascala.rt.{Cls, ClsTable, FrameDump, Obj, Registrar, Thread}
 import metascala.natives.DefaultBindings
 import metascala.imm.Type.Prim
 import metascala.opcodes.Conversion
@@ -51,6 +51,9 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
   )
   def checkInitialized(cls: rt.Cls)(implicit vm: VMInterface): Unit = {
     if (!cls.initialized){
+      cls.statics = vm.alloc(implicit i =>
+        rt.Arr.alloc(imm.Type.Prim.I, cls.staticList.length)
+      )
       cls.initialized = true
       vm.resolveDirectRef(cls.tpe, Sig("<clinit>", imm.Desc.read("()V")))
         .foreach(threads(0).invoke(_, Agg.empty))
@@ -136,21 +139,22 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
 
     val classRoots = for {
       cls <- ClsTable.clsIndex.drop(1)
-    } yield cls.statics.address
+      if cls.statics != null
+    } yield cls.statics
 
     val classRoots2 = for {
       cls <- ClsTable.clsIndex.drop(1)
+      if cls.statics != null
       i <- 0 until cls.staticList.length
       if cls.staticList(i).desc.isRef
     } yield new Ref.ArrRef(
-      () => heap(cls.statics.address() + i + Constants.arrayHeaderSize),
-      heap(cls.statics.address() + i + Constants.arrayHeaderSize) = _
+      () => heap(cls.statics() + i + Constants.arrayHeaderSize),
+      heap(cls.statics() + i + Constants.arrayHeaderSize) = _
     )
 
     val clsObjRoots = typeObjCache.values
 
     classRoots ++ classRoots2 ++ stackRoots ++ clsObjRoots ++ registry ++ interned
-
   }
 
   /**
@@ -226,8 +230,8 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
       ).address()
     )
 
-    systemCls.statics(systemCls.staticList.indexWhere(_.name == "out")) = dummyWriter
-    systemCls.statics(systemCls.staticList.indexWhere(_.name == "err")) = dummyWriter
+    new rt.Arr(systemCls.statics)(systemCls.staticList.indexWhere(_.name == "out")) = dummyWriter
+    new rt.Arr(systemCls.statics)(systemCls.staticList.indexWhere(_.name == "err")) = dummyWriter
   }
   def check(s: imm.Type, t: imm.Type): Boolean = {
 

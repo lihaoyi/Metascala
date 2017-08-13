@@ -621,7 +621,7 @@ object DefaultBindings extends Bindings{
             },
             "staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;".func(I, I, I){(vt, unsafe, f) =>
               
-              vt.ClsTable(imm.Type.Cls(vt.toRealObj[String](vt.obj(vt.obj(f).apply("clazz")).apply("name")))).statics.address()
+              vt.ClsTable(imm.Type.Cls(vt.toRealObj[String](vt.obj(vt.obj(f).apply("clazz")).apply("name")))).statics()
             },
             "registerNatives()V".value(V)(()),
             "getUnsafe()Lsun/misc/Unsafe;".func(I){vt => vt.theUnsafe.address()},

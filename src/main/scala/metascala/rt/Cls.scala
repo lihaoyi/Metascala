@@ -1,12 +1,23 @@
 package metascala
 package rt
 
+import metascala.natives.Bindings
+
 import collection.mutable
+import scala.collection.mutable
 
+trait ClsTable extends(imm.Type.Cls => rt.Cls){
+  val clsIndex: mutable.ArrayBuffer[rt.Cls]
+}
 
-
-import metascala.imm.Sig
-import metascala.imm.Type.Prim.I
+/**
+  * Created by lihaoyi on 13/8/17.
+  */
+trait VMInterface_1 extends VMInterface_2{
+  implicit def ClsTable: ClsTable
+  def natives: Bindings
+  val log: (=> String) => Unit
+}
 
 /**
  * A handle to a readable and writable value.
@@ -31,7 +42,7 @@ class Cls(val tpe: imm.Type.Cls,
           val staticList: Seq[imm.Field],
           val outerCls: Option[imm.Type.Cls],
           val index: Int)
-         (implicit vm: VMInterface){
+         (implicit vm: VMInterface_1){
   import vm._
 
   var initialized = false
@@ -40,9 +51,7 @@ class Cls(val tpe: imm.Type.Cls,
 
 
   val isInterface = (accessFlags & Access.Interface) != 0
-  val statics = vm.alloc(implicit i =>
-    rt.Arr.alloc(I, staticList.length)
-  )
+  var statics: Ref = null
 
   def method(name: String, desc: imm.Desc): Option[rt.Method] = {
     clsAncestry.flatMap(_.methods)

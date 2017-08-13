@@ -207,12 +207,12 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         advancePc()
       case PutStatic(src, cls, index, prim) =>
         checkInitialized(cls)
-        Util.blit(frame.locals, src, cls.statics, index, prim.size)
+        Util.blit(frame.locals, src, new rt.Arr(cls.statics)(vm), index, prim.size)
         advancePc()
       case GetStatic(src, cls, index, prim) =>
 
         checkInitialized(cls)
-        Util.blit(cls.statics, index, frame.locals, src, prim.size)
+        Util.blit(new rt.Arr(cls.statics)(vm), index, frame.locals, src, prim.size)
         advancePc()
 
       case PutField(src, obj, index, prim) =>
@@ -383,7 +383,58 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         )
     }
   }
+  implicit val bindingsInterface = new Bindings.Interface{
+    def invoke(cls: Type.Cls, sig: Sig, args: Agg[Any]) = thread.invoke(cls, sig, args)
 
+    def invoke(mRef: Method, args: Agg[Val]) = thread.invoke(mRef, args)
+
+    def returnedVal = thread.returnedVal
+
+    def alloc[T](func: (Registrar) => T) = vm.alloc(func)
+
+    def resolveDirectRef(owner: Type.Cls, sig: Sig) = vm.resolveDirectRef(owner, sig)
+
+    def typeObjCache = vm.typeObjCache
+
+    def threads = vm.threads
+
+    def offHeap = vm.offHeap
+    def setOffHeapPointer(n: Long) = vm.offHeapPointer = n
+    def offHeapPointer = vm.offHeapPointer
+
+    def runningClassName(n: Val) = threadStack(n).runningClass.name
+
+    def threadStackLength = threadStack.length
+
+    def internedStrings = vm.internedStrings
+
+    def theUnsafe = vm.theUnsafe
+
+    def toRealObj[T](x: Val)(implicit ct: ClassTag[T]) = Virtualizer.toRealObj(x)(this, ct)
+
+    def toVirtObj(x: Any)(implicit registrar: Registrar) = vm.obj(Virtualizer.toVirtObj(x))
+
+    def trace = thread.trace
+
+    def currentThread = vm.currentThread
+
+    implicit def ClsTable = vm.ClsTable
+    def arrayTypeCache = vm.arrayTypeCache
+
+    def heap = vm.heap
+
+    def obj(address: Val) = vm.obj(address)
+
+    def arr(address: Val) = vm.arr(address)
+
+    def isArr(address: Val) = vm.isArr(address)
+
+    def isObj(address: Val) = vm.isObj(address)
+
+    def natives = vm.natives
+
+    val log = vm.log
+  }
   final def prepInvoke(mRef: rt.Method,
                        args: Agg[Int],
                        returnTo: Int => Unit) = {
@@ -392,54 +443,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     mRef match{
       case rt.Method.Native(clsName, imm.Sig(name, desc), op) =>
         try op(
-          new Bindings.Interface{
-            def invoke(cls: Type.Cls, sig: Sig, args: Agg[Any]) = thread.invoke(cls, sig, args)
-
-            def invoke(mRef: Method, args: Agg[Val]) = thread.invoke(mRef, args)
-
-            def returnedVal = thread.returnedVal
-
-            def alloc[T](func: (Registrar) => T) = vm.alloc(func)
-
-            def resolveDirectRef(owner: Type.Cls, sig: Sig) = vm.resolveDirectRef(owner, sig)
-
-            def typeObjCache = vm.typeObjCache
-
-            def threads = vm.threads
-
-            def offHeap = vm.offHeap
-            def setOffHeapPointer(n: Long) = vm.offHeapPointer = n
-            def offHeapPointer = vm.offHeapPointer
-
-            def runningClassName(n: Val) = threadStack(n).runningClass.name
-
-            def threadStackLength = threadStack.length
-
-            def internedStrings = vm.internedStrings
-
-            def theUnsafe = vm.theUnsafe
-
-            def toRealObj[T](x: Val)(implicit ct: ClassTag[T]) = Virtualizer.toRealObj(x)(vm, ct)
-
-            def toVirtObj(x: Any)(implicit registrar: Registrar) = vm.obj(Virtualizer.toVirtObj(x))
-
-            def trace = thread.trace
-
-            def currentThread = vm.currentThread
-
-            implicit def ClsTable = vm.ClsTable
-            def arrayTypeCache = vm.arrayTypeCache
-
-            def heap = vm.heap
-
-            def obj(address: Val) = vm.obj(address)
-
-            def arr(address: Val) = vm.arr(address)
-
-            def isArr(address: Val) = vm.isArr(address)
-
-            def isObj(address: Val) = vm.isObj(address)
-          },
+          bindingsInterface,
           reader(args.toArray, 0),
           returnTo
         )

@@ -28,8 +28,7 @@ object Method{
                  methodIndex: Int,
                  sig: imm.Sig,
                  accessFlags: Int,
-                 codeThunk: () => Code)
-                (implicit vm: VMInterface) extends Method{
+                 codeThunk: () => Code)extends Method{
     lazy val code = codeThunk()
 
     def static = (accessFlags & Access.Static) != 0

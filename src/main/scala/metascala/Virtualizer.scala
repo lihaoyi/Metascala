@@ -2,11 +2,13 @@ package metascala
 import scala.collection.mutable
 import imm.Type.Prim._
 import metascala.imm.Type.Prim
+import metascala.natives.Bindings
+import metascala.rt.{Registrar, VMInterface0}
 
 import scala.reflect.ClassTag
 
 object Virtualizer {
-  def toRealObj[T](v: Val)(implicit vm: VMInterface0, ct: ClassTag[T]) = {
+  def toRealObj[T](v: Val)(implicit vm: Bindings.Interface, ct: ClassTag[T]) = {
     Virtualizer.popVirtual(imm.Type.Cls(ct.runtimeClass.getName.replace('.', '/')), () => v)
       .asInstanceOf[T]
   }
@@ -25,7 +27,7 @@ object Virtualizer {
   def popVirtual(tpe: imm.Type,
                  src: () => Val,
                  refs: mutable.Map[Int, Any] = mutable.Map.empty)
-                (implicit vm: VMInterface0): Any = {
+                (implicit vm: Bindings.Interface): Any = {
     val x = tpe match {
       case V => ()
       case p: imm.Type.Prim[_] => p.read(src)
