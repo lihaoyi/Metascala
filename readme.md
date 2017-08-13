@@ -103,7 +103,7 @@ Immediate work includes:
 
 - Fleshing out the completeness of the Java implementation: multiple Threads, ClassLoaders, Filesystem access, enough to run some standard Java benchmarks and applications like [Rhino Javascript](https://developer.mozilla.org/en/docs/Rhino) or the [Scala Compiler](https://github.com/scala/scala).
 - Moving more of the VM's runtime functionality data-structures inside of the Metascala VM, rather than outside. For example, making the garbage collector run inside the VM, or having the class-related data structures inside the VM's heap, would allow better control of the VMs resource usage since they would count toward any bytecode/memory limits imposed on the VM.
-- Optimizing performance using macros. e.g. replacing for-loops with [macro-based for-loops](https://github.com/non/spire#syntax), or using macros to pre-compile the [Bindings](src/main/scala/metascala/natives/Bindings.scala) table so the work does not need to be done at run-time. Reducing the start-up cost and run-time overhead would help make Metascala a lightweight container for untrusted code.
+- Optimizing performance using macros. e.g. replacing for-loops with [macro-based for-loops](https://github.com/non/spire#syntax), or using macros to pre-compile the [Bindings](src/main/scala/metascala/natives/DefaultBindings.scala) table so the work does not need to be done at run-time. Reducing the start-up cost and run-time overhead would help make Metascala a lightweight container for untrusted code.
 
 Feel free to contact me (below) or open an issue/send a pull request if you're interested and want to help out. Contributions are welcome!
 

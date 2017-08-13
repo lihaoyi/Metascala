@@ -12,22 +12,6 @@ package object metascala {
 
 
 
-  def isObj(i: Int) = i < 0
-  def isArr(i: Int) = i > 0
-  implicit class pimpedVal(val v: Val) extends AnyVal{
-    def isObj(implicit vm: VMInterface) = metascala.isObj(vm.heap(v))
-    def isArr(implicit vm: VMInterface) = metascala.isArr(vm.heap(v))
-    def obj(implicit vm: VMInterface) = {
-
-      //assert(isObj, v + " " + vm.heap.memory.slice(v / 10 * 10, v / 10 * 10 + 10).toList)
-      new Obj(v)
-    }
-    def arr(implicit vm: VMInterface) = {
-//      assert(isArr, v)
-      new Arr(v)
-    }
-  }
-
 
 
   type Val = Int

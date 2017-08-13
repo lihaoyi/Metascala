@@ -1,6 +1,7 @@
 package metascala
 package rt
 
+import metascala.natives.Bindings
 import metascala.opcodes.Code
 
 
@@ -14,7 +15,7 @@ trait Method{
 object Method{
   case class Native(clsName: String,
                      sig: imm.Sig,
-                     func: (rt.Thread, () => Int, Int => Unit) => Unit)
+                     func: (Bindings.Interface, () => Int, Int => Unit) => Unit)
                      extends Method{
     override def toString = s"Method.Native(${clsName}, ${sig.unparse}})"
   }

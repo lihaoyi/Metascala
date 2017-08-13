@@ -43,7 +43,7 @@ class Heap(memorySize: Int,
     } else if (memory(src) == 0){
       throw new Exception("Can't point to nothing! " + src + " -> " + memory(src))
     }else if (memory(src + 1) >= 0){
-      val headerSize = if (isObj(memory(src))) Constants.objectHeaderSize else Constants.arrayHeaderSize
+      val headerSize = if (memory(src) < 0) Constants.objectHeaderSize else Constants.arrayHeaderSize
       val length =  memory(src+1) + headerSize
 
       //        println(s"blit obj length: ${obj.heapSize}")
@@ -101,7 +101,7 @@ class Heap(memorySize: Int,
 //      println(dump())
       assert(scanPointer <= freePointer, s"scanPointer $scanPointer > freePointer $freePointer")
 
-      val links = getLinks(memory(scanPointer), memory(scanPointer+1))
+      val links = getLinks(scanPointer, scanPointer+1)
       val length = memory(scanPointer + 1) + Constants.objectHeaderSize
 
       for(i <- links){

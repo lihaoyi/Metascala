@@ -6,7 +6,7 @@ import metascala.imm.Type.Prim
 import scala.reflect.ClassTag
 
 object Virtualizer {
-  def toRealObj[T](v: Val)(implicit vm: VMInterface, ct: ClassTag[T]) = {
+  def toRealObj[T](v: Val)(implicit vm: VMInterface0, ct: ClassTag[T]) = {
     Virtualizer.popVirtual(imm.Type.Cls(ct.runtimeClass.getName.replace('.', '/')), () => v)
       .asInstanceOf[T]
   }
@@ -22,7 +22,10 @@ object Virtualizer {
     g
   }
 
-  def popVirtual(tpe: imm.Type, src: () => Val, refs: mutable.Map[Int, Any] = mutable.Map.empty)(implicit vm: VMInterface): Any = {
+  def popVirtual(tpe: imm.Type,
+                 src: () => Val,
+                 refs: mutable.Map[Int, Any] = mutable.Map.empty)
+                (implicit vm: VMInterface0): Any = {
     val x = tpe match {
       case V => ()
       case p: imm.Type.Prim[_] => p.read(src)
@@ -31,7 +34,7 @@ object Virtualizer {
         if(address == 0) null
         else if (refs.contains(address)) refs(address)
         else tpe match{
-          case imm.Type.Cls("java/lang/Object") | imm.Type.Arr(_) if address.isArr =>
+          case imm.Type.Cls("java/lang/Object") | imm.Type.Arr(_) if vm.isArr(address) =>
 
             val tpe = vm.arrayTypeCache(vm.heap(address))
 
@@ -40,9 +43,9 @@ object Virtualizer {
               case None => Class.forName(tpe.name.replace('/', '.'))
             }
 
-            val newArr = java.lang.reflect.Array.newInstance(clsObj, address.arr.arrayLength)
+            val newArr = java.lang.reflect.Array.newInstance(clsObj, vm.arr(address).arrayLength)
 
-            for(i <- 0 until address.arr.arrayLength){
+            for(i <- 0 until vm.arr(address).arrayLength){
 
               val cooked = tpe match{
                 case p: imm.Type.Prim[_] => p.read(reader(vm.heap.memory, address + Constants.arrayHeaderSize + i * tpe.size))
@@ -53,10 +56,10 @@ object Virtualizer {
 
             newArr
           case t @ imm.Type.Cls(name)=>
-            val obj = unsafe.allocateInstance(Class.forName(address.obj.cls.name.replace('/', '.')))
+            val obj = unsafe.allocateInstance(Class.forName(vm.obj(address).cls.name.replace('/', '.')))
             refs += (address -> obj)
             var index = 0
-            for(field <- address.obj.cls.fieldList.distinct){
+            for(field <- vm.obj(address).cls.fieldList.distinct){
               // workaround for http://bugs.sun.com/view_bug.do?bug_id=4763881
               if (field.name == "backtrace") index += 1 // just skip it
               else{

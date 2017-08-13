@@ -6,7 +6,7 @@ import collection.mutable
 import annotation.tailrec
 import metascala.imm.{Sig, Type}
 import metascala.rt.{Cls, FrameDump, Obj, Thread}
-import metascala.natives.Bindings
+import metascala.natives.DefaultBindings
 import metascala.imm.Type.Prim
 import metascala.opcodes.Conversion
 import org.objectweb.asm.ClassReader
@@ -26,12 +26,16 @@ class DummyWriter extends Writer {
  * native bindings, as well as a logging function which it will use to log all of
  * its bytecode operations
  */
-class VM(val natives: Bindings.type = Bindings,
+class VM(val natives: DefaultBindings.type = DefaultBindings,
          val insnLimit: Long = Long.MaxValue,
          val log: ((=>String) => Unit) = s => (),
          val memorySize: Int = 1 * 1024 * 1024,
          initializeStdout: Boolean = false) extends VMInterface{
-
+  def isObj(address: Int): Boolean = heap(address) < 0
+  def isArr(address: Int): Boolean = heap(address) > 0
+  def obj(address: Int): metascala.rt.Obj = new rt.Obj(address)
+  def arr(address: Int): metascala.rt.Arr = new rt.Arr(address)
+  def thUnsafe: metascala.rt.Obj = ???
   private[this] implicit val vm = this
 
   var ready = false
@@ -89,15 +93,15 @@ class VM(val natives: Bindings.type = Bindings,
 
   ready = true
 
-  def getLinks(tpe: Int, length: Int) = {
+  def getLinks(tpe: Int, length: Int): Seq[Int] = {
     if (isObj(tpe)) {
       for {
-        (x, i) <- ClsTable.clsIndex(-tpe).fieldList.zipWithIndex
+        (x, i) <- ClsTable.clsIndex(-heap(tpe)).fieldList.zipWithIndex
         if x.desc.isRef
       } yield i + Constants.objectHeaderSize
     } else {
-      if (arrayTypeCache(tpe).isRef) {
-        for (i <- 0 until length) yield i + Constants.arrayHeaderSize
+      if (arrayTypeCache(heap(tpe)).isRef) {
+        for (i <- 0 until heap(length)) yield i + Constants.arrayHeaderSize
       } else Nil
     }
   }

@@ -23,11 +23,11 @@ object Obj{
 
   implicit def unwrap1(x: Obj): Int = x.address.apply()
   implicit def unwrap2(x: Obj): Ref = x.address
-  def unapply(x: Val)(implicit vm: VMInterface) = new Obj(x)
+  def unapply(x: Val)(implicit vm: VMInterface0) = new Obj(x)
 }
 
 class Obj(val address: Ref)
-         (implicit vm: VMInterface) {
+         (implicit vm: VMInterface0) {
   /**
    * Layout
    * ------

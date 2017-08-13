@@ -3,17 +3,20 @@ package rt
 
 import scala.collection.mutable
 import annotation.tailrec
-import metascala.opcodes.{TryCatchBlock, Invoke, Jump, Insn}
+import metascala.opcodes.{Insn, Invoke, Jump, TryCatchBlock}
 import Insn._
-
-
 import Insn.Push
 import Insn.InvokeStatic
 import Insn.ReturnVal
+import metascala.imm.{Sig, Type}
+import metascala.natives.Bindings
+
+import scala.reflect.ClassTag
 /**
  * A single thread within the Metascala VM.
  */
-class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(implicit val vm: VM){
+class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
+            (implicit val vm: VM) { thread =>
   import vm._
 
   private[this] var opCount = 0L
@@ -96,7 +99,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         advancePc()
 
       case InvokeStatic(target, sources, owner, m) =>
-        owner.checkInitialized()
+        vm.ClsTable(owner).checkInitialized()
         // Check for InvokeSpecial, which gets folded into InvokeStatic
         val thisCell = sources.length > m.sig.desc.args.length
 
@@ -131,10 +134,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         else {
           val mRef = mIndex match{
             case -1 =>
-              argZero.obj.cls.vTableMap(sig)
+              vm.obj(argZero).cls.vTableMap(sig)
             case _ =>
               val cls =
-                if (argZero.isObj) argZero.obj.cls
+                if (vm.isObj(argZero)) vm.obj(argZero).cls
                 else ClsTable(owner)
               cls.vTable(mIndex)
           }
@@ -160,7 +163,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         }
 
       case ArrayLength(src, dest) =>
-        frame.locals(dest) = frame.locals(src).arr.arrayLength
+        frame.locals(dest) = vm.arr(frame.locals(src)).arrayLength
         advancePc()
 
       case NewArray(src, dest, typeRef) =>
@@ -169,7 +172,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         advancePc()
 
       case PutArray(src, index, array, prim) =>
-        val arr = frame.locals(array).arr
+        val arr = vm.arr(frame.locals(array))
         if (0 <= frame.locals(index) && frame.locals(index) < arr.arrayLength){
           Util.blit(frame.locals, src, arr, frame.locals(index) * prim.size, prim.size)
           advancePc()
@@ -178,7 +181,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         }
 
       case GetArray(dest, index, array, prim) =>
-        val arr = frame.locals(array).arr
+        val arr = vm.arr(frame.locals(array))
         if (0 <= frame.locals(index) && frame.locals(index) < arr.arrayLength){
           Util.blit(arr, frame.locals(index) * prim.size, frame.locals, dest, prim.size)
           advancePc()
@@ -216,7 +219,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         if (frame.locals(obj) == 0){
           throwExWithTrace("java/lang/NullPointerException", "null")
         }else{
-          Util.blit(frame.locals, src, frame.locals(obj).obj.members, index, prim.size)
+          Util.blit(frame.locals, src, vm.obj(frame.locals(obj)).members, index, prim.size)
           advancePc()
         }
 
@@ -224,7 +227,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         if (frame.locals(obj) == 0){
           throwExWithTrace("java/lang/NullPointerException", "null")
         }else{
-          Util.blit(frame.locals(obj).obj.members, index, frame.locals, src, prim.size)
+          Util.blit(vm.obj(frame.locals(obj)).members, index, frame.locals, src, prim.size)
           advancePc()
         }
 
@@ -267,8 +270,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       case CheckCast(src, dest, desc) =>
         frame.locals(src) match{
           case top
-            if (top.isArr && !check(top.arr.tpe, desc))
-            || (top.isObj && !check(top.obj.tpe, desc)) =>
+            if (vm.isArr(top) && !check(vm.arr(top).tpe, desc))
+            || (vm.isObj(top) && !check(vm.obj(top).tpe, desc)) =>
 
             throwExWithTrace("java/lang/ClassCastException", "")
           case _ =>
@@ -278,7 +281,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
       case InstanceOf(src, dest, desc) =>
         frame.locals(dest) = frame.locals(src) match{
           case 0 => 0
-          case top if (top.isArr && !check(top.arr.tpe, desc)) || (top.isObj && !check(top.obj.tpe, desc)) =>
+          case top if (vm.isArr(top) && !check(vm.arr(top).tpe, desc)) || (vm.isObj(top) && !check(vm.obj(top).tpe, desc)) =>
             0
           case _ => 1
         }
@@ -305,7 +308,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
         frame.locals(symbol) = array
         advancePc()
       case AThrow(src) =>
-        this.throwException(frame.locals(src).obj)
+        this.throwException(vm.obj(frame.locals(src)))
     }
 
 
@@ -388,7 +391,58 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())(
 
     mRef match{
       case rt.Method.Native(clsName, imm.Sig(name, desc), op) =>
-        try op(this, reader(args.toArray, 0), returnTo)
+        try op(
+          new Bindings.Interface{
+            def invoke(cls: Type.Cls, sig: Sig, args: Agg[Any]) = thread.invoke(cls, sig, args)
+
+            def invoke(mRef: Method, args: Agg[Val]) = thread.invoke(mRef, args)
+
+            def returnedVal = thread.returnedVal
+
+            def alloc[T](func: (Registrar) => T) = vm.alloc(func)
+
+            def resolveDirectRef(owner: Type.Cls, sig: Sig) = vm.resolveDirectRef(owner, sig)
+
+            def typeObjCache = vm.typeObjCache
+
+            def threads = vm.threads
+
+            def offHeap = vm.offHeap
+            def setOffHeapPointer(n: Long) = vm.offHeapPointer = n
+            def offHeapPointer = vm.offHeapPointer
+
+            def runningClassName(n: Val) = threadStack(n).runningClass.name
+
+            def threadStackLength = threadStack.length
+
+            def internedStrings = vm.internedStrings
+
+            def theUnsafe = vm.theUnsafe
+
+            def toRealObj[T](x: Val)(implicit ct: ClassTag[T]) = Virtualizer.toRealObj(x)(vm, ct)
+
+            def toVirtObj(x: Any)(implicit registrar: Registrar) = vm.obj(Virtualizer.toVirtObj(x))
+
+            def trace = thread.trace
+
+            def currentThread = vm.currentThread
+
+            implicit def ClsTable = vm.ClsTable
+            def arrayTypeCache = vm.arrayTypeCache
+
+            def heap = vm.heap
+
+            def obj(address: Val) = vm.obj(address)
+
+            def arr(address: Val) = vm.arr(address)
+
+            def isArr(address: Val) = vm.isArr(address)
+
+            def isObj(address: Val) = vm.isObj(address)
+          },
+          reader(args.toArray, 0),
+          returnTo
+        )
         catch{case e: Exception =>
           throwExWithTrace(e.getClass.getName, e.getMessage)
         }
