@@ -3,7 +3,7 @@ package rt
 
 import scala.collection.mutable
 import annotation.tailrec
-import metascala.opcodes.{Insn, TryCatchBlock}
+import metascala.opcodes.{BasicBlock, Insn, TryCatchBlock}
 import Insn._
 import Insn.Push
 import Insn.InvokeStatic
@@ -26,6 +26,7 @@ object Thread{
     def internedStrings: mutable.Map[String, Int]
     def natives: Bindings
     def check(s: imm.Type, t: imm.Type): Boolean
+    def logger: Logger
   }
 
   /**
@@ -38,6 +39,24 @@ object Thread{
               val returnTo: Int => Unit,
               val locals: Array[Int])
 
+  trait Logger{
+    def active: Boolean
+    def logStep(indentCount: Int,
+                clsName: String,
+                frame: Frame,
+                node: Insn,
+                block: BasicBlock): Unit
+    def logPhi(indentCount: Int, clsName: String, shifts: Iterator[(Int, Int)]): Unit
+  }
+  object NonLogger{
+    def active = false
+    def logStep(indentCount: Int,
+                clsName: String,
+                frame: Frame,
+                node: Insn,
+                block: BasicBlock): Unit = ()
+    def logPhi(indentCount: Int, clsName: String, shifts: Iterator[(Int, Int)]): Unit = ()
+  }
 }
 /**
  * A single thread within the Metascala VM.
@@ -53,18 +72,27 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
   val returnedVal = Array(0, 0)
   private[this] var insnCount = 0L
   def count = insnCount
-  def indent = "\t" * threadStack.filter(_.method.sig.name != "Dummy").length
+  def indent = threadStack.length
+
 
 
   def doPhi(frame: Thread.Frame, oldBlock: Int, newBlock: Int) = {
+    lazy val output = mutable.Buffer.empty[fansi.Str]
+
     val phi = frame.method.code.blocks(newBlock).phi(oldBlock)
     val temp = phi.map(x => frame.locals(x._1))
+    if (vm.logger.active) vm.logger.logPhi(
+      indent,
+      ClsTable.clsIndex(frame.method.clsIndex).name,
+      (0 until temp.length).iterator.map(i => (i, phi(i)._2))
+    )
     java.util.Arrays.fill(frame.locals, 0)
     for (i <- 0 until temp.length){
       val (src, dest) = (temp(i), phi(i)._2)
       frame.locals(dest) = src
     }
     phi
+
   }
 
   def jumpPhis(target: Int) = {
@@ -83,18 +111,13 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
 
     val node = block.insns(frame.pc._2)
 
-
-//    if (true) {
-//      val r = Util.reader(frame.locals, 0)
-//      lazy val localSnapshot =
-//        block.locals
-//          .flatMap(x => Seq(x.prettyRead(r)).padTo(x.size, "~"))
-//          .toList
-//
-//      println(indent + "::\t" + frame.runningClass.shortName + "/" + frame.method.sig.shortName + ":" + block.lines(frame.pc._2) + "\t"  + localSnapshot)
-//      println(indent + "::\t" + frame.pc + "\t" + node )
-//      //      println(indent + "::\t" + vm.heap.dump().replace("\n", "\n" + indent + "::\t"))
-//    }
+    if (vm.logger.active) vm.logger.logStep(
+      indent,
+      ClsTable.clsIndex(frame.method.clsIndex).name,
+      frame,
+      node,
+      block
+    )
 
     val currentFrame = frame
 
@@ -501,8 +524,6 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
     def isObj(address: Int) = vm.isObj(address)
 
     def natives = vm.natives
-
-    val log = vm.log
 
     def lookupNatives(lookupName: String, lookupSig: imm.Sig) = vm.natives.trapped.find{case rt.NativeMethod(clsName, sig, func) =>
       (lookupName == clsName) && sig == lookupSig

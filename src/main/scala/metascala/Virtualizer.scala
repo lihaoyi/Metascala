@@ -126,17 +126,7 @@ object Virtualizer {
         var index = 0
         val contents = mutable.Buffer.empty[Ref]
         val decFields = b.getClass.getDeclaredFields
-        registrar.vm.log("push Object " + b.getClass.getName)
-        decFields.foreach(x =>
-          registrar.vm.log(x.getName)
-        )
-        vm.log("---------------------")
-        for(field <- vm.ClsTable(imm.Type.Cls.apply(b.getClass.getName)).fieldList.distinct){
-          registrar.vm.log(field.name)
-        }
-        vm.log("=====================")
         for(field <- vm.ClsTable(imm.Type.Cls.apply(b.getClass.getName)).fieldList.distinct) yield {
-          vm.log("Loop: " + field.name)
           val f = decFields.find(_.getName == field.name).get
           f.setAccessible(true)
           pushVirtual(f.get(b), x => {

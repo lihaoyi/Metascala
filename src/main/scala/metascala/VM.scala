@@ -19,9 +19,9 @@ import org.objectweb.asm.tree.ClassNode
  */
 class VM(val natives: DefaultBindings.type = DefaultBindings,
          val insnLimit: Long = Long.MaxValue,
-         val log: ((=>String) => Unit) = s => (),
          val memorySize: Int = 1 * 1024 * 1024,
-         initializeStdout: Boolean = false) extends Thread.VMInterface{
+         initializeStdout: Boolean = false,
+         val logger: Thread.Logger = new ColorLogger {}) extends Thread.VMInterface{
   def isObj(address: Int): Boolean = heap(address) < 0
   def isArr(address: Int): Boolean = heap(address) > 0
   def obj(address: Int): metascala.rt.Obj = new rt.Obj(address)

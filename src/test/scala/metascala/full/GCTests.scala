@@ -108,14 +108,8 @@ class GCTests extends FreeSpec {
     }
   }
   "parseClass" in {
-    val bl = new BufferLog(4000)
-    val tester = new Tester("metascala.full.ScalaLib", log=bl, memorySize = 12 * 1024)
-    try{
-      for(i <- 1 to 5) tester.run("parseClass")
-    } catch{case e =>
-//      bl.lines.foreach(println)
-      throw e
-    }
+    val tester = new Tester("metascala.full.ScalaLib", memorySize = 12 * 1024)
+    for(i <- 1 to 5) tester.run("parseClass")
   }
 
   "gcInterrupt" in {

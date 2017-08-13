@@ -1,3 +1,4 @@
+
 organization  := "com.example"
 version       := "0.1"
 scalaVersion  := "2.11.11"
@@ -7,9 +8,9 @@ libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "3.0.1" % "test",
   "org.mozilla" % "rhino" % "1.7R4",
   "com.lihaoyi" %% "classparse" % "0.4.3" % "test",
-  "com.lihaoyi" %% "fansi" % "0.2.4" % "test",
+  "com.lihaoyi" %% "fansi" % "0.2.4",
   "com.lihaoyi" %% "scalatags" % "0.6.5" % "test",
-  "com.lihaoyi" %% "pprint" % "0.5.2" % "test",
+  "com.lihaoyi" %% "pprint" % "0.5.2",
   "com.google.errorprone" % "javac" % "9-dev-r4023-2"
 
 )

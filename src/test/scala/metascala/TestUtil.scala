@@ -71,7 +71,7 @@ object TestUtil {
     }
   }
 
-  class SingleClassVM(className: String, log: (=>String) => Unit, memorySize: Int = 1024) extends VM(log = log, memorySize=memorySize){
+  class SingleClassVM(className: String, memorySize: Int = 1024) extends VM(memorySize=memorySize){
     def run(main: String, args: Any*): Any ={
       val res = invoke(className.replace('.', '/'), main, args)
       res
@@ -144,9 +144,9 @@ object TestUtil {
       method.invoke(null, args.map(x => x.asInstanceOf[AnyRef]):_*)
     }
   }
-  class Tester(className: String, log: (=>String) => Unit = x => (), memorySize: Int = 1 * 1024 * 1024){
+  class Tester(className: String, memorySize: Int = 1 * 1024 * 1024){
 
-    implicit val svm = new TestUtil.SingleClassVM(className, log, memorySize)
+    implicit val svm = new TestUtil.SingleClassVM(className, memorySize)
     val ref = new ReflectiveRunner(className)
     def run(main: String, args: Any*) = {
 

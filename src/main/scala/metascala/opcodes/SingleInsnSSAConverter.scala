@@ -16,7 +16,6 @@ import Insn._
 import metascala.util.{Agg, Ref}
 object SingleInsnSSAConverter {
   trait VMInterface extends rt.Obj.VMInterface{
-    val log: (=> String) => Unit
     def alloc[T](func: rt.Obj.Registrar => T): T
     val arrayTypeCache: mutable.Buffer[imm.Type]
     def arr(address: Int): rt.Arr

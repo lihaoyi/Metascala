@@ -13,7 +13,6 @@ object Cls{
   trait VMInterface extends rt.Arr.CoreVMInterface{
     implicit def ClsTable: ClsTable
     def lookupNatives(name: String, sig: imm.Sig): Option[rt.Method]
-    val log: (=> String) => Unit
   }
 }
 
