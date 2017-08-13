@@ -3,7 +3,7 @@ package rt
 
 import scala.collection.mutable
 import annotation.tailrec
-import metascala.opcodes.{Insn, Invoke, Jump, TryCatchBlock}
+import metascala.opcodes.{Insn, TryCatchBlock}
 import Insn._
 import Insn.Push
 import Insn.InvokeStatic
@@ -15,7 +15,7 @@ import metascala.util._
 import scala.reflect.ClassTag
 
 object Thread{
-  trait VMInterface extends opcodes.ConvertInsn.VMInterface{
+  trait VMInterface extends opcodes.SingleInsnSSAConverter.VMInterface{
     def insnLimit: Long
     def checkInitialized(cls: rt.Cls): Unit
     def invokeRun(a: Int): Int
@@ -28,11 +28,22 @@ object Thread{
     def natives: Bindings
     def check(s: imm.Type, t: imm.Type): Boolean
   }
+
+  /**
+    * The stack frame created by every method call
+    */
+  class Frame(var pc: (Int, Int) = (0, 0),
+              val runningClass: rt.Cls,
+              val method: rt.ClsMethod,
+              var lineNum: Int = 0,
+              val returnTo: Int => Unit,
+              val locals: Array[Int])
+
 }
 /**
  * A single thread within the Metascala VM.
  */
-class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
+class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArrayStack())
             (implicit val vm: Thread.VMInterface) { thread =>
   import vm._
 
@@ -46,7 +57,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
   def indent = "\t" * threadStack.filter(_.method.sig.name != "Dummy").length
 
 
-  def doPhi(frame: Frame, oldBlock: Int, newBlock: Int) = {
+  def doPhi(frame: Thread.Frame, oldBlock: Int, newBlock: Int) = {
     val phi = frame.method.code.blocks(newBlock).phi(oldBlock)
     val temp = phi.map(x => frame.locals(x._1))
     java.util.Arrays.fill(frame.locals, 0)
@@ -503,7 +514,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
         assert(!m.native, "method cannot be native: " + ClsTable.clsIndex(clsIndex).name + " " + sig.unparse)
         val padded = args.toArray.padTo(m.code.localSize, 0)
-        val startFrame = new Frame(
+        val startFrame = new Thread.Frame(
           runningClass = ClsTable.clsIndex(clsIndex),
           method = m,
           returnTo = returnTo,
@@ -554,18 +565,3 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
   }
 }
 
-case class FrameDump(clsName: String,
-                     methodName: String,
-                     fileName: String,
-                     lineNumber: Int)
-
-
-/**
- * The stack frame created by every method call
- */
-class Frame(var pc: (Int, Int) = (0, 0),
-            val runningClass: rt.Cls,
-            val method: rt.ClsMethod,
-            var lineNum: Int = 0,
-            val returnTo: Int => Unit,
-            val locals: Array[Int])

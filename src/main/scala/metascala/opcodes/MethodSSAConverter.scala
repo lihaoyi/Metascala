@@ -52,7 +52,7 @@ object Conversion {
 
   }
 
-  def ssa(clsName: String, method: MethodNode)(implicit vm: ConvertInsn.VMInterface): Code = {
+  def ssa(clsName: String, method: MethodNode)(implicit vm: SingleInsnSSAConverter.VMInterface): Code = {
 
     val allInsns = method.instructions.toArray
 
@@ -244,7 +244,7 @@ object Conversion {
 
       for ((insn, i) <- blockInsns(blockId).zipWithIndex) try {
 
-        ConvertInsn(
+        SingleInsnSSAConverter(
           insn,
           (in: Insn) => {
             buffer.append(in)
@@ -330,7 +330,7 @@ object Conversion {
         (b.start.block, b.start.insn),
         (b.end.block, b.end.insn),
         b.handler.block,
-        blockBuffers(b.handler.block)._3(ConvertInsn.top(allFrames(blockMap(allInsns.indexOf(b.handler))).head)),
+        blockBuffers(b.handler.block)._3(SingleInsnSSAConverter.top(allFrames(blockMap(allInsns.indexOf(b.handler))).head)),
         Option(b.`type`).map(imm.Type.Cls.apply)
       )
     }

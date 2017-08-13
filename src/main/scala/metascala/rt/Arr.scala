@@ -5,9 +5,6 @@ import metascala._
 import metascala.imm
 import metascala.util.{Constants, Ref}
 
-import scala.Some
-
-
 object Arr{
 
   trait CoreVMInterface {

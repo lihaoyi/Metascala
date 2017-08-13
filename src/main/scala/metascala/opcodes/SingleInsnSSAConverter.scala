@@ -2,14 +2,10 @@ package metascala
 package opcodes
 
 
-
-import org.objectweb.asm.Type
-
 import scala.collection.mutable
 import metascala.imm.Type.Prim
 import metascala.imm.Type.Prim._
 
-import scala.annotation.tailrec
 import org.objectweb.asm.tree._
 
 import scala.collection.JavaConversions._
@@ -18,7 +14,7 @@ import org.objectweb.asm.tree.analysis._
 import org.objectweb.asm.Opcodes._
 import Insn._
 import metascala.util.{Agg, Ref}
-object ConvertInsn {
+object SingleInsnSSAConverter {
   trait VMInterface extends rt.Obj.VMInterface{
     val log: (=> String) => Unit
     def alloc[T](func: rt.Obj.Registrar => T): T

@@ -1,6 +1,4 @@
 package metascala
-import collection.convert.wrapAsScala._
-import reflect.ClassTag
 
 /**
  * This metascala contains the code involved in reading .class files

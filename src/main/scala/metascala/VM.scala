@@ -3,22 +3,14 @@ package metascala
 import java.io.Writer
 
 import collection.mutable
-import annotation.tailrec
 import metascala.imm.{Sig, Type}
-import metascala.rt.{Cls, ClsTable, FrameDump, Obj, Thread}
+import metascala.rt.{Cls, ClsTable, Obj, Thread}
 import metascala.natives.DefaultBindings
-import metascala.imm.Type.Prim
 import metascala.opcodes.Conversion
 import metascala.util._
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
 
-
-class DummyWriter extends Writer {
-  def flush() = ()
-  def close() = ()
-  def write(cbuf: Array[Char], off: Int, len: Int) = ()
-}
 
 
 /**

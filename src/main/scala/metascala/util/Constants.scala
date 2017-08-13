@@ -1,8 +1,5 @@
 package metascala.util
 
-import scala.collection.mutable
-
-
 object Access{
 
   val Public    = 0x0001 // 1

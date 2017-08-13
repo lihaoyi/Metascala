@@ -4,7 +4,6 @@ package opcodes
 
 import metascala.imm.Type.Prim
 import metascala.imm.Type
-import metascala.imm
 import metascala.util.Agg
 
 class Jump(override val targets: Agg[Int]) extends Insn

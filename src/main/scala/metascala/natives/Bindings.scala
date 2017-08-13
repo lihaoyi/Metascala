@@ -1,7 +1,7 @@
 package metascala.natives
 
 
-import metascala.imm.{Sig, Type}
+import metascala.imm.Sig
 import metascala.rt.Obj
 import metascala.util.{Agg, Ref}
 import metascala.{imm, rt}
