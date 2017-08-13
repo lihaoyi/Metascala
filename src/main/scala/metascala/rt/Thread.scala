@@ -478,7 +478,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     val log = vm.log
 
-    def lookupNatives(lookupName: String, lookupSig: imm.Sig) = vm.natives.trapped.find{case rt.Method.Native(clsName, sig, func) =>
+    def lookupNatives(lookupName: String, lookupSig: imm.Sig) = vm.natives.trapped.find{case rt.NativeMethod(clsName, sig, func) =>
       (lookupName == clsName) && sig == lookupSig
     }
   }
@@ -488,7 +488,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 //    println(indent + "PrepInvoke " + mRef + " with " + args)
 
     mRef match{
-      case rt.Method.Native(clsName, imm.Sig(name, desc), op) =>
+      case rt.NativeMethod(clsName, imm.Sig(name, desc), op) =>
         try op(
           bindingsInterface,
           reader(args.toArray, 0),
@@ -497,7 +497,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         catch{case e: Exception =>
           throwExWithTrace(e.getClass.getName, e.getMessage)
         }
-      case m @ rt.Method.Cls(clsIndex, methodIndex, sig, static, codethunk) =>
+      case m @ rt.ClsMethod(clsIndex, methodIndex, sig, static, codethunk) =>
 
         assert(!m.native, "method cannot be native: " + ClsTable.clsIndex(clsIndex).name + " " + sig.unparse)
         val padded = args.toArray.padTo(m.code.localSize, 0)
@@ -563,7 +563,7 @@ case class FrameDump(clsName: String,
  */
 class Frame(var pc: (Int, Int) = (0, 0),
             val runningClass: rt.Cls,
-            val method: rt.Method.Cls,
+            val method: rt.ClsMethod,
             var lineNum: Int = 0,
             val returnTo: Int => Unit,
             val locals: Array[Val])

@@ -115,9 +115,11 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
 
     threads(0).returnedVal(0)
   }
-  def lookupNatives(lookupName: String, lookupSig: imm.Sig) = vm.natives.trapped.find{case rt.Method.Native(clsName, sig, func) =>
-    (lookupName == clsName) && sig == lookupSig
-  }
+  def lookupNatives(lookupName: String, lookupSig: imm.Sig) =
+    vm.natives.trapped.find{case rt.NativeMethod(clsName, sig, func) =>
+      (lookupName == clsName) && sig == lookupSig
+    }
+
   ready = true
 
   def getLinks(tpe: Int, length: Int): Seq[Int] = {
@@ -204,7 +206,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
           NullSafe(classNode.methods)
             .zipWithIndex
             .map{case (mn, i) =>
-              new rt.Method.Cls(
+              new rt.ClsMethod(
                 clsIndex.length,
                 i,
                 Sig(mn.name, imm.Desc.read(mn.desc)),
