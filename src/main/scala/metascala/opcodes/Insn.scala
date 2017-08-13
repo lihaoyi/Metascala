@@ -49,17 +49,17 @@ object Insn{
   case class Push[T](dest: Sym, prim: Prim[T], value: T) extends Insn
   case class Ldc(dest: Sym, value: Int) extends Insn
 
-  case class InvokeStatic(dest: Sym, srcs: Agg[Sym], owner: Type.Cls, methodIndex: Int, special: Boolean) extends Invoke
-  case class InvokeVirtual(dest: Sym, srcs: Agg[Sym], owner: Type.Cls, sig: imm.Sig, methodIndex: Int) extends Invoke
+  case class InvokeStatic(dest: Sym, srcs: Agg[Sym], clsIndex: Int, methodIndex: Int, special: Boolean) extends Invoke
+  case class InvokeVirtual(dest: Sym, srcs: Agg[Sym], clsIndex: Int, sig: imm.Sig, methodIndex: Int) extends Invoke
 //  case class InvokeDynamic(name: String, desc: String, bsm: String, bsmArgs: Seq[Sym]) extends Invoke
 
-  case class New(target: Sym, cls: rt.Cls) extends Insn
+  case class New(target: Sym, clsIndex: Int) extends Insn
   case class NewArray(src: Sym, dest: Sym, typeRef: imm.Type) extends Insn
   case class MultiANewArray(desc: Type, target: Sym, dims: Seq[Sym]) extends Insn
 
   // offsets fixed/fixed
-  case class PutStatic(src: Sym, cls: rt.Cls, index: Int, prim: Type) extends Insn
-  case class GetStatic(dest: Sym, cls: rt.Cls, index: Int, prim: Type) extends Insn
+  case class PutStatic(src: Sym, clsIndex: Int, index: Int, prim: Type) extends Insn
+  case class GetStatic(dest: Sym, clsIndex: Int, index: Int, prim: Type) extends Insn
 
   // offsets relative/fixed
   case class PutField(src: Sym, obj: Sym, index: Int, prim: Type) extends Insn

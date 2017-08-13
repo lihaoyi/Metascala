@@ -107,18 +107,20 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         prim.write(value, writer(frame.locals, target))
         advancePc()
 
-      case New(target, cls) =>
+      case New(target, clsIndex) =>
+        val cls = ClsTable.clsIndex(clsIndex)
         checkInitialized(cls)
         val obj = vm.alloc(rt.Obj.alloc(ClsTable(imm.Type.Cls(cls.name)))(_))
         frame.locals(target) = obj.address()
         advancePc()
 
-      case InvokeStatic(target, sources, owner, mIndex, special) =>
-        checkInitialized(vm.ClsTable(owner))
+      case InvokeStatic(target, sources, clsIndex, mIndex, special) =>
+        val cls = ClsTable.clsIndex(clsIndex)
+        checkInitialized(cls)
         // Check for InvokeSpecial, which gets folded into InvokeStatic
         val m =
-          if (special) ClsTable(owner).vTable(mIndex)
-          else ClsTable(owner).staticTable(mIndex)
+          if (special) cls.vTable(mIndex)
+          else cls.staticTable(mIndex)
 
         val thisCell = sources.length > m.sig.desc.args.length
 
@@ -145,7 +147,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
           prepInvoke(m, args, writer(frame.locals, ptarget))
         }
 
-      case InvokeVirtual(target, sources, owner, sig, mIndex) =>
+      case InvokeVirtual(target, sources, clsIndex, sig, mIndex) =>
 
         val argZero = frame.locals(sources(0))
 
@@ -157,7 +159,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
             case _ =>
               val cls =
                 if (vm.isObj(argZero)) vm.obj(argZero).cls
-                else ClsTable(owner)
+                else ClsTable.clsIndex(clsIndex)
               cls.vTable(mIndex)
           }
 
@@ -224,12 +226,13 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
         pout.write(out, writer(frame.locals, dest))
         advancePc()
-      case PutStatic(src, cls, index, prim) =>
+      case PutStatic(src, clsIndex, index, prim) =>
+        val cls = ClsTable.clsIndex(clsIndex)
         checkInitialized(cls)
         Util.blit(frame.locals, src, new rt.Arr(cls.statics)(vm), index, prim.size)
         advancePc()
-      case GetStatic(src, cls, index, prim) =>
-
+      case GetStatic(src, clsIndex, index, prim) =>
+        val cls = ClsTable.clsIndex(clsIndex)
         checkInitialized(cls)
         Util.blit(new rt.Arr(cls.statics)(vm), index, frame.locals, src, prim.size)
         advancePc()

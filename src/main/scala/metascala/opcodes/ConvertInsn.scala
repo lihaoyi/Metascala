@@ -71,11 +71,13 @@ object ConvertInsn {
       val sig = new imm.Sig(insn.name, desc)
       val target = if (desc.ret == V) 0 else top(nextFrame): Int
 
+      val runtimeCls = vm.ClsTable(cls)
       val mIndex =
         if (!indexed) -1
-        else vm.ClsTable(cls).vTable.indexWhere(_.sig == sig)
+        else runtimeCls.vTable.indexWhere(_.sig == sig)
 
-      append(Insn.InvokeVirtual(target, Agg.from(args.map(getBox)), cls.asInstanceOf[imm.Type.Cls], sig, mIndex))
+      val clsIndex = vm.ClsTable.clsIndex.indexOf(runtimeCls)
+      append(Insn.InvokeVirtual(target, Agg.from(args.map(getBox)), clsIndex, sig, mIndex))
     }
 
     def invokeStatic(insn: MethodInsnNode, special: Boolean) = {
@@ -93,21 +95,13 @@ object ConvertInsn {
         case c: imm.Type.Cls => c
         case _ => imm.Type.Cls("java/lang/Object")
       }
+      val runtimeCls = vm.ClsTable(cls)
       val mIndex =
-        if (special) vm.ClsTable(cls).vTable.indexWhere(_.sig == sig)
-        else vm.ClsTable(cls).staticTable.indexWhere(_.sig == sig)
+        if (special) runtimeCls.vTable.indexWhere(_.sig == sig)
+        else runtimeCls.staticTable.indexWhere(_.sig == sig)
 
-//      assert(
-//        mIndex != -1,
-//        cls + "\n\nstaticTable: " +
-//        vm.ClsTable(cls).staticTable.map(_.sig).mkString("\n") + "\n\nvTable: " +
-//        vm.ClsTable(cls).vTable.map(_.sig).mkString("\n") + "\n\nmethods: " +
-//        vm.ClsTable(cls).methods.map(_.sig).mkString("\n") +
-//        "\n\nDesired " + sig +
-//        "\nDirect " + m
-//
-//      )
-      append(Insn.InvokeStatic(target, Agg.from(args.map(getBox)), imm.Type.Cls(insn.owner), mIndex, special))
+      val clsIndex = vm.ClsTable.clsIndex.indexOf(runtimeCls)
+      append(Insn.InvokeStatic(target, Agg.from(args.map(getBox)), clsIndex, mIndex, special))
     }
 //    def invokeDynamic(insn: InvokeDynamicInsnNode) = {
 //      append(Insn.InvokeDynamic(insn.name, insn.desc, insn.bsm, insn.bsmArgs))
@@ -120,7 +114,7 @@ object ConvertInsn {
         case x: FieldInsnNode => new MethodInsnNode(x.getOpcode, x.owner, x.name, x.desc)
       }
     }
-    def refField(list: rt.Cls => Seq[imm.Field], func: (rt.Cls, Int, imm.Type) => Insn) = {
+    def refField(list: rt.Cls => Seq[imm.Field], func: (Int, Int, imm.Type) => Insn) = {
 
       def resolve(cls: rt.Cls): (Int, rt.Cls) = {
         list(cls).lastIndexWhere(_.name == insn.name) match{
@@ -135,7 +129,7 @@ object ConvertInsn {
         "Fields\n" + list(vm.ClsTable(imm.Type.Cls(insn.owner))).map(_.name).mkString("\n")
       )
       val prim = list(cls)(index).desc
-      append(func(cls, index - prim.size + 1, prim))
+      append(func(vm.ClsTable.clsIndex.indexOf(cls), index - prim.size + 1, prim))
     }
 
     insn.getOpcode match{
@@ -288,7 +282,11 @@ object ConvertInsn {
       case INVOKEVIRTUAL   => invokeVirtual(insn, indexed = true)
       case INVOKEINTERFACE => invokeVirtual(insn, indexed = false)
 //      case INVOKEDYNAMIC => invokeDynamic(insn)
-      case NEW => append(Insn.New(top(nextFrame), vm.ClsTable(imm.Type.Cls(insn.asInstanceOf[TypeInsnNode].desc))))
+      case NEW =>
+        append(Insn.New(
+          top(nextFrame),
+          vm.ClsTable.clsIndex.indexOf(vm.ClsTable(imm.Type.Cls(insn.asInstanceOf[TypeInsnNode].desc)))
+        ))
       case NEWARRAY =>
         val typeRef: imm.Type = insn.operand match{
           case 4  => Z: imm.Type
