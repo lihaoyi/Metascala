@@ -421,6 +421,10 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
     }
   }
   val bindingsInterface = new Bindings.Interface{
+    def throwExWithTrace(clsName: String, detailMessage: String) = {
+      thread.throwExWithTrace(clsName, detailMessage)
+    }
+
     def invoke(cls: Type.Cls, sig: Sig, args: Agg[Any]) = thread.invoke0(cls, sig, args)
 
     def invoke(mRef: Method, args: Agg[Int]) = thread.invoke0(mRef, args)

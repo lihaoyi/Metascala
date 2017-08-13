@@ -67,7 +67,8 @@ object DefaultBindings extends Bindings{
                   val x = vt.typeObjCache(tpe)()
                   x
                 } catch{case e: Exception =>
-                  throw new WrappedVmException(new java.lang.ClassNotFoundException(nameString))
+                  vt.throwExWithTrace("java/lang/ClassNotFoundException", nameString)
+                  0
                 }
 
             },

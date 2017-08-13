@@ -10,6 +10,7 @@ import scala.collection.mutable
 import scala.reflect.ClassTag
 object Bindings{
   trait Interface extends Obj.VMInterface{
+    def throwExWithTrace(clsName: String, detailMessage: String): Unit
     def invoke(cls: imm.Type.Cls, sig: Sig, args: Agg[Any]): Unit
 
     def returnedVal: Array[Int]
