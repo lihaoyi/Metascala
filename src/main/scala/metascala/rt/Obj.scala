@@ -10,7 +10,7 @@ object Obj{
 
   def alloc(cls: rt.Cls, initMembers: (String, Ref)*)(implicit registrar: Registrar): Obj = {
     implicit val vm = registrar.vm
-    val address = vm.heap.allocate(Constants.objectHeaderSize + cls.fieldList.length)
+    val address = vm.heap.allocate(Constants.objectHeaderSize + cls.fieldList.length)(registrar.apply)
 //    println("Allocating " + cls.name + " at " + address)
     vm.heap(address()) = -cls.index
     vm.heap(address() + 1) = cls.fieldList.length
@@ -100,7 +100,7 @@ object Arr{
   def alloc(innerType: imm.Type, backing0: TraversableOnce[Ref])(implicit registrar: Registrar): Arr = {
     implicit val vm = registrar.vm
     val backing = backing0.toArray
-    val address = vm.heap.allocate(Constants.arrayHeaderSize+ backing.length)
+    val address = vm.heap.allocate(Constants.arrayHeaderSize+ backing.length)(registrar.apply)
 //    println("Allocating Array[" + innerType.name + "] at " + address)
     vm.heap(address()) = vm.arrayTypeCache.length
 

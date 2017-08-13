@@ -146,7 +146,7 @@ object Virtualizer {
           index += field.desc.size
         }
 
-        val obj = rt.Obj.alloc(b.getClass.getName)
+        val obj = rt.Obj.alloc(vm.ClsTable(imm.Type.Cls(b.getClass.getName)))
         contents.map(_()).map(writer(vm.heap.memory, obj.address() + Constants.objectHeaderSize))
         out(obj.address())
     }

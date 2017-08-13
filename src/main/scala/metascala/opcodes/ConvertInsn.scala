@@ -80,7 +80,7 @@ object ConvertInsn {
 
     def invokeStatic(insn: MethodInsnNode, self: Int) = {
       val desc = imm.Desc.read(insn.desc)
-      val m = vm.resolveDirectRef(insn.owner, imm.Sig(insn.name, desc)).get
+      val m = vm.resolveDirectRef(imm.Type.Cls(insn.owner), imm.Sig(insn.name, desc)).get
 
       val args = for(j <- (0 until desc.args.length + self).reverse) yield {
         top(frame, j)
@@ -88,7 +88,7 @@ object ConvertInsn {
 
       val target = if (desc.ret == V) 0 else top(nextFrame): Int
 
-      append(Insn.InvokeStatic(target, Agg.from(args.map(getBox)), insn.owner, m))
+      append(Insn.InvokeStatic(target, Agg.from(args.map(getBox)), imm.Type.Cls(insn.owner), m))
     }
 //    def invokeDynamic(insn: InvokeDynamicInsnNode) = {
 //      append(Insn.InvokeDynamic(insn.name, insn.desc, insn.bsm, insn.bsmArgs))
@@ -109,11 +109,11 @@ object ConvertInsn {
           case x =>  (x, cls)
         }
       }
-      val (index, cls) = resolve(vm.ClsTable(insn.owner))
+      val (index, cls) = resolve(vm.ClsTable(imm.Type.Cls(insn.owner)))
       assert(
         index >= 0,
         s"no field found in ${insn.owner}: ${insn.name}\n" +
-        "Fields\n" + list(vm.ClsTable(insn.owner)).map(_.name).mkString("\n")
+        "Fields\n" + list(vm.ClsTable(imm.Type.Cls(insn.owner))).map(_.name).mkString("\n")
       )
       val prim = list(cls)(index).desc
       append(func(cls, index - prim.size + 1, prim))
@@ -269,7 +269,7 @@ object ConvertInsn {
       case INVOKEVIRTUAL   => invokeVirtual(insn, indexed=true)
       case INVOKEINTERFACE => invokeVirtual(insn, indexed=false)
 //      case INVOKEDYNAMIC => invokeDynamic(insn)
-      case NEW => append(Insn.New(top(nextFrame), vm.ClsTable(insn.asInstanceOf[TypeInsnNode].desc)))
+      case NEW => append(Insn.New(top(nextFrame), vm.ClsTable(imm.Type.Cls(insn.asInstanceOf[TypeInsnNode].desc))))
       case NEWARRAY =>
         val typeRef: imm.Type = insn.operand match{
           case 4  => Z: imm.Type

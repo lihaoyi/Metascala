@@ -37,17 +37,7 @@ class Cls(val tpe: imm.Type.Cls,
   var initialized = false
 
 
-  def checkInitialized()(implicit vm: VMInterface): Unit = {
-    if (!initialized){
-      initialized = true
-      vm.resolveDirectRef(tpe, Sig("<clinit>", imm.Desc.read("()V")))
-        .foreach(threads(0).invoke(_, Agg.empty))
 
-      superType.foreach{ cls =>
-        vm.ClsTable(cls).checkInitialized()
-      }
-    }
-  }
 
   val isInterface = (accessFlags & Access.Interface) != 0
   val statics = vm.alloc(implicit i =>

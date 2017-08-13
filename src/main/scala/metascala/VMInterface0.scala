@@ -1,7 +1,5 @@
 package metascala
 
-import metascala.natives.DefaultBindings
-
 import scala.collection.mutable
 
 trait ClsTable extends(imm.Type.Cls => rt.Cls){

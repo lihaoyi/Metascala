@@ -93,13 +93,13 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         advancePc()
 
       case New(target, cls) =>
-        cls.checkInitialized()
-        val obj = vm.alloc(rt.Obj.alloc(cls.name)(_))
+        checkInitialized(cls)
+        val obj = vm.alloc(rt.Obj.alloc(ClsTable(imm.Type.Cls(cls.name)))(_))
         frame.locals(target) = obj.address()
         advancePc()
 
       case InvokeStatic(target, sources, owner, m) =>
-        vm.ClsTable(owner).checkInitialized()
+        checkInitialized(vm.ClsTable(owner))
         // Check for InvokeSpecial, which gets folded into InvokeStatic
         val thisCell = sources.length > m.sig.desc.args.length
 
@@ -206,12 +206,12 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         pout.write(out, writer(frame.locals, dest))
         advancePc()
       case PutStatic(src, cls, index, prim) =>
-        cls.checkInitialized()
+        checkInitialized(cls)
         Util.blit(frame.locals, src, cls.statics, index, prim.size)
         advancePc()
       case GetStatic(src, cls, index, prim) =>
 
-        cls.checkInitialized()
+        checkInitialized(cls)
         Util.blit(cls.statics, index, frame.locals, src, prim.size)
         advancePc()
 
@@ -347,7 +347,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     throwException(
       vm.alloc( implicit r =>
-        rt.Obj.alloc(clsName,
+        rt.Obj.alloc(ClsTable(imm.Type.Cls(clsName)),
           "stackTrace" -> Virtualizer.toVirtObj(trace),
           "detailMessage" -> Virtualizer.toVirtObj(detailMessage)
         )

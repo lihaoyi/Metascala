@@ -1,6 +1,4 @@
-import metascala.rt.{Arr, Obj}
 import collection.mutable
-import scala.reflect.ClassTag
 
 package object metascala {
 
@@ -15,11 +13,7 @@ package object metascala {
 
 
   type Val = Int
-
-
-
-  implicit def stringToClass(s: String)(implicit vm: VMInterface) = vm.ClsTable(imm.Type.Cls(s))
-  implicit def stringToClsType(s: String) = imm.Type.Cls.apply(s)
+  
 
   def reader(src: Seq[Val], index: Int) = {
     var i = index

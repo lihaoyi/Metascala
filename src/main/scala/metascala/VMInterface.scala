@@ -1,6 +1,6 @@
 package metascala
 
-import metascala.natives.DefaultBindings
+import metascala.natives.Bindings
 
 import scala.collection.mutable
 
@@ -15,7 +15,10 @@ trait VMInterface extends VMInterface0 {
   def resolveDirectRef(owner: imm.Type.Cls, sig: imm.Sig): Option[rt.Method]
   val interned: mutable.Buffer[Ref]
   val typeObjCache: mutable.HashMap[imm.Type, Ref]
-  def threads: List[rt.Thread]
-  def natives: DefaultBindings.type
+  def natives: Bindings
 
+}
+
+class Registrar(f: Ref => Unit, val vm: VMInterface) extends Function1[Ref, Unit]{
+  def apply(i: Ref) = f(i)
 }

@@ -30,11 +30,9 @@ object Method{
                  accessFlags: Int,
                  codeThunk: () => Code)
                 (implicit vm: VMInterface) extends Method{
-    lazy val cls = vm.ClsTable.clsIndex(clsIndex)
     lazy val code = codeThunk()
 
     def static = (accessFlags & Access.Static) != 0
     def native = (accessFlags & Access.Native) != 0
-    override def toString = s"Method.Cls(${cls.name}, ${sig.unparse}})"
   }
 }

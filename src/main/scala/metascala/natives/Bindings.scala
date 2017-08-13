@@ -1,10 +1,7 @@
 package metascala.natives
 
-import java.io.{ByteArrayInputStream, DataInputStream}
-import java.nio.ByteBuffer
 
-import metascala.imm.{Desc, Sig, Type}
-import metascala.imm.Type.Prim
+import metascala.imm.{Sig, Type}
 import metascala.{Agg, Ref, Registrar, VMInterface0, imm, rt}
 
 import scala.collection.mutable
@@ -17,7 +14,6 @@ object Bindings{
     def alloc[T](func: Registrar => T): T
     def resolveDirectRef(owner: Type.Cls, sig: imm.Sig): Option[rt.Method]
     def typeObjCache: mutable.HashMap[imm.Type, Ref]
-    def threads: List[rt.Thread]
     def offHeap: Array[Byte]
     def setOffHeapPointer(n: Long): Unit
     def offHeapPointer: Long

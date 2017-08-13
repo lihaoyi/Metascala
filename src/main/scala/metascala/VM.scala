@@ -49,7 +49,17 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
     () => getRoots(),
     getLinks
   )
+  def checkInitialized(cls: rt.Cls)(implicit vm: VMInterface): Unit = {
+    if (!cls.initialized){
+      cls.initialized = true
+      vm.resolveDirectRef(cls.tpe, Sig("<clinit>", imm.Desc.read("()V")))
+        .foreach(threads(0).invoke(_, Agg.empty))
 
+      cls.superType.foreach{ cls =>
+        checkInitialized(vm.ClsTable(cls))
+      }
+    }
+  }
   def alloc[T](func: Registrar => T): T = {
     val tempRegistry = mutable.Set[Ref]()
     val res = func(
@@ -68,10 +78,11 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
 
   val arrayTypeCache = mutable.Buffer[imm.Type](null)
 
+
   lazy val currentThread = {
     val thread = alloc(implicit r =>
-      rt.Obj.alloc("java/lang/Thread",
-        "group" -> rt.Obj.alloc("java/lang/ThreadGroup").address,
+      rt.Obj.alloc(ClsTable(imm.Type.Cls("java/lang/Thread")),
+        "group" -> rt.Obj.alloc(ClsTable(imm.Type.Cls("java/lang/ThreadGroup"))).address,
         "priority" -> 5
       )
     ).address
@@ -84,7 +95,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
   val typeObjCache = new mutable.HashMap[imm.Type, Ref] {
     override def apply(x: imm.Type) = this.getOrElseUpdate(x,
       vm.alloc(implicit r =>
-        rt.Obj.alloc("java/lang/Class",
+        rt.Obj.alloc(ClsTable(imm.Type.Cls("java/lang/Class")),
           "name" -> Virtualizer.toVirtObj(x.javaName)
         )
       )
@@ -145,7 +156,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
   /**
     * Globally shared sun.misc.Unsafe object.
     */
-  lazy val theUnsafe = vm.alloc(rt.Obj.alloc("sun/misc/Unsafe")(_))
+  lazy val theUnsafe = vm.alloc(rt.Obj.alloc(ClsTable(imm.Type.Cls("sun/misc/Unsafe")))(_))
 
   /**
     * Cache of all the classes loaded so far within the Metascala VM.
@@ -207,11 +218,11 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
 
 
   if (initializeStdout) {
-    val systemCls = ClsTable.apply("java/lang/System")
-    systemCls.checkInitialized()
+    val systemCls = ClsTable.apply(imm.Type.Cls("java/lang/System"))
+    checkInitialized(systemCls)
     val dummyWriter = vm.alloc(implicit r =>
-      rt.Obj.alloc("java/io/PrintWriter",
-        "out" -> rt.Obj.alloc("metascala/DummyWriter").address
+      rt.Obj.alloc(ClsTable(imm.Type.Cls("java/io/PrintWriter")),
+        "out" -> rt.Obj.alloc(ClsTable(imm.Type.Cls("metascala/DummyWriter"))).address
       ).address()
     )
 

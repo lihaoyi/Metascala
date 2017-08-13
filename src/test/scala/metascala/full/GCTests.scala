@@ -123,9 +123,9 @@ class GCTests extends FreeSpec {
     implicit val vm = tester.svm
     var initialSet: Set[Int] = null
     val (p1, p2, p3) = vm.alloc{ implicit r =>
-      val p1 = rt.Obj.alloc("java/lang/Object").address
-      val p2 = rt.Obj.alloc("java/lang/Object").address
-      val p3 = rt.Obj.alloc("java/lang/Object").address
+      val p1 = rt.Obj.alloc(vm.ClsTable(imm.Type.Cls("java/lang/Object"))).address
+      val p2 = rt.Obj.alloc(vm.ClsTable(imm.Type.Cls("java/lang/Object"))).address
+      val p3 = rt.Obj.alloc(vm.ClsTable(imm.Type.Cls("java/lang/Object"))).address
       initialSet = Set(p1(), p2(), p3())
       assert(initialSet.forall(p => vm.heap(p) == -1))
       vm.heap.collect(vm.heap.start)
