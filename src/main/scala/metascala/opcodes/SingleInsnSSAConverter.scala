@@ -90,7 +90,7 @@ object SingleInsnSSAConverter {
 
     def invokeStatic(insn: MethodInsnNode, special: Boolean) = {
       val desc = imm.Desc.read(insn.desc)
-      val m = vm.resolveDirectRef(imm.Type.Cls(insn.owner), imm.Sig(insn.name, desc)).get
+      val m = vm.resolveDirectRef(insn.owner, imm.Sig(insn.name, desc)).get
 
       val selfArgCount = if(special) 1 else 0
       val args = for(j <- (0 until desc.args.length + selfArgCount).reverse) yield {
@@ -138,11 +138,11 @@ object SingleInsnSSAConverter {
           case x =>  (x, cls)
         }
       }
-      val (index, cls) = resolve(vm.ClsTable(imm.Type.Cls(insn.owner)))
+      val (index, cls) = resolve(vm.ClsTable(insn.owner))
       assert(
         index >= 0,
         s"no field found in ${insn.owner}: ${insn.name}\n" +
-        "Fields\n" + list(vm.ClsTable(imm.Type.Cls(insn.owner))).map(_.name).mkString("\n")
+        "Fields\n" + list(vm.ClsTable(insn.owner)).map(_.name).mkString("\n")
       )
       val prim = list(cls)(index).desc
       append(func(vm.ClsTable.clsIndex.indexOf(cls), index - prim.size + 1, prim))
@@ -189,7 +189,7 @@ object SingleInsnSSAConverter {
       case LALOAD => aLoad(J, J)
       case FALOAD => aLoad(F, F)
       case DALOAD => aLoad(D, D)
-      case AALOAD => aLoad(I, imm.Type.Cls("java/lang/Object"))
+      case AALOAD => aLoad(I, "java/lang/Object")
       case BALOAD => aLoad(B, B)
       case CALOAD => aLoad(C, C)
       case SALOAD => aLoad(S, S)
@@ -197,7 +197,7 @@ object SingleInsnSSAConverter {
       case LASTORE => aStore(J, J)
       case FASTORE => aStore(F, F)
       case DASTORE => aStore(D, D)
-      case AASTORE => aStore(I, imm.Type.Cls("java/lang/Object"))
+      case AASTORE => aStore(I, "java/lang/Object")
       case BASTORE => aStore(B, B)
       case CASTORE => aStore(C, C)
       case SASTORE => aStore(S, S)
@@ -287,7 +287,7 @@ object SingleInsnSSAConverter {
       case LRETURN => returnVal(J)
       case FRETURN => returnVal(F)
       case DRETURN => returnVal(D)
-      case ARETURN => returnVal(imm.Type.Cls("java/lang/Object"))
+      case ARETURN => returnVal("java/lang/Object")
       case RETURN => returnVal(V)
       case GETSTATIC => refField(_.staticList, Insn.GetStatic(top(nextFrame), _, _, _))
       case PUTSTATIC => refField(_.staticList, Insn.PutStatic(top(frame), _, _, _))
@@ -301,7 +301,7 @@ object SingleInsnSSAConverter {
       case NEW =>
         append(Insn.New(
           top(nextFrame),
-          vm.ClsTable.clsIndex.indexOf(vm.ClsTable(imm.Type.Cls(insn.asInstanceOf[TypeInsnNode].desc)))
+          vm.ClsTable.clsIndex.indexOf(vm.ClsTable(insn.asInstanceOf[TypeInsnNode].desc))
         ))
       case NEWARRAY =>
         val typeRef: imm.Type = insn.operand match{

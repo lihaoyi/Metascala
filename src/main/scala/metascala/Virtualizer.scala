@@ -9,7 +9,7 @@ import scala.reflect.ClassTag
 
 object Virtualizer {
   def toRealObj[T](v: Int)(implicit vm: Bindings.Interface, ct: ClassTag[T]) = {
-    Virtualizer.popVirtual(imm.Type.Cls(ct.runtimeClass.getName.replace('.', '/')), () => v)
+    Virtualizer.popVirtual(ct.runtimeClass.getName.replace('.', '/'), () => v)
       .asInstanceOf[T]
   }
   def toVirtObj(x: Any)(implicit registrar: rt.Obj.Registrar) = {
@@ -57,7 +57,7 @@ object Virtualizer {
             }
 
             newArr
-          case t @ imm.Type.Cls(name)=>
+          case t @ name=>
             val obj = unsafe.allocateInstance(Class.forName(vm.obj(address).cls.name.replace('/', '.')))
             refs += (address -> obj)
             var index = 0
@@ -138,7 +138,7 @@ object Virtualizer {
           index += field.desc.size
         }
 
-        val obj = rt.Obj.alloc(vm.ClsTable(imm.Type.Cls(b.getClass.getName)))
+        val obj = rt.Obj.alloc(vm.ClsTable(b.getClass.getName))
         contents.map(_()).map(Util.writer(vm.heap.memory, obj.address() + Constants.objectHeaderSize))
         out(obj.address())
     }

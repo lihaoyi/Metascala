@@ -77,8 +77,8 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
 
   lazy val currentThread = {
     val thread = alloc(implicit r =>
-      rt.Obj.alloc(ClsTable(imm.Type.Cls("java/lang/Thread")),
-        "group" -> rt.Obj.alloc(ClsTable(imm.Type.Cls("java/lang/ThreadGroup"))).address,
+      rt.Obj.alloc(ClsTable("java/lang/Thread"),
+        "group" -> rt.Obj.alloc(ClsTable("java/lang/ThreadGroup")).address,
         "priority" -> 5
       )
     ).address
@@ -91,7 +91,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
   val typeObjCache = new mutable.HashMap[imm.Type, Ref] {
     override def apply(x: imm.Type) = this.getOrElseUpdate(x,
       vm.alloc(implicit r =>
-        rt.Obj.alloc(ClsTable(imm.Type.Cls("java/lang/Class")),
+        rt.Obj.alloc(ClsTable("java/lang/Class"),
           "name" -> Virtualizer.toVirtObj(x.javaName)
         )
       )
@@ -159,7 +159,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
   /**
     * Globally shared sun.misc.Unsafe object.
     */
-  lazy val theUnsafe = vm.alloc(rt.Obj.alloc(ClsTable(imm.Type.Cls("sun/misc/Unsafe")))(_))
+  lazy val theUnsafe = vm.alloc(rt.Obj.alloc(ClsTable("sun/misc/Unsafe"))(_))
 
   /**
     * Cache of all the classes loaded so far within the Metascala VM.
@@ -221,11 +221,11 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
 
 
   if (initializeStdout) {
-    val systemCls = ClsTable.apply(imm.Type.Cls("java/lang/System"))
+    val systemCls = ClsTable.apply("java/lang/System")
     checkInitialized(systemCls)
     val dummyWriter = vm.alloc(implicit r =>
-      rt.Obj.alloc(ClsTable(imm.Type.Cls("java/io/PrintWriter")),
-        "out" -> rt.Obj.alloc(ClsTable(imm.Type.Cls("metascala/DummyWriter"))).address
+      rt.Obj.alloc(ClsTable("java/io/PrintWriter"),
+        "out" -> rt.Obj.alloc(ClsTable("metascala/DummyWriter")).address
       ).address()
     )
 
@@ -255,7 +255,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
       imm.Type.Cls.apply(bootClass),
       imm.Sig(
         mainMethod,
-        ClsTable(imm.Type.Cls(bootClass))
+        ClsTable(bootClass)
           .methods
           .find(x => x.sig.name == mainMethod)
           .map(_.sig.desc)

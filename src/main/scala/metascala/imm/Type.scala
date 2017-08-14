@@ -7,6 +7,8 @@ import reflect.ClassTag
 
 
 object Type{
+  implicit def strClsTypeShorthand(name: String): Cls = new Cls(name.replace('.', '/'))
+
   def read(s: String): Type = s match{
     case x if Prim.all.contains(x(0)) => Prim.all(x(0))
     case s if s.startsWith("L") && s.endsWith(";") => Cls.apply(s.drop(1).dropRight(1))
@@ -52,7 +54,7 @@ object Type{
     def internalName = "[" + innerType.internalName
   }
   object Cls{
-    def apply(name: String): Cls = new Cls(name.replace('.', '/'))
+    implicit def apply(name: String): Cls = new Cls(name.replace('.', '/'))
     def unapply(cls: Cls): Option[String] = Some(cls.name)
   }
 

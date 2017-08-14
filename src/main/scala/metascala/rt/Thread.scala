@@ -145,7 +145,7 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
       case New(target, clsIndex) =>
         val cls = ClsTable.clsIndex(clsIndex)
         checkInitialized(cls)
-        val obj = vm.alloc(rt.Obj.alloc(ClsTable(imm.Type.Cls(cls.name)))(_))
+        val obj = vm.alloc(rt.Obj.alloc(ClsTable(cls.name))(_))
         frame.locals(target) = obj.address()
         advancePc()
 
@@ -218,7 +218,7 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
           )
         }
       case InvokeDynamic(name, desc, bsTag, bsOwner, bsName, bsDesc, bsArgs) =>
-        invoke(imm.Type.Cls(bsOwner), imm.Sig(bsName, Desc.read(bsDesc)), Agg.from(bsArgs))
+        invoke(bsOwner, imm.Sig(bsName, Desc.read(bsDesc)), Agg.from(bsArgs))
         ???
       case ArrayLength(src, dest) =>
         frame.locals(dest) = vm.arr(frame.locals(src)).arrayLength
@@ -406,7 +406,7 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
 
     throwException(
       vm.alloc( implicit r =>
-        rt.Obj.alloc(ClsTable(imm.Type.Cls(clsName)),
+        rt.Obj.alloc(ClsTable(clsName),
           "stackTrace" -> Virtualizer.toVirtObj(trace),
           "detailMessage" -> Virtualizer.toVirtObj(detailMessage)
         )
@@ -468,12 +468,12 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
       val cls = new rt.Obj(constr)(this).apply("clazz")
       val name = toRealObj[String](new rt.Obj(cls)(this).apply("name")).replace('.', '/')
       val newObj = alloc { implicit r =>
-        rt.Obj.alloc(ClsTable(imm.Type.Cls(name))).address()
+        rt.Obj.alloc(ClsTable(name)).address()
       }
 
       val descStr = toRealObj[String](new rt.Obj(constr)(this).apply("signature"))
 
-      val mRef = ClsTable(imm.Type.Cls(name)).method(
+      val mRef = ClsTable(name).method(
         "<init>",
         Desc.read(descStr)
       ).get
