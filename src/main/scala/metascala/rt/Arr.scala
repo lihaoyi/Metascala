@@ -16,10 +16,6 @@ object Arr{
     def ClsTable: ClsTable
   }
 
-
-  def unapply(x: Int)(implicit vm: VMInterface): Option[Arr] = Some(new Arr(new Ref.Manual(x)))
-
-
   implicit def unwrap2(x: Arr): Ref = x.address
 
   def packType(tpe: imm.Type.Arr)(implicit vm: VMInterface): Int = {

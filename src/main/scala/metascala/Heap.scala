@@ -20,7 +20,7 @@ class Heap(memorySize: Int,
     }
     val newFree = freePointer
     freePointer += n
-    new Ref.Manual(newFree)
+    newFree
 
   }
 

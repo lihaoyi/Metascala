@@ -109,9 +109,9 @@ object DefaultBindings extends Bindings{
           realFields.zipWithIndex.map{ case (f, i) =>
             r.newObj(vt.ClsTable("java/lang/reflect/Field"),
               "clazz" -> obj.address,
-              "slot" -> new Ref.Manual((if (f.static) cls.staticList else cls.fieldList).indexOf(f)),
-              "name" -> new Ref.Manual(vt.internedStrings.getOrElseUpdate(f.name, vt.toVirtObj(f.name))),
-              "modifiers" -> new Ref.Manual(f.access),
+              "slot" -> Ref.Raw((if (f.static) cls.staticList else cls.fieldList).indexOf(f)),
+              "name" -> r.register(vt.internedStrings.getOrElseUpdate(f.name, vt.toVirtObj(f.name))),
+              "modifiers" -> Ref.Raw(f.access),
               "type" -> vt.typeObjCache(f.desc)
             ).address
           }
@@ -131,7 +131,7 @@ object DefaultBindings extends Bindings{
           realMethods.zipWithIndex.map{ case (f, i) =>
             r.newObj(vt.ClsTable("java/lang/reflect/Constructor"),
               "clazz" -> clsObj.address,
-              "slot" -> new Ref.Manual(i),
+              "slot" -> Ref.Raw(i),
               "signature" -> vt.toVirtObj(f.sig.desc.unparse),
               "parameterTypes" -> r.newArr("java/lang/Class",
                 f.sig.desc.args.map(t =>

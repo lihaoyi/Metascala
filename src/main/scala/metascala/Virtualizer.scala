@@ -88,9 +88,9 @@ object Virtualizer {
   }
 
   def pushVirtual(thing: Any)(implicit registrar: rt.Allocator): Seq[Int] = {
-    val tmp = new mutable.Stack[Int]()
-    pushVirtual(thing, tmp.push(_))
-    tmp.reverse
+    val tmp = new mutable.ArrayBuffer[Int]()
+    pushVirtual(thing, tmp.append(_))
+    tmp
   }
 
   def pushVirtual(thing: Any, out: Int => Unit)(implicit registrar: rt.Allocator): Unit = {
@@ -109,18 +109,15 @@ object Virtualizer {
       case b: Array[_] =>
 
         val tpe = imm.Type.Arr.read(b.getClass.getName.replace('.', '/')).innerType
-        val arr =
-          registrar.newArr(
-            tpe,
-            b.flatMap(pushVirtual).map{x =>
-              val ref : Ref = new Ref.Manual(x)
-              if (!b.getClass.getComponentType.isPrimitive) {
-                registrar.register(ref)
-              }
-              ref
-            }
-          )
 
+        val arr = registrar.newArr(tpe, b.length)
+        var i = 0
+        for(v <- b){
+          pushVirtual(v, { x =>
+            vm.heap(arr.address() + Constants.arrayHeaderSize + i) = x
+            i += 1
+          })
+        }
         out(arr.address())
       case b: Any =>
         var index = 0
@@ -129,12 +126,9 @@ object Virtualizer {
         for(field <- vm.ClsTable(imm.Type.Cls.apply(b.getClass.getName)).fieldList.distinct) yield {
           val f = decFields.find(_.getName == field.name).get
           f.setAccessible(true)
-          pushVirtual(f.get(b), x => {
-            contents.append(new Ref.Manual(x))
-            if (!f.getType.isPrimitive) {
-              registrar.register(contents.last)
-            }
-          })
+          pushVirtual(f.get(b), x =>
+            contents.append(Ref.Raw(x))
+          )
           index += field.desc.size
         }
 
