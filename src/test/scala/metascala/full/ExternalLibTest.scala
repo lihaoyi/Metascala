@@ -2,12 +2,9 @@ package metascala.full
 
 
 
-import java.io._
-import javax.tools.{JavaCompiler, ToolProvider}
 
 import metascala.TestUtil._
 import metascala.VM
-import metascala.features.javac.MemoryJavaCompiler
 import org.scalatest.FreeSpec
 
 object ExternalLibTest{
@@ -15,16 +12,12 @@ object ExternalLibTest{
 }
 class ExternalLibTest extends FreeSpec {
 
-  val tester = new VM(memorySize = 15 * 1014 * 1024)
+  val tester = new VM(memorySize = 256 * 1024)
   "fansi" in tester.test{
     (fansi.Color.Red("Hello") ++ fansi.Color.Red("World"))
       .overlay(fansi.Underlined.On, 3, 7)
       .render
   }
-
-
-
-
 
   "fastparse" in tester.test{
     import fastparse.all._

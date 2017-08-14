@@ -61,7 +61,7 @@ class ScalaLib extends FreeSpec {
   import TestUtil._
   val buffer = new BufferLog(4000)
 
-  val tester = new VM(memorySize = 128 * 1024 * 1024)
+  val tester = new VM(memorySize = 64 * 1024)
 
   "predef" in {
     val x = 5
@@ -76,8 +76,8 @@ class ScalaLib extends FreeSpec {
     tester.test{
       def isPalindrome(s: String): Boolean = s.reverse.mkString == s
       val palindromes = for {
-        a <- (min until max)
-        b <- (a until max)
+        a <- min until max
+        b <- a until max
         p = a*b
         if isPalindrome(p.toString)
       } yield p
