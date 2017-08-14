@@ -44,8 +44,8 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
 
   def checkInitialized(cls: rt.Cls): Unit = {
     if (!cls.initialized){
-      cls.statics = vm.alloc(implicit i =>
-        rt.Obj.allocArr(imm.Type.Prim.I, cls.staticList.length)
+      cls.statics = vm.alloc(r =>
+        r.newArr(imm.Type.Prim.I, cls.staticList.length)
       )
       cls.initialized = true
       vm.resolveDirectRef(cls.tpe, Sig("<clinit>", imm.Desc.read("()V")))
@@ -56,32 +56,25 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
       }
     }
   }
-  def alloc[T](func: Obj.Registrar => T): T = {
-    val tempRegistry = mutable.Set[Ref]()
-    val res = func(
-      new Obj.Registrar({ ref =>
 
-        tempRegistry.add(ref)
-        registry.add(ref)
-      }, this)
-    )
-    tempRegistry.map(registry.remove)
-    res
+  def alloc[T](func: rt.Allocator => T): T = {
+    val allocator = new rt.Allocator()
+    activeAllocators.add(allocator)
+    try func(allocator)
+    finally activeAllocators.remove(allocator)
   }
 
   /**
-    * Used to temporary hold newly allocated objects. This is necessary because
-    * it often takes some initialization before the object is ready to be
-    * placed into local variables or fields, during which time it is
-    * "unreachable". Temporarily placing them in the registry avoids them
-    * getting prematurely garbage collected during this period.
+    * Any allocators which are currently active, and thus serve as source roots
+    * to stop the garbage collector from collecting partially-initialized
+    * objects
     */
-  val registry = mutable.Set[Ref]()
+  val activeAllocators = mutable.Set[rt.Allocator]()
 
   lazy val currentThread = {
-    val thread = alloc(implicit r =>
-      rt.Obj.alloc(ClsTable("java/lang/Thread"),
-        "group" -> rt.Obj.alloc(ClsTable("java/lang/ThreadGroup")).address,
+    val thread = alloc( r =>
+      r.newObj(ClsTable("java/lang/Thread"),
+        "group" -> r.newObj(ClsTable("java/lang/ThreadGroup")).address,
         "priority" -> 5
       )
     ).address
@@ -94,7 +87,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
   val typeObjCache = new mutable.HashMap[imm.Type, Ref] {
     override def apply(x: imm.Type) = this.getOrElseUpdate(x,
       vm.alloc(implicit r =>
-        rt.Obj.alloc(ClsTable("java/lang/Class"),
+        r.newObj(ClsTable("java/lang/Class"),
           "name" -> Virtualizer.toVirtObj(x.javaName)
         )
       )
@@ -156,13 +149,18 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
 
     val clsObjRoots = typeObjCache.values
 
-    classRoots ++ classRoots2 ++ stackRoots ++ clsObjRoots ++ registry ++ interned
+    classRoots ++
+    classRoots2 ++
+    stackRoots ++
+    clsObjRoots ++
+    activeAllocators.flatMap(_.registered) ++
+    interned
   }
 
   /**
     * Globally shared sun.misc.Unsafe object.
     */
-  lazy val theUnsafe = vm.alloc(rt.Obj.alloc(ClsTable("sun/misc/Unsafe"))(_))
+  lazy val theUnsafe = vm.alloc(_.newObj(ClsTable("sun/misc/Unsafe")))
 
   /**
     * Cache of all the classes loaded so far within the Metascala VM.
@@ -226,9 +224,9 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
   if (initializeStdout) {
     val systemCls = ClsTable.apply("java/lang/System")
     checkInitialized(systemCls)
-    val dummyWriter = vm.alloc(implicit r =>
-      rt.Obj.alloc(ClsTable("java/io/PrintWriter"),
-        "out" -> rt.Obj.alloc(ClsTable("metascala/DummyWriter")).address
+    val dummyWriter = vm.alloc( r =>
+      r.newObj(ClsTable("java/io/PrintWriter"),
+        "out" -> r.newObj(ClsTable("metascala/DummyWriter")).address
       ).address()
     )
 

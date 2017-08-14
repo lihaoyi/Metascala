@@ -14,7 +14,7 @@ object Bindings{
     def invoke(cls: imm.Type.Cls, sig: Sig, args: Agg[Any]): Unit
 
     def returnedVal: Array[Int]
-    def alloc[T](func: Obj.Registrar => T): T
+    def alloc[T](func: rt.Allocator => T): T
     def typeObjCache: mutable.HashMap[imm.Type, Ref]
     def offHeap: Array[Byte]
     def setOffHeapPointer(n: Long): Unit
@@ -24,7 +24,7 @@ object Bindings{
     def threadStackLength: Int // vt.threadStack.length
     def internedStrings: mutable.Map[String, Int]
     def toRealObj[T](x: Int)(implicit ct: ClassTag[T]): T
-    def toVirtObj(x: Any)(implicit registrar: Obj.Registrar): rt.Obj
+    def toVirtObj(x: Any)(implicit registrar: rt.Allocator): rt.Obj
     def trace: Array[StackTraceElement]
     def currentThread: Int
     def invokeRun(a: Int): Int

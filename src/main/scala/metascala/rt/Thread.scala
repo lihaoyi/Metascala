@@ -145,7 +145,7 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
       case New(target, clsIndex) =>
         val cls = ClsTable.clsIndex(clsIndex)
         checkInitialized(cls)
-        val obj = vm.alloc(rt.Obj.alloc(ClsTable(cls.name))(_))
+        val obj = vm.alloc(_.newObj(ClsTable(cls.name)))
         frame.locals(target) = obj.address()
         advancePc()
 
@@ -225,7 +225,7 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
         advancePc()
 
       case NewArray(src, dest, typeRef) =>
-        val newArray = vm.alloc(rt.Obj.allocArr(typeRef, frame.locals(src))(_))
+        val newArray = vm.alloc(_.newArr(typeRef, frame.locals(src)))
         frame.locals(dest) = newArray.address()
         advancePc()
 
@@ -351,14 +351,14 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
 
           (dims, tpe) match {
             case (size :: tail, imm.Type.Arr(innerType: imm.Type.Ref)) =>
-              val newArr = vm.alloc(rt.Obj.allocArr(innerType, size)(_))
+              val newArr = vm.alloc(_.newArr(innerType, size))
               for(i <- 0 until size){
                 newArr(i) = rec(tail, innerType)
               }
               newArr.address()
 
             case (size :: Nil, imm.Type.Arr(innerType)) =>
-              vm.alloc(rt.Obj.allocArr(innerType, size)(_)).address()
+              vm.alloc(_.newArr(innerType, size)).address()
            }
         }
         val dimValues = dims.map(frame.locals).toList
@@ -406,7 +406,7 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
 
     throwException(
       vm.alloc( implicit r =>
-        rt.Obj.alloc(ClsTable(clsName),
+        r.newObj(ClsTable(clsName),
           "stackTrace" -> Virtualizer.toVirtObj(trace),
           "detailMessage" -> Virtualizer.toVirtObj(detailMessage)
         )
@@ -454,7 +454,7 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
 
     def returnedVal = thread.returnedVal
 
-    def alloc[T](func: rt.Obj.Registrar => T) = vm.alloc(func)
+    def alloc[T](func: rt.Allocator => T) = vm.alloc(func)
 
     def invokeRun(a: Int) = {
       val pa = obj(a)
@@ -468,7 +468,7 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
       val cls = new rt.Obj(constr)(this).apply("clazz")
       val name = toRealObj[String](new rt.Obj(cls)(this).apply("name")).replace('.', '/')
       val newObj = alloc { implicit r =>
-        rt.Obj.alloc(ClsTable(name)).address()
+        r.newObj(ClsTable(name)).address()
       }
 
       val descStr = toRealObj[String](new rt.Obj(constr)(this).apply("signature"))
@@ -504,7 +504,7 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
 
     def toRealObj[T](x: Int)(implicit ct: ClassTag[T]) = Virtualizer.toRealObj(x)(this, ct)
 
-    def toVirtObj(x: Any)(implicit registrar: rt.Obj.Registrar) = vm.obj(Virtualizer.toVirtObj(x))
+    def toVirtObj(x: Any)(implicit registrar: rt.Allocator) = vm.obj(Virtualizer.toVirtObj(x))
 
     def trace = thread.trace
 

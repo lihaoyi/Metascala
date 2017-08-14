@@ -16,7 +16,7 @@ import Insn._
 import metascala.util.{Agg, Ref}
 object SingleInsnSSAConverter {
   trait VMInterface extends rt.Obj.VMInterface{
-    def alloc[T](func: rt.Obj.Registrar => T): T
+    def alloc[T](func: rt.Allocator => T): T
     def arr(address: Int): rt.Arr
     def resolveDirectRef(owner: imm.Type.Cls, sig: imm.Sig): Option[rt.Method]
     val interned: mutable.Buffer[Ref]

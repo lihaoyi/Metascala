@@ -105,9 +105,9 @@ object DefaultBindings extends Bindings{
       val realFields = cls.fieldList ++ cls.staticList
 
       vt.alloc(implicit r =>
-        rt.Obj.allocArr("java/lang/reflect/Field",
+        r.newArr("java/lang/reflect/Field",
           realFields.zipWithIndex.map{ case (f, i) =>
-            rt.Obj.alloc(vt.ClsTable("java/lang/reflect/Field"),
+            r.newObj(vt.ClsTable("java/lang/reflect/Field"),
               "clazz" -> obj.address,
               "slot" -> (if (f.static) cls.staticList else cls.fieldList).indexOf(f),
               "name" -> vt.internedStrings.getOrElseUpdate(f.name, vt.toVirtObj(f.name)),
@@ -127,13 +127,13 @@ object DefaultBindings extends Bindings{
       val cls = vt.ClsTable(clsName)
       val realMethods = cls.methods.filter(_.sig.name == "<init>")
       val vrtArr = vt.alloc(implicit r =>
-        rt.Obj.allocArr("java/lang/reflect/Constructor",
+        r.newArr("java/lang/reflect/Constructor",
           realMethods.zipWithIndex.map{ case (f, i) =>
-            rt.Obj.alloc(vt.ClsTable("java/lang/reflect/Constructor"),
+            r.newObj(vt.ClsTable("java/lang/reflect/Constructor"),
               "clazz" -> clsObj.address,
               "slot" -> i,
               "signature" -> vt.toVirtObj(f.sig.desc.unparse),
-              "parameterTypes" -> rt.Obj.allocArr("java/lang/Class",
+              "parameterTypes" -> r.newArr("java/lang/Class",
                 f.sig.desc.args.map(t =>
                   vt.typeObjCache(imm.Type.readJava(t.realCls.getName))
                 )
@@ -157,9 +157,9 @@ object DefaultBindings extends Bindings{
 
       val cls = vt.ClsTable(vt.toRealObj[String](vt.obj(arg()).apply("name")))
       vt.alloc(implicit r =>
-        rt.Obj.allocArr("java/lang/reflect/Method",
+        r.newArr("java/lang/reflect/Method",
           cls.methods.map{ m =>
-            rt.Obj.alloc(vt.ClsTable("java/lang/reflect/Method")).address
+            r.newObj(vt.ClsTable("java/lang/reflect/Method")).address
           }
         )
       )()
@@ -170,7 +170,7 @@ object DefaultBindings extends Bindings{
 
       val cls = vt.ClsTable(vt.toRealObj[String](vt.obj(arg()).apply("name")))
       vt.alloc(implicit r =>
-        rt.Obj.allocArr("java/lang/Class",
+        r.newArr("java/lang/Class",
           cls.typeAncestry
             .filter(x => !cls.clsAncestry.contains(x))
             .toSeq
@@ -329,7 +329,7 @@ object DefaultBindings extends Bindings{
 
       val clsObj = vt.obj(cls)
       val clsName = vt.toRealObj[String](clsObj("name"))
-      vt.alloc(rt.Obj.allocArr(imm.Type.readJava(clsName), length)(_)).address()
+      vt.alloc(_.newArr(imm.Type.readJava(clsName), length)).address()
     },
     native("java/lang/reflect/Array", "set(Ljava/lang/Object;ILjava/lang/Object;)V"){ (vt, arg) =>
       val (arr, index, obj) = (arg(), arg(), arg())
@@ -347,9 +347,7 @@ object DefaultBindings extends Bindings{
         val (cons, args) = (arg(), arg())
 
         val name = vt.toRealObj[String](vt.obj(vt.obj(cons).apply("clazz")).apply("name"))
-        vt.alloc(implicit r =>
-          rt.Obj.alloc(vt.ClsTable(name))
-        ).address()
+        vt.alloc(_.newObj(vt.ClsTable(name))).address()
     },
     native("java/lang/StrictMath", "log(D)D").func(D, D){ (vt, arg) =>
       math.log(arg)
@@ -406,10 +404,7 @@ object DefaultBindings extends Bindings{
     native("sun/misc/Unsafe", "allocateInstance(Ljava/lang/Class;)Ljava/lang/Object;").func(I, I, I){ (vt, unsafe, clsPtr) =>
 
       val name = vt.toRealObj[String](vt.obj(clsPtr).apply("name"))
-      val x = vt.alloc{ implicit r =>
-        rt.Obj.alloc(vt.ClsTable(name)).address()
-      }
-      x
+      vt.alloc(_.newObj(vt.ClsTable(name))).address()
     },
     native("sun/misc/Unsafe", "addressSize()I").value(I)(4),
     native("sun/misc/Unsafe", "compareAndSwapInt(Ljava/lang/Object;JII)Z").func(I, I, J, I, I, Z){

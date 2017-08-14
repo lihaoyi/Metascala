@@ -12,7 +12,7 @@ object Virtualizer {
     Virtualizer.popVirtual(ct.runtimeClass.getName.replace('.', '/'), () => v)
       .asInstanceOf[T]
   }
-  def toVirtObj(x: Any)(implicit registrar: rt.Obj.Registrar) = {
+  def toVirtObj(x: Any)(implicit registrar: rt.Allocator) = {
     Virtualizer.pushVirtual(x).apply(0)
   }
 
@@ -87,13 +87,13 @@ object Virtualizer {
       .++(cls.getDeclaredFields)
   }
 
-  def pushVirtual(thing: Any)(implicit registrar: rt.Obj.Registrar): Seq[Int] = {
+  def pushVirtual(thing: Any)(implicit registrar: rt.Allocator): Seq[Int] = {
     val tmp = new mutable.Stack[Int]()
     pushVirtual(thing, tmp.push(_))
     tmp.reverse
   }
 
-  def pushVirtual(thing: Any, out: Int => Unit)(implicit registrar: rt.Obj.Registrar): Unit = {
+  def pushVirtual(thing: Any, out: Int => Unit)(implicit registrar: rt.Allocator): Unit = {
 
     implicit val vm = registrar.vm
     thing match {
@@ -110,12 +110,12 @@ object Virtualizer {
 
         val tpe = imm.Type.Arr.read(b.getClass.getName.replace('.', '/')).innerType
         val arr =
-          rt.Obj.allocArr(
+          registrar.newArr(
             tpe,
             b.flatMap(pushVirtual).map{x =>
               val ref : Ref = new Ref.ManualRef(x)
               if (!b.getClass.getComponentType.isPrimitive) {
-                registrar(ref)
+                registrar.register(ref)
               }
               ref
             }
@@ -132,13 +132,13 @@ object Virtualizer {
           pushVirtual(f.get(b), x => {
             contents.append(x)
             if (!f.getType.isPrimitive) {
-              registrar(contents.last)
+              registrar.register(contents.last)
             }
           })
           index += field.desc.size
         }
 
-        val obj = rt.Obj.alloc(vm.ClsTable(b.getClass.getName))
+        val obj = registrar.newObj(vm.ClsTable(b.getClass.getName))
         contents.map(_()).map(Util.writer(vm.heap.memory, obj.address() + Constants.objectHeaderSize))
         out(obj.address())
     }
