@@ -24,8 +24,8 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
          val logger: Thread.Logger = Thread.NonLogger/*new ColorLogger {}*/) extends Thread.VMInterface{
   def isObj(address: Int): Boolean = heap(address) < 0
   def isArr(address: Int): Boolean = heap(address) > 0
-  def obj(address: Int): metascala.rt.Obj = new rt.Obj(address)
-  def arr(address: Int): metascala.rt.Arr = new rt.Arr(address)
+  def obj(address: Int): metascala.rt.Obj = new rt.Obj(new Ref.Manual(address))
+  def arr(address: Int): metascala.rt.Arr = new rt.Arr(new Ref.Manual(address))
   def thUnsafe: metascala.rt.Obj = ???
   private[this] implicit val vm = this
 
@@ -75,7 +75,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
     val thread = alloc( r =>
       r.newObj(ClsTable("java/lang/Thread"),
         "group" -> r.newObj(ClsTable("java/lang/ThreadGroup")).address,
-        "priority" -> 5
+        "priority" -> new Ref.Manual(5)
       )
     ).address
     interned.append(thread)
@@ -88,7 +88,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
     override def apply(x: imm.Type) = this.getOrElseUpdate(x,
       vm.alloc(implicit r =>
         r.newObj(ClsTable("java/lang/Class"),
-          "name" -> Virtualizer.toVirtObj(x.javaName)
+          "name" -> new Ref.Manual(Virtualizer.toVirtObj(x.javaName))
         )
       )
     )
@@ -128,7 +128,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
       (x, i) <- block.locals.zipWithIndex
       if x == LocalType.Ref
       _ = if (frame.locals(i) == -1) println(frame.locals.toList, i)
-    } yield new Ref.ArrRef(() => frame.locals(i), frame.locals(i) = _)
+    } yield new Ref.Arr(() => frame.locals(i), frame.locals(i) = _)
 
     //    println(s"stackRoots ${stackRoots.map(_())}")
 
@@ -142,7 +142,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
       if cls.statics != null
       i <- 0 until cls.staticList.length
       if cls.staticList(i).desc.isRef
-    } yield new Ref.ArrRef(
+    } yield new Ref.Arr(
       () => heap(cls.statics() + i + Constants.arrayHeaderSize),
       heap(cls.statics() + i + Constants.arrayHeaderSize) = _
     )

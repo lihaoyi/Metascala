@@ -10,7 +10,7 @@ class Heap(memorySize: Int,
   var start = 0
   var freePointer = 1
 
-  def allocate(n: Int)(register: Ref => Unit) = {
+  def allocate(n: Int) = {
     if (freePointer + n > memorySize + start) {
       println("COLLECT LOL")
       collect(start)
@@ -20,9 +20,8 @@ class Heap(memorySize: Int,
     }
     val newFree = freePointer
     freePointer += n
-    val ref = new Ref.ManualRef(newFree)
-    register(ref)
-    ref
+    new Ref.Manual(newFree)
+
   }
 
   def apply(n: Int): Int = memory(n)

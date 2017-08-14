@@ -17,7 +17,7 @@ object Arr{
   }
 
 
-  def unapply(x: Int)(implicit vm: VMInterface): Option[Arr] = Some(new Arr(x))
+  def unapply(x: Int)(implicit vm: VMInterface): Option[Arr] = Some(new Arr(new Ref.Manual(x)))
 
 
   implicit def unwrap2(x: Arr): Ref = x.address

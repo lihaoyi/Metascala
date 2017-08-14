@@ -168,12 +168,12 @@ object SingleInsnSSAConverter {
         insn.asInstanceOf[LdcInsnNode].cst match{
           case s: String =>
             val index = vm.interned.length
-            vm.interned.append(new Ref.ManualRef(vm.alloc(Virtualizer.pushVirtual(s)(_)).apply(0)))
+            vm.interned.append(new Ref.Manual(vm.alloc(Virtualizer.pushVirtual(s)(_)).apply(0)))
             append(Ldc(top(nextFrame), index))
           case t: org.objectweb.asm.Type =>
             val clsObj = vm.typeObjCache(imm.Type.read(t.getInternalName))
             val index = vm.interned.length
-            vm.interned.append(new Ref.ManualRef(clsObj()))
+            vm.interned.append(new Ref.Manual(clsObj()))
             append(Ldc(top(nextFrame), index))
           case x: java.lang.Byte  => append(Insn.Push(top(nextFrame), B, x: Byte))
           case x: java.lang.Character  => append(Insn.Push(top(nextFrame), C, x: Char))

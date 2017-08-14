@@ -113,7 +113,7 @@ object Virtualizer {
           registrar.newArr(
             tpe,
             b.flatMap(pushVirtual).map{x =>
-              val ref : Ref = new Ref.ManualRef(x)
+              val ref : Ref = new Ref.Manual(x)
               if (!b.getClass.getComponentType.isPrimitive) {
                 registrar.register(ref)
               }
@@ -130,7 +130,7 @@ object Virtualizer {
           val f = decFields.find(_.getName == field.name).get
           f.setAccessible(true)
           pushVirtual(f.get(b), x => {
-            contents.append(x)
+            contents.append(new Ref.Manual(x))
             if (!f.getType.isPrimitive) {
               registrar.register(contents.last)
             }

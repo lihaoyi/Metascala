@@ -24,11 +24,13 @@ class Allocator()(implicit val vm: rt.Obj.VMInterface) {
     * calculating the total amount of memory benig allocated
     */
   def newArr(t: imm.Type, n: scala.Int): Arr = {
-    newArr(t, Array.fill[Int](n * t.size)(0).map(x => new Ref.ManualRef(x): Ref))
+    newArr(t, Array.fill(n * t.size)(Ref.Null))
   }
   def newArr(innerType: imm.Type, backing0: TraversableOnce[Ref]): Arr = {
     val backing = backing0.toArray
-    val address = vm.heap.allocate(Constants.arrayHeaderSize+ backing.length)(register)
+    val address = vm.heap.allocate(Constants.arrayHeaderSize+ backing.length)
+    register(address)
+
     //    println("Allocating Array[" + innerType.name + "] at " + address)
     vm.heap(address()) = rt.Arr.packType(imm.Type.Arr(innerType))
 
@@ -37,7 +39,8 @@ class Allocator()(implicit val vm: rt.Obj.VMInterface) {
     new Arr(address)
   }
   def newObj(cls: rt.Cls, initMembers: (String, Ref)*): Obj = {
-    val address = vm.heap.allocate(Constants.objectHeaderSize + cls.fieldList.length)(register)
+    val address = vm.heap.allocate(Constants.objectHeaderSize + cls.fieldList.length)
+    register(address)
     //    println("Allocating " + cls.name + " at " + address)
     vm.heap(address()) = -cls.index
     vm.heap(address() + 1) = cls.fieldList.length

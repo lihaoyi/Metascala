@@ -407,8 +407,8 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
     throwException(
       vm.alloc( implicit r =>
         r.newObj(ClsTable(clsName),
-          "stackTrace" -> Virtualizer.toVirtObj(trace),
-          "detailMessage" -> Virtualizer.toVirtObj(detailMessage)
+          "stackTrace" -> new Ref.Manual(Virtualizer.toVirtObj(trace)),
+          "detailMessage" -> new Ref.Manual(Virtualizer.toVirtObj(detailMessage))
         )
       )
     )
@@ -465,13 +465,13 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
       threads(0).returnedVal(0)
     }
     def newInstance(constr: Int, argArr: Int): Int = {
-      val cls = new rt.Obj(constr)(this).apply("clazz")
-      val name = toRealObj[String](new rt.Obj(cls)(this).apply("name")).replace('.', '/')
+      val cls = new rt.Obj(new Ref.Manual(constr))(this).apply("clazz")
+      val name = toRealObj[String](new rt.Obj(new Ref.Manual(cls))(this).apply("name")).replace('.', '/')
       val newObj = alloc { implicit r =>
         r.newObj(ClsTable(name)).address()
       }
 
-      val descStr = toRealObj[String](new rt.Obj(constr)(this).apply("signature"))
+      val descStr = toRealObj[String](new rt.Obj(new Ref.Manual(constr))(this).apply("signature"))
 
       val mRef = ClsTable(name).method(
         "<init>",
