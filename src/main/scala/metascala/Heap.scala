@@ -3,7 +3,7 @@ package metascala
 import metascala.util.{Constants, Ref}
 
 class Heap(memorySize: Int,
-           getRoots: () => Seq[Ref],
+           forEachRoot: (Ref => Unit) => Unit,
            getLinks: (Int, Int) => Seq[Int]){
 
   val memory = new Array[Int](memorySize * 2)
@@ -67,7 +67,6 @@ class Heap(memorySize: Int,
     //vm.threads(0).threadStack.map(x => x.runningClass.name + "/" + x.method.sig + "\t" + x.method.code.blocks(x.pc._1).insns(x.pc._2)).foreach(println)
     println("starting " + (freePointer - from))
 //    println(dump())
-    val roots = getRoots()
 //    println(roots.map(_()))
 //        println(s"allRoots ${roots.map(_())}")
 
@@ -81,7 +80,7 @@ class Heap(memorySize: Int,
       scanPointer = 1
     }
 
-    for(root <- roots){
+    forEachRoot{root =>
       val oldRoot = root()
       val (newRoot, nfp) = blit(freePointer, oldRoot)
       freePointer = nfp

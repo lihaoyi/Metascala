@@ -38,7 +38,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
   def setOffHeapPointer(n: Long) = offHeapPointer = n
   val heap = new Heap(
     memorySize,
-    () => getRoots(),
+    forEachRoot,
     getLinks
   )
 
@@ -118,44 +118,46 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
   /**
     * Identify the list of all root object references within the virtual machine.
     */
-  def getRoots(): Seq[Ref] = {
+  def forEachRoot(cb: Ref => Unit): Unit = {
     assert(ready)
-    val stackRoots = for {
-      thread <- threads
-      frame <- thread.threadStack
-      (blockId, index) = frame.pc
-      block = frame.method.code.blocks(blockId)
-      (x, i) <- block.locals.zipWithIndex
-      if x == LocalType.Ref
-      _ = if (frame.locals(i) == -1) println(frame.locals.toList, i)
-    } yield new Ref.UnsafeArr(() => frame.locals(i), frame.locals(i) = _)
+    for (thread <- threads; frame <- thread.threadStack){
+      val (blockId, index) = frame.pc
+      val block = frame.method.code.blocks(blockId)
+      for((x, i) <- block.locals.zipWithIndex) {
+        if (x == LocalType.Ref) {
+          cb(new Ref.UnsafeArr(() => frame.locals(i), frame.locals(i) = _))
+        }
+      }
+    }
 
-    //    println(s"stackRoots ${stackRoots.map(_())}")
+    for (cls <- ClsTable.clsIndex) {
+      if (cls != null && cls.statics != null) cb(cls.statics)
+    }
 
-    val classRoots = for {
-      cls <- ClsTable.clsIndex.drop(1)
-      if cls.statics != null
-    } yield cls.statics
+    for (cls <- ClsTable.clsIndex){
+      if (cls != null && cls.statics != null){
 
-    val classRoots2 = for {
-      cls <- ClsTable.clsIndex.drop(1)
-      if cls.statics != null
-      i <- 0 until cls.staticList.length
-      if cls.staticList(i).desc.isRef
-    } yield new Ref.UnsafeArr(
-      () => heap(cls.statics() + i + Constants.arrayHeaderSize),
-      heap(cls.statics() + i + Constants.arrayHeaderSize) = _
-    )
+        for(i <- 0 until cls.staticList.length){
+          if (cls.staticList(i).desc.isRef){
+            cb(new Ref.UnsafeArr(
+              () => heap(cls.statics() + i + Constants.arrayHeaderSize),
+              heap(cls.statics() + i + Constants.arrayHeaderSize) = _
+            ))
+          }
+        }
+      }
+    }
 
-    val clsObjRoots = typeObjCache.values
+    typeObjCache.values.foreach(cb)
 
-    classRoots ++
-    classRoots2 ++
-    stackRoots ++
-    clsObjRoots ++
-    activeAllocators.flatMap(_.registered) ++
-    interned ++
-    internedStrings.values
+    for{
+      allocator <- activeAllocators
+      registered <- allocator.registered
+    } cb(registered)
+
+    interned.foreach(cb)
+
+    internedStrings.valuesIterator.foreach(cb)
   }
 
   /**
