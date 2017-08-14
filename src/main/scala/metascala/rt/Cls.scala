@@ -72,52 +72,47 @@ class Cls(val tpe: imm.Type.Cls,
   }
 
 
-  /**
-   * The virtual function dispatch table
-   */
-  lazy val vTable: Seq[rt.Method] = {
+  def computeDispatchTable(getParent: imm.Type.Cls => IndexedSeq[rt.Method],
+                           static: Boolean) = {
+    val overrides = !static
     val oldMethods =
       mutable.ArrayBuffer(
         superType
-               .toArray
-               .flatMap(_.vTable): _*
+          .toArray
+          .flatMap(getParent): _*
       )
 
-    for(m <- methods) if (!m.static){
-      val index = oldMethods.indexWhere{ mRef => mRef.sig == m.sig }
-      val update =
-        if (index == -1) oldMethods.append(_: Method)
-        else oldMethods.update(index, _: Method)
-
-      vm.lookupNatives(name, m.sig) match {
-        case None => update(m)
-        case Some(native) => update(native)
+    for(m <- methods) if (m.static == static){
+      val actualMethod = vm.lookupNatives(name, m.sig) match {
+        case None => m
+        case Some(native) => native
       }
-    }
+      if (!overrides) oldMethods.append(actualMethod)
+      else{
 
+        val index = oldMethods.indexWhere{ mRef => mRef.sig == m.sig }
+          if (index == -1) oldMethods.append(actualMethod)
+          else oldMethods.update(index, actualMethod)
+      }
+
+
+    }
     oldMethods
+  }
+  /**
+   * The virtual function dispatch table
+   */
+  lazy val vTable: IndexedSeq[rt.Method] = {
+    computeDispatchTable(_.vTable, static = false)
   }
 
   /**
    * The static function dispatch table
    */
-  lazy val staticTable: Seq[rt.Method] = {
-    val oldMethods =
-      mutable.ArrayBuffer(
-        superType
-               .toArray
-               .flatMap(_.staticTable): _*
-      )
-
-
-    for(m <- methods) if (m.static){
-      vm.lookupNatives(name, m.sig) match {
-        case None => oldMethods.append(m)
-        case Some(native) => oldMethods.append(native)
-      }
-    }
-    oldMethods
+  lazy val staticTable: IndexedSeq[rt.Method] = {
+    computeDispatchTable(_.staticTable, static = true)
   }
+
 
   /**
    * A hash map of the virtual function table, used for quick lookup
