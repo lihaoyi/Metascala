@@ -69,11 +69,17 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
     res
   }
 
+  /**
+    * Used to temporary hold newly allocated objects. This is necessary because
+    * it often takes some initialization before the object is ready to be
+    * placed into local variables or fields, during which time it is
+    * "unreachable". Temporarily placing them in the registry avoids them
+    * getting prematurely garbage collected during this period.
+    */
   val registry = mutable.Set[Ref]()
 
 
   val arrayTypeCache = mutable.Buffer[imm.Type](null)
-
 
   lazy val currentThread = {
     val thread = alloc(implicit r =>
