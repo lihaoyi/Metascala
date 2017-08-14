@@ -38,11 +38,11 @@ object Virtualizer {
         else tpe match{
           case imm.Type.Cls("java/lang/Object") | imm.Type.Arr(_) if vm.isArr(address) =>
 
-            val tpe = vm.arrayTypeCache(vm.heap(address))
+            val tpe = vm.arr(address).innerType
 
-            val clsObj = Prim.all.get(tpe.name(0)) match{
-              case Some(v) => v.primClass
-              case None => Class.forName(tpe.name.replace('/', '.'))
+            val clsObj = tpe match{
+              case v: imm.Type.Prim[_] => v.primClass
+              case _ => Class.forName(tpe.name.replace('/', '.'))
             }
 
             val newArr = java.lang.reflect.Array.newInstance(clsObj, vm.arr(address).arrayLength)

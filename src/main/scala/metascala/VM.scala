@@ -78,9 +78,6 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
     */
   val registry = mutable.Set[Ref]()
 
-
-  val arrayTypeCache = mutable.Buffer[imm.Type](null)
-
   lazy val currentThread = {
     val thread = alloc(implicit r =>
       rt.Obj.alloc(ClsTable("java/lang/Thread"),
@@ -119,7 +116,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
         if x.desc.isRef
       } yield i + Constants.objectHeaderSize
     } else {
-      if (arrayTypeCache(heap(tpe)).isRef) {
+      if (arr(tpe).innerType.isRef) {
         for (i <- 0 until heap(length)) yield i + Constants.arrayHeaderSize
       } else Nil
     }

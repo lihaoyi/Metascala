@@ -291,7 +291,7 @@ object DefaultBindings extends Bindings{
     native("java/lang/Runtime", "availableProcessors()I"){(vt, arg) => 1},
     native("java/lang/System", "arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V"){ (vt, arg) =>
       val (src, srcIndex, dest, destIndex, length) = (arg(), arg(), arg(), arg(), arg())
-      val size = vt.arrayTypeCache(vt.heap(src)).size
+      val size = vt.arr(src).innerType.size
       System.arraycopy(
         vt.heap.memory,
         src + (srcIndex * size) + Constants.arrayHeaderSize,
@@ -373,7 +373,9 @@ object DefaultBindings extends Bindings{
         val thing = vt.obj(o)
         println("Virtual\t" + vt.toRealObj[Object](thing.address()))
       }else if(vt.isArr(o)){
-        val s = Virtualizer.popVirtual(imm.Type.Arr(vt.arrayTypeCache(vt.heap(o + 1))), () => o)(vt)
+        val s = Virtualizer.popVirtual(
+          vt.arr(o + 1).tpe, () => o
+        )(vt)
         println("Virtual\t" + s)
       }else{
         println("Virtual\t" + null)

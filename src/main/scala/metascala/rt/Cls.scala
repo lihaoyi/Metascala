@@ -5,12 +5,15 @@ import metascala.util.{Access, Constants, Ref, Util}
 
 import scala.collection.mutable
 
-trait ClsTable extends(imm.Type.Cls => rt.Cls){
+trait ClsTable extends rt.Arr.ClsTable with (imm.Type.Cls => rt.Cls){
+  def indexOfType(tpe: imm.Type.Cls): Int = this(tpe).index
+  def typeAtIndex(i: Int): imm.Type = this.clsIndex(i).tpe
   val clsIndex: mutable.ArrayBuffer[rt.Cls]
 }
+
 object Cls{
 
-  trait VMInterface extends rt.Arr.CoreVMInterface{
+  trait VMInterface extends rt.Arr.VMInterface{
     implicit def ClsTable: ClsTable
     def lookupNatives(name: String, sig: imm.Sig): Option[rt.Method]
   }

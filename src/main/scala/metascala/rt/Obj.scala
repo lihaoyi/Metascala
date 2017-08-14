@@ -34,12 +34,10 @@ object Obj{
     val backing = backing0.toArray
     val address = vm.heap.allocate(Constants.arrayHeaderSize+ backing.length)(registrar.apply)
     //    println("Allocating Array[" + innerType.name + "] at " + address)
-    vm.heap(address()) = vm.arrayTypeCache.length
+    vm.heap(address()) = rt.Arr.packType(imm.Type.Arr(innerType))
 
-    vm.arrayTypeCache.append(innerType)
     vm.heap(address() + 1) = backing.length / innerType.size
     backing.map(_()).copyToArray(vm.heap.memory, address() + Constants.arrayHeaderSize)
-
     new Arr(address)
   }
   def alloc(cls: rt.Cls, initMembers: (String, Ref)*)(implicit registrar: Registrar): Obj = {

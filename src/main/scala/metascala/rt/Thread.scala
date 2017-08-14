@@ -511,7 +511,6 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
     def currentThread = vm.currentThread
 
     implicit def ClsTable = vm.ClsTable
-    def arrayTypeCache = vm.arrayTypeCache
 
     def heap = vm.heap
 
