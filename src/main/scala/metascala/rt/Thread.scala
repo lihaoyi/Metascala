@@ -23,7 +23,7 @@ object Thread{
     def setOffHeapPointer(n: Long): Unit
     def offHeapPointer: Long
     def currentThread: Int
-    def internedStrings: mutable.Map[String, Int]
+    def internedStrings: mutable.Map[String, Ref]
     def natives: Bindings
     def check(s: imm.Type, t: imm.Type): Boolean
     def logger: Logger

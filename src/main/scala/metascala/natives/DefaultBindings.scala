@@ -110,7 +110,7 @@ object DefaultBindings extends Bindings{
             r.newObj(vt.ClsTable("java/lang/reflect/Field"),
               "clazz" -> obj.address,
               "slot" -> Ref.Raw((if (f.static) cls.staticList else cls.fieldList).indexOf(f)),
-              "name" -> r.register(vt.internedStrings.getOrElseUpdate(f.name, vt.toVirtObj(f.name))),
+              "name" -> vt.internedStrings.getOrElseUpdate(f.name, vt.toVirtObj(f.name)),
               "modifiers" -> Ref.Raw(f.access),
               "type" -> vt.typeObjCache(f.desc)
             ).address
@@ -310,8 +310,8 @@ object DefaultBindings extends Bindings{
     native("java/lang/String", "intern()Ljava/lang/String;"){ (vt, arg) =>
       val addr = arg()
       val str = vt.toRealObj[String](addr)
-      val result = vt.internedStrings.getOrElseUpdate(str, addr)
-      result
+      val result = vt.internedStrings.getOrElseUpdate(str, new Ref.UnsafeManual(addr))
+      result()
     },
     native("java/lang/Thread", "registerNatives()V"){(vt, arg) => ()},
     native("java/lang/Thread", "currentThread()Ljava/lang/Thread;"){(vt, arg) => vt.currentThread},

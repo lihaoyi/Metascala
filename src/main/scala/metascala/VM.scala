@@ -30,7 +30,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
   private[this] implicit val vm = this
 
   var ready = false
-  val internedStrings = mutable.Map[String, Int]()
+  val internedStrings = mutable.Map[String, Ref]()
 
   // Doesn't grow for now; we can make it grow when we need it to.
   val offHeap = new Array[Byte](10)
@@ -154,7 +154,8 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
     stackRoots ++
     clsObjRoots ++
     activeAllocators.flatMap(_.registered) ++
-    interned
+    interned ++
+    internedStrings.values
   }
 
   /**

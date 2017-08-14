@@ -22,7 +22,7 @@ object Bindings{
     def arr(address: Int): rt.Arr
     def runningClassName(n: Int): String // vt.threadStack(n).runningClass.name
     def threadStackLength: Int // vt.threadStack.length
-    def internedStrings: mutable.Map[String, Int]
+    def internedStrings: mutable.Map[String, Ref]
     def toRealObj[T](x: Int)(implicit ct: ClassTag[T]): T
     def toVirtObj(x: Any)(implicit registrar: rt.Allocator): rt.Obj
     def trace: Array[StackTraceElement]
