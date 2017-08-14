@@ -107,7 +107,7 @@ object DefaultBindings extends Bindings{
       vt.alloc(implicit r =>
         r.newArr("java/lang/reflect/Field",
           realFields.zipWithIndex.map{ case (f, i) =>
-            r.newObj(vt.ClsTable("java/lang/reflect/Field"),
+            r.newObj("java/lang/reflect/Field",
               "clazz" -> obj.address,
               "slot" -> Ref.Raw((if (f.static) cls.staticList else cls.fieldList).indexOf(f)),
               "name" -> vt.internedStrings.getOrElseUpdate(f.name, vt.toVirtObj(f.name)),
@@ -129,7 +129,7 @@ object DefaultBindings extends Bindings{
       val vrtArr = vt.alloc(implicit r =>
         r.newArr("java/lang/reflect/Constructor",
           realMethods.zipWithIndex.map{ case (f, i) =>
-            r.newObj(vt.ClsTable("java/lang/reflect/Constructor"),
+            r.newObj("java/lang/reflect/Constructor",
               "clazz" -> clsObj.address,
               "slot" -> Ref.Raw(i),
               "signature" -> vt.toVirtObj(f.sig.desc.unparse),
@@ -159,7 +159,7 @@ object DefaultBindings extends Bindings{
       vt.alloc(implicit r =>
         r.newArr("java/lang/reflect/Method",
           cls.methods.map{ m =>
-            r.newObj(vt.ClsTable("java/lang/reflect/Method")).address
+            r.newObj("java/lang/reflect/Method").address
           }
         )
       )()
@@ -347,7 +347,7 @@ object DefaultBindings extends Bindings{
         val (cons, args) = (arg(), arg())
 
         val name = vt.toRealObj[String](vt.obj(vt.obj(cons).apply("clazz")).apply("name"))
-        vt.alloc(_.newObj(vt.ClsTable(name))).address()
+        vt.alloc(_.newObj(name)).address()
     },
     native("java/lang/StrictMath", "log(D)D").func(D, D){ (vt, arg) =>
       math.log(arg)
@@ -404,7 +404,7 @@ object DefaultBindings extends Bindings{
     native("sun/misc/Unsafe", "allocateInstance(Ljava/lang/Class;)Ljava/lang/Object;").func(I, I, I){ (vt, unsafe, clsPtr) =>
 
       val name = vt.toRealObj[String](vt.obj(clsPtr).apply("name"))
-      vt.alloc(_.newObj(vt.ClsTable(name))).address()
+      vt.alloc(_.newObj(name)).address()
     },
     native("sun/misc/Unsafe", "addressSize()I").value(I)(4),
     native("sun/misc/Unsafe", "compareAndSwapInt(Ljava/lang/Object;JII)Z").func(I, I, J, I, I, Z){

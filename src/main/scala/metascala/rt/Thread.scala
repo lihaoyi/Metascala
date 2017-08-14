@@ -145,7 +145,7 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
       case New(target, clsIndex) =>
         val cls = ClsTable.clsIndex(clsIndex)
         checkInitialized(cls)
-        val obj = vm.alloc(_.newObj(ClsTable(cls.name)))
+        val obj = vm.alloc(_.newObj(cls.name))
         frame.locals(target) = obj.address()
         advancePc()
 
@@ -406,7 +406,7 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
 
     throwException(
       vm.alloc( implicit r =>
-        r.newObj(ClsTable(clsName),
+        r.newObj(clsName,
           "stackTrace" -> r.register(Virtualizer.toVirtObj(trace)),
           "detailMessage" -> r.register(Virtualizer.toVirtObj(detailMessage))
         )
@@ -468,7 +468,7 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
       val cls = r.obj(constr).apply("clazz")
       val name = toRealObj[String](r.obj(cls).apply("name")).replace('.', '/')
       val newObj = alloc { implicit r =>
-        r.newObj(ClsTable(name)).address()
+        r.newObj(name).address()
       }
 
       val descStr = toRealObj[String](r.obj(constr).apply("signature"))

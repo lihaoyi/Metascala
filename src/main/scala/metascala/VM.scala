@@ -73,8 +73,8 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
 
   lazy val currentThread = {
     val thread = alloc( r =>
-      r.newObj(ClsTable("java/lang/Thread"),
-        "group" -> r.newObj(ClsTable("java/lang/ThreadGroup")).address,
+      r.newObj("java/lang/Thread",
+        "group" -> r.newObj("java/lang/ThreadGroup").address,
         "priority" -> Ref.Raw(5)
       )
     ).address
@@ -87,7 +87,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
   val typeObjCache = new mutable.HashMap[imm.Type, Ref] {
     override def apply(x: imm.Type) = this.getOrElseUpdate(x,
       vm.alloc(implicit r =>
-        r.newObj(ClsTable("java/lang/Class"),
+        r.newObj("java/lang/Class",
           "name" -> r.register(Virtualizer.toVirtObj(x.javaName))
         )
       )
@@ -163,7 +163,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
   /**
     * Globally shared sun.misc.Unsafe object.
     */
-  lazy val theUnsafe = vm.alloc(_.newObj(ClsTable("sun/misc/Unsafe")))
+  lazy val theUnsafe = vm.alloc(_.newObj("sun/misc/Unsafe"))
 
   /**
     * Cache of all the classes loaded so far within the Metascala VM.
@@ -228,8 +228,8 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
     val systemCls = ClsTable.apply("java/lang/System")
     checkInitialized(systemCls)
     val dummyWriter = vm.alloc( r =>
-      r.newObj(ClsTable("java/io/PrintWriter"),
-        "out" -> r.newObj(ClsTable("metascala/DummyWriter")).address
+      r.newObj("java/io/PrintWriter",
+        "out" -> r.newObj("metascala/DummyWriter").address
       ).address()
     )
 

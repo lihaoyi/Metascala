@@ -132,7 +132,7 @@ object Virtualizer {
           index += field.desc.size
         }
 
-        val obj = registrar.newObj(vm.ClsTable(b.getClass.getName))
+        val obj = registrar.newObj(b.getClass.getName)
         contents.map(_()).map(Util.writer(vm.heap.memory, obj.address() + Constants.objectHeaderSize))
         out(obj.address())
     }

@@ -44,7 +44,10 @@ class Allocator()(implicit val vm: rt.Obj.VMInterface) {
     backing.map(_()).copyToArray(vm.heap.memory, address + Constants.arrayHeaderSize)
     new Arr(register(address))
   }
-  def newObj(cls: rt.Cls, initMembers: (String, Ref)*): Obj = {
+  def newObj(cls: imm.Type.Cls, initMembers: (String, Ref)*): Obj = {
+    newObj0(vm.ClsTable(cls), initMembers:_*)
+  }
+  def newObj0(cls: rt.Cls, initMembers: (String, Ref)*): Obj = {
     val address = vm.heap.allocate(Constants.objectHeaderSize + cls.fieldList.length)
     //    println("Allocating " + cls.name + " at " + address)
     vm.heap(address) = -cls.index
