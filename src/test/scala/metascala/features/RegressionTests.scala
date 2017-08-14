@@ -1,5 +1,6 @@
 package metascala.features
 
+import java.io.{ByteArrayOutputStream, PrintWriter}
 import java.security.AccessController
 import java.util.PropertyPermission
 
@@ -37,6 +38,14 @@ class RegressionTests extends FreeSpec{
       else 1 match {case f: Int => ExternalLibTest.func(o)}
 
     res == null
+  }
+  "printwriter" in tester.test{
+    val baos = new ByteArrayOutputStream()
+    val pw = new PrintWriter(baos)
+    pw.print("Hello")
+    pw.print("World")
+    new String(baos.toByteArray)
+
   }
   "invokeDynamic" in {
     // Exposed a problem where we were unnecessarily de-virtualizing the

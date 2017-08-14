@@ -48,7 +48,7 @@ object Thread{
                 block: BasicBlock): Unit
     def logPhi(indentCount: Int, clsName: String, shifts: Iterator[(Int, Int)]): Unit
   }
-  object NonLogger{
+  object NonLogger extends Logger{
     def active = false
     def logStep(indentCount: Int,
                 clsName: String,

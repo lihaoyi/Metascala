@@ -1,5 +1,5 @@
 package metascala
-package full
+package features
 
 import org.scalatest.FreeSpec
 
@@ -135,15 +135,15 @@ class JavaLibTest extends FreeSpec {
       val map = new ConcurrentHashMap[Int, Int]()
       map.put(123, 456)
     }
-//    "rhino" in tester.test{
-//      classOf[VMBridge_jdk15].newInstance()
-//      /*val cx = Context.enter()
-//      val scope = cx.initStandardObjects()
-//      val script = "var s = 'omg'"
-//      val obj = cx.evaluateString(scope, script, "Test Script", 1, null)
-//      println(obj)
-//      1*/
-//    }
+    //    "rhino" in tester.test{
+    //      classOf[VMBridge_jdk15].newInstance()
+    //      /*val cx = Context.enter()
+    //      val scope = cx.initStandardObjects()
+    //      val script = "var s = 'omg'"
+    //      val obj = cx.evaluateString(scope, script, "Test Script", 1, null)
+    //      println(obj)
+    //      1*/
+    //    }
   }
 
 }

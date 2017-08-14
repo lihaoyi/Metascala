@@ -1,5 +1,5 @@
 package metascala
-package full
+package features
 
 import org.scalatest.FreeSpec
 

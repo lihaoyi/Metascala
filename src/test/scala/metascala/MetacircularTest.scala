@@ -1,5 +1,4 @@
 package metascala
-package full
 
 import org.scalatest.FreeSpec
 import metascala.features.Bull
@@ -76,14 +75,13 @@ class MetacircularTest extends FreeSpec {
     }
   }
 
-//  "predef" in {
-//    new VM(memorySize = 16 * 1014 * 1024).test{
-//      new VM(log = x => println(x)).exec{
-//        Predef
-//      }
-//    }
-//  }
-
+  //  "predef" in {
+  //    new VM(memorySize = 16 * 1014 * 1024).test{
+  //      new VM(log = x => println(x)).exec{
+  //        Predef
+  //      }
+  //    }
+  //  }
 }
 
 

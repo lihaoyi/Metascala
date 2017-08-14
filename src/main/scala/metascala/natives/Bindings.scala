@@ -38,5 +38,5 @@ trait Bindings{
 
 
 
-  val trapped: Seq[rt.Method]
+  val trapped: Agg[rt.Method]
 }

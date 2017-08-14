@@ -1,15 +1,15 @@
-package metascala
-package full
+package metascala.features
 
-import org.scalatest.FreeSpec
-
-import metascala.Gen._
 import java.awt.geom.Point2D
+
+import metascala.TestUtil._
+import metascala.{Gen, VM, Virtualizer}
+import metascala.Gen._
+import org.scalatest.FreeSpec
 
 
 class ReflectTests extends FreeSpec {
   implicit val intAll10 = 10 ** Gen.intAll
-  import TestUtil._
   val tester = new VM()
   "getSetX" - {
 
