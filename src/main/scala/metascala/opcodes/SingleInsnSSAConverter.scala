@@ -5,7 +5,6 @@ package opcodes
 import scala.collection.mutable
 import metascala.imm.Type.Prim
 import metascala.imm.Type.Prim._
-
 import org.objectweb.asm.tree._
 
 import scala.collection.JavaConversions._
@@ -13,6 +12,7 @@ import scala.collection.JavaConverters._
 import org.objectweb.asm.tree.analysis._
 import org.objectweb.asm.Opcodes._
 import Insn._
+import metascala.rt.Logger
 import metascala.util.{Agg, Ref}
 object SingleInsnSSAConverter {
   trait VMInterface extends rt.Obj.VMInterface{
@@ -21,6 +21,7 @@ object SingleInsnSSAConverter {
     def resolveDirectRef(owner: imm.Type.Cls, sig: imm.Sig): Option[rt.Method]
     val interned: mutable.Buffer[Ref]
     val typeObjCache: mutable.HashMap[imm.Type, Ref]
+    def logger: Logger
   }
 
   def top(x: Frame[Box], n: Int = 0) = x.getStack(x.getStackSize - 1 - n)

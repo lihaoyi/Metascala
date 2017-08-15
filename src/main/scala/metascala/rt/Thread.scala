@@ -3,11 +3,12 @@ package rt
 
 import scala.collection.mutable
 import annotation.tailrec
-import metascala.opcodes.{BasicBlock, Insn, TryCatchBlock}
+import metascala.opcodes.{BasicBlock, Box, Insn, TryCatchBlock}
 import Insn._
 import Insn.Push
 import Insn.InvokeStatic
 import Insn.ReturnVal
+import org.objectweb.asm.tree.MethodNode
 import metascala.imm.{Desc, Sig, Type}
 import metascala.natives.Bindings
 import metascala.util._
@@ -26,42 +27,14 @@ object Thread{
     def internedStrings: mutable.Map[String, Ref]
     def natives: Bindings
     def check(s: imm.Type, t: imm.Type): Boolean
-    def logger: Logger
   }
 
-  /**
-    * The stack frame created by every method call
-    */
-  class Frame(var pc: (Int, Int) = (0, 0),
-              val runningClass: rt.Cls,
-              val method: rt.ClsMethod,
-              var lineNum: Int = 0,
-              val returnTo: Int => Unit,
-              val locals: Array[Int])
 
-  trait Logger{
-    def active: Boolean
-    def logStep(indentCount: Int,
-                clsName: String,
-                frame: Frame,
-                node: Insn,
-                block: BasicBlock): Unit
-    def logPhi(indentCount: Int, clsName: String, shifts: Iterator[(Int, Int)]): Unit
-  }
-  object NonLogger extends Logger{
-    def active = false
-    def logStep(indentCount: Int,
-                clsName: String,
-                frame: Frame,
-                node: Insn,
-                block: BasicBlock): Unit = ()
-    def logPhi(indentCount: Int, clsName: String, shifts: Iterator[(Int, Int)]): Unit = ()
-  }
 }
 /**
  * A single thread within the Metascala VM.
  */
-class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArrayStack())
+class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
             (implicit val vm: Thread.VMInterface) { thread =>
   import vm._
 
@@ -76,7 +49,7 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
 
 
 
-  def doPhi(frame: Thread.Frame, oldBlock: Int, newBlock: Int) = {
+  def doPhi(frame: Frame, oldBlock: Int, newBlock: Int) = {
     lazy val output = mutable.Buffer.empty[fansi.Str]
 
     val phi = frame.method.code.blocks(newBlock).phi(oldBlock)
@@ -84,6 +57,7 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
     if (vm.logger.active) vm.logger.logPhi(
       indent,
       ClsTable.clsIndex(frame.method.clsIndex).name,
+      frame,
       (0 until temp.length).iterator.map(i => (i, phi(i)._2))
     )
     java.util.Arrays.fill(frame.locals, 0)
@@ -225,6 +199,7 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
         advancePc()
 
       case NewArray(src, dest, typeRef) =>
+        println("newArray " + frame.locals(src))
         val newArray = vm.alloc(_.newArr(typeRef, frame.locals(src)))
         frame.locals(dest) = newArray.address()
         advancePc()
@@ -540,7 +515,7 @@ class Thread(val threadStack: mutable.ArrayStack[Thread.Frame] = mutable.ArraySt
 
         assert(!m.native, "method cannot be native: " + ClsTable.clsIndex(clsIndex).name + " " + sig.unparse)
         val padded = args.toArray.padTo(m.code.localSize, 0)
-        val startFrame = new Thread.Frame(
+        val startFrame = new Frame(
           runningClass = ClsTable.clsIndex(clsIndex),
           method = m,
           returnTo = returnTo,

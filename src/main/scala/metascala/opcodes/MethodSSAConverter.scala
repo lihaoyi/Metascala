@@ -131,25 +131,9 @@ object MethodSSAConverter {
 //      println("XXX")
 //    }
 
-    val basicBlocks = computeBasicBlocks(blockBuffers)
-    //
-//    if (method.name == "apply") {
-//      def flatten[T](x: TraversableOnce[T]): String = x.mkString("[", ", ", "]")
-//      def arrow(x: (Any, Any)): String = x._1 + " -> " + x._2
-//      println("=" * 20 + method.name + "=" * 20)
-//      for ((block, i) <- basicBlocks.zipWithIndex){
-//        println("")
-//        println(i + "\t" + flatten(block.phi.map(x => flatten(x.map(arrow)))))
-//        println("" + flatten(blockBuffers(i)._3.map(arrow)))
-//        for(i <- 0 until block.insns.length){
-//          println("\t" + block.lines(i) + "\t" + block.insns(i))
-//        }
-//      }
-//      println("")
-//      println("")
-//    }
+    val basicBlocks = computeBasicBlocks(method, blockBuffers)
 
-
+    vm.logger.logBasicBlocks(method, basicBlocks, blockBuffers.map(_._3))
 
     val tryCatchBlocks = for(b <- Agg.from(method.tryCatchBlocks.asScala)) yield{
       TryCatchBlock(
@@ -335,24 +319,26 @@ object MethodSSAConverter {
 
   }
 
-  def computeBasicBlocks(blockBuffers:  Agg[(Agg[Insn], Agg[LocalType], mutable.Map[Box, Int], Frame[Box], Frame[Box], Agg[Int])]) = {
+  def computeBasicBlocks(method: MethodNode, blockBuffers:  Agg[(Agg[Insn], Agg[LocalType], mutable.Map[Box, Int], Frame[Box], Frame[Box], Agg[Int])]) = {
     for(((buffer, types, startMap, startFrame, _, lines), i) <- blockBuffers.zipWithIndex) yield {
       val phis = for(((buffer2, types2, endMap, _, endFrame, _), j) <- blockBuffers.zipWithIndex) yield {
         if (endFrame != null && startFrame != null && ((buffer2.length > 0 && buffer2.last.targets.contains(i)) || (i == j + 1))){
-          //          println()
-          //          if (method.name == "apply$mcZ$sp") {
-          //            println("Making Phi       " + j + "->" + i)
-          //            println("endFrame         " + endFrame + "\t" + endFrame.boxes.flatten.map(endMap))
-          //            println("startFrame       " + startFrame + "\t" + startFrame.boxes.flatten.map(startMap))
-          //          }
-          //          println("endFrame.boxes   " + endFrame.boxes)
-          //          println("startFrame.boxes " + startFrame.boxes)
-          //          println("endMap           " + endMap)
-          //          println("startMap         " + startMap)
-          //          assert(
-          //            endFrame.boxes.length == startFrame.boxes.length,
-          //            "Start frame doesn't line up with End frame"
-          //          )
+          println()
+          if (method.name == "initTable") {
+            println("Making Phi       " + j + "->" + i)
+            println("endFrame         " + endFrame + "\t" + boxes(endFrame).flatten.map(endMap))
+            println("startFrame       " + startFrame + "\t" + boxes(startFrame).flatten.map(startMap))
+
+            println("endFrame.boxes   " + boxes(endFrame))
+            println("startFrame.boxes " + boxes(startFrame))
+            println("endMap           " + endMap)
+            println("startMap         " + startMap)
+//            assert(
+//              boxes(endFrame).length == boxes(startFrame).length,
+//              s"Start frame doesn't line up with End frame." +
+//              s"start frame has ${boxes(endFrame).length}, end frame ${boxes(endFrame).length}"
+//            )
+          }
           val zipped = for{
             (Some(e), Some(s)) <- boxes(endFrame) zip boxes(startFrame)
             a <- endMap.get(e).toSeq
