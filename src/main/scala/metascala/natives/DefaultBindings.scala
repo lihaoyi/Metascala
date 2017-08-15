@@ -137,7 +137,8 @@ object DefaultBindings extends Bindings{
                 f.sig.desc.args.map(t =>
                   vt.typeObjCache(imm.Type.readJava(t.realCls.getName))
                 )
-              )
+              ),
+              "modifiers" -> Ref.Raw(f.accessFlags)
             ).address
           }
         )
@@ -541,7 +542,10 @@ object DefaultBindings extends Bindings{
 
       val addr = vt.obj(o).apply("name")
       val str = vt.toRealObj[String](addr)
-      vt.ClsTable(str).accessFlags
+      val res = vt.ClsTable(str).accessFlags
+      println("getClassAccessFlags " + str)
+      println("getClassAccessFlags " + res)
+      res
     },
     native("metascala/Virtualizer$", "unsafe()Lsun/misc/Unsafe;").func(I){vt =>
       vt.theUnsafe.address()
