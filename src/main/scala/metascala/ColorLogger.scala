@@ -153,5 +153,10 @@ trait ColorLogger extends rt.Logger{
       println(fansi.Str.join(output:_*))
     }
   }
+
+  def logException(ex: Throwable) = {
+    // println("Throwing ! ")
+    // ex.printStackTrace()
+  }
 }
 

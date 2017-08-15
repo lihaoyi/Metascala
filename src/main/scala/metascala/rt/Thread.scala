@@ -390,7 +390,11 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
   @tailrec final def throwException(ex: Obj, print: Boolean = true): Unit = {
     import math.Ordering.Implicits._
-    if (print)println("Throwing!")
+    lazy val vmException = new UncaughtVmException(
+      Virtualizer.toRealObj[Throwable](ex.address())(bindingsInterface, implicitly)
+    )
+    if (print) logger.logException(vmException)
+
 
     threadStack.headOption match{
       case Some(frame)=>
@@ -412,9 +416,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
         }
       case None =>
-        throw new UncaughtVmException(
-          Virtualizer.toRealObj[Throwable](ex.address())(bindingsInterface, implicitly)
-        )
+        throw vmException
     }
   }
   val bindingsInterface = new Bindings.Interface{

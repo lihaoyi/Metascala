@@ -376,8 +376,16 @@ object DefaultBindings extends Bindings{
     },
     native("java/security/AccessController", "getStackAccessControlContext()Ljava/security/AccessControlContext;"){(vt, arg) => 0},
     native("java/util/concurrent/atomic/AtomicLong", "VMSupportsCS8()Z").value(Z)(true),
-    native("java/util/TimeZone", "getSystemTimeZoneID(Ljava/lang/String;)java/lang/String").value(I)(0),
-    native("java/util/TimeZone", "getSystemGMTOffsetID()java/lang/String").func(I){ vt =>
+    native("java/util/TimeZone", "getDefault()Ljava/util/TimeZone;").func(I){ vt =>
+      vt.alloc(r =>
+        r.newObj("java/util/SimpleTimeZone",
+          "rawOffset" -> Ref.Raw(0),
+          "ID" -> vt.toVirtObj("GMT+08:00")(r).address
+        )
+      ).address()
+    },
+    native("java/util/TimeZone", "getSystemTimeZoneID(Ljava/lang/String;)Ljava/lang/String;").value(I)(0),
+    native("java/util/TimeZone", "getSystemGMTOffsetID()Ljava/lang/String;").func(I){ vt =>
       vt.alloc(r => vt.toVirtObj("GMT+08:00")(r)).address()
     },
     native("scala/Predef$", "println(Ljava/lang/Object;)V").func(I, I, V){ (vt, predef, o) =>
@@ -529,6 +537,9 @@ object DefaultBindings extends Bindings{
     native("sun/misc/Unsafe", "registerNatives()V").value(V)(()),
     native("sun/misc/Unsafe", "getUnsafe()Lsun/misc/Unsafe;").func(I){vt => vt.theUnsafe.address()},
     native("sun/misc/Unsafe", "<clinit>()V").value(V)(()),
+//    native("sun/misc/URLClassPath", "getLookupCacheURLs(Ljava/lang/ClassLoader;)Ljava/net/URL;").func(I, I){
+//      (vt, classLoader) => vt.alloc(r => r.newArr("java/net/URL", 0)).address()
+//    },
     native("sun/misc/VM", "getSavedProperty(Ljava/lang/String;)Ljava/lang/String;").value(I)(0),
     native("sun/misc/VM", "initialize()V").value(V)(()),
     native("sun/reflect/Reflection", "filterFields(Ljava/lang/Class;[Ljava/lang/reflect/Field;)[Ljava/lang/reflect/Field;").func(I, I, I){ (vt, cls, fs) =>
@@ -556,8 +567,6 @@ object DefaultBindings extends Bindings{
       val addr = vt.obj(o).apply("name")
       val str = vt.toRealObj[String](addr)
       val res = vt.ClsTable(str).accessFlags
-      println("getClassAccessFlags " + str)
-      println("getClassAccessFlags " + res)
       res
     },
     native("metascala/Virtualizer$", "unsafe()Lsun/misc/Unsafe;").func(I){vt =>

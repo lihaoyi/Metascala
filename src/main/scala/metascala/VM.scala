@@ -233,8 +233,17 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
       ).address()
     )
 
+    val sysProps = vm.alloc( r =>
+      r.newObj("java/util/Properties").address()
+    )
+
     new rt.Arr(systemCls.statics)(systemCls.staticList.indexWhere(_.name == "out")) = dummyWriter
     new rt.Arr(systemCls.statics)(systemCls.staticList.indexWhere(_.name == "err")) = dummyWriter
+    new rt.Arr(systemCls.statics)(systemCls.staticList.indexWhere(_.name == "props")) = sysProps
+    threads(0).invoke(
+      ClsTable("java/util/Properties").method("<init>", imm.Desc(Agg.empty, imm.Type.Prim.V)).get,
+      Agg(sysProps)
+    )
   }
   def check(s: imm.Type, t: imm.Type): Boolean = {
 
