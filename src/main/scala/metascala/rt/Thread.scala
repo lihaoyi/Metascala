@@ -48,25 +48,35 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
   def indent = threadStack.length
 
 
-
+  /**
+    * Use a persistent scratch buffer to perform the local variable
+    * re-arranging, to avoid having to re-allocate a new scratch buffer
+    * each time.
+    */
+  var phiBuffer = new Array[Int](16)
   def doPhi(frame: Frame, oldBlock: Int, newBlock: Int) = {
-    lazy val output = mutable.Buffer.empty[fansi.Str]
-
     val phi = frame.method.code.blocks(newBlock).phi(oldBlock)
-    val temp = phi.map(x => frame.locals(x._1))
+    if (phiBuffer.length < frame.locals.length) {
+      phiBuffer = new Array[Int](frame.locals.length)
+    }
+
+    System.arraycopy(frame.locals, 0, phiBuffer, 0, frame.locals.length)
+
     if (vm.logger.active) vm.logger.logPhi(
       indent,
       ClsTable.clsIndex(frame.method.clsIndex).name,
       frame,
-      (0 until temp.length).iterator.map(i => (i, phi(i)._2))
+      (0 until phi.length).iterator.map(i => (i, phi(i)._2))
     )
-    java.util.Arrays.fill(frame.locals, 0)
-    for (i <- 0 until temp.length){
-      val (src, dest) = (temp(i), phi(i)._2)
-      frame.locals(dest) = src
-    }
-    phi
 
+    java.util.Arrays.fill(frame.locals, 0)
+
+    for(pair <- phi) {
+      val (src, dest) = pair
+      frame.locals(dest) = phiBuffer(src)
+    }
+
+    phi
   }
 
   def jumpPhis(target: Int) = {

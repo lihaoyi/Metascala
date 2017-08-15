@@ -169,8 +169,10 @@ class Aggregator[@specialized(Int, Long) T: ClassTag](initialSize: Int = 1) exte
     result
   }
   def foreach[U](f: T => U) = {
-    for(i <- 0 until length){
+    var i = 0
+    while(i < length){
       f(this(i))
+      i += 1
     }
   }
   def hasDefiniteSize = true

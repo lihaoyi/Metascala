@@ -29,10 +29,9 @@ trait ColorLogger extends rt.Logger{
               node: Insn,
               block: BasicBlock) = {
 
-    def printOrNot = false
 //    def printOrNot = clsName == "java/util/concurrent/ConcurrentHashMap" &&
 //                     frame.method.sig.name == "<init>"
-    if (printOrNot) {
+    if (false) {
       val indent = "    " * indentCount
       val r = Util.reader(frame.locals, 0)
       lazy val localSnapshot =
@@ -71,11 +70,10 @@ trait ColorLogger extends rt.Logger{
   }
 
   def logPhi(indentCount: Int, clsName: String, frame: Frame, shifts: Iterator[(Int, Int)]) = {
-    def printOrNot = false
 //    def printOrNot = clsName == "java/util/concurrent/ConcurrentHashMap" &&
 //      frame.method.sig.name == "<init>"
 
-    if (printOrNot) {
+    if (false) {
       val indent = "    " * indentCount
       val output = mutable.Buffer.empty[fansi.Str]
       output.append(indent)
@@ -104,10 +102,9 @@ trait ColorLogger extends rt.Logger{
                      method: MethodNode,
                      basicBlocks: TraversableOnce[BasicBlock],
                      blockBufferThrees: Agg[mutable.Map[Box, Int]]) = {
-    def printOrNot = false
     //    def printOrNot = clsName == "java/util/concurrent/ConcurrentHashMap" &&
     //      frame.method.sig.name == "<init>"
-    if (printOrNot) {
+    if (false) {
       def flatten[T](x: TraversableOnce[T]): String = x.mkString("[", ", ", "]")
       def arrow(x: (Any, Any)): String = fansi.Color.Green(x._1.toString) + " -> " + fansi.Color.Green(x._2.toString)
       val output = mutable.Buffer.empty[fansi.Str]

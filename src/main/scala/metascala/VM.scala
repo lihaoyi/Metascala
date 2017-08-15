@@ -59,9 +59,10 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
 
   def alloc[T](func: rt.Allocator => T): T = {
     val allocator = new rt.Allocator()
-    activeAllocators.add(allocator)
+    val link = activeAllocators.prepend(allocator)
+
     try func(allocator)
-    finally activeAllocators.remove(allocator)
+    finally activeAllocators.remove(link)
   }
 
   /**
@@ -69,7 +70,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
     * to stop the garbage collector from collecting partially-initialized
     * objects
     */
-  val activeAllocators = mutable.Set[rt.Allocator]()
+  var activeAllocators = new util.LinkedList[rt.Allocator]
 
   lazy val currentThread = {
     val thread = alloc( r =>

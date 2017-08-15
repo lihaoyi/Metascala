@@ -1,13 +1,13 @@
 package metascala
 package imm
-import metascala.util.{Agg, Util}
+import metascala.util.Agg
 
 import collection.mutable
 import reflect.ClassTag
 
 
 object Type{
-  implicit def strClsTypeShorthand(name: String): Cls = new Cls(name.replace('.', '/'))
+  implicit def strClsTypeShorthand(name: String): Cls = Cls(name)
 
   def read(s: String): Type = s match{
     case x if Prim.all.contains(x(0)) => Prim.all(x(0))
@@ -59,9 +59,7 @@ object Type{
    * Class Types
    * @param name the fuly qualified name of the class
    */
-  class Cls(val name: String) extends Ref {
-    assert(!name.contains('.'), "Cls name cannot contain . " + name)
-    assert(!name.contains('['), "Cls name cannot contain [ " + name)
+  class Cls private (val name: String) extends Ref {
     def size = 1
 
     def realCls = classOf[Object]
