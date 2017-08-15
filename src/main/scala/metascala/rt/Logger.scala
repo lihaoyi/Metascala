@@ -25,7 +25,8 @@ trait Logger{
               node: Insn,
               block: BasicBlock): Unit
   def logPhi(indentCount: Int, clsName: String, frame: Frame, shifts: Iterator[(Int, Int)]): Unit
-  def logBasicBlocks(method: MethodNode,
+  def logBasicBlocks(clsName: String,
+                     method: MethodNode,
                      basicBlocks: TraversableOnce[BasicBlock],
                      blockBufferThrees: Agg[mutable.Map[Box, Int]]): Unit
 }
@@ -37,7 +38,8 @@ object NonLogger extends Logger{
               node: Insn,
               block: BasicBlock): Unit = ()
   def logPhi(indentCount: Int, clsName: String, frame: Frame, shifts: Iterator[(Int, Int)]): Unit = ()
-  def logBasicBlocks(method: MethodNode,
+  def logBasicBlocks(clsName: String,
+                     method: MethodNode,
                      basicBlocks: TraversableOnce[BasicBlock],
                      blockBufferThrees: Agg[mutable.Map[Box, Int]]): Unit = ()
 }

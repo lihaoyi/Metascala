@@ -37,9 +37,6 @@ class Cls(val tpe: imm.Type.Cls,
 
   var initialized = false
 
-
-
-
   val isInterface = (accessFlags & Access.Interface) != 0
   var statics: Ref = null
 

@@ -135,6 +135,9 @@ class JavaLibTest extends FreeSpec {
       val map = new ConcurrentHashMap[Int, Int]()
       map.put(123, 456)
     }
+    "locales" in tester.test{
+      new java.util.Locale("").toString
+    }
     //    "rhino" in tester.test{
     //      classOf[VMBridge_jdk15].newInstance()
     //      /*val cx = Context.enter()

@@ -252,7 +252,7 @@ object SingleInsnSSAConverter {
       case F2L => unaryOp(F, J)(F1(_.toLong,  "F2L"))
       case F2D => unaryOp(F, D)(F1(_.toDouble,"F2D"))
       case D2I => unaryOp(D, I)(F1(_.toInt,   "D2I"))
-      case D2L => unaryOp(D, F)(F1(_.toLong,  "D2L"))
+      case D2L => unaryOp(D, J)(F1(_.toLong,  "D2L"))
       case D2F => unaryOp(D, F)(F1(_.toFloat, "D2F"))
       case I2B => unaryOp(I, B)(F1(_.toByte,  "I2B"))
       case I2C => unaryOp(I, C)(F1(_.toChar,  "I2C"))

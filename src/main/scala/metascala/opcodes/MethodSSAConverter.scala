@@ -133,7 +133,7 @@ object MethodSSAConverter {
 
     val basicBlocks = computeBasicBlocks(method, blockBuffers)
 
-    vm.logger.logBasicBlocks(method, basicBlocks, blockBuffers.map(_._3))
+    vm.logger.logBasicBlocks(clsName, method, basicBlocks, blockBuffers.map(_._3))
 
     val tryCatchBlocks = for(b <- Agg.from(method.tryCatchBlocks.asScala)) yield{
       TryCatchBlock(
@@ -310,10 +310,9 @@ object MethodSSAConverter {
     }
 
     handle(extraFrames(0), 0)
-    implicit def deref(label: LabelNode) = blockInsns.indexWhere(_.head == label)
     for (b <- method.tryCatchBlocks.asScala) {
       val catchFrame = extraFrames(allInsns.indexOf(b.handler))
-      handle(catchFrame, b.handler)
+      handle(catchFrame, blockInsns.indexWhere(_.head == b.handler))
     }
     existing
 
@@ -323,22 +322,23 @@ object MethodSSAConverter {
     for(((buffer, types, startMap, startFrame, _, lines), i) <- blockBuffers.zipWithIndex) yield {
       val phis = for(((buffer2, types2, endMap, _, endFrame, _), j) <- blockBuffers.zipWithIndex) yield {
         if (endFrame != null && startFrame != null && ((buffer2.length > 0 && buffer2.last.targets.contains(i)) || (i == j + 1))){
-          println()
-          if (method.name == "initTable") {
-            println("Making Phi       " + j + "->" + i)
-            println("endFrame         " + endFrame + "\t" + boxes(endFrame).flatten.map(endMap))
-            println("startFrame       " + startFrame + "\t" + boxes(startFrame).flatten.map(startMap))
-
-            println("endFrame.boxes   " + boxes(endFrame))
-            println("startFrame.boxes " + boxes(startFrame))
-            println("endMap           " + endMap)
-            println("startMap         " + startMap)
-//            assert(
-//              boxes(endFrame).length == boxes(startFrame).length,
-//              s"Start frame doesn't line up with End frame." +
-//              s"start frame has ${boxes(endFrame).length}, end frame ${boxes(endFrame).length}"
+//          if (method.name == "initTable") {
+//            println()
+//            println("Making Phi       " + j + "->" + i)
+//            println("endFrame         " + endFrame + "\t" + boxes(endFrame).flatten.map(endMap))
+//            println("startFrame       " + startFrame + "\t" + boxes(startFrame).flatten.map(startMap))
+//
+//            println("endFrame.boxes   " + boxes(endFrame))
+//            println("startFrame.boxes " + boxes(startFrame))
+//            println("endMap           " + endMap)
+//            println("startMap         " + startMap)
+//            if(boxes(endFrame).length != boxes(startFrame).length) println(
+//              fansi.Color.Red(
+//                s"Start frame doesn't line up with End frame.\n" +
+//                s"start frame $j has ${boxes(startFrame).length}, end frame $i has ${boxes(endFrame).length}"
+//              )
 //            )
-          }
+//          }
           val zipped = for{
             (Some(e), Some(s)) <- boxes(endFrame) zip boxes(startFrame)
             a <- endMap.get(e).toSeq

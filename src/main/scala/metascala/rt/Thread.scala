@@ -199,7 +199,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         advancePc()
 
       case NewArray(src, dest, typeRef) =>
-        println("newArray " + frame.locals(src))
         val newArray = vm.alloc(_.newArr(typeRef, frame.locals(src)))
         frame.locals(dest) = newArray.address()
         advancePc()

@@ -83,13 +83,13 @@ class ExternalLibTest extends FreeSpec {
 ////      println(result.toString)
 //    }
 //  }
-  "rhino" in tester.test{
-    new java.util.Locale("")
-//    val cx = Context.getCurrentContext
+//  "rhino" in tester.test{
+//
+//    val cx = org.mozilla.javascript.Context.getCurrentContext
 //    val scope = cx.initStandardObjects()
 //    val script = "var s = 'omg'"
 //    val obj = cx.evaluateString(scope, script, "Test Script", 1, null)
 //    println(obj)
 //    1
-  }
+//  }
 }

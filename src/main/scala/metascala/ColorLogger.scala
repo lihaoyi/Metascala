@@ -28,10 +28,12 @@ trait ColorLogger extends rt.Logger{
               frame: Frame,
               node: Insn,
               block: BasicBlock) = {
-    val indent = "    " * indentCount
-    def printOrNot = true//frame.method.sig.name == "initTable"
-    if (printOrNot) {
 
+    def printOrNot = false
+//    def printOrNot = clsName == "java/util/concurrent/ConcurrentHashMap" &&
+//                     frame.method.sig.name == "<init>"
+    if (printOrNot) {
+      val indent = "    " * indentCount
       val r = Util.reader(frame.locals, 0)
       lazy val localSnapshot =
         block.locals
@@ -69,7 +71,9 @@ trait ColorLogger extends rt.Logger{
   }
 
   def logPhi(indentCount: Int, clsName: String, frame: Frame, shifts: Iterator[(Int, Int)]) = {
-    def printOrNot = true//frame.method.sig.name == "initTable"
+    def printOrNot = false
+//    def printOrNot = clsName == "java/util/concurrent/ConcurrentHashMap" &&
+//      frame.method.sig.name == "<init>"
 
     if (printOrNot) {
       val indent = "    " * indentCount
@@ -96,15 +100,21 @@ trait ColorLogger extends rt.Logger{
     }
   }
 
-  def logBasicBlocks(method: MethodNode,
+  def logBasicBlocks(clsName: String,
+                     method: MethodNode,
                      basicBlocks: TraversableOnce[BasicBlock],
                      blockBufferThrees: Agg[mutable.Map[Box, Int]]) = {
-
-    if (method.name == "initTable") {
+    def printOrNot = false
+    //    def printOrNot = clsName == "java/util/concurrent/ConcurrentHashMap" &&
+    //      frame.method.sig.name == "<init>"
+    if (printOrNot) {
       def flatten[T](x: TraversableOnce[T]): String = x.mkString("[", ", ", "]")
       def arrow(x: (Any, Any)): String = fansi.Color.Green(x._1.toString) + " -> " + fansi.Color.Green(x._2.toString)
       val output = mutable.Buffer.empty[fansi.Str]
-      output.append(fansi.Color.Magenta("=" * 20 + method.name + "=" * 20), "\n\b")
+      output.append(
+        fansi.Color.Magenta("=" * 20 + clsName + "#" + method.name + "=" * 20),
+        "\n\b"
+      )
       for ((block, i) <- basicBlocks.toArray.zipWithIndex){
 
         output.append(fansi.Color.Cyan(i.toString.padTo(8, ' ')), "{")
@@ -123,7 +133,12 @@ trait ColorLogger extends rt.Logger{
         }
         output.append("}\n")
 
-        output.append("        ", flatten(blockBufferThrees(i).map(arrow)), "\n")
+
+        val boxes = new Array[Box](blockBufferThrees(i).values.max + 1)
+        for((k, v) <- blockBufferThrees(i)){
+          boxes(v) = k
+        }
+        output.append("        ", boxes.mkString("[", ", ", "]"), "\n")
         for(i <- 0 until block.insns.length){
           output.append(
             "        ",
