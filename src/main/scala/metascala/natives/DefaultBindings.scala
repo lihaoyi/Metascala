@@ -71,6 +71,12 @@ object DefaultBindings extends Bindings{
         (t: Bindings.Interface, args: () => Int, ret: Int => Unit) =>
           out.write(func(t, a.read(args), b.read(args), c.read(args), d.read(args), e.read(args), f.read(args)), ret)
       )
+
+    def func[A, B, C, D, E, F, G, T](a: Prim[A], b: Prim[B], c: Prim[C], d: Prim[D], e: Prim[E], f: Prim[F], g: Prim[G], out: Prim[T])(func: (Bindings.Interface, A, B, C, D, E, F, G) => T) =
+      NativeMethod(clsName, sig,
+        (t: Bindings.Interface, args: () => Int, ret: Int => Unit) =>
+          out.write(func(t, a.read(args), b.read(args), c.read(args), d.read(args), e.read(args), f.read(args), g.read(args)), ret)
+      )
     def value[T](out: Prim[T])(x: => T) = func(out)(t => x)
   }
   val trapped = Agg(
@@ -242,8 +248,16 @@ object DefaultBindings extends Bindings{
       if (res) 1 else 0
     },
     native("java/lang/Class", "registerNatives()V"){(vt, arg) => },
+    native("java/lang/ClassLoader", "resolveClass0(Ljava/lang/Class;)V").value(V)(()),
+    native("java/lang/ClassLoader", "defineClass1(Ljava/lang/String;[BIILjava/security/ProtectionDomain;Ljava/lang/String;)Ljava/lang/Class;").func(I, I, I, I, I, I, I, I){
+      (vt, classloader, name0, arr, offset, length, protectionDomain, src) =>
+        val start = arr + Constants.arrayHeaderSize + offset
+        val bytes = vt.heap.memory.slice(start, start + length).map(_.toByte)
+        val name = vt.toRealObj[String](name0)
+        val cls = vt.ClsTable.calcFromBytes(imm.Type.Cls(name), bytes)
+        vt.typeObjCache(cls.tpe)()
+    },
     native("java/lang/ClassLoader", "getCaller(I)Ljava/lang/Class;"){ (vt, arg) =>
-
       val name = arg() match{
         case 0 => "java/lang/ClassLoader"
         case 1 => vt.runningClassName(0)

@@ -154,7 +154,7 @@ trait ColorLogger extends rt.Logger{
     }
   }
 
-  def logException(ex: Throwable) = {
+  def logException() = {
     // println("Throwing ! ")
     // ex.printStackTrace()
   }

@@ -29,7 +29,7 @@ trait Logger{
                      method: MethodNode,
                      basicBlocks: TraversableOnce[BasicBlock],
                      blockBufferThrees: Agg[mutable.Map[Box, Int]]): Unit
-  def logException(ex: Throwable): Unit
+  def logException(): Unit
 }
 object NonLogger extends Logger{
   def active = false
@@ -43,5 +43,5 @@ object NonLogger extends Logger{
                      method: MethodNode,
                      basicBlocks: TraversableOnce[BasicBlock],
                      blockBufferThrees: Agg[mutable.Map[Box, Int]]): Unit = ()
-  def logException(ex: Throwable) = ()
+  def logException() = ()
 }

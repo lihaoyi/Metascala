@@ -60,24 +60,3 @@ case class UncaughtVmException(wrapped: Throwable) extends WrappedVmException(wr
   * Something blew up within the VM's own code
   */
 case class InternalVmException(wrapped: Throwable) extends WrappedVmException(wrapped)
-
-/**
-  * A generic cache, which provides pre-processing of keys and post processing of values.
-  */
-trait Cache[In, Out] extends (In => Out){
-  val cache = mutable.Map.empty[Any, Out]
-  def pre(x: In): Any = x
-  def calc(x: In): Out
-  def post(y: Out): Unit = ()
-  def apply(x: In) = {
-    val newX = pre(x)
-    cache.get(newX) match{
-      case Some(y) => y
-      case None =>
-        val newY = calc(x)
-        cache(newX) = newY
-        post(newY)
-        newY
-    }
-  }
-}

@@ -168,17 +168,42 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
   /**
     * Cache of all the classes loaded so far within the Metascala VM.
     */
-  implicit object ClsTable extends ClsTable with Cache[imm.Type.Cls, rt.Cls] {
+  implicit object ClsTable extends ClsTable {
     val clsIndex = mutable.ArrayBuffer[rt.Cls](null)
-
+    val cache = mutable.Map.empty[imm.Type.Cls, rt.Cls]
+    def apply(x: imm.Type.Cls) = {
+      cache.get(x) match {
+        case Some(y) => y
+        case None =>
+          val newY = calc(x)
+          cache(x) = newY
+          clsIndex.append(newY)
+          newY
+      }
+    }
     def calc(t: imm.Type.Cls): rt.Cls = {
       val input = natives.fileLoader(
         t.name + ".class"
       ).getOrElse(
         throw new Exception("Can't find " + t)
       )
-      val cr = new ClassReader(input)
+
+      calcFromBytes0(input)
+    }
+
+    def calcFromBytes(x: imm.Type.Cls, input: Array[Byte]): rt.Cls = {
+      cache.get(x) match{
+        case Some(y) => y
+        case None =>
+          val newY = calcFromBytes0(input)
+          cache(x) = newY
+          clsIndex.append(newY)
+          newY
+      }
+    }
+    def calcFromBytes0(input: Array[Byte]): rt.Cls = {
       val classNode = new ClassNode()
+      val cr = new ClassReader(input)
       cr.accept(classNode, ClassReader.EXPAND_FRAMES)
 
       Option(classNode.superName).map(Type.Cls.apply).map(vm.ClsTable)
@@ -215,12 +240,8 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
         clsIndex.length
       )
     }
-
     var startTime = System.currentTimeMillis()
 
-    override def post(cls: rt.Cls) = {
-      clsIndex.append(cls)
-    }
   }
 
 
