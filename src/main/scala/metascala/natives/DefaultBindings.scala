@@ -145,15 +145,6 @@ object DefaultBindings extends Bindings{
       )
       vrtArr.address()
     },
-    native("java/nio/charset/Charset", "defaultCharset()Ljava/nio/charset/Charset;"){(vt, arg) =>
-      vt.invoke(
-        "metascala/DummyCharset",
-        imm.Sig("getValue", imm.Desc.read("()Ljava/nio/charset/Charset;")),
-        Agg.empty
-      )
-
-      vt.returnedVal(0)
-    },
     native("java/lang/Class", "getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;"){ (vt, arg) =>
 
       val cls = vt.ClsTable(vt.toRealObj[String](vt.obj(arg()).apply("name")))
@@ -281,6 +272,7 @@ object DefaultBindings extends Bindings{
       }
     },
     native("java/lang/ClassLoader", "registerNatives()V"){(vt, arg) =>},
+    native("java/lang/ClassLoader", "initSystemClassLoader()V").value(V)(()),
     native("java/lang/Double", "doubleToRawLongBits(D)J"){(vt, arg) => imm.Type.Prim.J.read(arg)},
     native("java/lang/Double", "longBitsToDouble(J)D"){(vt, arg) => imm.Type.Prim.J.read(arg)},
     native("java/lang/Float", "intBitsToFloat(I)F"){(vt, arg) => arg()},
@@ -364,6 +356,16 @@ object DefaultBindings extends Bindings{
     },
     native("java/lang/StrictMath", "pow(DD)D").func(D, D, D) { (vt, arg1, arg2) =>
       math.pow(arg1, arg2)
+    },
+
+    native("java/nio/charset/Charset", "defaultCharset()Ljava/nio/charset/Charset;"){(vt, arg) =>
+      vt.invoke(
+        "metascala/DummyCharset",
+        imm.Sig("getValue", imm.Desc.read("()Ljava/nio/charset/Charset;")),
+        Agg.empty
+      )
+
+      vt.returnedVal(0)
     },
     native("java/security/AccessController", "doPrivileged(Ljava/security/PrivilegedExceptionAction;)Ljava/lang/Object;"){ (vt, arg) =>
       vt.invokeRun(arg())
@@ -537,9 +539,9 @@ object DefaultBindings extends Bindings{
     native("sun/misc/Unsafe", "registerNatives()V").value(V)(()),
     native("sun/misc/Unsafe", "getUnsafe()Lsun/misc/Unsafe;").func(I){vt => vt.theUnsafe.address()},
     native("sun/misc/Unsafe", "<clinit>()V").value(V)(()),
-//    native("sun/misc/URLClassPath", "getLookupCacheURLs(Ljava/lang/ClassLoader;)Ljava/net/URL;").func(I, I){
-//      (vt, classLoader) => vt.alloc(r => r.newArr("java/net/URL", 0)).address()
-//    },
+    native("sun/misc/URLClassPath", "getLookupCacheURLs(Ljava/lang/ClassLoader;)[Ljava/net/URL;").func(I, I){
+      (vt, classLoader) => vt.alloc(r => r.newArr("java/net/URL", 0)).address()
+    },
     native("sun/misc/VM", "getSavedProperty(Ljava/lang/String;)Ljava/lang/String;").value(I)(0),
     native("sun/misc/VM", "initialize()V").value(V)(()),
     native("sun/reflect/Reflection", "filterFields(Ljava/lang/Class;[Ljava/lang/reflect/Field;)[Ljava/lang/reflect/Field;").func(I, I, I){ (vt, cls, fs) =>
