@@ -131,7 +131,8 @@ trait ColorLogger extends rt.Logger{
         output.append("}\n")
 
 
-        val boxes = new Array[Box](blockBufferThrees(i).values.max + 1)
+        val values = blockBufferThrees(i).values
+        val boxes = new Array[Box](if (values.nonEmpty) values.max + 1 else 1)
         for((k, v) <- blockBufferThrees(i)){
           boxes(v) = k
         }

@@ -24,12 +24,17 @@ object Util{
     (some.map(_(0)) :+ last).mkString("/")
   }
 
-  def blit(src: Seq[Int], srcIndex: Int, dest: mutable.Seq[Int], destIndex: Int, length: Int) = {
-    var i = 0
-    while(i < length){
-      dest(destIndex + i) = src(srcIndex + i)
-      i+= 1
+  def blit(src: mutable.Seq[Int], srcIndex: Int, dest: mutable.Seq[Int], destIndex: Int, length: Int, flip: Boolean) = {
+    if (!flip) dest(destIndex) = src(srcIndex)
+    else src(srcIndex) = dest(destIndex)
+
+    length match{
+      case 1 =>
+      case 2 =>
+        if (!flip) dest(destIndex + 1) = src(srcIndex + 1)
+        else src(srcIndex + 1) = dest(destIndex + 1)
     }
+
   }
 
   def reader(src: Seq[Int], index: Int) = {
