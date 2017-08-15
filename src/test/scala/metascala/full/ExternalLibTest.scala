@@ -83,13 +83,18 @@ class ExternalLibTest extends FreeSpec {
 ////      println(result.toString)
 //    }
 //  }
-//  "rhino" in tester.test{
-//
-//    val cx = org.mozilla.javascript.Context.getCurrentContext
-//    val scope = cx.initStandardObjects()
-//    val script = "var s = 'omg'"
+  "rhino" in tester.test{
+    val cx = org.mozilla.javascript.Context.enter()
+    val scope = cx.initStandardObjects()
+//    val cls = classOf[org.mozilla.javascript.ScriptableObject]
+//    println(cls.getMethods.exists(_.getName == "getExternalArrayLength"))
+//    println(cls.getMethod("getExternalArrayLength").toString)
+
+//    val script = "(function(suffix){ return 'hello ' + suffix})('world')"
 //    val obj = cx.evaluateString(scope, script, "Test Script", 1, null)
+//    println(scope.get("result"))
 //    println(obj)
-//    1
-//  }
+//    println(obj.getClass)
+    1
+  }
 }

@@ -160,7 +160,16 @@ object DefaultBindings extends Bindings{
       vt.alloc(implicit r =>
         r.newArr("java/lang/reflect/Method",
           cls.methods.map{ m =>
-            r.newObj("java/lang/reflect/Method").address
+            r.newObj("java/lang/reflect/Method",
+              "name" -> vt.internedStrings.getOrElseUpdate(
+                m.sig.name, vt.toVirtObj(m.sig.name).address
+              )
+              ,
+              "returnType" -> vt.typeObjCache(m.sig.desc.ret),
+              "parameterTypes" -> r.newArr("java/lang/Class",
+                m.sig.desc.args.map(vt.typeObjCache)
+              )
+            ).address
           }
         )
       )()
