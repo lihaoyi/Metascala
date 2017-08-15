@@ -172,70 +172,30 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
       case InvokeStatic(target, sources, clsIndex, mIndex, special) =>
         val cls = ClsTable.clsIndex(clsIndex)
         checkInitialized(cls)
-        // Check for InvokeSpecial, which gets folded into InvokeStatic
-        val m =
+        invokeBase(
+          sources,
+          target,
           if (special) cls.vTable(mIndex)
-          else cls.staticTable(mIndex)
-
-        val thisCell = sources.length > m.sig.desc.args.length
-
-        if (thisCell && frame.locals(sources(0)) == 0){
-          throwExWithTrace("java/lang/NullPointerException", "null")
-        }else{
-          val args = new Aggregator[Int]
-
-          if (thisCell) args.append(frame.locals(sources(0)))
-
-          val thisCellOffset = if (thisCell) 1 else 0
-          for(i <- m.sig.desc.args.indices){
-            args.append(frame.locals(sources(i + thisCellOffset)))
-            m.sig.desc.args(i).size match{
-              case 1 =>
-              case 2 => args.append(frame.locals(sources(i + thisCellOffset) + 1))
-            }
-          }
-
-          val phis = advancePc()
-          val ptarget = phis.find(_._1 == target).fold(target)(_._2)
-          prepInvoke(m, args, Util.writer(frame.locals, ptarget))
-        }
+          else cls.staticTable(mIndex),
+          thisCell = special
+        )
 
       case InvokeVirtual(target, sources, clsIndex, sig, mIndex) =>
-
         val argZero = frame.locals(sources(0))
-
-        if(argZero == 0) throwExWithTrace("java/lang/NullPointerException", "null")
-        else {
-          val mRef =
+        invokeBase(
+          sources,
+          target,
+          mRef =
             if (mIndex == -1) vm.obj(argZero).cls.vTableMap(sig)
             else{
               val cls =
                 if (vm.isObj(argZero)) vm.obj(argZero).cls
                 else ClsTable.clsIndex(clsIndex)
               cls.vTable(mIndex)
-            }
+            },
+          thisCell = true
+        )
 
-          val args = new Aggregator[Int]
-
-          for(i <- sources.indices){
-            args.append(frame.locals(sources(i)))
-            if (i > 0) sig.desc.args(i-1).size match{
-              case 1 =>
-              case 2 => args.append(frame.locals(sources(i) + 1))
-            }
-          }
-
-          val phis = advancePc()
-          val ptargets = phis.collect{case (`target`, x) => x}
-          val mapped = ptargets.map(Util.writer(frame.locals, _))
-
-          prepInvoke(
-            mRef,
-            args,
-            if (phis.isEmpty) Util.writer(frame.locals, target)
-            else (x: Int) => mapped.foreach(_(x))
-          )
-        }
 
       case InvokeDynamic(name, desc, bsTag, bsOwner, bsName, bsDesc, bsArgs) =>
         invoke(bsOwner, imm.Sig(bsName, Desc.read(bsDesc)), Agg.from(bsArgs))
@@ -324,7 +284,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
       case ReturnVal(sym) => returnVal(frame.method.sig.desc.ret.size, sym)
     }
 
-
     opCount += 1
     if (opCount > vm.insnLimit){
       throw new Exception("Ran out of instructions! Limit: " + vm.insnLimit)
@@ -334,6 +293,44 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     val newEx = new InternalVmException(e)
     newEx.setStackTrace(trace)
     throw newEx
+  }
+
+  def invokeBase(sources: Agg[Int],
+                 target: Int,
+                 mRef: rt.Method,
+                 thisCell: Boolean) = {
+
+    if (thisCell && frame.locals(sources(0)) == 0){
+      throwExWithTrace("java/lang/NullPointerException", "null")
+    }else {
+      val args = new Aggregator[Int]
+
+      val thisCellOffset = if (thisCell) {
+        args.append(frame.locals(sources(0)))
+        1
+      } else {
+        0
+      }
+
+      for (i <- 0 until mRef.sig.desc.args.length) {
+        args.append(frame.locals(sources(i + thisCellOffset)))
+        mRef.sig.desc.args(i).size match {
+          case 1 =>
+          case 2 => args.append(frame.locals(sources(i + thisCellOffset) + 1))
+        }
+      }
+
+      val phis = advancePc()
+      val ptargets = phis.collect { case (`target`, x) => x }
+      val mapped = ptargets.map(Util.writer(frame.locals, _))
+
+      prepInvoke(
+        mRef,
+        args,
+        if (phis.isEmpty) Util.writer(frame.locals, target)
+        else (x: Int) => mapped.foreach(_ (x))
+      )
+    }
   }
 
   def getPutField(src: Int, obj: Int, index: Int, prim: Type, get: Boolean) = {
@@ -509,9 +506,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     def natives = vm.natives
 
-    def lookupNatives(lookupName: String, lookupSig: imm.Sig) = vm.natives.trapped.find{case rt.NativeMethod(clsName, sig, func) =>
-      (lookupName == clsName) && sig == lookupSig
-    }
+    def lookupNatives(lookupName: String, lookupSig: imm.Sig) =
+      vm.natives.trapped.find{case rt.NativeMethod(clsName, sig, func) =>
+        (lookupName == clsName) && sig == lookupSig
+      }
   }
   final def prepInvoke(mRef: rt.Method,
                        args: Agg[Int],
