@@ -26,7 +26,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
   def isArr(address: Int): Boolean = heap(address) > 0
   def obj(address: Int): metascala.rt.Obj = new rt.Obj(new Ref.UnsafeManual(address))
   def arr(address: Int): metascala.rt.Arr = new rt.Arr(new Ref.UnsafeManual(address))
-  def thUnsafe: metascala.rt.Obj = ???
+
   private[this] implicit val vm = this
 
   var ready = false

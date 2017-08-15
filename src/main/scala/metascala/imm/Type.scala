@@ -25,9 +25,7 @@ object Type{
   /**
    * Reference types, which can either be Class or Array types
    */
-  trait Ref extends Type{
-    def methodType: Type.Cls
-  }
+  trait Ref extends Type
   object Arr{
     def read(s: String) = Arr(Type.read(s.drop(1)))
     def readJava(s: String) = Arr(s.drop(1) match {
@@ -45,7 +43,6 @@ object Type{
     def size = 1
     def name = "[" + innerType.name
     def realCls = innerType.realCls
-    def methodType = Type.Cls("java/lang/Object")
     def javaName = innerType match{
       case tpe: Cls => "[L" + tpe.javaName + ";"
       case tpe: Prim[_] => "[" + tpe.internalName
@@ -68,7 +65,6 @@ object Type{
     def size = 1
 
     def realCls = classOf[Object]
-    def methodType: Type.Cls = this
 
     override val hashCode = name.hashCode
     override def equals(other: Any) = other match{
@@ -88,7 +84,7 @@ object Type{
     def boxedClass: Class[_]
     val primClass: Class[_] = implicitly[ClassTag[T]].runtimeClass
     def realCls = Class.forName(boxedClass.getName.replace('/', '.'))
-    def prim = this
+
     def productPrefix: String
     def name = productPrefix
     def internalName = name
@@ -221,14 +217,6 @@ sealed trait Type{
   override def toString = name
 
   /**
-   * A human-friendly name for this type that can be used everywhere without
-   * cluttering the screen.
-   * - V Z B C S I F J D
-   * - j/l/Object [j/l/String
-   */
-  def shortName = Util.shorten(name)
-
-  /**
    * The thing that's returned by Java's getName method
    * - void boolean byte char short int float long double
    * - java.lang.Object [java.lang.String;
@@ -280,14 +268,5 @@ object Desc{
  */
 case class Desc(args: Agg[Type], ret: Type){
   def unparse = "(" + args.map(Desc.unparse).foldLeft("")(_+_) + ")" + Desc.unparse(ret)
-  def argSize = {
-    val baseArgSize = args.length
-    val longArgSize = args.count(x => x == Type.Prim.J || x == Type.Prim.D)
-
-    baseArgSize + longArgSize
-  }
   override def toString = unparse
-  def shortName = {
-    "(" + args.map(Desc.unparse).map(Util.shorten).foldLeft("")(_ + _) + ")" + Util.shorten(Desc.unparse(ret))
-  }
 }

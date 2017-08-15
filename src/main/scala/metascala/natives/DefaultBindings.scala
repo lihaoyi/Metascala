@@ -252,14 +252,8 @@ object DefaultBindings extends Bindings{
       vt.typeObjCache(imm.Type.readJava(name))()
     },
     native("java/lang/ClassLoader", "getSystemResourceAsStream(Ljava/lang/String;)Ljava/io/InputStream;"){ (vt, arg) =>
-
-
       val name = vt.toRealObj[String](arg())
       val stream = getClass.getResourceAsStream("/" + name)
-      //              println("getSystemResourceAsStream " + name + " " + stream)
-      //              println(getClass.getClassLoader)
-      //              println("XXX " + name + " " + getClass.getResourceAsStream(name))
-      //              println("YYY " + name + " " + getClass.getResourceAsStream("/" + name))
 
       if (stream == null) 0
       else{
