@@ -83,6 +83,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     doPhi(frame, frame.pc._1, target)
     frame.pc = (target, 0)
   }
+
   final def step(): Unit = try {
     //  println(frame.pc)
     val code = frame.method.code
@@ -172,17 +173,15 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
         if(argZero == 0) throwExWithTrace("java/lang/NullPointerException", "null")
         else {
-          val mRef = mIndex match{
-            case -1 =>
-              vm.obj(argZero).cls.vTableMap(sig)
-            case _ =>
+          val mRef =
+            if (mIndex == -1) vm.obj(argZero).cls.vTableMap(sig)
+            else{
               val cls =
                 if (vm.isObj(argZero)) vm.obj(argZero).cls
                 else ClsTable.clsIndex(clsIndex)
               cls.vTable(mIndex)
-          }
+            }
 
-//          println("prepInvoke! " + ptargets)
           val args = new Aggregator[Int]
           for(i <- sources.indices){
             if (i == 0) args.append(frame.locals(sources(i)))
@@ -201,9 +200,11 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
             else (x: Int) => mapped.foreach(_(x))
           )
         }
+
       case InvokeDynamic(name, desc, bsTag, bsOwner, bsName, bsDesc, bsArgs) =>
         invoke(bsOwner, imm.Sig(bsName, Desc.read(bsDesc)), Agg.from(bsArgs))
         ???
+
       case ArrayLength(src, dest) =>
         frame.locals(dest) = vm.arr(frame.locals(src)).arrayLength
         advancePc()
@@ -247,11 +248,13 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
         pout.write(out, Util.writer(frame.locals, dest))
         advancePc()
+
       case PutStatic(src, clsIndex, index, prim) =>
         val cls = ClsTable.clsIndex(clsIndex)
         checkInitialized(cls)
         Util.blit(frame.locals, src, new rt.Arr(cls.statics)(vm), index, prim.size)
         advancePc()
+
       case GetStatic(src, clsIndex, index, prim) =>
         val cls = ClsTable.clsIndex(clsIndex)
         checkInitialized(cls)
@@ -298,6 +301,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
           }
         }
         if (!done) jumpPhis(default)
+
       case LookupSwitch(src, default, keys, targets) =>
         var done = false
         for(i <- keys.indices){
@@ -321,11 +325,12 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
             frame.locals(dest) = frame.locals(src)
             advancePc()
         }
+
       case InstanceOf(src, dest, desc) =>
         frame.locals(dest) = frame.locals(src) match{
           case 0 => 0
-          case top if (vm.isArr(top) && !check(vm.arr(top).tpe, desc)) || (vm.isObj(top) && !check(vm.obj(top).tpe, desc)) =>
-            0
+          case top if vm.isArr(top) && !check(vm.arr(top).tpe, desc) => 0
+          case top if vm.isObj(top) && !check(vm.obj(top).tpe, desc) => 0
           case _ => 1
         }
         advancePc()
@@ -345,11 +350,13 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
               vm.alloc(_.newArr(innerType, size)).address()
            }
         }
+
         val dimValues = dims.map(frame.locals).toList
 
         val array = rec(dimValues, desc)
         frame.locals(symbol) = array
         advancePc()
+
       case AThrow(src) =>
         this.throwException(vm.obj(frame.locals(src)))
     }
