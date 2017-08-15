@@ -2,7 +2,7 @@ package metascala.rt
 
 import collection.mutable
 import metascala._
-import metascala.util.{Constants, Ref}
+import metascala.util.{Constants, Ref, WritableRef}
 
 
 object Obj{
@@ -17,10 +17,10 @@ object Obj{
 
 
   implicit def unwrap1(x: Obj): Int = x.address.apply()
-  implicit def unwrap2(x: Obj): Ref = x.address
+  implicit def unwrap2(x: Obj): WritableRef = x.address
 }
 
-class Obj(val address: Ref)
+class Obj(val address: WritableRef)
          (implicit vm: rt.Cls.VMInterface) {
   /**
    * Layout

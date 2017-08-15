@@ -24,13 +24,13 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
          val logger: rt.Logger = /*NonLogger*/new ColorLogger {}) extends Thread.VMInterface{
   def isObj(address: Int): Boolean = heap(address) < 0
   def isArr(address: Int): Boolean = heap(address) > 0
-  def obj(address: Int): metascala.rt.Obj = new rt.Obj(Ref.Raw(address))
-  def arr(address: Int): metascala.rt.Arr = new rt.Arr(Ref.Raw(address))
+  def obj(address: Int): metascala.rt.Obj = new rt.Obj(new Ref.UnsafeManual(address))
+  def arr(address: Int): metascala.rt.Arr = new rt.Arr(new Ref.UnsafeManual(address))
   def thUnsafe: metascala.rt.Obj = ???
   private[this] implicit val vm = this
 
   var ready = false
-  val internedStrings = mutable.Map[String, Ref]()
+  val internedStrings = mutable.Map[String, WritableRef]()
 
   // Doesn't grow for now; we can make it grow when we need it to.
   val offHeap = new Array[Byte](10)
@@ -82,9 +82,9 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
     thread()
   }
 
-  val interned = mutable.Buffer[Ref]()
+  val interned = mutable.Buffer[WritableRef]()
 
-  val typeObjCache = new mutable.HashMap[imm.Type, Ref] {
+  val typeObjCache = new mutable.HashMap[imm.Type, WritableRef] {
     override def apply(x: imm.Type) = this.getOrElseUpdate(x,
       vm.alloc(implicit r =>
         r.newObj("java/lang/Class",
@@ -118,7 +118,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
   /**
     * Identify the list of all root object references within the virtual machine.
     */
-  def forEachRoot(cb: Ref => Unit): Unit = {
+  def forEachRoot(cb: WritableRef => Unit): Unit = {
     assert(ready)
     for (thread <- threads; frame <- thread.threadStack){
       val (blockId, index) = frame.pc

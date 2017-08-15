@@ -24,7 +24,7 @@ object Thread{
     def setOffHeapPointer(n: Long): Unit
     def offHeapPointer: Long
     def currentThread: Int
-    def internedStrings: mutable.Map[String, Ref]
+    def internedStrings: mutable.Map[String, WritableRef]
     def natives: Bindings
     def check(s: imm.Type, t: imm.Type): Boolean
   }
@@ -512,7 +512,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
           op(bindingsInterface, Util.reader(args.toArray, 0), returnTo)
       case m @ rt.ClsMethod(clsIndex, methodIndex, sig, static, codethunk) =>
 
-        assert(!m.native, "method cannot be native: " + ClsTable.clsIndex(clsIndex).name + " " + sig.unparse)
+        assert(
+          !m.native,
+          "Native method not found: " + ClsTable.clsIndex(clsIndex).name + " " + sig.unparse
+        )
         val padded = args.toArray.padTo(m.code.localSize, 0)
         val startFrame = new Frame(
           runningClass = ClsTable.clsIndex(clsIndex),

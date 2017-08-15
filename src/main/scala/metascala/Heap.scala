@@ -1,9 +1,9 @@
 package metascala
 
-import metascala.util.{Constants, Ref}
+import metascala.util.{Constants, Ref, WritableRef}
 
 class Heap(memorySize: Int,
-           forEachRoot: (Ref => Unit) => Unit,
+           forEachRoot: (WritableRef => Unit) => Unit,
            getLinks: (Int, Int) => Seq[Int]){
 
   val memory = new Array[Int](memorySize * 2)

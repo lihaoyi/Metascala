@@ -2,7 +2,7 @@ package metascala.rt
 
 import metascala._
 import metascala.imm
-import metascala.util.{Constants, Ref}
+import metascala.util.{Constants, Ref, WritableRef}
 
 import scala.collection.mutable
 
@@ -14,16 +14,16 @@ import scala.collection.mutable
   * getting prematurely garbage collected during this period.
   */
 class Allocator()(implicit val vm: rt.Obj.VMInterface) {
-  private[this] val tempRegistry = new mutable.ArrayBuffer[Ref]()
+  private[this] val tempRegistry = new mutable.ArrayBuffer[WritableRef]()
 
   def obj(address: Int) = new rt.Obj(register(address))
   def arr(address: Int) = new rt.Arr(register(address))
-  def register(address: Int): Ref = {
+  def register(address: Int): WritableRef = {
     val r = new Ref.UnsafeManual(address)
     tempRegistry.append(r)
     r
   }
-  def registered: TraversableOnce[Ref] = tempRegistry
+  def registered: TraversableOnce[WritableRef] = tempRegistry
   /**
     * Allocates and returns an array of the specified type, with `n` elements.
     * This is multiplied with the size of the type being allocated when

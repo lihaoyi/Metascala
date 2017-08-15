@@ -13,14 +13,14 @@ import org.objectweb.asm.tree.analysis._
 import org.objectweb.asm.Opcodes._
 import Insn._
 import metascala.rt.Logger
-import metascala.util.{Agg, Ref}
+import metascala.util.{Agg, Ref, WritableRef}
 object SingleInsnSSAConverter {
   trait VMInterface extends rt.Obj.VMInterface{
     def alloc[T](func: rt.Allocator => T): T
     def arr(address: Int): rt.Arr
     def resolveDirectRef(owner: imm.Type.Cls, sig: imm.Sig): Option[rt.Method]
-    val interned: mutable.Buffer[Ref]
-    val typeObjCache: mutable.HashMap[imm.Type, Ref]
+    val interned: mutable.Buffer[WritableRef]
+    val typeObjCache: mutable.HashMap[imm.Type, WritableRef]
     def logger: Logger
   }
 

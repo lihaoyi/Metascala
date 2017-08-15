@@ -1,7 +1,7 @@
 package metascala
 package rt
 
-import metascala.util.{Access, Constants, Ref, Util}
+import metascala.util._
 
 import scala.collection.mutable
 
@@ -38,7 +38,7 @@ class Cls(val tpe: imm.Type.Cls,
   var initialized = false
 
   val isInterface = (accessFlags & Access.Interface) != 0
-  var statics: Ref = null
+  var statics: WritableRef = null
 
   def method(name: String, desc: imm.Desc): Option[rt.Method] = {
     clsAncestry.flatMap(_.methods)

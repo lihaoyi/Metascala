@@ -11,8 +11,12 @@ package metascala.util
   */
 sealed trait Ref{
   def apply(): Int
+}
+
+sealed trait WritableRef extends Ref{
   def update(i: Int): Unit
 }
+
 object Ref{
 
 
@@ -22,7 +26,7 @@ object Ref{
     * garbage collector can see it and update during a GC! The easiest way to
     * do this is through the `Allocator#{obj,arr,register}` functions
     */
-  class UnsafeManual(var x: Int) extends Ref{
+  class UnsafeManual(var x: Int) extends WritableRef{
     def apply() = x
     def update(i: Int) = x = i
   }
@@ -31,12 +35,12 @@ object Ref{
     * Similar to `UnsafeManual`, but backed by an array+index instead of by
     * a local mutable cell
     */
-  class UnsafeArr(val get: () => Int, val set: Int => Unit) extends Ref{
+  class UnsafeArr(val get: () => Int, val set: Int => Unit) extends WritableRef{
     def apply() = get()
     def update(i: Int) = set(i)
   }
 
-  object Null extends Ref{
+  object Null extends WritableRef{
     def apply() = 0
     def update(i: Int) = assert(i == 0)
   }
@@ -48,7 +52,7 @@ object Ref{
     * or the value is a reference type but you are *very sure* the `Ref` will
     * be shorted lived and not survive across a GC
     */
-  case class Raw(val x: Int) extends Ref{
+  case class Raw(x: Int) extends Ref{
     def apply() = x
     def update(i: Int) = ???
   }

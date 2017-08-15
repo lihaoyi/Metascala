@@ -376,6 +376,10 @@ object DefaultBindings extends Bindings{
     },
     native("java/security/AccessController", "getStackAccessControlContext()Ljava/security/AccessControlContext;"){(vt, arg) => 0},
     native("java/util/concurrent/atomic/AtomicLong", "VMSupportsCS8()Z").value(Z)(true),
+    native("java/util/TimeZone", "getSystemTimeZoneID(Ljava/lang/String;)java/lang/String").value(I)(0),
+    native("java/util/TimeZone", "getSystemGMTOffsetID()java/lang/String").func(I){ vt =>
+      vt.alloc(r => vt.toVirtObj("GMT+08:00")(r)).address()
+    },
     native("scala/Predef$", "println(Ljava/lang/Object;)V").func(I, I, V){ (vt, predef, o) =>
       if (vt.isObj(o)){
         val thing = vt.obj(o)

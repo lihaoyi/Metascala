@@ -3,7 +3,7 @@ package metascala.rt
 import collection.mutable
 import metascala._
 import metascala.imm
-import metascala.util.{Constants, Ref}
+import metascala.util.{Constants, Ref, WritableRef}
 
 object Arr{
   trait ClsTable {
@@ -16,7 +16,7 @@ object Arr{
     def ClsTable: ClsTable
   }
 
-  implicit def unwrap2(x: Arr): Ref = x.address
+  implicit def unwrap2(x: Arr): WritableRef = x.address
 
   def packType(tpe: imm.Type.Arr)(implicit vm: VMInterface): Int = {
     var nesting = 0
@@ -62,7 +62,7 @@ object Arr{
   * Can be treated as a mutable sequence of Ints; this representation is
   * completely unaware of differently sized contents.
   */
-class Arr(val address: Ref)(implicit vm: Arr.VMInterface) extends mutable.Seq[Int]{
+class Arr(val address: WritableRef)(implicit vm: Arr.VMInterface) extends mutable.Seq[Int]{
   /**
     * Layout
     * ------

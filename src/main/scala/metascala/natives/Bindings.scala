@@ -3,7 +3,7 @@ package metascala.natives
 
 import metascala.imm.Sig
 import metascala.rt.Obj
-import metascala.util.{Agg, Ref}
+import metascala.util.{Agg, Ref, WritableRef}
 import metascala.{imm, rt}
 
 import scala.collection.mutable
@@ -15,14 +15,14 @@ object Bindings{
 
     def returnedVal: Array[Int]
     def alloc[T](func: rt.Allocator => T): T
-    def typeObjCache: mutable.HashMap[imm.Type, Ref]
+    def typeObjCache: mutable.HashMap[imm.Type, WritableRef]
     def offHeap: Array[Byte]
     def setOffHeapPointer(n: Long): Unit
     def offHeapPointer: Long
     def arr(address: Int): rt.Arr
     def runningClassName(n: Int): String // vt.threadStack(n).runningClass.name
     def threadStackLength: Int // vt.threadStack.length
-    def internedStrings: mutable.Map[String, Ref]
+    def internedStrings: mutable.Map[String, WritableRef]
     def toRealObj[T](x: Int)(implicit ct: ClassTag[T]): T
     def toVirtObj(x: Any)(implicit registrar: rt.Allocator): rt.Obj
     def trace: Array[StackTraceElement]
