@@ -90,13 +90,12 @@ object SingleInsnSSAConverter {
 
     def invokeStatic(insn: MethodInsnNode, special: Boolean) = {
       val desc = imm.Desc.read(insn.desc)
-      val m = vm.resolveDirectRef(insn.owner, imm.Sig(insn.name, desc)).get
 
       val selfArgCount = if(special) 1 else 0
       val args = for(j <- (0 until desc.args.length + selfArgCount).reverse) yield {
         top(frame, j)
       }
-      val sig = new imm.Sig(insn.name, desc)
+      val sig = imm.Sig(insn.name, desc)
 
       val target = if (desc.ret == V) 0 else top(nextFrame): Int
       val cls = imm.Type.read(insn.owner) match{
@@ -147,6 +146,31 @@ object SingleInsnSSAConverter {
       val prim = list(cls)(index).desc
       append(func(vm.ClsTable.clsIndex.indexOf(cls), index - prim.size + 1, prim))
     }
+    def refStaticField(list: rt.Cls => Seq[imm.Field], func: (Int, Int, imm.Type) => Insn) = {
+      // Unlike instance fields, and unlike static methods, static fields can
+      // be inherited from both the main superclass as well as from any auxilliary
+      // interfaces you implement!
+      val seen = mutable.Set.empty[imm.Type.Cls]
+      def resolve(cls: rt.Cls): Seq[(Int, rt.Cls)] = {
+        if (seen(cls.tpe)) Nil
+        else {
+          seen.add(cls.tpe)
+          cls.staticList.lastIndexWhere(_.name == insn.name) match{
+            case -1 =>
+              (cls.superType.toSeq ++ cls.interfaces).flatMap(ancestor => resolve(vm.ClsTable(ancestor)))
+            case n => Seq((n, cls))
+          }
+        }
+      }
+      resolve(vm.ClsTable(insn.owner)) match{
+        case Seq((index, cls)) =>
+          assert(index >= 0, s"no field found in ${insn.owner}: ${insn.name}\n")
+          val prim = cls.staticList(index).desc
+          append(func(vm.ClsTable.clsIndex.indexOf(cls), index - prim.size + 1, prim))
+        case res => throw new Exception("Zero or Multiple Possible Fields Inherited! " + res)
+      }
+    }
+
 
     insn.getOpcode match{
       case ICONST_M1 => push(-1, I)
@@ -289,8 +313,8 @@ object SingleInsnSSAConverter {
       case DRETURN => returnVal(D)
       case ARETURN => returnVal("java/lang/Object")
       case RETURN => returnVal(V)
-      case GETSTATIC => refField(_.staticList, Insn.GetStatic(top(nextFrame), _, _, _))
-      case PUTSTATIC => refField(_.staticList, Insn.PutStatic(top(frame), _, _, _))
+      case GETSTATIC => refStaticField(_.staticList, Insn.GetStatic(top(nextFrame), _, _, _))
+      case PUTSTATIC => refStaticField(_.staticList, Insn.PutStatic(top(frame), _, _, _))
       case GETFIELD  => refField(_.fieldList, (a, b, c) => Insn.GetField(top(nextFrame), top(frame), b, c))
       case PUTFIELD  => refField(_.fieldList, (a, b, c) => Insn.PutField(top(frame), top(frame, 1), b, c))
       case INVOKESTATIC    => invokeStatic(insn, special = false)

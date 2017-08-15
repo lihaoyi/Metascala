@@ -71,7 +71,6 @@ class Cls(val tpe: imm.Type.Cls,
 
   def computeDispatchTable(getParent: imm.Type.Cls => IndexedSeq[rt.Method],
                            static: Boolean) = {
-    val overrides = !static
     val oldMethods =
       mutable.ArrayBuffer(
         superType
@@ -84,16 +83,13 @@ class Cls(val tpe: imm.Type.Cls,
         case None => m
         case Some(native) => native
       }
-      if (!overrides) oldMethods.append(actualMethod)
-      else{
-
-        val index = oldMethods.indexWhere{ mRef => mRef.sig == m.sig }
-          if (index == -1) oldMethods.append(actualMethod)
-          else oldMethods.update(index, actualMethod)
-      }
-
-
+      val index = oldMethods.indexWhere{ mRef => mRef.sig == m.sig }
+      if (index == -1) oldMethods.append(actualMethod)
+      // Both instance *and* static methods can be overriden by subclasses.
+      // Bet you didn't know that!
+      else oldMethods.update(index, actualMethod)
     }
+
     oldMethods
   }
   /**

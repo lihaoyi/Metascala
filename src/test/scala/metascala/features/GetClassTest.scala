@@ -8,7 +8,7 @@ import scala.Some
 import java.util.Arrays
 import metascala.Gen._
 
-class ClassTest extends FreeSpec {
+class GetClassTest extends FreeSpec {
   import TestUtil._
   "class stuff" - {
     val tester = new VM()

@@ -57,6 +57,7 @@ class ClassesTest extends FreeSpec {
     "shadowedInheritedSet" in tester.run("shadowedInheritedSet")
     "superMethod" in tester.run("superMethod")
     "staticInheritance" in tester.run("staticInheritance")
+    "staticInheritanceMethod" in tester.run("staticInheritanceMethod")
   }
 }
 

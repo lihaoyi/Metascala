@@ -84,8 +84,8 @@ class ExternalLibTest extends FreeSpec {
 //    }
 //  }
   "rhino" in tester.test{
-    val cx = org.mozilla.javascript.Context.enter()
-    val scope = cx.initStandardObjects()
+//    val cx = org.mozilla.javascript.Context.enter()
+//    val scope = cx.initStandardObjects()
 //    val cls = classOf[org.mozilla.javascript.ScriptableObject]
 //    println(cls.getMethods.exists(_.getName == "getExternalArrayLength"))
 //    println(cls.getMethod("getExternalArrayLength").toString)

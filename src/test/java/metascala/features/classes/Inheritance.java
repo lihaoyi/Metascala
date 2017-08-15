@@ -1,9 +1,5 @@
 package metascala.features.classes;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Vector;
-
 public class Inheritance {
     public static String implement(int n){
         Baas b = new Sheep();
@@ -35,16 +31,31 @@ public class Inheritance {
         Child1.x = 100;
         return a + Child1.x + Child2.x;
     }
+    public static int staticInheritanceMethod(){
+        return Child1.inherited() + // Calls the method inherited from parent
+                Parent.overriden() + // Calls the method directly on parent
+                Child1.overriden(); // Calls the method on child overriding the one from parent
+    }
 }
 interface ParentInterface{
     public static int x = 30;
 }
+
 class Parent{
     public static int x = 10;
+    public static int inherited(){
+        return 0xcafebabe;
+    }
+    public static int overriden(){
+        return 1337;
+    }
 }
 class Child1 extends Parent{
     public static int get(){
         return x;
+    }
+    public static int overriden(){
+        return 31337;
     }
 }
 class Cowc{}
