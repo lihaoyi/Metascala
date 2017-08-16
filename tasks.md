@@ -21,10 +21,10 @@
 
 - Experiment with JIT compilation rather than interpretation
 
-- Implement dense arrays of byes/shorts/chars, rather than taking up an entire
+- Implement dense arrays of bytes/shorts/chars, rather than taking up an entire
   4-byte int for each item
 
-- Shift callstack, class data structures to binary memory rather than host VM
+- Shift callstack, class, bytecode data structures to binary memory rather than host VM
   objects
   
 - Add tests to ensure sorted-ness of DefaultBindings and well-formed-ness of 

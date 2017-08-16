@@ -22,8 +22,7 @@ object Agg {
     x
   }
 
-  val empty0 = new Aggregator[Nothing]
-  def empty[T: ClassTag]: Agg[T] = empty0
+  def empty[T: ClassTag]: Agg[T] = new Aggregator[Nothing]
 
   def unapplySeq[T](x: Array[T]): Option[IndexedSeq[T]] = Some(x.toVector)
 }
