@@ -15,8 +15,8 @@ object Access{
   val Abstract  = 0x0400 // 1024
   val Strict    = 0x0800 // 2048
 }
+
 object Constants{
   val objectHeaderSize = 2
   val arrayHeaderSize = 2
-
 }

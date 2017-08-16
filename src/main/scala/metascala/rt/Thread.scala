@@ -100,7 +100,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     }
   }
 
-
   final def step(): Unit = try {
     //  println(frame.pc)
     val code = frame.method.code
@@ -155,48 +154,20 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         getPutArray(dest, index, array, prim, get = true)
 
       case UnaryOp(src, psrc, dest, pout, func) =>
-        pout.write(func(psrc.read(Util.reader(frame.locals, src))), Util.writer(frame.locals, dest))
-        advancePc()
+        unaryOp(src, psrc, dest, pout, func)
 
       case BinOp(a, pa, b, pb, dest, pout, func) =>
 
-        val va = pa.read(Util.reader(frame.locals, a))
-        val vb = pb.read(Util.reader(frame.locals, b))
-        val out = func(va, vb)
-
-        pout.write(out, Util.writer(frame.locals, dest))
-        advancePc()
+        binOp(a, pa, b, pb, dest, pout, func)
 
       case Ldc(target, index) =>
-        frame.locals(target) = vm.interned(index)()
-        advancePc()
+        ldc(target, index)
 
       case InvokeStatic(target, sources, clsIndex, mIndex, special) =>
-        val cls = ClsTable.clsIndex(clsIndex)
-        checkInitialized(cls)
-        invokeBase(
-          sources,
-          target,
-          if (special) cls.vTable(mIndex)
-          else cls.staticTable(mIndex),
-          thisCell = special
-        )
+        invokeStatic(target, sources, clsIndex, mIndex, special)
 
       case InvokeVirtual(target, sources, clsIndex, sig, mIndex) =>
-        val argZero = frame.locals(sources(0))
-        invokeBase(
-          sources,
-          target,
-          mRef =
-            if (mIndex == -1) vm.obj(argZero).cls.vTableMap(sig)
-            else{
-              val cls =
-                if (vm.isObj(argZero)) vm.obj(argZero).cls
-                else ClsTable.clsIndex(clsIndex)
-              cls.vTable(mIndex)
-            },
-          thisCell = true
-        )
+        invokeVirtual(target, sources, clsIndex, sig, mIndex)
 
 
       case InvokeDynamic(name, desc, bsTag, bsOwner, bsName, bsDesc, bsArgs) =>
@@ -204,82 +175,28 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         ???
 
       case New(target, clsIndex) =>
-        val cls = ClsTable.clsIndex(clsIndex)
-        checkInitialized(cls)
-        val obj = vm.alloc(_.newObj(cls.name))
-        frame.locals(target) = obj.address()
-        advancePc()
+        newInstance(target, clsIndex)
 
       case ArrayLength(src, dest) =>
-        frame.locals(dest) = vm.arr(frame.locals(src)).arrayLength
-        advancePc()
+        arrayLength(src, dest)
 
       case NewArray(src, dest, typeRef) =>
-        val newArray = vm.alloc(_.newArr(typeRef, frame.locals(src)))
-        frame.locals(dest) = newArray.address()
-        advancePc()
+        newArray(src, dest, typeRef)
 
       case TableSwitch(src, min, max, default, targets) =>
-        val value = frame.locals(src)
-        if (value < min || value > max) jumpPhis(default)
-        else jumpPhis(targets(value - min))
+        tableSwitch(src, min, max, default, targets)
 
       case LookupSwitch(src, default, keys, targets) =>
-        var done = false
-        var i = 0
-        while(!done && i < keys.length){
-          val k = keys(i)
-          val t = targets(i)
-          if (frame.locals(src) == k && !done){
-            jumpPhis(t)
-            done = true
-          }
-          i += 1
-        }
-        if (!done) jumpPhis(default)
+        lookupSwitch(src, default, keys, targets)
 
       case CheckCast(src, dest, desc) =>
-        frame.locals(src) match{
-          case top
-            if (vm.isArr(top) && !check(vm.arr(top).tpe, desc))
-            || (vm.isObj(top) && !check(vm.obj(top).tpe, desc)) =>
-
-            throwExWithTrace("java/lang/ClassCastException", "")
-          case _ =>
-            frame.locals(dest) = frame.locals(src)
-            advancePc()
-        }
+        checkCast(src, dest, desc)
 
       case InstanceOf(src, dest, desc) =>
-        frame.locals(dest) = frame.locals(src) match{
-          case 0 => 0
-          case top if vm.isArr(top) && !check(vm.arr(top).tpe, desc) => 0
-          case top if vm.isObj(top) && !check(vm.obj(top).tpe, desc) => 0
-          case _ => 1
-        }
-        advancePc()
+        instanceOf(src, dest, desc)
 
       case MultiANewArray(desc, symbol, dims) =>
-        def rec(dims: List[Int], tpe: imm.Type): Int = {
-
-          (dims, tpe) match {
-            case (size :: tail, imm.Type.Arr(innerType: imm.Type.Ref)) =>
-              val newArr = vm.alloc(_.newArr(innerType, size))
-              for(i <- 0 until size){
-                newArr(i) = rec(tail, innerType)
-              }
-              newArr.address()
-
-            case (size :: Nil, imm.Type.Arr(innerType)) =>
-              vm.alloc(_.newArr(innerType, size)).address()
-           }
-        }
-
-        val dimValues = dims.map(frame.locals).toList
-
-        val array = rec(dimValues, desc)
-        frame.locals(symbol) = array
-        advancePc()
+        multiANewArray(desc, symbol, dims)
 
       case AThrow(src) => this.throwException(vm.obj(frame.locals(src)))
 
@@ -295,6 +212,139 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     val newEx = new InternalVmException(e)
     newEx.setStackTrace(trace)
     throw newEx
+  }
+
+  private def unaryOp(src: Int, psrc: Type.Prim[Any], dest: Int, pout: Type.Prim[Any], func: Any => Any) = {
+    pout.write(func(psrc.read(Util.reader(frame.locals, src))), Util.writer(frame.locals, dest))
+    advancePc()
+  }
+
+  private def binOp(a: Int, pa: Type.Prim[Any], b: Int, pb: Type.Prim[Any], dest: Int, pout: Type.Prim[Any], func: (Any, Any) => Any) = {
+    val va = pa.read(Util.reader(frame.locals, a))
+    val vb = pb.read(Util.reader(frame.locals, b))
+    val out = func(va, vb)
+
+    pout.write(out, Util.writer(frame.locals, dest))
+    advancePc()
+  }
+
+  private def ldc(target: Int, index: Int) = {
+    frame.locals(target) = vm.interned(index)()
+    advancePc()
+  }
+
+  private def invokeStatic(target: Int, sources: Agg[Int], clsIndex: Int, mIndex: Int, special: Boolean) = {
+    val cls = ClsTable.clsIndex(clsIndex)
+    checkInitialized(cls)
+    invokeBase(
+      sources,
+      target,
+      if (special) cls.vTable(mIndex)
+      else cls.staticTable(mIndex),
+      thisCell = special
+    )
+  }
+
+  private def invokeVirtual(target: Int, sources: Agg[Int], clsIndex: Int, sig: Sig, mIndex: Int) = {
+    val argZero = frame.locals(sources(0))
+    invokeBase(
+      sources,
+      target,
+      mRef =
+        if (mIndex == -1) vm.obj(argZero).cls.vTableMap(sig)
+        else {
+          val cls =
+            if (vm.isObj(argZero)) vm.obj(argZero).cls
+            else ClsTable.clsIndex(clsIndex)
+          cls.vTable(mIndex)
+        },
+      thisCell = true
+    )
+  }
+
+  private def newInstance(target: Int, clsIndex: Int) = {
+    val cls = ClsTable.clsIndex(clsIndex)
+    checkInitialized(cls)
+    val obj = vm.alloc(_.newObj(cls.name))
+    frame.locals(target) = obj.address()
+    advancePc()
+  }
+
+  private def arrayLength(src: Int, dest: Int) = {
+    frame.locals(dest) = vm.arr(frame.locals(src)).arrayLength
+    advancePc()
+  }
+
+  private def newArray(src: Int, dest: Int, typeRef: Type) = {
+    val newArray = vm.alloc(_.newArr(typeRef, frame.locals(src)))
+    frame.locals(dest) = newArray.address()
+    advancePc()
+  }
+
+  private def lookupSwitch(src: Int, default: Int, keys: Agg[Int], targets: Agg[Int]) = {
+    var done = false
+    var i = 0
+    while(!done && i < keys.length){
+      val k = keys(i)
+      val t = targets(i)
+      if (frame.locals(src) == k && !done){
+        jumpPhis(t)
+        done = true
+      }
+      i += 1
+    }
+    if (!done) jumpPhis(default)
+  }
+  private def tableSwitch(src: Int, min: Int, max: Int, default: Int, targets: Agg[Int]) = {
+    val value = frame.locals(src)
+    if (value < min || value > max) jumpPhis(default)
+    else jumpPhis(targets(value - min))
+  }
+
+  private def checkCast(src: Int, dest: Int, desc: Type) = {
+    frame.locals(src) match {
+      case top
+        if (vm.isArr(top) && !check(vm.arr(top).tpe, desc))
+          || (vm.isObj(top) && !check(vm.obj(top).tpe, desc)) =>
+
+        throwExWithTrace("java/lang/ClassCastException", "")
+      case _ =>
+        frame.locals(dest) = frame.locals(src)
+        advancePc()
+    }
+  }
+
+  private def instanceOf(src: Int, dest: Int, desc: Type) = {
+    frame.locals(dest) = frame.locals(src) match {
+      case 0 => 0
+      case top if vm.isArr(top) && !check(vm.arr(top).tpe, desc) => 0
+      case top if vm.isObj(top) && !check(vm.obj(top).tpe, desc) => 0
+      case _ => 1
+    }
+    advancePc()
+  }
+
+  private def multiANewArray(desc: Type, symbol: Int, dims: Seq[Int]) = {
+    def rec(dims: List[Int], tpe: Type): Int = {
+
+      (dims, tpe) match {
+        case (size :: tail, imm.Type.Arr(innerType: Type.Ref)) =>
+          val newArr = vm.alloc(_.newArr(innerType, size))
+          for (i <- 0 until size) {
+            newArr(i) = rec(tail, innerType)
+          }
+          newArr.address()
+
+        case (size :: Nil, imm.Type.Arr(innerType)) =>
+          vm.alloc(_.newArr(innerType, size)).address()
+      }
+    }
+
+    val dimValues = dims.map(frame.locals).toList
+
+    val array = rec(dimValues, desc)
+    frame.locals(symbol) = array
+    advancePc()
   }
 
   def invokeBase(sources: Agg[Int],
