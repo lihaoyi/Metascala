@@ -358,7 +358,7 @@ object MethodSSAConverter {
         }else Agg.empty
 
       }
-      BasicBlock(buffer, phis/*.map(_.filter(x => x._1 != x._2))*/, types, lines)
+      BasicBlock(buffer, phis, types, lines)
     }
   }
 }

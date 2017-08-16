@@ -61,23 +61,24 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     System.arraycopy(frame.locals, 0, phiBuffer, 0, frame.locals.length)
 
-//    if (vm.logger.active) vm.logger.logPhi(
-//      indent,
-//      ClsTable.clsIndex(frame.method.clsIndex).name,
-//      frame,
-//      phi.indices.iterator.map(i => (i, phi(i)._2))
-//    )
-
+    if (vm.logger.active) vm.logger.logPhi(
+      indent,
+      ClsTable.clsIndex(frame.method.clsIndex).name,
+      frame,
+      phi.indices.iterator.map(i => (i, phi(i)))
+    )
 
     var i = 0
-    while(i < phi.length){
+    var target = phi.length
+    while(i < target){
       val src = phi(i)
       if (src != -1) frame.locals(i) = phiBuffer(src)
       else frame.locals(i) = 0
       i += 1
     }
 
-    while(i < frame.locals.length){
+    target = frame.locals.length
+    while(i < target){
       frame.locals(i) = 0
       i += 1
     }
@@ -94,7 +95,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     if (frame.pc._2 + 1 < frame.method.code.blocks(frame.pc._1).insns.length){
       frame.pc =(frame.pc._1, frame.pc._2 + 1)
     }else if(frame.pc._1 + 1 < frame.method.code.blocks.length){
-      val phi = doPhi(frame, frame.pc._1, frame.pc._1+1)
+      doPhi(frame, frame.pc._1, frame.pc._1+1)
       frame.pc = (frame.pc._1+1, 0)
     }
   }
