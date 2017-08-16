@@ -61,21 +61,27 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     System.arraycopy(frame.locals, 0, phiBuffer, 0, frame.locals.length)
 
-    if (vm.logger.active) vm.logger.logPhi(
-      indent,
-      ClsTable.clsIndex(frame.method.clsIndex).name,
-      frame,
-      phi.indices.iterator.map(i => (i, phi(i)._2))
-    )
+//    if (vm.logger.active) vm.logger.logPhi(
+//      indent,
+//      ClsTable.clsIndex(frame.method.clsIndex).name,
+//      frame,
+//      phi.indices.iterator.map(i => (i, phi(i)._2))
+//    )
 
-    java.util.Arrays.fill(frame.locals, 0)
 
-    for(pair <- phi) {
-      val (src, dest) = pair
-      frame.locals(dest) = phiBuffer(src)
+    var i = 0
+    while(i < phi.length){
+      val src = phi(i)
+      if (src != -1) frame.locals(i) = phiBuffer(src)
+      else frame.locals(i) = 0
+      i += 1
     }
 
-    phi
+    while(i < frame.locals.length){
+      frame.locals(i) = 0
+      i += 1
+    }
+
   }
 
   def jumpPhis(target: Int) = {

@@ -22,7 +22,7 @@ object LocalType{
   val Ref = new LocalType(1, "L", "L#" + _().toString)
 }
 case class BasicBlock(insns: Agg[Insn],
-                      phi: Agg[Agg[(Int, Int)]],
+                      phi: Agg[Agg[Int]],
                       locals: Agg[LocalType],
                       lines: Agg[Int])
 

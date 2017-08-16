@@ -10,6 +10,8 @@
 - Get proper stack traces working when something fails in an `invoke` called
   from a native binding
 
+- More complete support for Rhino, with bigger test scripts 
+
 - Get Javac working inside Metascala
 
 - Upgrade to Scala 2.12

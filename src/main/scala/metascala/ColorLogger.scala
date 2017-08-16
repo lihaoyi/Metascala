@@ -123,7 +123,7 @@ trait ColorLogger extends rt.Logger{
           var first1 = true
           for (bits <- phi){
             if (!first1) output.append(", ")
-            output.append(arrow(bits))
+//            output.append(arrow(bits))
             first1 = false
           }
           output.append("]")

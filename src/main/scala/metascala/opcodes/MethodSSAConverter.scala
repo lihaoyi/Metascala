@@ -339,19 +339,26 @@ object MethodSSAConverter {
 //              )
 //            )
 //          }
-          val zipped = for{
+
+          val phiLength =
+            if (startMap.isEmpty) 0
+            else startMap.map(x => x._2 + x._1.getSize).max
+
+          val arr = Array.fill[Int](phiLength)(-1)
+
+          for{
             (Some(e), Some(s)) <- boxes(endFrame) zip boxes(startFrame)
-            a <- endMap.get(e).toSeq
-            b <- startMap.get(s).toSeq
+            src <- endMap.get(e).toSeq
+            dest <- startMap.get(s).toSeq
 
             i <- 0 until e.getSize
-          } yield (a + i, b + i)
+          } arr(dest + i) = src + i
           //          println("zipped             " + zipped)
-          Agg.from(zipped)
+          Agg.from(arr)
         }else Agg.empty
 
       }
-      BasicBlock(buffer, phis, types, lines)
+      BasicBlock(buffer, phis/*.map(_.filter(x => x._1 != x._2))*/, types, lines)
     }
   }
 }

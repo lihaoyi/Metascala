@@ -32,6 +32,7 @@ trait Logger{
                      blockBufferThrees: Agg[mutable.Map[Box, Int]]): Unit
   def logException(): Unit
 }
+
 object NonLogger extends Logger{
   def active = false
   def logStep(indentCount: Int,
