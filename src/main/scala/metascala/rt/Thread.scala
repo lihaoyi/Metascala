@@ -303,7 +303,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     if (thisCell && frame.locals(sources(0)) == 0){
       throwExWithTrace("java/lang/NullPointerException", "null")
     }else {
-      val args = new Aggregator[Int]
+      val args = new ArrayFiller(mRef.localsSize)
 
       val thisCellOffset = if (thisCell) {
         args.append(frame.locals(sources(0)))
@@ -326,7 +326,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
       prepInvoke(
         mRef,
-        args,
+        args.arr,
         if (phis.isEmpty) Util.writer(frame.locals, target)
         else (x: Int) => mapped.foreach(_ (x))
       )
@@ -432,8 +432,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     def invoke(cls: Type.Cls, sig: Sig, args: Agg[Any]) = thread.invoke0(cls, sig, args)
 
-    def invoke(mRef: Method, args: Agg[Int]) = thread.invoke0(mRef, args)
-
     def returnedVal = thread.returnedVal
 
     def alloc[T](func: rt.Allocator => T) = vm.alloc(func)
@@ -442,7 +440,9 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
       val pa = obj(a)
       val mRef = resolveDirectRef(pa.cls.tpe, pa.cls.methods.find(_.sig.name == "run").get.sig).get
       var x = 0
-      threads(0).invoke0(mRef, Agg(pa.address()))
+      val args = new Array[Int](mRef.localsSize)
+      args(0) = pa.address()
+      threads(0).invoke0(mRef, args)
 
       threads(0).returnedVal(0)
     }
@@ -460,10 +460,11 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         Desc.read(descStr)
       ).get
 
-      invoke(
-        mRef,
-        Agg(newObj) ++ (if (argArr == 0) Seq() else Agg.from(arr(argArr)))
-      )
+      val args = new Array[Int](mRef.localsSize)
+      args(0) = newObj
+      arr(argArr).copyToArray(args, 1)
+      thread.invoke0(mRef, args)
+
 
       newObj
     }
@@ -507,30 +508,30 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     def natives = vm.natives
 
     def lookupNatives(lookupName: String, lookupSig: imm.Sig) =
-      vm.natives.trapped.find{case rt.NativeMethod(clsName, sig, func) =>
+      vm.natives.trapped.find{case rt.NativeMethod(clsName, sig, static, func) =>
         (lookupName == clsName) && sig == lookupSig
       }
   }
   final def prepInvoke(mRef: rt.Method,
-                       args: Agg[Int],
+                       args: Array[Int],
                        returnTo: Int => Unit) = {
 //    println(indent + "PrepInvoke " + mRef + " with " + args)
-
+    assert(args.length == mRef.localsSize)
     mRef match{
-      case rt.NativeMethod(clsName, imm.Sig(name, desc), op) =>
-          op(bindingsInterface, Util.reader(args.toArray, 0), returnTo)
+      case rt.NativeMethod(clsName, imm.Sig(name, desc), static, op) =>
+          op(bindingsInterface, Util.reader(args, 0), returnTo)
       case m @ rt.ClsMethod(clsIndex, methodIndex, sig, static, codethunk) =>
 
         assert(
           !m.native,
           "Native method not found: " + ClsTable.clsIndex(clsIndex).name + " " + sig.unparse
         )
-        val padded = args.toArray.padTo(m.code.localSize, 0)
+
         val startFrame = new Frame(
           runningClass = ClsTable.clsIndex(clsIndex),
           method = m,
           returnTo = returnTo,
-          locals = padded
+          locals = args
         )
 
         //log(indent + "locals " + startFrame.locals)
@@ -539,30 +540,28 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
   }
   final def prepInvoke(tpe: imm.Type,
                        sig: imm.Sig,
-                       args: Agg[Any],
+                       argValues: Agg[Any],
                        returnTo: Int => Unit)
                        : Unit = {
 
-    val tmp = new Aggregator[Int]
+    val mRef = vm.resolveDirectRef(tpe.asInstanceOf[imm.Type.Cls], sig).get
+    val args = new ArrayFiller(mRef.localsSize)
+    var argIndex = 0
     vm.alloc{ implicit r =>
-      for(x <- args){
-        Virtualizer.pushVirtual(x, tmp.append(_: Int))
+      for(x <- argValues){
+        Virtualizer.pushVirtual(x, args.append)
       }
 
 
-      prepInvoke(
-        vm.resolveDirectRef(tpe.asInstanceOf[imm.Type.Cls], sig).get,
-        tmp,
-        returnTo
-      )
+      prepInvoke(mRef, args.arr, returnTo)
     }
 
   }
-  def invoke(mRef: rt.Method, args: Agg[Int]): Any = {
+  def invoke(mRef: rt.Method, args: Array[Int]): Any = {
     invoke0(mRef, args)
     Virtualizer.popVirtual(mRef.sig.desc.ret, Util.reader(returnedVal, 0))(bindingsInterface)
   }
-  def invoke0(mRef: rt.Method, args: Agg[Int]): Any = {
+  def invoke0(mRef: rt.Method, args: Array[Int]): Any = {
     val startHeight = threadStack.length
     prepInvoke(mRef, args, Util.writer(returnedVal, 0))
 

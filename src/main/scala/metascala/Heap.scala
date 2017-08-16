@@ -119,7 +119,7 @@ class Heap(memorySize: Int,
 
     println("ending " + (freePointer - start))
 
-    println("==================Collectiong Compelete====================")
+    println("==================Collection Complete====================")
 //    println(dump())
 //    println(roots.map(_()))
 //    vm.getRoots

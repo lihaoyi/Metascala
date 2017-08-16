@@ -10,7 +10,6 @@ import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
 
 
-
 /**
  * A Metascala VM. Call invoke() on it with a class, method name and arguments
  * to have it interpret some Java bytecode for you. It optionally takes in a set of
@@ -49,7 +48,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
       )
       cls.initialized = true
       vm.resolveDirectRef(cls.tpe, Sig("<clinit>", imm.Desc.read("()V")))
-        .foreach(threads(0).invoke(_, Agg.empty))
+        .foreach(x => threads(0).invoke(x, new Array[Int](x.localsSize)))
 
       cls.superType.foreach{ cls =>
         checkInitialized(vm.ClsTable(cls))
@@ -97,7 +96,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
 
 
   def lookupNatives(lookupName: String, lookupSig: imm.Sig) =
-    vm.natives.trapped.find{case rt.NativeMethod(clsName, sig, func) =>
+    vm.natives.trapped.find{case rt.NativeMethod(clsName, sig, static, func) =>
       (lookupName == clsName) && sig == lookupSig
     }
 
@@ -262,10 +261,10 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
     new rt.Arr(systemCls.statics)(systemCls.staticList.indexWhere(_.name == "out")) = dummyWriter
     new rt.Arr(systemCls.statics)(systemCls.staticList.indexWhere(_.name == "err")) = dummyWriter
     new rt.Arr(systemCls.statics)(systemCls.staticList.indexWhere(_.name == "props")) = sysProps
-    threads(0).invoke(
-      ClsTable("java/util/Properties").method("<init>", imm.Desc(Agg.empty, imm.Type.Prim.V)).get,
-      Agg(sysProps)
-    )
+    val mRef = ClsTable("java/util/Properties").method("<init>", imm.Desc(Agg.empty, imm.Type.Prim.V)).get
+    val args = new Array[Int](mRef.localsSize)
+    args(0) = sysProps
+    threads(0).invoke(mRef, args)
   }
   def check(s: imm.Type, t: imm.Type): Boolean = {
 

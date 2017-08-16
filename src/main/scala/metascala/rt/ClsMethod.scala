@@ -17,4 +17,6 @@ case class ClsMethod(clsIndex: Int,
 
   def static = (accessFlags & Access.Static) != 0
   def native = (accessFlags & Access.Native) != 0
+
+  def localsSize = code.localSize
 }

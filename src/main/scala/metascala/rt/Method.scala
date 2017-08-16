@@ -6,6 +6,8 @@ package rt
  */
 trait Method{
   def sig: imm.Sig
-  lazy val argSize = sig.desc.args.foldLeft(0)(_ + _.size)
+  def static: Boolean
+
+  def localsSize: Int
 }
 

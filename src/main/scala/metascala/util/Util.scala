@@ -18,6 +18,14 @@ object NullSafe{
   def apply[T](a: T): Option[T] = Option(a)
 }
 
+class ArrayFiller(size: Int){
+  val arr = new Array[Int](size)
+  var index = 0
+  def append(value: Int) = {
+    arr(index) = value
+    index += 1
+  }
+}
 object Util{
   def shorten(name: String) = {
     val some :+ last = name.split("/").toSeq
