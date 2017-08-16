@@ -304,7 +304,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
     val wrapped = () => thunk
     invoke(wrapped.getClass.getName, "apply", Seq(wrapped)).asInstanceOf[T]
   }
-  println("Initialized VM")
+//  println("Initialized VM")
 
   def resolveDirectRef(owner: Type.Cls, sig: imm.Sig): Option[rt.Method] = {
 

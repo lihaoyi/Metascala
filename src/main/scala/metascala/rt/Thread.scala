@@ -28,9 +28,8 @@ object Thread{
     def natives: Bindings
     def check(s: imm.Type, t: imm.Type): Boolean
   }
-
-
 }
+
 /**
  * A single thread within the Metascala VM.
  */
@@ -85,16 +84,12 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
   }
 
 
-  def advancePc() = {
+  def advancePc(): Unit = {
     if (frame.pc._2 + 1 < frame.method.code.blocks(frame.pc._1).insns.length){
       frame.pc =(frame.pc._1, frame.pc._2 + 1)
-      Agg.empty
     }else if(frame.pc._1 + 1 < frame.method.code.blocks.length){
       val phi = doPhi(frame, frame.pc._1, frame.pc._1+1)
       frame.pc = (frame.pc._1+1, 0)
-      phi
-    }else {
-      Agg.empty
     }
   }
 
@@ -320,16 +315,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         }
       }
 
-      val phis = advancePc()
-      val ptargets = phis.collect { case (`target`, x) => x }
-      val mapped = ptargets.map(Util.writer(frame.locals, _))
-
-      prepInvoke(
-        mRef,
-        args.arr,
-        if (phis.isEmpty) Util.writer(frame.locals, target)
-        else (x: Int) => mapped.foreach(_ (x))
-      )
+      prepInvoke(mRef, args.arr, Util.writer(frame.locals, target), threadStack.length)
     }
   }
 
@@ -377,12 +363,18 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
   }
 
   def returnVal(size: Int, index: Int) = {
-//    println(s"Returning size: $size, index: $index")
-    for(i <- 0 until size){
-      frame.returnTo(frame.locals(index + i))
+    size match{
+      case 0 =>
+      case 1 => frame.returnTo(frame.locals(index))
+      case 2 =>
+        frame.returnTo(frame.locals(index))
+        frame.returnTo(frame.locals(index + 1))
     }
-    this.threadStack.pop
+
+    val endedFrame = this.threadStack.pop()
+    if (endedFrame.indexOfFrameWhosePCToIncrement == threadStack.length) advancePc()
   }
+
   final def throwExWithTrace(clsName: String, detailMessage: String) = {
 
     throwException(
@@ -512,14 +504,19 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         (lookupName == clsName) && sig == lookupSig
       }
   }
+
   final def prepInvoke(mRef: rt.Method,
                        args: Array[Int],
-                       returnTo: Int => Unit) = {
+                       returnTo: Int => Unit,
+                       advanceParentPC: Int) = {
 //    println(indent + "PrepInvoke " + mRef + " with " + args)
     assert(args.length == mRef.localsSize)
     mRef match{
       case rt.NativeMethod(clsName, imm.Sig(name, desc), static, op) =>
-          op(bindingsInterface, Util.reader(args, 0), returnTo)
+        try op(bindingsInterface, Util.reader(args, 0), returnTo)
+        finally if (threadStack.length == advanceParentPC) {
+          advancePc()
+        }
       case m @ rt.ClsMethod(clsIndex, methodIndex, sig, static, codethunk) =>
 
         assert(
@@ -531,13 +528,15 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
           runningClass = ClsTable.clsIndex(clsIndex),
           method = m,
           returnTo = returnTo,
-          locals = args
+          locals = args,
+          indexOfFrameWhosePCToIncrement = advanceParentPC
         )
 
         //log(indent + "locals " + startFrame.locals)
         threadStack.push(startFrame)
     }
   }
+
   final def prepInvoke(tpe: imm.Type,
                        sig: imm.Sig,
                        argValues: Agg[Any],
@@ -546,41 +545,39 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     val mRef = vm.resolveDirectRef(tpe.asInstanceOf[imm.Type.Cls], sig).get
     val args = new ArrayFiller(mRef.localsSize)
-    var argIndex = 0
+
     vm.alloc{ implicit r =>
       for(x <- argValues){
         Virtualizer.pushVirtual(x, args.append)
       }
 
-
-      prepInvoke(mRef, args.arr, returnTo)
+      prepInvoke(mRef, args.arr, returnTo, -1)
     }
 
   }
+
   def invoke(mRef: rt.Method, args: Array[Int]): Any = {
     invoke0(mRef, args)
     Virtualizer.popVirtual(mRef.sig.desc.ret, Util.reader(returnedVal, 0))(bindingsInterface)
   }
+
   def invoke0(mRef: rt.Method, args: Array[Int]): Any = {
     val startHeight = threadStack.length
-    prepInvoke(mRef, args, Util.writer(returnedVal, 0))
+    prepInvoke(mRef, args, Util.writer(returnedVal, 0), -1)
 
     while(threadStack.length != startHeight) step()
-
-
-
   }
 
   def invoke(cls: imm.Type.Cls, sig: imm.Sig, args: Agg[Any]): Any = {
     invoke0(cls, sig, args)
     Virtualizer.popVirtual(sig.desc.ret, Util.reader(returnedVal, 0))(bindingsInterface)
   }
+
   def invoke0(cls: imm.Type.Cls, sig: imm.Sig, args: Agg[Any]): Any = {
     val startHeight = threadStack.length
     prepInvoke(cls, sig, args, Util.writer(returnedVal, 0))
 
     while(threadStack.length != startHeight) step()
-
   }
 }
 

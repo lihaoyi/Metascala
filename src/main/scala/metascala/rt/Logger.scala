@@ -15,7 +15,8 @@ class Frame(var pc: (Int, Int) = (0, 0),
             val method: rt.ClsMethod,
             var lineNum: Int = 0,
             val returnTo: Int => Unit,
-            val locals: Array[Int])
+            val locals: Array[Int],
+            val indexOfFrameWhosePCToIncrement: Int)
 
 trait Logger{
   def active: Boolean

@@ -34,7 +34,6 @@ class GCTests extends FreeSpec {
       memory <- List(30, 65, 93, 123)
       count <- List(0, 3, 9, 12, 30)
     }{
-      println(memory + " " + count)
       val tester = new VM(memorySize = memory)
       tester.test{
         var i = 0

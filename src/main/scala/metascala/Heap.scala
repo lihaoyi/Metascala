@@ -12,7 +12,7 @@ class Heap(memorySize: Int,
 
   def allocate(n: Int) = {
     if (freePointer + n > memorySize + start) {
-      println("COLLECT LOL")
+//      println("COLLECT LOL")
       collect(start)
       if (freePointer + n > memorySize + start) {
         throw new Exception("Out of Memory!")
@@ -21,7 +21,6 @@ class Heap(memorySize: Int,
     val newFree = freePointer
     freePointer += n
     newFree
-
   }
 
   def apply(n: Int): Int = memory(n)
@@ -63,9 +62,9 @@ class Heap(memorySize: Int,
     for(i <- to until to+memorySize){
       memory(i) = 0
     }
-    println("===============Collecting==================")
+//    println("===============Collecting==================")
     //vm.threads(0).threadStack.map(x => x.runningClass.name + "/" + x.method.sig + "\t" + x.method.code.blocks(x.pc._1).insns(x.pc._2)).foreach(println)
-    println("starting " + (freePointer - from))
+//    println("starting " + (freePointer - from))
 //    println(dump())
 //    println(roots.map(_()))
 //        println(s"allRoots ${roots.map(_())}")
@@ -117,9 +116,9 @@ class Heap(memorySize: Int,
     if (from == 0) start = memorySize
     else start = 0
 
-    println("ending " + (freePointer - start))
+//    println("ending " + (freePointer - start))
 
-    println("==================Collection Complete====================")
+//    println("==================Collection Complete====================")
 //    println(dump())
 //    println(roots.map(_()))
 //    vm.getRoots

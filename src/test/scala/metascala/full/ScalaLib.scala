@@ -30,32 +30,6 @@ object ScalaLib{
     }
     s + "\n" + methods.mkString("\n")
   }
-
-  def futures = {
-    import scala.concurrent.ExecutionContext.Implicits.global
-    val a = Promise[Promise[Int]]()
-    val b = Promise[List[String]]()
-    val c = for{
-      ar <- a.future
-      br <- b.future
-      i <- ar.future
-    } yield i.toString :: br
-    a.success(Promise.successful(1))
-    b.success(List("2", "3", "4"))
-    import scala.concurrent.duration._
-    Await.result(c, 10 seconds)
-  }
-
-  def lol = {
-    println("AAA")
-    val ctx = Context.enter()
-    println("BBB")
-    val scope = ctx.initStandardObjects()
-    println("CCC")
-    println(ctx.evaluateString(scope, "1 + 1", "<cmd>", 0, null))
-    println("DDD")
-    0
-  }
 }
 class ScalaLib extends FreeSpec {
   import TestUtil._

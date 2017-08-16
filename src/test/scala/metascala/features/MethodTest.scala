@@ -92,7 +92,6 @@ class MethodTest extends FreeSpec {
       }
     )
   }
-
 }
 
 class DumbObjectSubClass(n: Int) extends DumbObject(n * 2)

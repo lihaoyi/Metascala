@@ -32,10 +32,8 @@ class MetacircularTest extends FreeSpec {
         val b = new Bull
         b.mooTwice
       }
-      println(vm.threads(0).count)
       x
     }
-    println(vm.threads(0).count)
   }
 
   "bubbleSort" in {

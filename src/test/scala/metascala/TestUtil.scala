@@ -105,9 +105,9 @@ object TestUtil {
     }
     def func(t: Any, args: Seq[Any]) = {
       val path = t.getClass.getName.replace('.', '/')
-      println(path)
-      println(getClass.getResourceAsStream(path + ".class"))
-      println("args " + args)
+//      println(path)
+//      println(getClass.getResourceAsStream(path + ".class"))
+//      println("args " + args)
 
 
       val method = t.getClass
@@ -120,8 +120,8 @@ object TestUtil {
       val refRes = method.invoke(t, args.map(_.asInstanceOf[AnyRef]):_*)
 
       val inString = args.toString
-      println("svmRes " + svmRes)
-      println("refRes " + refRes)
+//      println("svmRes " + svmRes)
+//      println("refRes " + refRes)
 
       try{
         assertEquals(svmRes, refRes)
@@ -154,9 +154,9 @@ object TestUtil {
       val svmRes = svm.run(main, args:_*)
       val refRes = ref.run(main, args:_*)
       val inString = args.toString
-      println("svmRes " + svmRes)
-      println("refRes " + refRes)
-      println("args " + args)
+//      println("svmRes " + svmRes)
+//      println("refRes " + refRes)
+//      println("args " + args)
       try{
         assertEquals(svmRes, refRes)
       }catch {case ex: TestFailedException =>
