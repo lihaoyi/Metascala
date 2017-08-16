@@ -15,7 +15,7 @@ class Misc extends FreeSpec {
   def test[T](p: Prim[T])(cases: Iterable[T]){
     chk{ x: T =>
       p.write(x, Util.writer(arr, 0))
-      assert(p.read(Util.reader(arr, 0)) === x)
+      assertEquals(p.read(Util.reader(arr, 0)), x)
     }(cases)
   }
   "making sure Prim[T] write & pops preserve the value T" - {
