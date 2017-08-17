@@ -12,6 +12,8 @@ import scala.collection.JavaConverters._
 import org.objectweb.asm.tree.analysis._
 import org.objectweb.asm.Opcodes._
 
+import scala.reflect.ClassTag
+
 class AbstractFunnyInterpreter(mergeLeft: Boolean) extends Interpreter[Box](ASM4){
   val internal = new BasicInterpreter()
   type AIN = AbstractInsnNode
@@ -52,10 +54,20 @@ object MethodSSAConverter {
     locals ++ stackVals
   }
 
+  def computeFlatten[T: ClassTag](blockMap: Array[Int], allTs: IndexedSeq[T]) = {
+    val arr = Array.fill(blockMap.last + 1)(mutable.Buffer.empty[T])
+    for(i <- blockMap.indices){
+      arr(blockMap(i)).append(allTs(i))
+    }
+    arr.map(_.toArray)
+  }
+
   def apply(clsName: String, method: MethodNode)
            (implicit vm: SingleInsnSSAConverter.VMInterface): Code = {
 
     val allInsns = method.instructions.toArray
+
+    val insnIndexMap = allInsns.zipWithIndex.toMap
 
     val lineMap = {
       var lastLine = 0
@@ -72,39 +84,14 @@ object MethodSSAConverter {
 
     lazy val extraFrames = new Analyzer(FullInterpreter).analyze(clsName, method)
 
-    val blockMap: Array[I] = computeBlockMap(method, allInsns)
+    val blockMap: Array[Int] = computeBlockMap(method, allInsns)
 
-    implicit class pimpedLabel(x: LabelNode){
-      def block = blockMap(allInsns.indexOf(x))
+    val blockInsns: Array[Array[AbstractInsnNode]] = computeFlatten(blockMap, allInsns)
 
-    }
-
-    val blockInsns: Array[Array[AbstractInsnNode]] = {
-      blockMap.zip(allInsns)
-              .groupBy(_._1)
-              .toArray
-              .sortBy(_._1)
-              .map(_._2.map(_._2))
-
-    }
-
-    val blockLines: Array[Array[Int]] = {
-      blockMap.zip(lineMap)
-              .groupBy(_._1)
-              .toArray
-              .sortBy(_._1)
-              .map(_._2.map(_._2))
-    }
-
-    implicit def deref(label: LabelNode) = blockInsns.indexWhere(_.head == label)
-//    println("blockInsns")
+    val blockLines: Array[Array[Int]] = computeFlatten(blockMap, lineMap)
 
     val allFrames: Seq[Seq[Frame[Box]]] =
-      computeAllFrames(method, allInsns, extraFrames, blockMap, blockInsns)
-
-//    println("allFrames")
-//    allFrames.map(println)
-    // force in-order registration of method arguments in first block
+      computeAllFrames(method, extraFrames, blockMap, blockInsns, insnIndexMap)
 
     val blockBuffers = computeBlockBuffers(clsName, blockMap, blockInsns, blockLines, allFrames)
 
@@ -114,21 +101,25 @@ object MethodSSAConverter {
     val basicBlocks = computeBasicBlocks(method, blockBuffers)
 
     val tryCatchBlocks = for(b <- Agg.from(method.tryCatchBlocks.asScala)) yield{
-      val startBlock = b.start.block
-      val endBlock = b.end.block
+      def insnToPc(insn: AbstractInsnNode) = {
+        val block = blockMap(insnIndexMap(insn))
+        (block, realInsn(block)(blockInsns(block).indexOf(insn)))
+      }
+
+      val handlerBlock = blockMap(insnIndexMap(b.handler))
+
       TryCatchBlock(
-        (startBlock, realInsn(startBlock)(blockInsns(startBlock).indexOf(b.start))),
-        (endBlock, realInsn(endBlock)(blockInsns(endBlock).indexOf(b.end))),
-        b.handler.block,
-        blockBuffers(b.handler.block)._4(SingleInsnSSAConverter.top(allFrames(blockMap(allInsns.indexOf(b.handler))).head)),
+        insnToPc(b.start), insnToPc(b.end),
+        handlerBlock,
+        blockBuffers(handlerBlock)._4 {
+          val x = allFrames(blockMap(insnIndexMap(b.handler))).head
+          x.getStack(x.getStackSize - 1)
+        },
         Option(b.`type`).map(imm.Type.Cls.apply)
       )
     }
 
-
     vm.logger.logBasicBlocks(clsName, method, basicBlocks, blockBuffers.map(_._4), tryCatchBlocks)
-
-
 
     Code(basicBlocks, tryCatchBlocks)
   }
@@ -175,8 +166,6 @@ object MethodSSAConverter {
                           allFrames: Seq[Seq[Frame[Box]]])
                          (implicit vm: SingleInsnSSAConverter.VMInterface)= {
 
-    implicit def deref(label: LabelNode) = blockInsns.indexWhere(_.head == label)
-
     for {
       (blockFrames, blockId) <- Agg.from(allFrames).zipWithIndex
       if blockFrames != null
@@ -190,7 +179,7 @@ object MethodSSAConverter {
       val types = new Aggregator[LocalType]
 
 
-      implicit def getBox(b: Box) = {
+      def getBox(b: Box): Int = {
         if (!localMap.contains(b)) {
           localMap(b) = symCount
           symCount += b.value.getSize
@@ -213,6 +202,7 @@ object MethodSSAConverter {
       val realInsnMap = new Aggregator[Int]
       for ((insn, i) <- blockInsns(blockId).zipWithIndex) try {
         realInsnMap.append(buffer.length)
+
         SingleInsnSSAConverter(
           insn,
           (in: Insn) => {
@@ -221,7 +211,8 @@ object MethodSSAConverter {
           },
           blockFrames(i),
           blockFrames(i + 1),
-          blockMap
+          label => blockInsns.indexWhere(_.head == label),
+          getBox
         )
       } catch {
         case e: Throwable =>
@@ -234,27 +225,24 @@ object MethodSSAConverter {
   }
 
   def computeAllFrames(method: MethodNode,
-                       allInsns: Array[AbstractInsnNode],
                        extraFrames: => Array[Frame[Box]],
                        blockMap: Array[I],
-                       blockInsns: Array[Array[AbstractInsnNode]]) = {
-    implicit class pimpedLabel(x: LabelNode){
-      def block = blockMap(allInsns.indexOf(x))
-    }
+                       blockInsns: Array[Array[AbstractInsnNode]],
+                       insnIndexMap: AbstractInsnNode => Int) = {
 
     val links: Seq[(I, I)] = {
       val jumps =
         blockInsns.map(_.last)
           .zipWithIndex
           .flatMap {
-            case (x: JumpInsnNode, i) => Seq(i -> x.label.block)
-            case (x: TableSwitchInsnNode, i) => (x.dflt +: x.labels.asScala).map(i -> _.block)
-            case (x: LookupSwitchInsnNode, i) => (x.dflt +: x.labels.asScala).map(i -> _.block)
+            case (x: JumpInsnNode, i) => Seq(i -> blockMap(insnIndexMap(x.label)))
+            case (x: TableSwitchInsnNode, i) => (x.dflt +: x.labels.asScala).map(x => i -> blockMap(insnIndexMap(x)))
+            case (x: LookupSwitchInsnNode, i) => (x.dflt +: x.labels.asScala).map(x => i -> blockMap(insnIndexMap(x)))
             case _ => Nil
           }
       val flows =
         for {
-          (a, b) <- (0 to blockMap.last - 1).zip(1 to blockMap.last)
+          (a, b) <- (0 until blockMap.last).zip(1 to blockMap.last)
           if !unconditionalJumps.contains(blockInsns(a).last.getOpcode)
         } yield (a, b)
       jumps ++ flows
@@ -290,7 +278,7 @@ object MethodSSAConverter {
 
     handle(extraFrames(0), 0)
     for (b <- method.tryCatchBlocks.asScala) {
-      val catchFrame = extraFrames(allInsns.indexOf(b.handler))
+      val catchFrame = extraFrames(insnIndexMap(b.handler))
       handle(catchFrame, blockInsns.indexWhere(_.head == b.handler))
     }
     existing
@@ -302,24 +290,6 @@ object MethodSSAConverter {
     for(((buffer, realInsnMap, types, startMap, startFrame, _, lines), i) <- blockBuffers.zipWithIndex) yield {
       val phis = for(((buffer2, realInsnMap2, types2, endMap, _, endFrame, _), j) <- blockBuffers.zipWithIndex) yield {
         if (endFrame != null && startFrame != null && ((buffer2.length > 0 && buffer2.last.targets.contains(i)) || (i == j + 1))){
-//          if (method.name == "initTable") {
-//            println()
-//            println("Making Phi       " + j + "->" + i)
-//            println("endFrame         " + endFrame + "\t" + boxes(endFrame).flatten.map(endMap))
-//            println("startFrame       " + startFrame + "\t" + boxes(startFrame).flatten.map(startMap))
-//
-//            println("endFrame.boxes   " + boxes(endFrame))
-//            println("startFrame.boxes " + boxes(startFrame))
-//            println("endMap           " + endMap)
-//            println("startMap         " + startMap)
-//            if(boxes(endFrame).length != boxes(startFrame).length) println(
-//              fansi.Color.Red(
-//                s"Start frame doesn't line up with End frame.\n" +
-//                s"start frame $j has ${boxes(startFrame).length}, end frame $i has ${boxes(endFrame).length}"
-//              )
-//            )
-//          }
-
           val phiLength =
             if (startMap.isEmpty) 0
             else startMap.map(x => x._2 + x._1.getSize).max

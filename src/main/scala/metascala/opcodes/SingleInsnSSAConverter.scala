@@ -24,7 +24,7 @@ object SingleInsnSSAConverter {
     def logger: Logger
   }
 
-  def top(x: Frame[Box], n: Int = 0) = x.getStack(x.getStackSize - 1 - n)
+
   case class F1[A, B](a: A => B, override val toString: String) extends Function1[A, B]{
     def apply(x: A) = a(x)
   }
@@ -32,12 +32,13 @@ object SingleInsnSSAConverter {
     def apply(x: A, y: B) = a(x, y)
   }
   def apply(insn: AbstractInsnNode,
-              append: Insn => Unit,
-              frame: Frame[Box],
-              nextFrame: Frame[Box],
-              blockMap: Array[Int])
-             (implicit vm: VMInterface, getBox: Box => Int, deref: LabelNode => Int) = {
-
+            append: Insn => Unit,
+            frame: Frame[Box],
+            nextFrame: Frame[Box],
+            deref: LabelNode => Int,
+            box: Box => Int)
+           (implicit vm: VMInterface) = {
+    def top(x: Frame[Box], n: Int = 0) = box(x.getStack(x.getStackSize - 1 - n))
     def push[T](v: T, tpe: Prim[T]) = {
       append(Push(top(nextFrame), tpe, v))
     }
@@ -49,17 +50,17 @@ object SingleInsnSSAConverter {
     }
     def binOp1[A](a: Prim[A])(f: (A, A) => A) = binOp(a, a, a)(f)
     def binOp[A, B, C](a: Prim[A], b: Prim[B], c: Prim[C])(f: (A, B) => C) = {
-      val (bb, aa) = (getBox(top(frame)), getBox(top(frame, 1)))
+      val (bb, aa) = (top(frame), top(frame, 1))
       append(BinOp(aa, a, bb, b, top(nextFrame), c, f))
     }
     def unaryOp[A, B](a: Prim[A], b: Prim[B])(f: A => B) = {
       append(UnaryOp(top(frame), a, top(nextFrame), b, f))
     }
     def unaryBranch(label: LabelNode, f: Int => Boolean) = {
-      append(Insn.UnaryBranch(top(frame), label, f))
+      append(Insn.UnaryBranch(top(frame), deref(label), f))
     }
     def binaryBranch(label: LabelNode, f: (Int, Int) => Boolean) = {
-      append(Insn.BinaryBranch(top(frame), top(frame, 1), label, f))
+      append(Insn.BinaryBranch(top(frame), top(frame, 1), deref(label), f))
     }
     def returnVal(tpe: imm.Type) = {
       append(Insn.ReturnVal(if (tpe == V) 0 else top(frame)))
@@ -75,7 +76,6 @@ object SingleInsnSSAConverter {
       val args = for(j <- (0 until desc.args.length + 1).reverse) yield {
         top(frame, j)
       }
-      getBox(args.last)
       val sig = new imm.Sig(insn.name, desc)
       val target = if (desc.ret == V) 0 else top(nextFrame): Int
 
@@ -85,7 +85,7 @@ object SingleInsnSSAConverter {
         else runtimeCls.vTable.indexWhere(_.sig == sig)
 
       val clsIndex = vm.ClsTable.clsIndex.indexOf(runtimeCls)
-      append(Insn.InvokeVirtual(target, Agg.from(args.map(getBox)), clsIndex, sig, mIndex))
+      append(Insn.InvokeVirtual(target, Agg.from(args), clsIndex, sig, mIndex))
     }
 
     def invokeStatic(insn: MethodInsnNode, special: Boolean) = {
@@ -108,7 +108,7 @@ object SingleInsnSSAConverter {
         else runtimeCls.staticTable.indexWhere(_.sig == sig)
 
       val clsIndex = vm.ClsTable.clsIndex.indexOf(runtimeCls)
-      append(Insn.InvokeStatic(target, Agg.from(args.map(getBox)), clsIndex, mIndex, special))
+      append(Insn.InvokeStatic(target, Agg.from(args), clsIndex, mIndex, special))
     }
     def invokeDynamic(insn: InvokeDynamicInsnNode) = {
       append(Insn.InvokeDynamic(
@@ -264,8 +264,13 @@ object SingleInsnSSAConverter {
       case IINC =>
         val x = insn.asInstanceOf[IincInsnNode]
         val bvalue = new Box(new BasicValue(org.objectweb.asm.Type.INT_TYPE))
-        append(Insn.Push(bvalue, I, x.incr))
-        append(Insn.BinOp[I, I, I](bvalue, I, frame.getLocal(x.`var`), I, nextFrame.getLocal(x.`var`), I, F2[Int, Int, Int](_+_, "IInc")))
+        append(Insn.Push(box(bvalue), I, x.incr))
+        append(Insn.BinOp[I, I, I](
+          box(bvalue), I,
+          box(frame.getLocal(x.`var`)), I,
+          box(nextFrame.getLocal(x.`var`)), I,
+          F2[Int, Int, Int](_+_, "IInc")
+        ))
       case I2L => unaryOp(I, J)(F1(_.toLong,  "I2L"))
       case I2F => unaryOp(I, F)(F1(_.toFloat, "I2F"))
       case I2D => unaryOp(I, D)(F1(_.toDouble,"I2D"))
@@ -300,13 +305,13 @@ object SingleInsnSSAConverter {
       case IF_ICMPLE => binaryBranch(insn.label, F2(_ <= _, "IfICmpLe"))
       case IF_ACMPEQ => binaryBranch(insn.label, F2(_ == _, "IfACmpEq"))
       case IF_ACMPNE => binaryBranch(insn.label, F2(_ != _, "IfACmpNe"))
-      case GOTO => append(Insn.Goto(insn.label))
+      case GOTO => append(Insn.Goto(deref(insn.label)))
       case TABLESWITCH   =>
         val x = insn.asInstanceOf[TableSwitchInsnNode]
-        append(Insn.TableSwitch(top(frame), x.min, x.max, x.dflt, Agg.from(x.labels.map(deref))))
+        append(Insn.TableSwitch(top(frame), x.min, x.max, deref(x.dflt), Agg.from(x.labels.map(deref))))
       case LOOKUPSWITCH =>
         val x = insn.asInstanceOf[LookupSwitchInsnNode]
-        append(Insn.LookupSwitch(top(frame), x.dflt, Agg.from(x.keys.asScala.map(_.intValue)), Agg.from(x.labels.map(deref))))
+        append(Insn.LookupSwitch(top(frame), deref(x.dflt), Agg.from(x.keys.asScala.map(_.intValue)), Agg.from(x.labels.map(deref))))
       case IRETURN => returnVal(I)
       case LRETURN => returnVal(J)
       case FRETURN => returnVal(F)
@@ -347,7 +352,7 @@ object SingleInsnSSAConverter {
       case MULTIANEWARRAY =>
         val x = insn.asInstanceOf[MultiANewArrayInsnNode]
         val dims = (0 until x.dims).reverse.map(top(frame, _))
-        append(Insn.MultiANewArray(imm.Type.read(x.desc), top(nextFrame), dims.map(getBox)))
+        append(Insn.MultiANewArray(imm.Type.read(x.desc), top(nextFrame), dims))
       case IFNULL    => unaryBranch(insn.label, F1(_ == 0, "IfNull"))
       case IFNONNULL => unaryBranch(insn.label, F1(_ != 0, "IfNonNull"))
       case ACONST_NULL | POP | POP2 | DUP | DUP_X1 | DUP_X2 | DUP2 |
