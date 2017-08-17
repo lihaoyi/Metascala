@@ -1,6 +1,6 @@
 package metascala.rt
 
-import metascala.opcodes.{BasicBlock, Box, Insn}
+import metascala.opcodes.{BasicBlock, Box, Insn, TryCatchBlock}
 import metascala.rt
 import metascala.util.Agg
 import org.objectweb.asm.tree.MethodNode
@@ -29,7 +29,8 @@ trait Logger{
   def logBasicBlocks(clsName: String,
                      method: MethodNode,
                      basicBlocks: TraversableOnce[BasicBlock],
-                     blockBufferThrees: Agg[mutable.Map[Box, Int]]): Unit
+                     blockBufferThrees: Agg[mutable.Map[Box, Int]],
+                     tryCatchBlocks: Agg[TryCatchBlock]): Unit
   def logException(): Unit
 }
 
@@ -44,6 +45,7 @@ object NonLogger extends Logger{
   def logBasicBlocks(clsName: String,
                      method: MethodNode,
                      basicBlocks: TraversableOnce[BasicBlock],
-                     blockBufferThrees: Agg[mutable.Map[Box, Int]]): Unit = ()
+                     blockBufferThrees: Agg[mutable.Map[Box, Int]],
+                     tryCatchBlocks: Agg[TryCatchBlock]): Unit = ()
   def logException() = ()
 }

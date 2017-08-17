@@ -119,13 +119,13 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     val node = block.insns(frame.pc._2)
 
-//    if (vm.logger.active) vm.logger.logStep(
-//      indent,
-//      ClsTable.clsIndex(frame.method.clsIndex).name,
-//      frame,
-//      node,
-//      block
-//    )
+    if (vm.logger.active) vm.logger.logStep(
+      indent,
+      ClsTable.clsIndex(frame.method.clsIndex).name,
+      frame,
+      node,
+      block
+    )
 
     node match {
       case Push(target, prim, value) =>
@@ -456,18 +456,26 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
   @tailrec final def throwException(ex: Obj, print: Boolean = true): Unit = {
     import math.Ordering.Implicits._
     if (print) logger.logException()
-
+//    println("THROWN")
 
     threadStack.headOption match{
       case Some(frame)=>
+//        pprint.log(frame.pc)
+//        pprint.log(frame.method.code.tryCatches)
+
         val handler =
           frame.method.code.tryCatches.find{x =>
+//            pprint.log((x.start <= frame.pc))
+//            pprint.log((x.end >= frame.pc))
+//            pprint.log(x.blockType.isEmpty)
+//            pprint.log(x.blockType.exists(ex.cls.typeAncestry.contains))
             (x.start <= frame.pc) &&
             (x.end >= frame.pc) &&
-            !x.blockType.isDefined ||
-            x.blockType.map(ex.cls.typeAncestry.contains).getOrElse(false)
+            (!x.blockType.isDefined ||
+            x.blockType.map(ex.cls.typeAncestry.contains).getOrElse(false))
           }
 
+//        pprint.log(handler.isDefined)
         handler match{
           case None =>
             threadStack.pop()

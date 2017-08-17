@@ -69,5 +69,18 @@ class RegressionTests extends FreeSpec{
     val x = new java.util.concurrent.ConcurrentHashMap[Int, Int](16, 0.75f)
     x.put(1, 1)
   }
+  "tryCatchRanges" in {
+    // This used to fail because we were not properly computing and handling
+    // try-catch ranges, resulting in the exception being thrown in this
+    // snippet propagating uncaught out of the VM.
+    val tester = new VM()
+    tester.test{
+      val script = 1
+      val obj =
+        try throw ThrownEx
+        catch{case e: Throwable => e.getMessage}
+    }
+  }
 }
 
+object ThrownEx extends Exception()

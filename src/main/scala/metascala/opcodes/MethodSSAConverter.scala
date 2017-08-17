@@ -74,20 +74,9 @@ object MethodSSAConverter {
 
     val blockMap: Array[I] = computeBlockMap(method, allInsns)
 
-    val insnMap: Array[Int] = {
-      val map = new Array[Int](allInsns.length)
-      var count = 0
-      for(i <- 1 until allInsns.length){
-        count += 1
-        if (blockMap(i) != blockMap(i-1)) count = 0
-        map(i) = count
-      }
-      map
-    }
-
     implicit class pimpedLabel(x: LabelNode){
       def block = blockMap(allInsns.indexOf(x))
-      def insn = insnMap(allInsns.indexOf(x))
+
     }
 
     val blockInsns: Array[Array[AbstractInsnNode]] = {
@@ -111,7 +100,7 @@ object MethodSSAConverter {
 //    println("blockInsns")
 
     val allFrames: Seq[Seq[Frame[Box]]] =
-      computeAllFrames(method, allInsns, extraFrames, blockMap, blockInsns, insnMap)
+      computeAllFrames(method, allInsns, extraFrames, blockMap, blockInsns)
 
 //    println("allFrames")
 //    allFrames.map(println)
@@ -119,31 +108,26 @@ object MethodSSAConverter {
 
     val blockBuffers = computeBlockBuffers(clsName, blockMap, blockInsns, blockLines, allFrames)
 
-//    if (false && method.name == "ensureObj") {
-//      println(s"--------------------- Converting ${method.name} ---------------------")
-//      for(i <- 0 until blockMap.length){
-//        if (i == 0 || blockMap(i) != blockMap(i-1)) println("-------------- BasicBlock " + blockMap(i) + " --------------")
-//        val insn = OPCODES.lift(allInsns(i).getOpcode).getOrElse(allInsns(i).getClass.getSimpleName).padTo(30, ' ')
-//        val frame = Option(allFrames(blockMap(i))).map(_(insnMap(i)).toString).getOrElse("-")
-//
-//        println(lineMap(i) + "\t" + insn + " | " + blockMap(i) + " | " + insnMap(i) + " |\t" + frame)
-//      }
-//      println("XXX")
-//    }
+    val realInsn = blockBuffers.map(_._2)
+
 
     val basicBlocks = computeBasicBlocks(method, blockBuffers)
 
-    vm.logger.logBasicBlocks(clsName, method, basicBlocks, blockBuffers.map(_._3))
-
     val tryCatchBlocks = for(b <- Agg.from(method.tryCatchBlocks.asScala)) yield{
+      val startBlock = b.start.block
+      val endBlock = b.end.block
       TryCatchBlock(
-        (b.start.block, b.start.insn),
-        (b.end.block, b.end.insn),
+        (startBlock, realInsn(startBlock)(blockInsns(startBlock).indexOf(b.start))),
+        (endBlock, realInsn(endBlock)(blockInsns(endBlock).indexOf(b.end))),
         b.handler.block,
-        blockBuffers(b.handler.block)._3(SingleInsnSSAConverter.top(allFrames(blockMap(allInsns.indexOf(b.handler))).head)),
+        blockBuffers(b.handler.block)._4(SingleInsnSSAConverter.top(allFrames(blockMap(allInsns.indexOf(b.handler))).head)),
         Option(b.`type`).map(imm.Type.Cls.apply)
       )
     }
+
+
+    vm.logger.logBasicBlocks(clsName, method, basicBlocks, blockBuffers.map(_._4), tryCatchBlocks)
+
 
 
     Code(basicBlocks, tryCatchBlocks)
@@ -200,7 +184,6 @@ object MethodSSAConverter {
 
       val buffer = new Aggregator[Insn]
 
-      val srcMap = new Aggregator[I]
       val lineMap = new Aggregator[I]
       val localMap = mutable.Map.empty[Box, I]
       var symCount = 0
@@ -211,7 +194,6 @@ object MethodSSAConverter {
         if (!localMap.contains(b)) {
           localMap(b) = symCount
           symCount += b.value.getSize
-          import org.objectweb.asm.Type
           assert(b != null)
           assert(b.value != null)
           assert(b.value.getType != null, "fail " + b.value)
@@ -228,14 +210,13 @@ object MethodSSAConverter {
       }
 
       boxes(blockFrames(0)).flatten.map(getBox)
-
+      val realInsnMap = new Aggregator[Int]
       for ((insn, i) <- blockInsns(blockId).zipWithIndex) try {
-
+        realInsnMap.append(buffer.length)
         SingleInsnSSAConverter(
           insn,
           (in: Insn) => {
             buffer.append(in)
-            srcMap.append(i)
             lineMap.append(blockLines(blockId)(i))
           },
           blockFrames(i),
@@ -248,7 +229,7 @@ object MethodSSAConverter {
           throw e
       }
 
-      (buffer, types, localMap, blockFrames.head, blockFrames.last, lineMap)
+      (buffer, realInsnMap, types, localMap, blockFrames.head, blockFrames.last, lineMap)
     }
   }
 
@@ -256,11 +237,9 @@ object MethodSSAConverter {
                        allInsns: Array[AbstractInsnNode],
                        extraFrames: => Array[Frame[Box]],
                        blockMap: Array[I],
-                       blockInsns: Array[Array[AbstractInsnNode]],
-                       insnMap: Array[Int]) = {
+                       blockInsns: Array[Array[AbstractInsnNode]]) = {
     implicit class pimpedLabel(x: LabelNode){
       def block = blockMap(allInsns.indexOf(x))
-      def insn = insnMap(allInsns.indexOf(x))
     }
 
     val links: Seq[(I, I)] = {
@@ -318,9 +297,10 @@ object MethodSSAConverter {
 
   }
 
-  def computeBasicBlocks(method: MethodNode, blockBuffers:  Agg[(Agg[Insn], Agg[LocalType], mutable.Map[Box, Int], Frame[Box], Frame[Box], Agg[Int])]) = {
-    for(((buffer, types, startMap, startFrame, _, lines), i) <- blockBuffers.zipWithIndex) yield {
-      val phis = for(((buffer2, types2, endMap, _, endFrame, _), j) <- blockBuffers.zipWithIndex) yield {
+  def computeBasicBlocks(method: MethodNode,
+                         blockBuffers:  Agg[(Agg[Insn], Agg[Int], Agg[LocalType], mutable.Map[Box, Int], Frame[Box], Frame[Box], Agg[Int])]) = {
+    for(((buffer, realInsnMap, types, startMap, startFrame, _, lines), i) <- blockBuffers.zipWithIndex) yield {
+      val phis = for(((buffer2, realInsnMap2, types2, endMap, _, endFrame, _), j) <- blockBuffers.zipWithIndex) yield {
         if (endFrame != null && startFrame != null && ((buffer2.length > 0 && buffer2.last.targets.contains(i)) || (i == j + 1))){
 //          if (method.name == "initTable") {
 //            println()

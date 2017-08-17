@@ -1,7 +1,7 @@
 package metascala
 
 import org.objectweb.asm.tree.MethodNode
-import metascala.opcodes.{BasicBlock, Box, Insn}
+import metascala.opcodes.{BasicBlock, Box, Insn, TryCatchBlock}
 import metascala.rt.Frame
 import metascala.util.{Agg, Util}
 
@@ -101,7 +101,8 @@ trait ColorLogger extends rt.Logger{
   def logBasicBlocks(clsName: String,
                      method: MethodNode,
                      basicBlocks: TraversableOnce[BasicBlock],
-                     blockBufferThrees: Agg[mutable.Map[Box, Int]]) = {
+                     blockBufferThrees: Agg[mutable.Map[Box, Int]],
+                     tryCatchBlocks: Agg[TryCatchBlock]) = {
     //    def printOrNot = clsName == "java/util/concurrent/ConcurrentHashMap" &&
     //      frame.method.sig.name == "<init>"
     if (false) {
@@ -112,6 +113,8 @@ trait ColorLogger extends rt.Logger{
         fansi.Color.Magenta("=" * 20 + clsName + "#" + method.name + "=" * 20),
         "\n\b"
       )
+      tryCatchBlocks.foreach(t => output.appendAll(pprinter.tokenize(t)))
+      output.append("\n")
       for ((block, i) <- basicBlocks.toArray.zipWithIndex){
 
         output.append(fansi.Color.Cyan(i.toString.padTo(8, ' ')), "{")
@@ -121,9 +124,9 @@ trait ColorLogger extends rt.Logger{
           first = false
           output.append(fansi.Color.Green(phiIndex.toString), ": [")
           var first1 = true
-          for (bits <- phi){
+          for ((dest, src) <- phi.zipWithIndex if src != -1){
             if (!first1) output.append(", ")
-//            output.append(arrow(bits))
+            output.append(arrow((src, dest)))
             first1 = false
           }
           output.append("]")

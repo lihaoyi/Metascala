@@ -387,6 +387,7 @@ object DefaultBindings extends Bindings{
     },
     native("java/security/AccessController", "getStackAccessControlContext()Ljava/security/AccessControlContext;").static{(vt, arg) => 0},
     native("java/util/concurrent/atomic/AtomicLong", "VMSupportsCS8()Z").static.value(Z)(true),
+    native("java/util/ServiceLoader$1", "hasNext()Z;").value(Z)(false),
     native("java/util/TimeZone", "getDefault()Ljava/util/TimeZone;").static.func(I){ vt =>
       vt.alloc(r =>
         r.newObj("java/util/SimpleTimeZone",

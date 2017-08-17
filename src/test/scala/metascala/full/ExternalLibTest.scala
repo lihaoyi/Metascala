@@ -84,12 +84,11 @@ class ExternalLibTest extends FreeSpec {
 //    }
 //  }
   "rhino" in {
-    val tester = new VM(memorySize = 256 * 1024 * 1024, initializeStdout = true)
+    val tester = new VM(memorySize = 1 * 1024 * 1024, initializeStdout = true)
     tester.test{
 
       val cx = org.mozilla.javascript.Context.enter()
       val scope = cx.initStandardObjects()
-      println("Initialized!")
       val script = "(function(suffix){ return 'hello ' + suffix})('world')"
       val obj = cx.evaluateString(scope, script, "Test Script", 1, null)
       obj
