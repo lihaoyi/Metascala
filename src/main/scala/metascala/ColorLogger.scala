@@ -8,7 +8,7 @@ import metascala.util.{Agg, Util}
 import scala.collection.mutable
 
 trait ColorLogger extends rt.Logger{
-  def active = true
+  def active = false
   val sigHandler: PartialFunction[Any, pprint.Tree] = {
     case s: imm.Sig => pprint.Tree.Lazy(_ => Iterator(s.toString))
     case a: Agg[_] =>

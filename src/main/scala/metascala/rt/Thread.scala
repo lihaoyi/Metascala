@@ -100,25 +100,30 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     }
   }
 
-  final def step(): Unit = try {
-    //  println(frame.pc)
+  def getActiveBlock() = {
     val code = frame.method.code
-    insnCount += 1
     var block = code.blocks(frame.pc._1)
     while(block.insns.length == 0){
       jumpPhis(frame.pc._1 + 1)
       block = code.blocks(frame.pc._1)
     }
+    block
+  }
+  final def step(): Unit = try {
+    //  println(frame.pc)
+
+    insnCount += 1
+    val block = getActiveBlock()
 
     val node = block.insns(frame.pc._2)
 
-    if (vm.logger.active) vm.logger.logStep(
-      indent,
-      ClsTable.clsIndex(frame.method.clsIndex).name,
-      frame,
-      node,
-      block
-    )
+//    if (vm.logger.active) vm.logger.logStep(
+//      indent,
+//      ClsTable.clsIndex(frame.method.clsIndex).name,
+//      frame,
+//      node,
+//      block
+//    )
 
     node match {
       case Push(target, prim, value) =>
