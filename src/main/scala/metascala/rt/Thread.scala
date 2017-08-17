@@ -92,11 +92,13 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
 
   def advancePc(): Unit = {
-    if (frame.pc._2 + 1 < frame.method.code.blocks(frame.pc._1).insns.length){
-      frame.pc =(frame.pc._1, frame.pc._2 + 1)
-    }else if(frame.pc._1 + 1 < frame.method.code.blocks.length){
-      doPhi(frame, frame.pc._1, frame.pc._1+1)
-      frame.pc = (frame.pc._1+1, 0)
+    val pc = frame.pc
+    val blocks = frame.method.code.blocks
+    if (pc._2 + 1 < blocks(frame.pc._1).insns.length){
+      frame.pc = (pc._1, pc._2 + 1)
+    }else if(pc._1 + 1 < blocks.length){
+      doPhi(frame, pc._1, pc._1 + 1)
+      frame.pc = (pc._1 + 1, 0)
     }
   }
 
@@ -369,11 +371,13 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         0
       }
 
-      for (i <- 0 until mRef.sig.desc.args.length) {
-        args.append(frame.locals(sources(i + thisCellOffset)))
-        mRef.sig.desc.args(i).size match {
+      val mArgs = mRef.sig.desc.args
+      for (i <- 0 until mArgs.length) {
+        val sourceOffset = sources(i + thisCellOffset)
+        args.append(frame.locals(sourceOffset))
+        mArgs(i).size match {
           case 1 =>
-          case 2 => args.append(frame.locals(sources(i + thisCellOffset) + 1))
+          case 2 => args.append(frame.locals(sourceOffset + 1))
         }
       }
 
