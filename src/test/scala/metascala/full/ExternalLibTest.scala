@@ -94,4 +94,14 @@ class ExternalLibTest extends FreeSpec {
       obj
     }
   }
+  "rhinoFail" in {
+    val tester = new VM(memorySize = 1 * 1024 * 1024, initializeStdout = true)
+    tester.test{
+      val cx = org.mozilla.javascript.Context.enter()
+      val scope = cx.initStandardObjects()
+      val script = "doesntExist"
+      try cx.evaluateString(scope, script, "Test Script", 1, null).toString
+      catch{case e: Throwable => e.getMessage}
+    }
+  }
 }
