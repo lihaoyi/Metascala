@@ -6,9 +6,7 @@ import metascala.rt.Frame
 import metascala.util.{Agg, Util}
 
 import scala.collection.mutable
-
-trait ColorLogger extends rt.Logger{
-  def active = false
+object ColorLogger{
   val sigHandler: PartialFunction[Any, pprint.Tree] = {
     case s: imm.Sig => pprint.Tree.Lazy(_ => Iterator(s.toString))
     case a: Agg[_] =>
@@ -23,6 +21,10 @@ trait ColorLogger extends rt.Logger{
   val pprinter = pprint.PPrinter.Color.copy(additionalHandlers =
     sigHandler orElse pprint.PPrinter.Color.additionalHandlers
   )
+}
+trait ColorLogger extends rt.Logger{
+  def active = true
+
   def logStep(indentCount: Int,
               clsName: String,
               frame: Frame,
@@ -31,7 +33,7 @@ trait ColorLogger extends rt.Logger{
 
 //    def printOrNot = clsName == "java/util/concurrent/ConcurrentHashMap" &&
 //                     frame.method.sig.name == "<init>"
-    if (false) {
+    if (true) {
       val indent = "    " * indentCount
       val r = Util.reader(frame.locals, 0)
       lazy val localSnapshot =
@@ -60,9 +62,9 @@ trait ColorLogger extends rt.Logger{
       output.append("]")
       output.append("\n")
       output.append(indent)
-      output.appendAll(pprinter.tokenize(frame.pc, width = 320))
+      output.appendAll(ColorLogger.pprinter.tokenize(frame.pc, width = 320))
       output.append("  ")
-      output.appendAll(pprinter.tokenize(node, width = 320))
+      output.appendAll(ColorLogger.pprinter.tokenize(node, width = 320))
       println(fansi.Str.join(output:_*))
       println()
       //      println(indent + "::\t" + vm.heap.dump().replace("\n", "\n" + indent + "::\t"))
@@ -113,7 +115,7 @@ trait ColorLogger extends rt.Logger{
         fansi.Color.Magenta("=" * 20 + clsName + "#" + method.name + "=" * 20),
         "\n\b"
       )
-      tryCatchBlocks.foreach(t => output.appendAll(pprinter.tokenize(t)))
+      tryCatchBlocks.foreach(t => output.appendAll(ColorLogger.pprinter.tokenize(t)))
       output.append("\n")
       for ((block, i) <- basicBlocks.toArray.zipWithIndex){
 
@@ -145,7 +147,7 @@ trait ColorLogger extends rt.Logger{
             "        ",
             fansi.Color.Green(block.lines(i).toString.padTo(8, ' '))
           )
-          output.appendAll(pprinter.tokenize(block.insns(i), width = 320))
+          output.appendAll(ColorLogger.pprinter.tokenize(block.insns(i), width = 320))
           output.append("\n")
         }
         output.append("\n")

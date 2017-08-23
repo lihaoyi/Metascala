@@ -65,8 +65,8 @@ object MethodSSAConverter {
   def apply(clsName: String, method: MethodNode)
            (implicit vm: SingleInsnSSAConverter.VMInterface): Code = {
 
+    println("Converting " + clsName + "#" + method.name)
     val allInsns = method.instructions.toArray
-
     val insnIndexMap = allInsns.zipWithIndex.toMap
 
     val lineMap = {

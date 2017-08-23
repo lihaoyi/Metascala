@@ -12,6 +12,7 @@ import org.objectweb.asm.tree.MethodNode
 import metascala.imm.{Desc, Sig, Type}
 import metascala.natives.Bindings
 import metascala.util._
+import org.objectweb.asm.Opcodes
 
 import scala.reflect.ClassTag
 
@@ -177,9 +178,93 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         invokeVirtual(target, sources, clsIndex, sig, mIndex)
 
 
-      case InvokeDynamic(name, desc, bsTag, bsOwner, bsName, bsDesc, bsArgs) =>
-        invoke(bsOwner, imm.Sig(bsName, Desc.read(bsDesc)), Agg.from(bsArgs))
-        ???
+      case InvokeDynamic(name, desc0, bsTag, bsOwner, bsName, bsDesc0, bsArgs) =>
+        vm.alloc { implicit r =>
+          val methodHandleLookup =
+            r.newObj("java/lang/invoke/MethodHandles$Lookup",
+              "lookupClass" -> vm.typeObjCache(frame.runningClass.tpe),
+              "allowedModes" -> Ref.Raw(1 + 2 + 4 + 8)
+            )
+
+
+          val desc = imm.Desc.read(desc0)
+
+          val methodType =
+            r.newObj("java/lang/invoke/MethodType",
+              "rtype" -> vm.typeObjCache(desc.ret),
+              "ptypes" -> r.newArr(
+                "java/lang/Class",
+                desc.args.map(vm.typeObjCache)
+              )
+            )
+
+          ColorLogger.pprinter.log((name, desc))
+          val bsDesc = imm.Desc.read(bsDesc0)
+          val bsArgsCls = bsArgs.map(_.getClass)
+          ColorLogger.pprinter.log(bsTag)
+          ColorLogger.pprinter.log(bsOwner)
+          ColorLogger.pprinter.log(bsName)
+          ColorLogger.pprinter.log(bsDesc)
+          ColorLogger.pprinter.log(bsArgs)
+          ColorLogger.pprinter.log(bsArgsCls)
+          val mRef = vm.resolveDirectRef(bsOwner, imm.Sig(bsName, bsDesc)).get
+          val args = new ArrayFiller(mRef.localsSize)
+          args.append(methodHandleLookup.address())
+          args.append(Virtualizer.toVirtObj(name))
+          args.append(methodType.address())
+          bsArgs.foreach{
+            case x: org.objectweb.asm.Type =>
+              val d = imm.Desc.read(x.getDescriptor)
+              args.append(
+                r.newObj("java/lang/invoke/MethodType",
+                  "rtype" -> vm.typeObjCache(d.ret),
+                  "ptypes" -> r.newArr(
+                    "java/lang/Class",
+                    d.args.map(vm.typeObjCache)
+                  )
+                ).address()
+              )
+            case x: org.objectweb.asm.Handle =>
+              x.getTag match{
+                case Opcodes.H_INVOKESTATIC =>
+
+                  val mRef = vm.resolveDirectRef(
+                    "java/lang/invoke/MethodHandles$Lookup",
+                    imm.Sig("findStatic",
+                      imm.Desc(
+                        Agg(
+                          "java/lang/Class",
+                          "java/lang/String",
+                          "java/lang/invoke/MethodType"
+                        ),
+                        "java/lang/invoke/MethodHandle"
+                      )
+                    )
+                  ).get
+
+                  {
+                    val args = new ArrayFiller(mRef.localsSize)
+                    args.append(methodHandleLookup.address())
+                    args.append(vm.typeObjCache(x.getOwner)())
+                    args.append(Virtualizer.toVirtObj(x.getName))
+                    val d = imm.Desc.read(x.getDesc)
+                    args.append(
+                      r.newObj("java/lang/invoke/MethodType",
+                        "rtype" -> vm.typeObjCache(d.ret),
+                        "ptypes" -> r.newArr(
+                          "java/lang/Class",
+                          d.args.map(vm.typeObjCache)
+                        )
+                      ).address()
+                    )
+                    invoke0(mRef, args.arr)
+                  }
+                  args.append(returnedVal(0))
+              }
+          }
+          invoke(mRef, args.arr)
+          ???
+        }
 
       case New(target, clsIndex) =>
         newInstance(target, clsIndex)
@@ -253,6 +338,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
   }
 
   private def invokeVirtual(target: Int, sources: Agg[Int], clsIndex: Int, sig: Sig, mIndex: Int) = {
+
     val argZero = frame.locals(sources(0))
     invokeBase(
       sources,
