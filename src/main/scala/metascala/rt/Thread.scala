@@ -670,10 +670,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         }
       case m @ rt.ClsMethod(clsIndex, methodIndex, sig, static, codethunk) =>
 
-        assert(
-          !m.native,
-          "Native method not found: " + ClsTable.clsIndex(clsIndex).name + " " + sig.unparse
-        )
+
 
         val startFrame = new Frame(
           runningClass = ClsTable.clsIndex(clsIndex),
