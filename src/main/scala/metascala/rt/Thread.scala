@@ -207,23 +207,35 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
           ColorLogger.pprinter.log(bsDesc)
           ColorLogger.pprinter.log(bsArgs)
           ColorLogger.pprinter.log(bsArgsCls)
+
           val mRef = vm.resolveDirectRef(bsOwner, imm.Sig(bsName, bsDesc)).get
           val args = new ArrayFiller(mRef.localsSize)
           args.append(methodHandleLookup.address())
           args.append(Virtualizer.toVirtObj(name))
           args.append(methodType.address())
+
+          def getMethodType(d: imm.Desc) = {
+            val sig = imm.Sig("methodType",
+              imm.Desc(
+                Agg(
+                  "java/lang/Class",
+                  imm.Type.Arr("java/lang/Class")
+                ),
+                "java/lang/invoke/MethodType"
+              )
+            )
+            val mRef = vm.resolveDirectRef("java/lang/invoke/MethodType", sig).get
+
+            val args = new ArrayFiller(mRef.localsSize)
+            args.append(vm.typeObjCache(d.ret).apply())
+            args.append(r.newArr("java/lang/Class", d.args.map(vm.typeObjCache)).address())
+            invoke0(mRef, args.arr)
+
+            returnedVal(0)
+          }
           bsArgs.foreach{
             case x: org.objectweb.asm.Type =>
-              val d = imm.Desc.read(x.getDescriptor)
-              args.append(
-                r.newObj("java/lang/invoke/MethodType",
-                  "rtype" -> vm.typeObjCache(d.ret),
-                  "ptypes" -> r.newArr(
-                    "java/lang/Class",
-                    d.args.map(vm.typeObjCache)
-                  )
-                ).address()
-              )
+              args.append(getMethodType(imm.Desc.read(x.getDescriptor)))
             case x: org.objectweb.asm.Handle =>
               x.getTag match{
                 case Opcodes.H_INVOKESTATIC =>
@@ -243,27 +255,21 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
                   ).get
 
                   {
+//                    pprint.log(x.getOwner)
+//                    ???
                     val args = new ArrayFiller(mRef.localsSize)
                     args.append(methodHandleLookup.address())
                     args.append(vm.typeObjCache(x.getOwner)())
                     args.append(Virtualizer.toVirtObj(x.getName))
-                    val d = imm.Desc.read(x.getDesc)
-                    args.append(
-                      r.newObj("java/lang/invoke/MethodType",
-                        "rtype" -> vm.typeObjCache(d.ret),
-                        "ptypes" -> r.newArr(
-                          "java/lang/Class",
-                          d.args.map(vm.typeObjCache)
-                        )
-                      ).address()
-                    )
+                    args.append(getMethodType(imm.Desc.read(x.getDesc)))
+
                     invoke0(mRef, args.arr)
                   }
                   args.append(returnedVal(0))
               }
           }
+
           invoke(mRef, args.arr)
-          ???
         }
 
       case New(target, clsIndex) =>
@@ -421,6 +427,9 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     def rec(dims: List[Int], tpe: Type): Int = {
 
       (dims, tpe) match {
+        case (size :: Nil, imm.Type.Arr(innerType)) =>
+          vm.alloc(_.newArr(innerType, size)).address()
+
         case (size :: tail, imm.Type.Arr(innerType: Type.Ref)) =>
           val newArr = vm.alloc(_.newArr(innerType, size))
           for (i <- 0 until size) {
@@ -428,8 +437,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
           }
           newArr.address()
 
-        case (size :: Nil, imm.Type.Arr(innerType)) =>
-          vm.alloc(_.newArr(innerType, size)).address()
+
       }
     }
 
@@ -709,7 +717,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     Virtualizer.popVirtual(mRef.sig.desc.ret, Util.reader(returnedVal, 0))(bindingsInterface)
   }
 
-  def invoke0(mRef: rt.Method, args: Array[Int]): Any = {
+  def invoke0(mRef: rt.Method, args: Array[Int]): Unit = {
     val startHeight = threadStack.length
     prepInvoke(mRef, args, Util.writer(returnedVal, 0), -1)
 
@@ -721,7 +729,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     Virtualizer.popVirtual(sig.desc.ret, Util.reader(returnedVal, 0))(bindingsInterface)
   }
 
-  def invoke0(cls: imm.Type.Cls, sig: imm.Sig, args: Agg[Any]): Any = {
+  def invoke0(cls: imm.Type.Cls, sig: imm.Sig, args: Agg[Any]): Unit = {
     val startHeight = threadStack.length
     prepInvoke(cls, sig, args, Util.writer(returnedVal, 0))
 

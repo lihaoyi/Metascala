@@ -284,6 +284,12 @@ object DefaultBindings extends Bindings{
     native("java/lang/invoke/MethodHandleNatives", "getConstant(I)I").static {(vt, arg) => 9},
     native("java/lang/invoke/MethodHandleNatives", "resolve(Ljava/lang/invoke/MemberName;Ljava/lang/Class;)Ljava/lang/invoke/MemberName;").static.func(I, I, I) {
       (vt, memberName, cls) =>
+        vt.obj(memberName).update("flags", 1 | 0x00010000 | 0x0008 | (6 << 24))
+//        pprint.log(vt.obj(memberName).apply("flags"))
+//        pprint.log(vt.obj(memberName).apply("clazz"))
+//        pprint.log(vt.heap(vt.obj(memberName).apply("type")))
+//        pprint.log(vt.ClsTable.clsIndex(-vt.heap(vt.obj(memberName).apply("type"))))
+//        vt.obj(memberName).update("type", ???)
         memberName
     },
     native("java/lang/ClassLoader", "registerNatives()V").static {(vt, arg) =>},
@@ -545,6 +551,9 @@ object DefaultBindings extends Bindings{
     },
     native("sun/misc/Unsafe", "objectFieldOffset(Ljava/lang/reflect/Field;)J").func(I, I, J){
       (vt, unsafe, f) => vt.obj(f).apply("slot")
+    },
+    native("sun/misc/Unsafe", "shouldBeInitialized(Ljava/lang/Class;)Z").func(I, I, Z){
+      (vt, unsafe, cls) => true
     },
     native("sun/misc/Unsafe", "staticFieldOffset(Ljava/lang/reflect/Field;)J").func(I, I, J){
       (vt, unsafe, f) =>vt.obj(f).apply("slot")
