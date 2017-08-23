@@ -282,6 +282,10 @@ object DefaultBindings extends Bindings{
     },
     native("java/lang/invoke/MethodHandleNatives", "registerNatives()V").static {(vt, arg) =>},
     native("java/lang/invoke/MethodHandleNatives", "getConstant(I)I").static {(vt, arg) => 9},
+    native("java/lang/invoke/MethodHandleNatives", "resolve(Ljava/lang/invoke/MemberName;Ljava/lang/Class;)Ljava/lang/invoke/MemberName;").static.func(I, I, I) {
+      (vt, memberName, cls) =>
+        memberName
+    },
     native("java/lang/ClassLoader", "registerNatives()V").static {(vt, arg) =>},
     native("java/lang/ClassLoader", "initSystemClassLoader()V").static.value(V)(()),
     native("java/lang/Double", "doubleToRawLongBits(D)J").static{(vt, arg) => imm.Type.Prim.J.read(arg)},

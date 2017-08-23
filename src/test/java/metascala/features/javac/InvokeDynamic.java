@@ -1,15 +1,12 @@
 package metascala.features.javac;
 
-import java.lang.invoke.MethodHandles;
-import java.util.function.IntConsumer;
-
 public class InvokeDynamic {
-    public static int run(int n) {
-        int[] msg = {n};
-        something(x -> msg[0] = msg[0] + x);
+    public static boolean run(boolean b) {
+        boolean[] msg = {b};
+        something(x -> msg[0] = msg[0] | x);
         return msg[0];
     }
-    static void something(IntConsumer consumer) {
-        consumer.accept(1337);
+    static void something(java.util.function.Consumer<Boolean> consumer) {
+        consumer.accept(true);
     }
 }
