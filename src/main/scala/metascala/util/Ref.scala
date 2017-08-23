@@ -54,6 +54,5 @@ object Ref{
     */
   case class Raw(x: Int) extends Ref{
     def apply() = x
-    def update(i: Int) = ???
   }
 }
