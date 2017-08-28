@@ -335,7 +335,7 @@ object DefaultBindings extends Bindings{
       val ret = getTypeFor(vt.obj(ref).apply("returnType")).internalName
 
       val str = "(" + params + ")" + ret
-      pprint.log(str)
+
       vt.obj(memberName).update("type", vt.alloc{implicit r =>
         val addr = vt.toVirtObj(str)
         vt.internedStrings.getOrElseUpdate(str, addr).apply()

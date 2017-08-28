@@ -158,9 +158,19 @@ trait ColorLogger extends rt.Logger{
     }
   }
 
-  def logException() = {
-    // println("Throwing ! ")
-    // ex.printStackTrace()
+  def logException(cls: imm.Type.Cls, msg: String, trace: Seq[StackTraceElement]): Unit = {
+    if (false){
+      println(fansi.Color.Red(cls.javaName) + ": " + fansi.Color.Yellow(""+msg))
+      for(frame <- trace){
+        println(fansi.Str.join(
+          "    ",
+          fansi.Color.Red(frame.getClassName), ".",
+          fansi.Color.Cyan(frame.getMethodName), "(",
+          fansi.Color.Green(frame.getFileName), ":",
+          fansi.Color.Green(frame.getLineNumber.toString), ")"
+        ))
+      }
+    }
   }
 }
 

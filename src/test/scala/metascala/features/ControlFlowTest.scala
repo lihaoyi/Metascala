@@ -37,12 +37,9 @@ class ControlFlowTest extends FreeSpec {
 //    "stringSwitch" in chk(tester.run("stringSwitch", _: Int))(Seq(1))
 //    "stringSwitchTwo" in chk(tester.run("stringSwitchTwo", _: String))(Seq("omg", "wtf", "bbq" ,"lol"))
 //  }
-  "invokedynamic" in {try{
+  "invokedynamic" in {
     val tester = new Tester("metascala.features.javac.InvokeDynamic")
     tester.run("run", false)
-  }catch{case e =>
-      e.printStackTrace()
-      throw e
-  }}
+  }
 }
 

@@ -5,7 +5,7 @@ import metascala.util._
 
 import scala.collection.mutable
 
-trait ClsTable extends rt.Arr.ClsTable with (imm.Type.Cls => rt.Cls){
+trait ClsTable0 extends rt.Arr.ClsTable with (imm.Type.Cls => rt.Cls){
   def indexOfType(tpe: imm.Type.Cls): Int = this(tpe).index
   def typeAtIndex(i: Int): imm.Type = this.clsIndex(i).tpe
   def calcFromBytes(x: imm.Type.Cls, input: Array[Byte]): rt.Cls
@@ -15,7 +15,7 @@ trait ClsTable extends rt.Arr.ClsTable with (imm.Type.Cls => rt.Cls){
 object Cls{
 
   trait VMInterface extends rt.Arr.VMInterface{
-    implicit def ClsTable: ClsTable
+    implicit def ClsTable: ClsTable0
     def lookupNatives(name: String, sig: imm.Sig): Option[rt.Method]
   }
 }

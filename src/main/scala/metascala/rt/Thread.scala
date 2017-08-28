@@ -557,12 +557,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     if (print) {
       val msg = Virtualizer.toRealObj[String](ex.apply("detailMessage"))(bindingsInterface, implicitly)
-      println("Throwing " + ex.cls.name + ": " + msg)
-      for(frame <- threadStack){
-        val line = frame.method.code.blocks(frame.pc._1).lines(frame.pc._2)
-        println(frame.runningClass.name + "." + frame.method.sig + ":" + line)
-      }
-      logger.logException()
+      logger.logException(ex.cls.tpe, msg, trace)
     }
 
     threadStack.headOption match{
