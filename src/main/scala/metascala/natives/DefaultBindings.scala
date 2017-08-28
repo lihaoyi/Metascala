@@ -309,27 +309,27 @@ object DefaultBindings extends Bindings{
     native("java.lang.invoke.MethodHandleNatives", "init(Ljava/lang/invoke/MemberName;Ljava/lang/Object;)V").static.func(I, I, V) {(vt, memberName, ref) =>
       val flags = vt.obj(ref).cls.tpe.javaName match {
         case "java.lang.reflect.Method" =>
-          var flags = MethodHandleNativeConstants.MN_IS_METHOD
+          var flags = MHConstants.MN_IS_METHOD
           val modifiers = vt.obj(ref).apply("modifiers")
           val refKinds =
-            if ((modifiers | MethodHandleNativeConstants.ACC_INTERFACE) > 0) MethodHandleNativeConstants.REF_invokeInterface
-            else if ((modifiers | MethodHandleNativeConstants.ACC_STATIC) > 0) MethodHandleNativeConstants.REF_invokeStatic
-            else MethodHandleNativeConstants.REF_invokeVirtual
-          flags = flags | (refKinds << MethodHandleNativeConstants.MN_REFERENCE_KIND_SHIFT)
+            if ((modifiers | MHConstants.ACC_INTERFACE) > 0) MHConstants.REF_invokeInterface
+            else if ((modifiers | MHConstants.ACC_STATIC) > 0) MHConstants.REF_invokeStatic
+            else MHConstants.REF_invokeVirtual
+          flags = flags | (refKinds << MHConstants.MN_REFERENCE_KIND_SHIFT)
           flags
         case "java.lang.reflect.Constructor" =>
-          var flags = MethodHandleNativeConstants.MN_IS_CONSTRUCTOR
+          var flags = MHConstants.MN_IS_CONSTRUCTOR
           val modifiers = vt.obj(ref).apply("modifiers")
-          val refKinds = MethodHandleNativeConstants.REF_invokeSpecial
-          flags = flags | (refKinds << MethodHandleNativeConstants.MN_REFERENCE_KIND_SHIFT)
+          val refKinds = MHConstants.REF_invokeSpecial
+          flags = flags | (refKinds << MHConstants.MN_REFERENCE_KIND_SHIFT)
           flags
         case "java.lang.reflect.Field" =>
-          var flags = MethodHandleNativeConstants.MN_IS_FIELD
+          var flags = MHConstants.MN_IS_FIELD
           val modifiers = vt.obj(ref).apply("modifiers")
           val refKinds =
-            if ((modifiers | MethodHandleNativeConstants.ACC_STATIC) > 0) MethodHandleNativeConstants.REF_getStatic
-            else MethodHandleNativeConstants.REF_getField
-          flags = flags | (refKinds << MethodHandleNativeConstants.MN_REFERENCE_KIND_SHIFT)
+            if ((modifiers | MHConstants.ACC_STATIC) > 0) MHConstants.REF_getStatic
+            else MHConstants.REF_getField
+          flags = flags | (refKinds << MHConstants.MN_REFERENCE_KIND_SHIFT)
           flags
       }
       vt.obj(memberName).update("clazz", vt.obj(ref).apply("clazz"))
@@ -338,14 +338,7 @@ object DefaultBindings extends Bindings{
       def getTypeFor(address: Int) = {
         vt.typeObjCache.find(_._2.apply() == address).map(_._1).get
       }
-      // Break into debug REPL with
-//      ammonite.Main(
-//        predefCode = "println(\"Starting Debugging!\")"
-//      ).run(
-//        "vt" -> vt,
-//        "memberName" -> memberName,
-//        "ref" -> ref
-//      )
+
       val params =
         vt.arr(vt.obj(ref).apply("parameterTypes")).map(getTypeFor).map(_.internalName).mkString
       val ret = getTypeFor(vt.obj(ref).apply("returnType")).internalName
@@ -363,12 +356,23 @@ object DefaultBindings extends Bindings{
       (vt, memberName, cls) =>
 
         val memberNameName = vt.toRealObj[String](vt.obj(memberName).apply("name"))
-        val cls = vt.typeObjCache.find(_._2.apply() == vt.obj(memberName).apply("clazz")).map(_._1).get
-        val actualMethod =
-          vt.ClsTable.apply(cls.asInstanceOf[imm.Type.Cls]).methods.find(_.sig.name == memberNameName).get
+        val cls = vt.typeObjCache.find(_._2.apply() == vt.obj(memberName).apply("clazz"))
+          .get._1
 
-        if (actualMethod.static){
-          vt.obj(memberName)("flags") |= MethodHandleNativeConstants.ACC_STATIC
+        val rtCls = vt.ClsTable.apply(cls.asInstanceOf[imm.Type.Cls])
+        (vt.obj(memberName)("flags") >> MHConstants.MN_REFERENCE_KIND_SHIFT) & MHConstants.MN_REFERENCE_KIND_MASK match {
+          case MHConstants.REF_invokeSpecial | MHConstants.REF_invokeStatic =>
+            val actualMethod = rtCls.staticTable.find(_.sig.name == memberNameName).get
+            if (actualMethod.static) {
+              vt.obj(memberName)("flags") |= MHConstants.ACC_STATIC
+            }
+          case MHConstants.REF_invokeInterface | MHConstants.REF_invokeVirtual =>
+            rtCls.methods.find(_.sig.name == memberNameName).get
+          case MHConstants.REF_getStatic =>
+            rtCls.staticList.find(_.name == memberNameName).get
+          case MHConstants.REF_getField =>
+            rtCls.fieldList.find(_.name == memberNameName).get
+
         }
 
         memberName
@@ -511,6 +515,17 @@ object DefaultBindings extends Bindings{
       val res = vt.offHeapPointer
       vt.setOffHeapPointer(vt.offHeapPointer + size)
       res
+    },
+    native(
+      "sun.misc.Unsafe",
+      "defineAnonymousClass(Ljava/lang/Class;[B[Ljava/lang/Object;)Ljava/lang/Class;"
+    ).func(I, I, I, I, I){ (vt, unsafe, hostCls0, bytes0, cpPatches0) =>
+      val bytesArray = vt.arr(bytes0)
+      val start = bytes0 + Constants.arrayHeaderSize
+      val bytes = vt.heap.memory.slice(start, start + bytesArray.length).map(_.toByte)
+      val name = "AnonymousClass" + math.abs(scala.util.Random.nextInt())
+      val cls = vt.ClsTable.calcFromBytes(imm.Type.Cls(name), bytes)
+      vt.typeObjCache(name)()
     },
     native("sun.misc.Unsafe", "freeMemory(J)V").value(V)(()),// Do nothing lol
     native("sun.misc.Unsafe", "putLong(JJ)V").func(I, J, J, V){ (vt, unsafe, offset, value) =>

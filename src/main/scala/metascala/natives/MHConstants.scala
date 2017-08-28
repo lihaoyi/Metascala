@@ -4,7 +4,7 @@ package metascala.natives
   * Copy-pasted version of java.lang.invoke.MethodHandleNatives.Constants,
   * which isn't public for us to use directly
   */
-object MethodHandleNativeConstants { // MethodHandleImpl
+object MHConstants { // MethodHandleImpl
   val GC_COUNT_GWT = 4
   val GC_LAMBDA_SUPPORT = 5
   // MemberName
