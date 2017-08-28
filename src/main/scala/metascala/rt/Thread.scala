@@ -63,7 +63,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     if (vm.logger.active) vm.logger.logPhi(
       indent,
-      vm.ClsTable.clsIndex(frame.method.clsIndex).name,
+      vm.ClsTable.clsIndex(frame.method.clsIndex).tpe.javaName,
       frame,
       phi.indices.iterator.map(i => (i, phi(i)))
     )
@@ -121,7 +121,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     if (vm.logger.active) vm.logger.logStep(
       indent,
-      vm.ClsTable.clsIndex(frame.method.clsIndex).name,
+      vm.ClsTable.clsIndex(frame.method.clsIndex).tpe.javaName,
       frame,
       node,
       block
@@ -180,7 +180,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
       case InvokeDynamic(name, desc0, bsTag, bsOwner, bsName, bsDesc0, bsArgs) =>
         vm.alloc { implicit r =>
           val methodHandleLookup =
-            r.newObj("java/lang/invoke/MethodHandles$Lookup",
+            r.newObj("java.lang.invoke.MethodHandles$Lookup",
               "lookupClass" -> vm.typeObjCache(frame.runningClass.tpe),
               "allowedModes" -> Ref.Raw(1 + 2 + 4 + 8)
             )
@@ -189,10 +189,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
           val desc = imm.Desc.read(desc0)
 
           val methodType =
-            r.newObj("java/lang/invoke/MethodType",
+            r.newObj("java.lang.invoke.MethodType",
               "rtype" -> vm.typeObjCache(desc.ret),
               "ptypes" -> r.newArr(
-                "java/lang/Class",
+                "java.lang.Class",
                 desc.args.map(vm.typeObjCache)
               )
             )
@@ -214,20 +214,14 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
           args.append(methodType.address())
 
           def getMethodType(d: imm.Desc) = {
-            val sig = imm.Sig("methodType",
-              imm.Desc(
-                Agg(
-                  "java/lang/Class",
-                  imm.Type.Arr("java/lang/Class")
-                ),
-                "java/lang/invoke/MethodType"
-              )
+            val sig = imm.Sig.read(
+              "methodType(Ljava/lang/Class;[Ljava/lang/Class;)Ljava/lang/invoke/MethodType;"
             )
-            val mRef = vm.resolveDirectRef("java/lang/invoke/MethodType", sig).get
+            val mRef = vm.resolveDirectRef("java.lang.invoke.MethodType", sig).get
 
             val args = new ArrayFiller(mRef.localsSize)
             args.append(vm.typeObjCache(d.ret).apply())
-            args.append(r.newArr("java/lang/Class", d.args.map(vm.typeObjCache)).address())
+            args.append(r.newArr("java.lang.Class", d.args.map(vm.typeObjCache)).address())
             invoke0(mRef, args.arr)
 
             returnedVal(0)
@@ -240,15 +234,15 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
                 case Opcodes.H_INVOKESTATIC =>
 
                   val mRef = vm.resolveDirectRef(
-                    "java/lang/invoke/MethodHandles$Lookup",
+                    "java.lang.invoke.MethodHandles$Lookup",
                     imm.Sig("findStatic",
                       imm.Desc(
                         Agg(
-                          "java/lang/Class",
-                          "java/lang/String",
-                          "java/lang/invoke/MethodType"
+                          "java.lang.Class",
+                          "java.lang.String",
+                          "java.lang.invoke.MethodType"
                         ),
-                        "java/lang/invoke/MethodHandle"
+                        "java.lang.invoke.MethodHandle"
                       )
                     )
                   ).get
@@ -363,7 +357,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
   private def newInstance(target: Int, clsIndex: Int) = {
     val cls = vm.ClsTable.clsIndex(clsIndex)
     vm.checkInitialized(cls)
-    val obj = vm.alloc(_.newObj(cls.name))
+    val obj = vm.alloc(_.newObj(cls.tpe))
     frame.locals(target) = obj.address()
     advancePc()
   }
@@ -406,7 +400,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
           || (vm.isObj(top) && !vm.check(vm.obj(top).tpe, desc)) =>
 
         throwExWithTrace(
-          "java/lang/ClassCastException",
+          "java.lang.ClassCastException",
           if (vm.isObj(top)) vm.obj(top).tpe.toString
           else if (vm.isArr(top)) vm.arr(top).tpe.toString
           else "null"
@@ -458,7 +452,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
                  thisCell: Boolean) = {
 
     if (thisCell && frame.locals(sources(0)) == 0){
-      throwExWithTrace("java/lang/NullPointerException", "null")
+      throwExWithTrace("java.lang.NullPointerException", "null")
     }else {
       val args = new ArrayFiller(mRef.localsSize)
 
@@ -485,7 +479,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
   def getPutField(src: Int, obj: Int, index: Int, prim: Type, get: Boolean) = {
 
-    if (frame.locals(obj) == 0) throwExWithTrace("java/lang/NullPointerException", "null")
+    if (frame.locals(obj) == 0) throwExWithTrace("java.lang.NullPointerException", "null")
     else{
       Util.blit(vm.obj(frame.locals(obj)).members, index, frame.locals, src, prim.size, flip = !get)
       advancePc()
@@ -509,7 +503,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
       Util.blit(arr, frame.locals(index) * prim.size, frame.locals, target, prim.size, flip = !get)
       advancePc()
     }else{
-      throwExWithTrace("java/lang/ArrayIndexOutOfBoundsException", frame.locals(index).toString)
+      throwExWithTrace("java.lang.ArrayIndexOutOfBoundsException", frame.locals(index).toString)
     }
   }
 
@@ -517,7 +511,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     threadStack.map( f =>
       new StackTraceElement(
-        f.runningClass.name.replace('/', '.'),
+        f.runningClass.tpe.javaName,
         f.method.sig.name,
         f.runningClass.sourceFile.getOrElse("<unknown file>"),
         try f.method.code.blocks(f.pc._1).lines(f.pc._2)
@@ -646,7 +640,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     def setOffHeapPointer(n: Long) = vm.setOffHeapPointer(n)
     def offHeapPointer = vm.offHeapPointer
 
-    def runningClassName(n: Int) = threadStack(n).runningClass.name
+    def runningClassName(n: Int) = threadStack(n).runningClass.tpe.javaName
 
     def threadStackLength = threadStack.length
 
@@ -676,9 +670,9 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     def natives = vm.natives
 
-    def lookupNatives(lookupName: String, lookupSig: imm.Sig) =
-      vm.natives.trapped.find{case rt.NativeMethod(clsName, sig, static, func) =>
-        (lookupName == clsName) && sig == lookupSig
+    def lookupNatives(lookupName: imm.Type.Cls, lookupSig: imm.Sig) =
+      vm.natives.trapped.find{case rt.NativeMethod(cls, sig, static, func) =>
+        (lookupName == cls) && sig == lookupSig
       }
   }
 
@@ -689,7 +683,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 //    println(indent + "PrepInvoke " + mRef + " with " + args)
     assert(args.length == mRef.localsSize)
     mRef match{
-      case rt.NativeMethod(clsName, imm.Sig(name, desc), static, op) =>
+      case rt.NativeMethod(cls, sig, static, op) =>
         try op(bindingsInterface, Util.reader(args, 0), returnTo)
         finally if (threadStack.length == advanceParentPC) {
           advancePc()

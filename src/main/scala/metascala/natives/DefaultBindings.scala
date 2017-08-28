@@ -26,66 +26,68 @@ object DefaultBindings extends Bindings{
     }
   }
 
-  case class native(clsName: String, sigStr: String, isStatic: Boolean = false) {
+  def native(clsName: String, sigStr: String) = {
+    Binding(imm.Type.Cls(clsName), imm.Sig.read(sigStr), false)
+  }
+  case class Binding(cls: imm.Type.Cls, sig: imm.Sig, isStatic: Boolean) {
     def static = this.copy(isStatic = true)
-    val (methodName, desc) = sigStr.splitAt(sigStr.indexOf('('))
-    val sig = imm.Sig(methodName, imm.Desc.read(desc))
+
     def apply[T: Prim](f: (Bindings.Interface, () => Int) => T) = {
       NativeMethod(
-        clsName, sig, isStatic,
+        cls, sig, isStatic,
         (vt, arg, ret) => implicitly[Prim[T]].write(f(vt, arg), ret)
       )
     }
     def func[T](out: Prim[T])(f: Bindings.Interface => T) =
-      NativeMethod(clsName, sig, isStatic,
+      NativeMethod(cls, sig, isStatic,
         (t: Bindings.Interface, args: () => Int, ret: Int => Unit) =>
           out.write(f(t), ret)
       )
     def func[A, T](a: Prim[A], out: Prim[T])(f: (Bindings.Interface, A) => T) =
-      NativeMethod(clsName, sig, isStatic,
+      NativeMethod(cls, sig, isStatic,
         (t: Bindings.Interface, args: () => Int, ret: Int => Unit) =>
           out.write(f(t, a.read(args)), ret)
       )
     def func[A, B, T](a: Prim[A], b: Prim[B], out: Prim[T])(f: (Bindings.Interface, A, B) => T) =
-      NativeMethod(clsName, sig, isStatic,
+      NativeMethod(cls, sig, isStatic,
         (t: Bindings.Interface, args: () => Int, ret: Int => Unit) =>
           out.write(f(t, a.read(args), b.read(args)), ret)
       )
     def func[A, B, C, T](a: Prim[A], b: Prim[B], c: Prim[C], out: Prim[T])(f: (Bindings.Interface, A, B, C) => T) =
-      NativeMethod(clsName, sig, isStatic,
+      NativeMethod(cls, sig, isStatic,
         (t: Bindings.Interface, args: () => Int, ret: Int => Unit) =>
           out.write(f(t, a.read(args), b.read(args), c.read(args)), ret)
       )
     def func[A, B, C, D, T](a: Prim[A], b: Prim[B], c: Prim[C], d: Prim[D], out: Prim[T])(f: (Bindings.Interface, A, B, C, D) => T) =
-      NativeMethod(clsName, sig, isStatic,
+      NativeMethod(cls, sig, isStatic,
         (t: Bindings.Interface, args: () => Int, ret: Int => Unit) =>
           out.write(f(t, a.read(args), b.read(args), c.read(args), d.read(args)), ret)
       )
     def func[A, B, C, D, E, T](a: Prim[A], b: Prim[B], c: Prim[C], d: Prim[D], e: Prim[E], out: Prim[T])(f: (Bindings.Interface, A, B, C, D, E) => T) =
-      NativeMethod(clsName, sig, isStatic,
+      NativeMethod(cls, sig, isStatic,
         (t: Bindings.Interface, args: () => Int, ret: Int => Unit) =>
           out.write(f(t, a.read(args), b.read(args), c.read(args), d.read(args), e.read(args)), ret)
       )
 
     def func[A, B, C, D, E, F, T](a: Prim[A], b: Prim[B], c: Prim[C], d: Prim[D], e: Prim[E], f: Prim[F], out: Prim[T])(func: (Bindings.Interface, A, B, C, D, E, F) => T) =
-      NativeMethod(clsName, sig, isStatic,
+      NativeMethod(cls, sig, isStatic,
         (t: Bindings.Interface, args: () => Int, ret: Int => Unit) =>
           out.write(func(t, a.read(args), b.read(args), c.read(args), d.read(args), e.read(args), f.read(args)), ret)
       )
 
     def func[A, B, C, D, E, F, G, T](a: Prim[A], b: Prim[B], c: Prim[C], d: Prim[D], e: Prim[E], f: Prim[F], g: Prim[G], out: Prim[T])(func: (Bindings.Interface, A, B, C, D, E, F, G) => T) =
-      NativeMethod(clsName, sig, isStatic,
+      NativeMethod(cls, sig, isStatic,
         (t: Bindings.Interface, args: () => Int, ret: Int => Unit) =>
           out.write(func(t, a.read(args), b.read(args), c.read(args), d.read(args), e.read(args), f.read(args), g.read(args)), ret)
       )
     def value[T](out: Prim[T])(x: => T) = func(out)(t => x)
   }
   val trapped = Agg(
-    native("java/io/UnixFileSystem", "initIDs()V;").static { (vt, arg) => },
-    native("java/lang/Class", "getProtectionDomain0()Ljava/security/ProtectionDomain;") { (vt, arg) => },
-    native("java/lang/Class", "desiredAssertionStatus0(Ljava/lang/Class;)Z").static { (vt, arg) => },
-    native("java/lang/Class", "desiredAssertionStatus()Z") { (vt, arg) => },
-    native("java/lang/Class", "forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;Ljava/lang/Class;)Ljava/lang/Class;").static  { (vt, arg) =>
+    native("java.io.UnixFileSystem", "initIDs()V;").static { (vt, arg) => },
+    native("java.lang.Class", "getProtectionDomain0()Ljava/security/ProtectionDomain;") { (vt, arg) => },
+    native("java.lang.Class", "desiredAssertionStatus0(Ljava/lang/Class;)Z").static { (vt, arg) => },
+    native("java.lang.Class", "desiredAssertionStatus()Z") { (vt, arg) => },
+    native("java.lang.Class", "forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;Ljava/lang/Class;)Ljava/lang/Class;").static  { (vt, arg) =>
       val nameString = vt.toRealObj[String](arg())
       val tpe = imm.Type.readJava(nameString)
       try{
@@ -93,18 +95,18 @@ object DefaultBindings extends Bindings{
         val x = vt.typeObjCache(tpe)()
         x
       } catch{case e: Exception =>
-        vt.throwExWithTrace("java/lang/ClassNotFoundException", nameString)
+        vt.throwExWithTrace("java.lang.ClassNotFoundException", nameString)
         0
       }
     },
-    native("java/lang/Class", "getClassLoader0()Ljava/lang/ClassLoader;") { (vt, arg) => },
-    native("java/lang/Class", "getComponentType()Ljava/lang/Class;") { (vt, arg) =>
+    native("java.lang.Class", "getClassLoader0()Ljava/lang/ClassLoader;") { (vt, arg) => },
+    native("java.lang.Class", "getComponentType()Ljava/lang/Class;") { (vt, arg) =>
       val obj = vt.obj(arg())
 
       val oldName = vt.toRealObj[String](obj("name"))
       vt.typeObjCache(imm.Type.Arr.readJava(oldName).innerType)()
     },
-    native("java/lang/Class", "getDeclaredFields0(Z)[Ljava/lang/reflect/Field;"){(vt, arg) =>
+    native("java.lang.Class", "getDeclaredFields0(Z)[Ljava/lang/reflect/Field;"){(vt, arg) =>
       val obj = vt.obj(arg())
 
       val name = vt.toRealObj[String](obj("name"))
@@ -112,9 +114,9 @@ object DefaultBindings extends Bindings{
       val realFields = cls.fieldList ++ cls.staticList
 
       vt.alloc(implicit r =>
-        r.newArr("java/lang/reflect/Field",
+        r.newArr("java.lang.reflect.Field",
           realFields.zipWithIndex.map{ case (f, i) =>
-            r.newObj("java/lang/reflect/Field",
+            r.newObj("java.lang.reflect.Field",
               "clazz" -> obj.address,
               "slot" -> Ref.Raw((if (f.static) cls.staticList else cls.fieldList).indexOf(f)),
               "name" -> vt.internedStrings.getOrElseUpdate(f.name, vt.toVirtObj(f.name)),
@@ -127,20 +129,20 @@ object DefaultBindings extends Bindings{
       // if (f.static) cls.staticList else cls.fieldList).indexOf(f)
       // f.static(cls.staticList, cls.fieldList).indexOf(f)
     },
-    native("java/lang/Class", "getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;"){ (vt, arg) =>
+    native("java.lang.Class", "getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;"){ (vt, arg) =>
 
       val clsObj = vt.obj(arg())
       val clsName = vt.toRealObj[String](clsObj("name"))
       val cls = vt.ClsTable(clsName)
       val realMethods = cls.methods.filter(_.sig.name == "<init>")
       val vrtArr = vt.alloc(implicit r =>
-        r.newArr("java/lang/reflect/Constructor",
+        r.newArr("java.lang.reflect.Constructor",
           realMethods.zipWithIndex.map{ case (f, i) =>
-            r.newObj("java/lang/reflect/Constructor",
+            r.newObj("java.lang.reflect.Constructor",
               "clazz" -> clsObj.address,
               "slot" -> Ref.Raw(i),
               "signature" -> vt.toVirtObj(f.sig.desc.unparse),
-              "parameterTypes" -> r.newArr("java/lang/Class",
+              "parameterTypes" -> r.newArr("java.lang.Class",
                 f.sig.desc.args.map(t =>
                   vt.typeObjCache(imm.Type.readJava(t.realCls.getName))
                 )
@@ -152,20 +154,20 @@ object DefaultBindings extends Bindings{
       )
       vrtArr.address()
     },
-    native("java/lang/Class", "getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;"){ (vt, arg) =>
+    native("java.lang.Class", "getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;"){ (vt, arg) =>
 
       val cls = vt.ClsTable(vt.toRealObj[String](vt.obj(arg()).apply("name")))
       vt.alloc(implicit r =>
-        r.newArr("java/lang/reflect/Method",
+        r.newArr("java.lang.reflect.Method",
           cls.methods.map{ m =>
-            r.newObj("java/lang/reflect/Method",
+            r.newObj("java.lang.reflect.Method",
               "clazz" -> vt.typeObjCache(cls.tpe),
               "name" -> vt.internedStrings.getOrElseUpdate(
                 m.sig.name, vt.toVirtObj(m.sig.name).address
               )
               ,
               "returnType" -> vt.typeObjCache(m.sig.desc.ret),
-              "parameterTypes" -> r.newArr("java/lang/Class",
+              "parameterTypes" -> r.newArr("java.lang.Class",
                 m.sig.desc.args.map(vt.typeObjCache)
               )
             ).address
@@ -173,13 +175,13 @@ object DefaultBindings extends Bindings{
         )
       )()
     },
-    native("java/lang/Class", "getEnclosingMethod0()[Ljava/lang/Object;"){(vt, arg) => 0},
-    native("java/lang/Class", "getDeclaringClass()Ljava/lang/Class;"){(vt, arg) => 0},
-    native("java/lang/Class", "getInterfaces()[Ljava/lang/Class;"){(vt, arg) =>
+    native("java.lang.Class", "getEnclosingMethod0()[Ljava/lang/Object;"){(vt, arg) => 0},
+    native("java.lang.Class", "getDeclaringClass()Ljava/lang/Class;"){(vt, arg) => 0},
+    native("java.lang.Class", "getInterfaces()[Ljava/lang/Class;"){(vt, arg) =>
 
       val cls = vt.ClsTable(vt.toRealObj[String](vt.obj(arg()).apply("name")))
       vt.alloc(implicit r =>
-        r.newArr("java/lang/Class",
+        r.newArr("java.lang.Class",
           cls.typeAncestry
             .filter(x => !cls.clsAncestry.contains(x))
             .toSeq
@@ -187,35 +189,34 @@ object DefaultBindings extends Bindings{
         )
       ).address()
     },
-    native("java/lang/Class", "getModifiers()I"){(vt, arg) =>
+    native("java.lang.Class", "getModifiers()I"){(vt, arg) =>
 
       val topClsName = vt.toRealObj[String](vt.obj(arg()).apply("name"))
 
       vt.ClsTable(topClsName).accessFlags
     },
-    native("java/lang/Class", "getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;").static {(vt, arg) =>
+    native("java.lang.Class", "getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;").static {(vt, arg) =>
 
       vt.typeObjCache(imm.Type.readJava(vt.toRealObj[String](arg())))()
     },
-    native("java/lang/Class", "getSuperclass()Ljava/lang/Class;"){(vt, arg) =>
+    native("java.lang.Class", "getSuperclass()Ljava/lang/Class;"){(vt, arg) =>
 
       val topClsName = vt.toRealObj[String](vt.obj(arg()).apply("name"))
 
       vt.ClsTable(topClsName)
         .superType
-        .map{_.name}
-        .map(name => vt.typeObjCache(imm.Type.readJava(name))())
+        .map(tpe => vt.typeObjCache(tpe)())
         .getOrElse(0)
 
 
     },
 
-    native("java/lang/Class", "isArray()Z"){(vt, arg) =>
+    native("java.lang.Class", "isArray()Z"){(vt, arg) =>
 
       if(vt.toRealObj[String](vt.obj(arg()).apply("name")).contains('[')) 1 else 0
 
     },
-    native("java/lang/Class", "isAssignableFrom(Ljava/lang/Class;)Z"){ (vt, arg) =>
+    native("java.lang.Class", "isAssignableFrom(Ljava/lang/Class;)Z"){ (vt, arg) =>
 
       val clsA = vt.obj(arg())
       val clsB = vt.obj(arg())
@@ -227,9 +228,9 @@ object DefaultBindings extends Bindings{
         (s, t) match{
 
           case (s: imm.Type.Cls, t: imm.Type.Cls) => vt.ClsTable(s).typeAncestry.contains(t)
-          case (s: imm.Type.Arr, imm.Type.Cls("java/lang/Object")) => true
-          case (s: imm.Type.Arr, imm.Type.Cls("java/lang/Cloneable")) => true
-          case (s: imm.Type.Arr, imm.Type.Cls("java/io/Serializable")) => true
+          case (s: imm.Type.Arr, imm.Type.Cls("java.lang.Object")) => true
+          case (s: imm.Type.Arr, imm.Type.Cls("java.lang.Cloneable")) => true
+          case (s: imm.Type.Arr, imm.Type.Cls("java.io.Serializable")) => true
           case (imm.Type.Arr(imm.Type.Prim(a)), imm.Type.Arr(imm.Type.Prim(b))) => a == b
           case (imm.Type.Arr(sc: imm.Type), imm.Type.Arr(tc: imm.Type)) => check(sc, tc)
           case _ => false
@@ -237,21 +238,21 @@ object DefaultBindings extends Bindings{
       }
       if (check(imm.Type.read(nameA.replace('.', '/')), imm.Type.read(nameB.replace('.', '/')))) 1 else 0
     },
-    native("java/lang/Class", "isInterface()Z"){(vt, arg) =>
+    native("java.lang.Class", "isInterface()Z"){(vt, arg) =>
 
       val clsObj = vt.obj(arg())
       vt.ClsTable(vt.toRealObj[String](clsObj("name"))).isInterface
     },
-    native("java/lang/Class", "isPrimitive()Z"){(vt, arg) =>
+    native("java.lang.Class", "isPrimitive()Z"){(vt, arg) =>
 
       val clsObj = vt.obj(arg())
       val name = vt.toRealObj[String](clsObj("name"))
       val res = Prim.allJava.contains(name)
       if (res) 1 else 0
     },
-    native("java/lang/Class", "registerNatives()V").static {(vt, arg) => },
-    native("java/lang/ClassLoader", "resolveClass0(Ljava/lang/Class;)V").value(V)(()),
-    native("java/lang/ClassLoader", "defineClass1(Ljava/lang/String;[BIILjava/security/ProtectionDomain;Ljava/lang/String;)Ljava/lang/Class;").func(I, I, I, I, I, I, I, I){
+    native("java.lang.Class", "registerNatives()V").static {(vt, arg) => },
+    native("java.lang.ClassLoader", "resolveClass0(Ljava/lang/Class;)V").value(V)(()),
+    native("java.lang.ClassLoader", "defineClass1(Ljava/lang/String;[BIILjava/security/ProtectionDomain;Ljava/lang/String;)Ljava/lang/Class;").func(I, I, I, I, I, I, I, I){
       (vt, classloader, name0, arr, offset, length, protectionDomain, src) =>
         val start = arr + Constants.arrayHeaderSize + offset
         val bytes = vt.heap.memory.slice(start, start + length).map(_.toByte)
@@ -259,15 +260,15 @@ object DefaultBindings extends Bindings{
         val cls = vt.ClsTable.calcFromBytes(imm.Type.Cls(name), bytes)
         vt.typeObjCache(cls.tpe)()
     },
-    native("java/lang/ClassLoader", "getCaller(I)Ljava/lang/Class;"){ (vt, arg) =>
+    native("java.lang.ClassLoader", "getCaller(I)Ljava/lang/Class;"){ (vt, arg) =>
       val name = arg() match{
-        case 0 => "java/lang/ClassLoader"
+        case 0 => "java.lang.ClassLoader"
         case 1 => vt.runningClassName(0)
         case 2 => vt.runningClassName(1)
       }
       vt.typeObjCache(imm.Type.readJava(name))()
     },
-    native("java/lang/ClassLoader", "findLoadedClass0(Ljava/lang/String;)Ljava/lang/Class;").func(I, I, I) { (vt, clsLoader, str) =>
+    native("java.lang.ClassLoader", "findLoadedClass0(Ljava/lang/String;)Ljava/lang/Class;").func(I, I, I) { (vt, clsLoader, str) =>
       val name = vt.toRealObj[String](str)
       try{
         vt.ClsTable.apply(name)
@@ -276,7 +277,7 @@ object DefaultBindings extends Bindings{
         0
       }
     },
-    native("java/lang/ClassLoader", "findBootstrapClass(Ljava/lang/String;)Ljava/lang/Class;").func(I, I, I) { (vt, clsLoader, str) =>
+    native("java.lang.ClassLoader", "findBootstrapClass(Ljava/lang/String;)Ljava/lang/Class;").func(I, I, I) { (vt, clsLoader, str) =>
       val name = vt.toRealObj[String](str)
       try{
         vt.ClsTable.apply(name)
@@ -285,12 +286,12 @@ object DefaultBindings extends Bindings{
         0
       }
     },
-    native("java/lang/ClassLoader", "getSystemClassLoader()Ljava/lang/ClassLoader;").static.func(I) { (vt) =>
+    native("java.lang.ClassLoader", "getSystemClassLoader()Ljava/lang/ClassLoader;").static.func(I) { (vt) =>
       vt.alloc{implicit r =>
-        r.newObj("java/lang/ClassLoader")
+        r.newObj("java.lang.ClassLoader")
       }
     },
-    native("java/lang/ClassLoader", "getSystemResourceAsStream(Ljava/lang/String;)Ljava/io/InputStream;").static { (vt, arg) =>
+    native("java.lang.ClassLoader", "getSystemResourceAsStream(Ljava/lang/String;)Ljava/io/InputStream;").static { (vt, arg) =>
       val name = vt.toRealObj[String](arg())
       val stream = getClass.getResourceAsStream("/" + name)
 
@@ -304,10 +305,10 @@ object DefaultBindings extends Bindings{
         vt.alloc(vt.toVirtObj(byteStream)(_)).address()
       }
     },
-    native("java/lang/invoke/MethodHandleNatives", "registerNatives()V").static {(vt, arg) =>},
-    native("java/lang/invoke/MethodHandleNatives", "init(Ljava/lang/invoke/MemberName;Ljava/lang/Object;)V").static.func(I, I, V) {(vt, memberName, ref) =>
-      val flags = vt.obj(ref).cls.name match {
-        case "java/lang/reflect/Method" =>
+    native("java.lang.invoke.MethodHandleNatives", "registerNatives()V").static {(vt, arg) =>},
+    native("java.lang.invoke.MethodHandleNatives", "init(Ljava/lang/invoke/MemberName;Ljava/lang/Object;)V").static.func(I, I, V) {(vt, memberName, ref) =>
+      val flags = vt.obj(ref).cls.tpe.javaName match {
+        case "java.lang.reflect.Method" =>
           var flags = MethodHandleNativeConstants.MN_IS_METHOD
           val modifiers = vt.obj(ref).apply("modifiers")
           val refKinds =
@@ -316,13 +317,13 @@ object DefaultBindings extends Bindings{
             else MethodHandleNativeConstants.REF_invokeVirtual
           flags = flags | (refKinds << MethodHandleNativeConstants.MN_REFERENCE_KIND_SHIFT)
           flags
-        case "java/lang/reflect/Constructor" =>
+        case "java.lang.reflect.Constructor" =>
           var flags = MethodHandleNativeConstants.MN_IS_CONSTRUCTOR
           val modifiers = vt.obj(ref).apply("modifiers")
           val refKinds = MethodHandleNativeConstants.REF_invokeSpecial
           flags = flags | (refKinds << MethodHandleNativeConstants.MN_REFERENCE_KIND_SHIFT)
           flags
-        case "java/lang/reflect/Field" =>
+        case "java.lang.reflect.Field" =>
           var flags = MethodHandleNativeConstants.MN_IS_FIELD
           val modifiers = vt.obj(ref).apply("modifiers")
           val refKinds =
@@ -357,8 +358,8 @@ object DefaultBindings extends Bindings{
       })
       ()
     },
-    native("java/lang/invoke/MethodHandleNatives", "getConstant(I)I").static {(vt, arg) => 9},
-    native("java/lang/invoke/MethodHandleNatives", "resolve(Ljava/lang/invoke/MemberName;Ljava/lang/Class;)Ljava/lang/invoke/MemberName;").static.func(I, I, I) {
+    native("java.lang.invoke.MethodHandleNatives", "getConstant(I)I").static {(vt, arg) => 9},
+    native("java.lang.invoke.MethodHandleNatives", "resolve(Ljava/lang/invoke/MemberName;Ljava/lang/Class;)Ljava/lang/invoke/MemberName;").static.func(I, I, I) {
       (vt, memberName, cls) =>
 
         val memberNameName = vt.toRealObj[String](vt.obj(memberName).apply("name"))
@@ -372,14 +373,14 @@ object DefaultBindings extends Bindings{
 
         memberName
     },
-    native("java/lang/ClassLoader", "registerNatives()V").static {(vt, arg) =>},
-    native("java/lang/ClassLoader", "initSystemClassLoader()V").static.value(V)(()),
-    native("java/lang/Double", "doubleToRawLongBits(D)J").static{(vt, arg) => imm.Type.Prim.J.read(arg)},
-    native("java/lang/Double", "longBitsToDouble(J)D").static{(vt, arg) => imm.Type.Prim.J.read(arg)},
-    native("java/lang/Float", "intBitsToFloat(I)F").static{(vt, arg) => arg()},
-    native("java/lang/Float", "floatToRawIntBits(F)I").static{(vt, arg) => arg()},
-    native("java/lang/Object", "clone()Ljava/lang/Object;"){(vt, arg) => arg()},
-    native("java/lang/Object", "getClass()Ljava/lang/Class;"){ (vt, arg) =>
+    native("java.lang.ClassLoader", "registerNatives()V").static {(vt, arg) =>},
+    native("java.lang.ClassLoader", "initSystemClassLoader()V").static.value(V)(()),
+    native("java.lang.Double", "doubleToRawLongBits(D)J").static{(vt, arg) => imm.Type.Prim.J.read(arg)},
+    native("java.lang.Double", "longBitsToDouble(J)D").static{(vt, arg) => imm.Type.Prim.J.read(arg)},
+    native("java.lang.Float", "intBitsToFloat(I)F").static{(vt, arg) => arg()},
+    native("java.lang.Float", "floatToRawIntBits(F)I").static{(vt, arg) => arg()},
+    native("java.lang.Object", "clone()Ljava/lang/Object;"){(vt, arg) => arg()},
+    native("java.lang.Object", "getClass()Ljava/lang/Class;"){ (vt, arg) =>
       val value = arg()
       val string =
         if(vt.isObj(value)) vt.obj(value).cls.tpe.javaName
@@ -388,11 +389,11 @@ object DefaultBindings extends Bindings{
       vt.typeObjCache(imm.Type.readJava(string))()
     },
 
-    native("java/lang/Object", "hashCode()I"){(vt, arg) => arg()},
-    native("java/lang/Object", "registerNatives()V").static{(vt, arg) => },
-    native("java/lang/Runtime", "freeMemory()J"){(vt, arg) => 4*1024*1024},
-    native("java/lang/Runtime", "availableProcessors()I"){(vt, arg) => 1},
-    native("java/lang/System", "arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V").static{ (vt, arg) =>
+    native("java.lang.Object", "hashCode()I"){(vt, arg) => arg()},
+    native("java.lang.Object", "registerNatives()V").static{(vt, arg) => },
+    native("java.lang.Runtime", "freeMemory()J"){(vt, arg) => 4*1024*1024},
+    native("java.lang.Runtime", "availableProcessors()I"){(vt, arg) => 1},
+    native("java.lang.System", "arraycopy(Ljava/lang/Object;ILjava/lang/Object;II)V").static{ (vt, arg) =>
       val (src, srcIndex, dest, destIndex, length) = (arg(), arg(), arg(), arg(), arg())
       val size = vt.arr(src).innerType.size
       System.arraycopy(
@@ -404,95 +405,95 @@ object DefaultBindings extends Bindings{
       )
     },
 
-    native("java/lang/System", "identityHashCode(Ljava/lang/Object;)I").static{(vt, arg) => arg()},
-    native("java/lang/System", "nanoTime()J").static{(vt, arg) => System.nanoTime()},
-    native("java/lang/System", "currentTimeMillis()J").static{(vt, arg) =>System.currentTimeMillis()},
-    native("java/lang/System", "getProperty(Ljava/lang/String;)Ljava/lang/String;").static{(vt, arg) => 0},
-    native("java/lang/System", "getProperty(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;").static{(vt, arg) => 0},
-    native("java/lang/System", "registerNatives()V").static{(vt, arg) =>},
-    native("java/lang/String", "intern()Ljava/lang/String;"){ (vt, arg) =>
+    native("java.lang.System", "identityHashCode(Ljava/lang/Object;)I").static{(vt, arg) => arg()},
+    native("java.lang.System", "nanoTime()J").static{(vt, arg) => System.nanoTime()},
+    native("java.lang.System", "currentTimeMillis()J").static{(vt, arg) =>System.currentTimeMillis()},
+    native("java.lang.System", "getProperty(Ljava/lang/String;)Ljava/lang/String;").static{(vt, arg) => 0},
+    native("java.lang.System", "getProperty(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;").static{(vt, arg) => 0},
+    native("java.lang.System", "registerNatives()V").static{(vt, arg) =>},
+    native("java.lang.String", "intern()Ljava/lang/String;"){ (vt, arg) =>
       val addr = arg()
       val str = vt.toRealObj[String](addr)
       val result = vt.internedStrings.getOrElseUpdate(str, new Ref.UnsafeManual(addr))
       result()
     },
-    native("java/lang/Thread", "registerNatives()V").static{(vt, arg) => ()},
-    native("java/lang/Thread", "currentThread()Ljava/lang/Thread;").static{(vt, arg) => vt.currentThread},
-    native("java/lang/Thread", "setPriority0(I)V"){(vt, arg) => ()},
-    native("java/lang/Thread", "isAlive()Z"){(vt, arg) => false},
-    native("java/lang/Thread", "start0()V"){(vt, arg) => ()},
-    native("java/lang/Throwable", "fillInStackTrace()Ljava/lang/Throwable;"){ (vt, arg) =>
+    native("java.lang.Thread", "registerNatives()V").static{(vt, arg) => ()},
+    native("java.lang.Thread", "currentThread()Ljava/lang/Thread;").static{(vt, arg) => vt.currentThread},
+    native("java.lang.Thread", "setPriority0(I)V"){(vt, arg) => ()},
+    native("java.lang.Thread", "isAlive()Z"){(vt, arg) => false},
+    native("java.lang.Thread", "start0()V"){(vt, arg) => ()},
+    native("java.lang.Throwable", "fillInStackTrace()Ljava/lang/Throwable;"){ (vt, arg) =>
       val throwable = vt.obj(arg())
       val trace = vt.trace
       throwable("stackTrace") = vt.alloc(vt.toVirtObj(vt.trace)(_))
       throwable.address()
     },
-    native("java/lang/reflect/Array", "newArray(Ljava/lang/Class;I)Ljava/lang/Object;").static{ (vt, arg) =>
+    native("java.lang.reflect.Array", "newArray(Ljava/lang/Class;I)Ljava/lang/Object;").static{ (vt, arg) =>
       val (cls, length) = (arg(), arg())
 
       val clsObj = vt.obj(cls)
       val clsName = vt.toRealObj[String](clsObj("name"))
       vt.alloc(_.newArr(imm.Type.readJava(clsName), length)).address()
     },
-    native("java/lang/reflect/Array", "set(Ljava/lang/Object;ILjava/lang/Object;)V").static{ (vt, arg) =>
+    native("java.lang.reflect.Array", "set(Ljava/lang/Object;ILjava/lang/Object;)V").static{ (vt, arg) =>
       val (arr, index, obj) = (arg(), arg(), arg())
       vt.invoke(
         "metascala/patches/java/lang/reflect/Array",
-        imm.Sig("set", imm.Desc.read("(Ljava/lang/Object;ILjava/lang/Object;)V")),
+        imm.Sig.read("set(Ljava/lang/Object;ILjava/lang/Object;)V"),
         Agg(arr, index, obj)
       )
     },
-    native("java/lang/reflect/Constructor", "newInstance([Ljava/lang/Object;)Ljava/lang/Object;"){
+    native("java.lang.reflect.Constructor", "newInstance([Ljava/lang/Object;)Ljava/lang/Object;"){
       (vt, arg) => vt.newInstance(arg(), arg())
     },
-    native("java/lang/reflect/NativeConstructorAccessorImpl", "newInstance0(Ljava/lang/reflect/Constructor;[Ljava/lang/Object;)Ljava/lang/Object;").static{
+    native("java.lang.reflect.NativeConstructorAccessorImpl", "newInstance0(Ljava/lang/reflect/Constructor;[Ljava/lang/Object;)Ljava/lang/Object;").static{
       (vt, arg) =>
         val (cons, args) = (arg(), arg())
 
         val name = vt.toRealObj[String](vt.obj(vt.obj(cons).apply("clazz")).apply("name"))
         vt.alloc(_.newObj(name)).address()
     },
-    native("java/lang/StrictMath", "log(D)D").static.func(D, D){ (vt, arg) =>
+    native("java.lang.StrictMath", "log(D)D").static.func(D, D){ (vt, arg) =>
       math.log(arg)
     },
-    native("java/lang/StrictMath", "pow(DD)D").static.func(D, D, D) { (vt, arg1, arg2) =>
+    native("java.lang.StrictMath", "pow(DD)D").static.func(D, D, D) { (vt, arg1, arg2) =>
       math.pow(arg1, arg2)
     },
 
-    native("java/nio/charset/Charset", "defaultCharset()Ljava/nio/charset/Charset;").static{(vt, arg) =>
+    native("java.nio.charset.Charset", "defaultCharset()Ljava/nio/charset/Charset;").static{(vt, arg) =>
       vt.invoke(
-        "metascala/DummyCharset",
-        imm.Sig("getValue", imm.Desc.read("()Ljava/nio/charset/Charset;")),
+        "metascala.DummyCharset",
+        imm.Sig.read("getValue()Ljava/nio/charset/Charset;"),
         Agg.empty
       )
 
       vt.returnedVal(0)
     },
-    native("java/security/AccessController", "doPrivileged(Ljava/security/PrivilegedExceptionAction;)Ljava/lang/Object;").static{ (vt, arg) =>
+    native("java.security.AccessController", "doPrivileged(Ljava/security/PrivilegedExceptionAction;)Ljava/lang/Object;").static{ (vt, arg) =>
       vt.invokeRun(arg())
     },
-    native("java/security/AccessController", "doPrivileged(Ljava/security/PrivilegedAction;)Ljava/lang/Object;").static{ (vt, arg) =>
+    native("java.security.AccessController", "doPrivileged(Ljava/security/PrivilegedAction;)Ljava/lang/Object;").static{ (vt, arg) =>
       vt.invokeRun(arg())
     },
-    native("java/security/AccessController", "doPrivileged(Ljava/security/PrivilegedAction;Ljava/security/AccessControlContext;)Ljava/lang/Object;").static{ (vt, arg) =>
+    native("java.security.AccessController", "doPrivileged(Ljava/security/PrivilegedAction;Ljava/security/AccessControlContext;)Ljava/lang/Object;").static{ (vt, arg) =>
       vt.invokeRun(arg())
     },
-    native("java/security/AccessController", "getStackAccessControlContext()Ljava/security/AccessControlContext;").static{(vt, arg) => 0},
-    native("java/util/concurrent/atomic/AtomicLong", "VMSupportsCS8()Z").static.value(Z)(true),
+    native("java.security.AccessController", "getStackAccessControlContext()Ljava/security/AccessControlContext;").static{(vt, arg) => 0},
+    native("java.util.concurrent.atomic.AtomicLong", "VMSupportsCS8()Z").static.value(Z)(true),
     native("java/util/ServiceLoader$1", "hasNext()Z;").value(Z)(false),
-    native("java/util/TimeZone", "getDefault()Ljava/util/TimeZone;").static.func(I){ vt =>
+    native("java.util.TimeZone", "getDefault()Ljava/util/TimeZone;").static.func(I){ vt =>
       vt.alloc(r =>
-        r.newObj("java/util/SimpleTimeZone",
+        r.newObj("java.util.SimpleTimeZone",
           "rawOffset" -> Ref.Raw(0),
           "ID" -> vt.toVirtObj("GMT+08:00")(r).address
         )
       ).address()
     },
-    native("java/util/TimeZone", "getSystemTimeZoneID(Ljava/lang/String;)Ljava/lang/String;").static.value(I)(0),
-    native("java/util/TimeZone", "getSystemGMTOffsetID()Ljava/lang/String;").static.func(I){ vt =>
+    native("java.util.TimeZone", "getSystemTimeZoneID(Ljava/lang/String;)Ljava/lang/String;").static.value(I)(0),
+    native("java.util.TimeZone", "getSystemGMTOffsetID()Ljava/lang/String;").static.func(I){ vt =>
       vt.alloc(r => vt.toVirtObj("GMT+08:00")(r)).address()
     },
-    native("scala/Predef$", "println(Ljava/lang/Object;)V").func(I, I, V){ (vt, predef, o) =>
+    native("scala.Predef$", "println(Ljava/lang/Object;)V").func(I, I, V){ (vt, predef, o) =>
       if (vt.isObj(o)){
         val thing = vt.obj(o)
         println("Virtual\t" + vt.toRealObj[Object](thing.address()))
@@ -505,14 +506,14 @@ object DefaultBindings extends Bindings{
         println("Virtual\t" + null)
       }
     },
-    native("sun/misc/Hashing", "randomHashSeed(Ljava/lang/Object;)I").value(I)(31337), // sufficiently random
-    native("sun/misc/Unsafe", "allocateMemory(J)J").func(I, J, J){ (vt, unsafe, size) =>
+    native("sun.misc.Hashing", "randomHashSeed(Ljava/lang/Object;)I").value(I)(31337), // sufficiently random
+    native("sun.misc.Unsafe", "allocateMemory(J)J").func(I, J, J){ (vt, unsafe, size) =>
       val res = vt.offHeapPointer
       vt.setOffHeapPointer(vt.offHeapPointer + size)
       res
     },
-    native("sun/misc/Unsafe", "freeMemory(J)V").value(V)(()),// Do nothing lol
-    native("sun/misc/Unsafe", "putLong(JJ)V").func(I, J, J, V){ (vt, unsafe, offset, value) =>
+    native("sun.misc.Unsafe", "freeMemory(J)V").value(V)(()),// Do nothing lol
+    native("sun.misc.Unsafe", "putLong(JJ)V").func(I, J, J, V){ (vt, unsafe, offset, value) =>
       val bs = ByteBuffer.allocate(8)
       bs.putLong(value)
 
@@ -521,19 +522,19 @@ object DefaultBindings extends Bindings{
       }
       ()
     },
-    native("sun/misc/Unsafe", "getByte(J)B").func(I, J, B){ (vt, unsafe, offset) =>
+    native("sun.misc.Unsafe", "getByte(J)B").func(I, J, B){ (vt, unsafe, offset) =>
       val res = vt.offHeap(offset.toInt)
       res
     },
-    native("sun/misc/Unsafe", "arrayBaseOffset(Ljava/lang/Class;)I").value(I)(0),
-    native("sun/misc/Unsafe", "arrayIndexScale(Ljava/lang/Class;)I").value(I)(1),
-    native("sun/misc/Unsafe", "allocateInstance(Ljava/lang/Class;)Ljava/lang/Object;").func(I, I, I){ (vt, unsafe, clsPtr) =>
+    native("sun.misc.Unsafe", "arrayBaseOffset(Ljava/lang/Class;)I").value(I)(0),
+    native("sun.misc.Unsafe", "arrayIndexScale(Ljava/lang/Class;)I").value(I)(1),
+    native("sun.misc.Unsafe", "allocateInstance(Ljava/lang/Class;)Ljava/lang/Object;").func(I, I, I){ (vt, unsafe, clsPtr) =>
 
       val name = vt.toRealObj[String](vt.obj(clsPtr).apply("name"))
       vt.alloc(_.newObj(name)).address()
     },
-    native("sun/misc/Unsafe", "addressSize()I").value(I)(4),
-    native("sun/misc/Unsafe", "compareAndSwapInt(Ljava/lang/Object;JII)Z").func(I, I, J, I, I, Z){
+    native("sun.misc.Unsafe", "addressSize()I").value(I)(4),
+    native("sun.misc.Unsafe", "compareAndSwapInt(Ljava/lang/Object;JII)Z").func(I, I, J, I, I, Z){
       (vt, unsafe, o, slot, expected, x) =>
 
         val obj = vt.obj(o)
@@ -544,7 +545,7 @@ object DefaultBindings extends Bindings{
           false
         }
     },
-    native("sun/misc/Unsafe", "compareAndSwapObject(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z").func(I, I, J, I, I, Z){
+    native("sun.misc.Unsafe", "compareAndSwapObject(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z").func(I, I, J, I, I, Z){
       (vt, unsafe, o, slot, expected, x) =>
 
         val obj = vt.obj(o)
@@ -556,7 +557,7 @@ object DefaultBindings extends Bindings{
         }
 
     },
-    native("sun/misc/Unsafe", "compareAndSwapLong(Ljava/lang/Object;JJJ)Z").func(I, I, J, J, J, Z){ (vt, unsafe, o, slot, expected, x) =>
+    native("sun.misc.Unsafe", "compareAndSwapLong(Ljava/lang/Object;JJJ)Z").func(I, I, J, J, J, Z){ (vt, unsafe, o, slot, expected, x) =>
       val obj = vt.obj(o)
       val current = J.read(Util.reader(obj.members, slot.toInt))
       if (current == expected){
@@ -566,93 +567,93 @@ object DefaultBindings extends Bindings{
         false
       }
     },
-    native("sun/misc/Unsafe", "ensureClassInitialized(Ljava/lang/Class;)V").value(V)(()),
-    native("sun/misc/Unsafe", "getObject(Ljava/lang/Object;J)Ljava/lang/Object;").func(I, I, J, I){
+    native("sun.misc.Unsafe", "ensureClassInitialized(Ljava/lang/Class;)V").value(V)(()),
+    native("sun.misc.Unsafe", "getObject(Ljava/lang/Object;J)Ljava/lang/Object;").func(I, I, J, I){
       (vt, unsafe, o, offset) => vt.obj(o).members(offset.toInt)
     },
-    native("sun/misc/Unsafe", "getBooleanVolatile(Ljava/lang/Object;J)Z").func(I, I, J, Z){
+    native("sun.misc.Unsafe", "getBooleanVolatile(Ljava/lang/Object;J)Z").func(I, I, J, Z){
       (vt, unsafe, o, offset) => vt.obj(o).members(offset.toInt) != 0
     },
-    native("sun/misc/Unsafe", "putBooleanVolatile(Ljava/lang/Object;JZ)V").func(I, I, J, Z, V){
+    native("sun.misc.Unsafe", "putBooleanVolatile(Ljava/lang/Object;JZ)V").func(I, I, J, Z, V){
       (vt, unsafe, o, offset, bool) => Z.write(bool, vt.obj(o).members(offset.toInt) = _)
     },
-    native("sun/misc/Unsafe", "getByteVolatile(Ljava/lang/Object;J)B").func(I, I, J, B){
+    native("sun.misc.Unsafe", "getByteVolatile(Ljava/lang/Object;J)B").func(I, I, J, B){
       (vt, unsafe, o, offset) => vt.obj(o).members(offset.toInt).toByte
     },
-    native("sun/misc/Unsafe", "putByteVolatile(Ljava/lang/Object;JB)V").func(I, I, J, B, V){
+    native("sun.misc.Unsafe", "putByteVolatile(Ljava/lang/Object;JB)V").func(I, I, J, B, V){
       (vt, unsafe, o, offset, byte) => B.write(byte, vt.obj(o).members(offset.toInt) = _)
     },
-    native("sun/misc/Unsafe", "getCharVolatile(Ljava/lang/Object;J)C").func(I, I, J, C){
+    native("sun.misc.Unsafe", "getCharVolatile(Ljava/lang/Object;J)C").func(I, I, J, C){
       (vt, unsafe, o, offset) => vt.obj(o).members(offset.toInt).toChar
     },
-    native("sun/misc/Unsafe", "putCharVolatile(Ljava/lang/Object;JC)V").func(I, I, J, C, V){
+    native("sun.misc.Unsafe", "putCharVolatile(Ljava/lang/Object;JC)V").func(I, I, J, C, V){
       (vt, unsafe, o, offset, char) => C.write(char, vt.obj(o).members(offset.toInt) = _)
     },
-    native("sun/misc/Unsafe", "getInt(Ljava/lang/Object;J)I").func(I, I, J, I){
+    native("sun.misc.Unsafe", "getInt(Ljava/lang/Object;J)I").func(I, I, J, I){
       (vt, unsafe, o, offset) => vt.obj(o).members(offset.toInt)
     },
-    native("sun/misc/Unsafe", "getIntVolatile(Ljava/lang/Object;J)I").func(I, I, J, I){
+    native("sun.misc.Unsafe", "getIntVolatile(Ljava/lang/Object;J)I").func(I, I, J, I){
       (vt, unsafe, o, offset) => vt.obj(o).members(offset.toInt)
     },
-    native("sun/misc/Unsafe", "putInt(Ljava/lang/Object;JI)V").func(I, I, J, I, V){
+    native("sun.misc.Unsafe", "putInt(Ljava/lang/Object;JI)V").func(I, I, J, I, V){
       (vt, unsafe, o, offset, int) => I.write(int, vt.obj(o).members(offset.toInt) = _)
     },
-    native("sun/misc/Unsafe", "getFloat(Ljava/lang/Object;J)F").func(I, I, J, F){
+    native("sun.misc.Unsafe", "getFloat(Ljava/lang/Object;J)F").func(I, I, J, F){
       (vt, unsafe, o, offset) => F.read(() => vt.obj(o).members(offset.toInt))
     },
-    native("sun/misc/Unsafe", "putFloat(Ljava/lang/Object;JF)V").func(I, I, J, F, V){
+    native("sun.misc.Unsafe", "putFloat(Ljava/lang/Object;JF)V").func(I, I, J, F, V){
       (vt, unsafe, o, offset, float) => F.write(float, vt.obj(o).members(offset.toInt) = _)
     },
-    native("sun/misc/Unsafe", "getLongVolatile(Ljava/lang/Object;J)J").func(I, I, J, J){
+    native("sun.misc.Unsafe", "getLongVolatile(Ljava/lang/Object;J)J").func(I, I, J, J){
       (vt, unsafe, o, offset) => J.read(Util.reader(vt.obj(o).members, offset.toInt))
     },
-    native("sun/misc/Unsafe", "putLongVolatile(Ljava/lang/Object;JJ)V").func(I, I, J, J, V){
+    native("sun.misc.Unsafe", "putLongVolatile(Ljava/lang/Object;JJ)V").func(I, I, J, J, V){
       (vt, unsafe, o, offset, long) => J.write(long, Util.writer(vt.obj(o).members, offset.toInt))
     },
-    native("sun/misc/Unsafe", "getDouble(Ljava/lang/Object;J)D").func(I, I, J, D){
+    native("sun.misc.Unsafe", "getDouble(Ljava/lang/Object;J)D").func(I, I, J, D){
       (vt, unsafe, o, offset) => D.read(Util.reader(vt.obj(o).members, offset.toInt))
     },
-    native("sun/misc/Unsafe", "putDouble(Ljava/lang/Object;JD)V").func(I, I, J, D, V){
+    native("sun.misc.Unsafe", "putDouble(Ljava/lang/Object;JD)V").func(I, I, J, D, V){
       (vt, unsafe, o, offset, double) => D.write(double, Util.writer(vt.obj(o).members, offset.toInt))
     },
-    native("sun/misc/Unsafe", "getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;").func(I, I, J, I){
+    native("sun.misc.Unsafe", "getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;").func(I, I, J, I){
       (vt, unsafe, o, offset) => vt.obj(o).members(offset.toInt)
     },
-    native("sun/misc/Unsafe", "putObjectVolatile(Ljava/lang/Object;JLjava/lang/Object;)V").func(I, I, J, I, V){
+    native("sun.misc.Unsafe", "putObjectVolatile(Ljava/lang/Object;JLjava/lang/Object;)V").func(I, I, J, I, V){
       (vt, unsafe, o, offset, ref) => vt.obj(o).members(offset.toInt) = ref
     },
-    native("sun/misc/Unsafe", "putObject(Ljava/lang/Object;JLjava/lang/Object;)V").func(I, I, J, I, V){
+    native("sun.misc.Unsafe", "putObject(Ljava/lang/Object;JLjava/lang/Object;)V").func(I, I, J, I, V){
       (vt, unsafe, o, offset, ref) => vt.obj(o).members(offset.toInt) = ref
     },
-    native("sun/misc/Unsafe", "putOrderedObject(Ljava/lang/Object;JLjava/lang/Object;)V").func(I, I, J, I, V){
+    native("sun.misc.Unsafe", "putOrderedObject(Ljava/lang/Object;JLjava/lang/Object;)V").func(I, I, J, I, V){
       (vt, unsafe, o, offset, ref) =>
         if (vt.isObj(o)) vt.obj(o).members(offset.toInt) = ref
         else vt.arr(o)(offset.toInt) = ref
     },
-    native("sun/misc/Unsafe", "objectFieldOffset(Ljava/lang/reflect/Field;)J").func(I, I, J){
+    native("sun.misc.Unsafe", "objectFieldOffset(Ljava/lang/reflect/Field;)J").func(I, I, J){
       (vt, unsafe, f) => vt.obj(f).apply("slot")
     },
-    native("sun/misc/Unsafe", "shouldBeInitialized(Ljava/lang/Class;)Z").func(I, I, Z){
+    native("sun.misc.Unsafe", "shouldBeInitialized(Ljava/lang/Class;)Z").func(I, I, Z){
       (vt, unsafe, cls) => true
     },
-    native("sun/misc/Unsafe", "staticFieldOffset(Ljava/lang/reflect/Field;)J").func(I, I, J){
+    native("sun.misc.Unsafe", "staticFieldOffset(Ljava/lang/reflect/Field;)J").func(I, I, J){
       (vt, unsafe, f) =>vt.obj(f).apply("slot")
     },
-    native("sun/misc/Unsafe", "staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;").func(I, I, I){
+    native("sun.misc.Unsafe", "staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;").func(I, I, I){
       (vt, unsafe, f) => vt.ClsTable(vt.toRealObj[String](vt.obj(vt.obj(f).apply("clazz")).apply("name"))).statics()
     },
-    native("sun/misc/Unsafe", "registerNatives()V").value(V)(()),
-    native("sun/misc/Unsafe", "getUnsafe()Lsun/misc/Unsafe;").static.func(I){vt => vt.theUnsafe.address()},
-    native("sun/misc/Unsafe", "<clinit>()V").static.value(V)(()),
-    native("sun/misc/URLClassPath", "getLookupCacheURLs(Ljava/lang/ClassLoader;)[Ljava/net/URL;").static.func(I, I){
-      (vt, classLoader) => vt.alloc(r => r.newArr("java/net/URL", 0)).address()
+    native("sun.misc.Unsafe", "registerNatives()V").value(V)(()),
+    native("sun.misc.Unsafe", "getUnsafe()Lsun/misc/Unsafe;").static.func(I){vt => vt.theUnsafe.address()},
+    native("sun.misc.Unsafe", "<clinit>()V").static.value(V)(()),
+    native("sun.misc.URLClassPath", "getLookupCacheURLs(Ljava/lang/ClassLoader;)[Ljava/net/URL;").static.func(I, I){
+      (vt, classLoader) => vt.alloc(r => r.newArr("java.net.URL", 0)).address()
     },
-    native("sun/misc/VM", "getSavedProperty(Ljava/lang/String;)Ljava/lang/String;").static.value(I)(0),
-    native("sun/misc/VM", "initialize()V").static.value(V)(()),
-    native("sun/reflect/Reflection", "filterFields(Ljava/lang/Class;[Ljava/lang/reflect/Field;)[Ljava/lang/reflect/Field;").static.func(I, I, I){ (vt, cls, fs) =>
+    native("sun.misc.VM", "getSavedProperty(Ljava/lang/String;)Ljava/lang/String;").static.value(I)(0),
+    native("sun.misc.VM", "initialize()V").static.value(V)(()),
+    native("sun.reflect.Reflection", "filterFields(Ljava/lang/Class;[Ljava/lang/reflect/Field;)[Ljava/lang/reflect/Field;").static.func(I, I, I){ (vt, cls, fs) =>
       fs
     },
-    native("sun/reflect/Reflection", "getCallerClass(I)Ljava/lang/Class;").static.func(I, I){ (vt, n) =>
+    native("sun.reflect.Reflection", "getCallerClass(I)Ljava/lang/Class;").static.func(I, I){ (vt, n) =>
 
       if (n >= vt.threadStackLength) 0
       else {
@@ -660,7 +661,7 @@ object DefaultBindings extends Bindings{
         vt.typeObjCache(imm.Type.readJava(name))()
       }
     },
-    native("sun/reflect/Reflection", "getCallerClass()Ljava/lang/Class;").static.func(I){ (vt) =>
+    native("sun.reflect.Reflection", "getCallerClass()Ljava/lang/Class;").static.func(I){ (vt) =>
 
       val n = 1
       if (n >= vt.threadStackLength) 0
@@ -669,14 +670,14 @@ object DefaultBindings extends Bindings{
         vt.typeObjCache(imm.Type.readJava(name))()
       }
     },
-    native("sun/reflect/Reflection", "getClassAccessFlags(Ljava/lang/Class;)I").static.func(I, I){ (vt, o) =>
+    native("sun.reflect.Reflection", "getClassAccessFlags(Ljava/lang/Class;)I").static.func(I, I){ (vt, o) =>
 
       val addr = vt.obj(o).apply("name")
       val str = vt.toRealObj[String](addr)
       val res = vt.ClsTable(str).accessFlags
       res
     },
-    native("metascala/Virtualizer$", "unsafe()Lsun/misc/Unsafe;").func(I){vt =>
+    native("metascala.Virtualizer$", "unsafe()Lsun/misc/Unsafe;").func(I){vt =>
       vt.theUnsafe.address()
     }
   )

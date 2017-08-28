@@ -30,11 +30,8 @@ class ClsTable(fileLoader: String => Option[Array[Byte]])
     }
   }
   def calc(t: imm.Type.Cls): rt.Cls = {
-    val input = fileLoader(
-      t.name + ".class"
-    ).getOrElse(
-      throw ClsTable.ClsNotFound(t)
-    )
+    val fileName = t.javaName.replace('.', '/') + ".class"
+    val input = fileLoader(fileName).getOrElse(throw ClsTable.ClsNotFound(t))
 
     calcFromBytes0(input)
   }

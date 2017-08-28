@@ -13,14 +13,14 @@ class MetacircularTest extends FreeSpec {
   "sqrtFinder" in {
     new VM(memorySize = 250 * 1024).test{
       val x = new VM(memorySize = 1024)
-      x.invoke("metascala/features/controlflow/Loops", "sqrtFinder", Seq(5.0))
+      x.invoke("metascala.features.controlflow.Loops", "sqrtFinder", Seq(5.0))
     }
   }
 
   "fibonacci" in {
     new VM(memorySize = 3 * 1024 * 1024).test{
       val x = new metascala.VM()
-      x.invoke("metascala/features/methods/Statics", "fibonacci", Seq(12))
+      x.invoke("metascala.features.methods.Statics", "fibonacci", Seq(12))
     }
   }
 
@@ -39,7 +39,7 @@ class MetacircularTest extends FreeSpec {
   "bubbleSort" in {
     new VM(memorySize = 24 * 1014 * 1024).test{
       val x = new metascala.VM()
-      x.invoke("metascala/features/ArrayTest", "bubbleSort", Seq(Array(6, 5, 2, 7, 3, 4, 9, 1, 8)))
+      x.invoke("metascala.features.ArrayTest", "bubbleSort", Seq(Array(6, 5, 2, 7, 3, 4, 9, 1, 8)))
         .asInstanceOf[Array[Int]]
         .toSeq
     }
@@ -48,14 +48,14 @@ class MetacircularTest extends FreeSpec {
   "getAndSet" in {
     new VM(memorySize = 15 * 1014 * 1024).test{
       val x = new metascala.VM()
-      x.invoke("metascala/features/arrays/MultiDimArrays", "getAndSet")
+      x.invoke("metascala.features.arrays.MultiDimArrays", "getAndSet")
     }
   }
 
   "multiCatch" in {
     new VM(memorySize = 16 * 1014 * 1024).test{
       val x = new metascala.VM()
-      x.invoke("metascala/features/exceptions/Exceptions", "multiCatch", Seq(2))
+      x.invoke("metascala.features.exceptions.Exceptions", "multiCatch", Seq(2))
     }
   }
 

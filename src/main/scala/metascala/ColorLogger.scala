@@ -31,7 +31,7 @@ trait ColorLogger extends rt.Logger{
               node: Insn,
               block: BasicBlock) = {
 
-//    def printOrNot = clsName == "java/util/concurrent/ConcurrentHashMap" &&
+//    def printOrNot = clsName == "java.util.concurrent.ConcurrentHashMap" &&
 //                     frame.method.sig.name == "<init>"
 //    if (clsName.contains("MethodHandles") || clsName.contains("MemberName")) {
     if(false){
@@ -73,7 +73,7 @@ trait ColorLogger extends rt.Logger{
   }
 
   def logPhi(indentCount: Int, clsName: String, frame: Frame, shifts: Iterator[(Int, Int)]) = {
-//    def printOrNot = clsName == "java/util/concurrent/ConcurrentHashMap" &&
+//    def printOrNot = clsName == "java.util.concurrent.ConcurrentHashMap" &&
 //      frame.method.sig.name == "<init>"
 
     if (false) {
@@ -106,7 +106,7 @@ trait ColorLogger extends rt.Logger{
                      basicBlocks: TraversableOnce[BasicBlock],
                      blockBufferThrees: Agg[mutable.Map[Box, Int]],
                      tryCatchBlocks: Agg[TryCatchBlock]) = {
-    //    def printOrNot = clsName == "java/util/concurrent/ConcurrentHashMap" &&
+    //    def printOrNot = clsName == "java.util.concurrent.ConcurrentHashMap" &&
     //      frame.method.sig.name == "<init>"
     if (false) {
       def flatten[T](x: TraversableOnce[T]): String = x.mkString("[", ", ", "]")

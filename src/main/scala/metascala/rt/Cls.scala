@@ -16,7 +16,7 @@ object Cls{
 
   trait VMInterface extends rt.Arr.VMInterface{
     implicit def ClsTable: ClsTable0
-    def lookupNatives(name: String, sig: imm.Sig): Option[rt.Method]
+    def lookupNatives(expectedCls: imm.Type.Cls, sig: imm.Sig): Option[rt.Method]
   }
 }
 
@@ -48,8 +48,6 @@ class Cls(val tpe: imm.Type.Cls,
 
   lazy val size = fieldList.length
 
-  def name = tpe.name
-
   /**
    * All classes that this class inherits from
    */
@@ -80,7 +78,7 @@ class Cls(val tpe: imm.Type.Cls,
       )
 
     for(m <- methods) if (m.static == static){
-      val actualMethod = vm.lookupNatives(name, m.sig) match {
+      val actualMethod = vm.lookupNatives(tpe, m.sig) match {
         case None => m
         case Some(native) => native
       }
@@ -115,10 +113,10 @@ class Cls(val tpe: imm.Type.Cls,
   lazy val vTableMap = vTable.map(m => m.sig -> m).toMap
 
   override def toString() = {
-    s"Cls($index, ${tpe.name})"
+    s"Cls($index, ${tpe.javaName})"
   }
 
-  def shortName = Util.shorten(tpe.name)
+  def shortName = Util.shorten(tpe.javaName)
 
   def heapSize = fieldList.length + Constants.objectHeaderSize
 }

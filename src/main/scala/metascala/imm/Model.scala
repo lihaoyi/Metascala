@@ -28,7 +28,12 @@ case class Field(access: Int,
 }
 
 
-
+object Sig{
+  def read(sigStr: String) = {
+    val (methodName, desc) = sigStr.splitAt(sigStr.indexOf('('))
+    imm.Sig(methodName, imm.Desc.read(desc))
+  }
+}
 case class Sig(name: String, desc: Desc){
   override lazy val hashCode = name.hashCode + desc.hashCode
   def unparse = name + desc.unparse

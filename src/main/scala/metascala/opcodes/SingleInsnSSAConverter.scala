@@ -70,7 +70,7 @@ object SingleInsnSSAConverter {
 
       val cls = imm.Type.read(insn.owner) match{
         case c: imm.Type.Cls => c
-        case _ => imm.Type.Cls("java/lang/Object")
+        case _ => imm.Type.Cls("java.lang.Object")
       }
 
       val args = for(j <- (0 until desc.args.length + 1).reverse) yield {
@@ -100,7 +100,7 @@ object SingleInsnSSAConverter {
       val target = if (desc.ret == V) 0 else top(nextFrame): Int
       val cls = imm.Type.read(insn.owner) match{
         case c: imm.Type.Cls => c
-        case _ => imm.Type.Cls("java/lang/Object")
+        case _ => imm.Type.Cls("java.lang.Object")
       }
       val runtimeCls = vm.ClsTable(cls)
       val mIndex =
@@ -213,7 +213,7 @@ object SingleInsnSSAConverter {
       case LALOAD => aLoad(J, J)
       case FALOAD => aLoad(F, F)
       case DALOAD => aLoad(D, D)
-      case AALOAD => aLoad(I, "java/lang/Object")
+      case AALOAD => aLoad(I, "java.lang.Object")
       case BALOAD => aLoad(B, B)
       case CALOAD => aLoad(C, C)
       case SALOAD => aLoad(S, S)
@@ -221,7 +221,7 @@ object SingleInsnSSAConverter {
       case LASTORE => aStore(J, J)
       case FASTORE => aStore(F, F)
       case DASTORE => aStore(D, D)
-      case AASTORE => aStore(I, "java/lang/Object")
+      case AASTORE => aStore(I, "java.lang.Object")
       case BASTORE => aStore(B, B)
       case CASTORE => aStore(C, C)
       case SASTORE => aStore(S, S)
@@ -316,7 +316,7 @@ object SingleInsnSSAConverter {
       case LRETURN => returnVal(J)
       case FRETURN => returnVal(F)
       case DRETURN => returnVal(D)
-      case ARETURN => returnVal("java/lang/Object")
+      case ARETURN => returnVal("java.lang.Object")
       case RETURN => returnVal(V)
       case GETSTATIC => refStaticField(_.staticList, Insn.GetStatic(top(nextFrame), _, _, _))
       case PUTSTATIC => refStaticField(_.staticList, Insn.PutStatic(top(frame), _, _, _))

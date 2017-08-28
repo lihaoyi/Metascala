@@ -11,8 +11,8 @@ object Type{
 
   def read(s: String): Type = s match{
     case x if Prim.all.contains(x(0)) => Prim.all(x(0))
-    case s if s.startsWith("L") && s.endsWith(";") => Cls.apply(s.drop(1).dropRight(1))
-    case s if s.startsWith("[") => Arr.read(s)
+    case s if s.head == 'L' && s.last == ';' => Cls.apply(s.drop(1).dropRight(1))
+    case s if s.head == '[' => Arr.read(s)
     case s => Cls.apply(s)
   }
 
@@ -41,7 +41,7 @@ object Type{
    */
   case class Arr(innerType: Type) extends Ref{
     def size = 1
-    def name = "[" + innerType.name
+    def name = "[" + innerType.internalName
     def realCls = innerType.realCls
     def javaName = innerType match{
       case tpe: Cls => "[L" + tpe.javaName + ";"
@@ -51,27 +51,31 @@ object Type{
     def internalName = "[" + innerType.internalName
   }
   object Cls{
-    implicit def apply(name: String): Cls = new Cls(name.replace('.', '/'))
-    def unapply(cls: Cls): Option[String] = Some(cls.name)
+    implicit def apply(name: String): Cls = {
+      val replaced = name.replace('.', '/')
+      if (name.charAt(0) == 'L' && name.charAt(name.length) == ';') new Cls(replaced)
+      else new Cls('L' + replaced + ';')
+    }
+    def unapply(cls: Cls): Option[String] = Some(cls.javaName)
   }
 
   /**
    * Class Types
-   * @param name the fuly qualified name of the class
    */
-  class Cls private (val name: String) extends Ref {
+  class Cls private (val internalName: String) extends Ref {
+    assert(internalName.charAt(0) == 'L' && internalName.charAt(internalName.length-1) == ';')
     def size = 1
 
     def realCls = classOf[Object]
 
-    override val hashCode = name.hashCode
+    override val hashCode = internalName.hashCode
     override def equals(other: Any) = other match{
-      case o: Cls => o.name == name
+      case o: Cls => o.internalName == internalName
       case _ => false
     }
-    override def toString = s"Cls($name)"
-    def internalName = "L" + name + ";"
-    def javaName = name.replace('/', '.')
+    override def toString = s"Cls($internalName)"
+
+    def javaName = internalName.substring(1, internalName.length-1).replace('/', '.')
   }
 
   abstract class Prim[T: ClassTag](val size: Int,
@@ -205,14 +209,8 @@ sealed trait Type{
    */
   def internalName: String
 
-  /**
-   * Nice name to use for most things
-   * - V Z B C S I F J D
-   * - java/lang/Object [java/lang/String
-   */
-  def name: String
 
-  override def toString = name
+  override def toString = internalName
 
   /**
    * The thing that's returned by Java's getName method
@@ -254,9 +252,9 @@ object Desc{
   }
   def unparse(t: Type): String = {
     t match{
-      case t: Type.Cls => t.name
+      case t: Type.Cls => t.internalName
       case t: Type.Arr => "[" + unparse(t.innerType)
-      case x => x.name
+      case x => x.internalName
     }
   }
 }

@@ -36,13 +36,13 @@ object Virtualizer {
         if(address == 0) null
         else if (refs.contains(address)) refs(address)
         else tpe match{
-          case imm.Type.Cls("java/lang/Object") | imm.Type.Arr(_) if vm.isArr(address) =>
+          case imm.Type.Cls("java.lang.Object") | imm.Type.Arr(_) if vm.isArr(address) =>
 
             val tpe = vm.arr(address).innerType
 
             val clsObj = tpe match{
               case v: imm.Type.Prim[_] => v.primClass
-              case _ => Class.forName(tpe.name.replace('/', '.'))
+              case _ => Class.forName(tpe.javaName)
             }
 
             val newArr = java.lang.reflect.Array.newInstance(clsObj, vm.arr(address).arrayLength)
@@ -58,7 +58,7 @@ object Virtualizer {
 
             newArr
           case t @ name=>
-            val obj = unsafe.allocateInstance(Class.forName(vm.obj(address).cls.name.replace('/', '.')))
+            val obj = unsafe.allocateInstance(Class.forName(vm.obj(address).cls.tpe.javaName))
             refs += (address -> obj)
             var index = 0
             for(field <- vm.obj(address).cls.fieldList.distinct){
