@@ -268,7 +268,22 @@ object DefaultBindings extends Bindings{
       vt.typeObjCache(imm.Type.readJava(name))()
     },
     native("java/lang/ClassLoader", "findLoadedClass0(Ljava/lang/String;)Ljava/lang/Class;").func(I, I, I) { (vt, clsLoader, str) =>
-      vt.typeObjCache(vt.toRealObj[String](str)).apply()
+      val name = vt.toRealObj[String](str)
+      try{
+        vt.ClsTable.apply(name)
+        vt.typeObjCache(name).apply()
+      }catch{case e: rt.ClsTable.ClsNotFound =>
+        0
+      }
+    },
+    native("java/lang/ClassLoader", "findBootstrapClass(Ljava/lang/String;)Ljava/lang/Class;").func(I, I, I) { (vt, clsLoader, str) =>
+      val name = vt.toRealObj[String](str)
+      try{
+        vt.ClsTable.apply(name)
+        vt.typeObjCache(name).apply()
+      }catch{case e: rt.ClsTable.ClsNotFound =>
+        0
+      }
     },
     native("java/lang/ClassLoader", "getSystemClassLoader()Ljava/lang/ClassLoader;").static.func(I) { (vt) =>
       vt.alloc{implicit r =>

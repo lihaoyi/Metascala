@@ -9,6 +9,9 @@ import org.objectweb.asm.tree.ClassNode
 
 import scala.collection.mutable
 
+object ClsTable{
+  case class ClsNotFound(tpe: imm.Type.Cls) extends Exception("Can't find " + tpe.javaName)
+}
 /**
   * Cache of all the classes loaded so far within the Metascala VM.
   */
@@ -30,7 +33,7 @@ class ClsTable(fileLoader: String => Option[Array[Byte]])
     val input = fileLoader(
       t.name + ".class"
     ).getOrElse(
-      throw new Exception("Can't find " + t)
+      throw ClsTable.ClsNotFound(t)
     )
 
     calcFromBytes0(input)

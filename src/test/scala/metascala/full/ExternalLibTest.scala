@@ -13,59 +13,59 @@ object ExternalLibTest{
 class ExternalLibTest extends FreeSpec {
 
   val tester = new VM(memorySize = 256 * 1024)
-//  "fansi" in tester.test{
-//    (fansi.Color.Red("Hello") ++ fansi.Color.Red("World"))
-//      .overlay(fansi.Underlined.On, 3, 7)
-//      .render
-//  }
-//
-//  "fastparse" in tester.test{
-//    import fastparse.all._
-//    val p = P( ("Hello" ~ " ".rep(1) ~ "world").! ~ "!".!.?)
-//    val res1 = p.parse("Helloworld!").asInstanceOf[Parsed.Failure]
-//    val res2 = p.parse("Hello    world").asInstanceOf[Parsed.Success[String]]
-//    val res3 = p.parse("Hello world!").asInstanceOf[Parsed.Success[String]]
-//
-//    (res1.index, res2.value, res3.value).toString
-//  }
-//
-//  "scalatags" in tester.test{
-//    import scalatags.Text.all._
-//    val fragment = html(
-//      head(
-//        script(src:="..."),
-//        script(
-//          "alert('Hello World')"
-//        )
-//      ),
-//      body(
-//        div(
-//          h1(id:="title", "This is a title"),
-//          p("This is a big paragraph of text")
-//        )
-//      )
-//    )
-//
-//    fragment.render
-//  }
-//
-//  "pprint" in tester.test{
-//    pprint.apply(
-//      List(
-//        List(1, 2, 3),
-//        Some(
-//          Array(2)
-//        ),
-//        Tuple2(
-//          Seq(1, 2, 3, 4),
-//          Map(
-//            1 -> 2,
-//            3 -> Array(4)
-//          )
-//        )
-//      )
-//    )
-//  }
+  "fansi" in tester.test{
+    (fansi.Color.Red("Hello") ++ fansi.Color.Red("World"))
+      .overlay(fansi.Underlined.On, 3, 7)
+      .render
+  }
+
+  "fastparse" in tester.test{
+    import fastparse.all._
+    val p = P( ("Hello" ~ " ".rep(1) ~ "world").! ~ "!".!.?)
+    val res1 = p.parse("Helloworld!").asInstanceOf[Parsed.Failure]
+    val res2 = p.parse("Hello    world").asInstanceOf[Parsed.Success[String]]
+    val res3 = p.parse("Hello world!").asInstanceOf[Parsed.Success[String]]
+
+    (res1.index, res2.value, res3.value).toString
+  }
+
+  "scalatags" in tester.test{
+    import scalatags.Text.all._
+    val fragment = html(
+      head(
+        script(src:="..."),
+        script(
+          "alert('Hello World')"
+        )
+      ),
+      body(
+        div(
+          h1(id:="title", "This is a title"),
+          p("This is a big paragraph of text")
+        )
+      )
+    )
+
+    fragment.render
+  }
+
+  "pprint" in tester.test{
+    pprint.apply(
+      List(
+        List(1, 2, 3),
+        Some(
+          Array(2)
+        ),
+        Tuple2(
+          Seq(1, 2, 3, 4),
+          Map(
+            1 -> 2,
+            3 -> Array(4)
+          )
+        )
+      )
+    )
+  }
 
 //  "javac" in {
 //    val tester = new VM(memorySize = 15 * 1014 * 1024, initializeStdout = true)
@@ -83,17 +83,17 @@ class ExternalLibTest extends FreeSpec {
 ////      println(result.toString)
 //    }
 //  }
-//  "rhino" in {
-//    val tester = new VM(memorySize = 1 * 1024 * 1024, initializeStdout = true)
-//    tester.test{
-//
-//      val cx = org.mozilla.javascript.Context.enter()
-//      val scope = cx.initStandardObjects()
-//      val script = "(function(suffix){ return 'hello ' + suffix})('world')"
-//      val obj = cx.evaluateString(scope, script, "Test Script", 1, null)
-//      obj
-//    }
-//  }
+  "rhino" in {
+    val tester = new VM(memorySize = 1 * 1024 * 1024, initializeStdout = true)
+    tester.test{
+
+      val cx = org.mozilla.javascript.Context.enter()
+      val scope = cx.initStandardObjects()
+      val script = "(function(suffix){ return 'hello ' + suffix})('world')"
+      val obj = cx.evaluateString(scope, script, "Test Script", 1, null)
+      obj
+    }
+  }
   "rhinoFail" in {
     val tester = new VM(memorySize = 1 * 1024 * 1024, initializeStdout = true)
     tester.test{

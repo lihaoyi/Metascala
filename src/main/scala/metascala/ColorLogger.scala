@@ -116,7 +116,10 @@ trait ColorLogger extends rt.Logger{
         fansi.Color.Magenta("=" * 20 + clsName + "#" + method.name + "=" * 20),
         "\n\b"
       )
-      tryCatchBlocks.foreach(t => output.appendAll(ColorLogger.pprinter.tokenize(t)))
+      for(t <- tryCatchBlocks){
+        output.appendAll(ColorLogger.pprinter.tokenize(t))
+        output.append("\n")
+      }
       output.append("\n")
       for ((block, i) <- basicBlocks.toArray.zipWithIndex){
 

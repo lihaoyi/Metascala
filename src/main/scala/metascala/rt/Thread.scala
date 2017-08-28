@@ -36,7 +36,6 @@ object Thread{
  */
 class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
             (implicit val vm: Thread.VMInterface) { thread =>
-  import vm._
 
   private[this] var opCount = 0L
   def getOpCount = opCount
@@ -64,7 +63,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     if (vm.logger.active) vm.logger.logPhi(
       indent,
-      ClsTable.clsIndex(frame.method.clsIndex).name,
+      vm.ClsTable.clsIndex(frame.method.clsIndex).name,
       frame,
       phi.indices.iterator.map(i => (i, phi(i)))
     )
@@ -122,7 +121,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     if (vm.logger.active) vm.logger.logStep(
       indent,
-      ClsTable.clsIndex(frame.method.clsIndex).name,
+      vm.ClsTable.clsIndex(frame.method.clsIndex).name,
       frame,
       node,
       block
@@ -296,7 +295,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
       case MultiANewArray(desc, symbol, dims) =>
         multiANewArray(desc, symbol, dims)
 
-      case AThrow(src) => this.throwException(vm.obj(frame.locals(src)))
+      case AThrow(src) => throwException(vm.obj(frame.locals(src)))
 
       case ReturnVal(sym) => returnVal(frame.method.sig.desc.ret.size, sym)
     }
@@ -332,8 +331,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
   }
 
   private def invokeStatic(target: Int, sources: Agg[Int], clsIndex: Int, mIndex: Int, special: Boolean) = {
-    val cls = ClsTable.clsIndex(clsIndex)
-    checkInitialized(cls)
+    val cls = vm.ClsTable.clsIndex(clsIndex)
+    vm.checkInitialized(cls)
     invokeBase(
       sources,
       target,
@@ -354,7 +353,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         else {
           val cls =
             if (vm.isObj(argZero)) vm.obj(argZero).cls
-            else ClsTable.clsIndex(clsIndex)
+            else vm.ClsTable.clsIndex(clsIndex)
           cls.vTable(mIndex)
         },
       thisCell = true
@@ -362,8 +361,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
   }
 
   private def newInstance(target: Int, clsIndex: Int) = {
-    val cls = ClsTable.clsIndex(clsIndex)
-    checkInitialized(cls)
+    val cls = vm.ClsTable.clsIndex(clsIndex)
+    vm.checkInitialized(cls)
     val obj = vm.alloc(_.newObj(cls.name))
     frame.locals(target) = obj.address()
     advancePc()
@@ -403,8 +402,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
   private def checkCast(src: Int, dest: Int, desc: Type) = {
     frame.locals(src) match {
       case top
-        if (vm.isArr(top) && !check(vm.arr(top).tpe, desc))
-          || (vm.isObj(top) && !check(vm.obj(top).tpe, desc)) =>
+        if (vm.isArr(top) && !vm.check(vm.arr(top).tpe, desc))
+          || (vm.isObj(top) && !vm.check(vm.obj(top).tpe, desc)) =>
 
         throwExWithTrace(
           "java/lang/ClassCastException",
@@ -421,8 +420,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
   private def instanceOf(src: Int, dest: Int, desc: Type) = {
     frame.locals(dest) = frame.locals(src) match {
       case 0 => 0
-      case top if vm.isArr(top) && !check(vm.arr(top).tpe, desc) => 0
-      case top if vm.isObj(top) && !check(vm.obj(top).tpe, desc) => 0
+      case top if vm.isArr(top) && !vm.check(vm.arr(top).tpe, desc) => 0
+      case top if vm.isObj(top) && !vm.check(vm.obj(top).tpe, desc) => 0
       case _ => 1
     }
     advancePc()
@@ -494,8 +493,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
   }
 
   def getPutStatic(target: Int, clsIndex: Int, index: Int, prim: Type, get: Boolean) = {
-    val cls = ClsTable.clsIndex(clsIndex)
-    checkInitialized(cls)
+    val cls = vm.ClsTable.clsIndex(clsIndex)
+    vm.checkInitialized(cls)
     Util.blit(new rt.Arr(cls.statics)(vm), index, frame.locals, target, prim.size, flip = !get)
     advancePc()
   }
@@ -557,17 +556,27 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     if (print) {
       val msg = Virtualizer.toRealObj[String](ex.apply("detailMessage"))(bindingsInterface, implicitly)
-      logger.logException(ex.cls.tpe, msg, trace)
+      vm.logger.logException(ex.cls.tpe, msg, trace)
     }
 
     threadStack.headOption match{
       case Some(frame)=>
         val handler =
-          frame.method.code.tryCatches.find{x =>
-            (x.start <= frame.pc) &&
-            (x.end >= frame.pc) &&
-            (x.blockType.isEmpty ||
-            x.blockType.exists(ex.cls.typeAncestry))
+          frame.method.code.tryCatches.find{handler =>
+            // Inclusive start index, exclusive end index.
+            //
+            // This is due to the way many bytecode instructions do not survive
+            // during the SSA transform (e.g. swap, dup, all the *load ops).
+            // As a result, the handler's start and end indices are actually
+            // the start and end index of the *next* surviving instruction.
+            // The next surviving instruction after `start` is indeed covered
+            // by the try-catch range, but the next surviving instruction after
+            // `end` is *not*. Hence the comparison with `start` is an inclusive
+            // `<=`, but the comparison with `end` is an exclusive `>`
+            (handler.start <= frame.pc) &&
+            (handler.end > frame.pc) &&
+            (handler.blockType.isEmpty ||
+            handler.blockType.exists(ex.cls.typeAncestry))
           }
 
         handler match{
@@ -598,7 +607,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     def invokeRun(a: Int) = {
       val pa = obj(a)
-      val mRef = resolveDirectRef(pa.cls.tpe, pa.cls.methods.find(_.sig.name == "run").get.sig).get
+      val mRef = vm.resolveDirectRef(pa.cls.tpe, pa.cls.methods.find(_.sig.name == "run").get.sig).get
       var x = 0
       val args = new Array[Int](mRef.localsSize)
       args(0) = pa.address()
@@ -615,7 +624,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
       val descStr = toRealObj[String](r.obj(constr).apply("signature"))
 
-      val mRef = ClsTable(name).method(
+      val mRef = vm.ClsTable(name).method(
         "<init>",
         Desc.read(descStr)
       ).get
@@ -690,7 +699,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
 
         val startFrame = new Frame(
-          runningClass = ClsTable.clsIndex(clsIndex),
+          runningClass = vm.ClsTable.clsIndex(clsIndex),
           method = m,
           returnTo = returnTo,
           locals = args,

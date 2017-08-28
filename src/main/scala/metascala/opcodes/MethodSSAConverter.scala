@@ -66,6 +66,7 @@ object MethodSSAConverter {
            (implicit vm: SingleInsnSSAConverter.VMInterface): Code = {
 
     val allInsns = method.instructions.toArray
+
     assert(
       method.instructions.size != 0,
       "Unknown native method: " + clsName + " " + method.name + " " + method.desc
@@ -87,35 +88,36 @@ object MethodSSAConverter {
 
     lazy val extraFrames = new Analyzer(FullInterpreter).analyze(clsName, method)
 
-    val blockMap: Array[Int] = computeBlockMap(method, allInsns)
+    val rawInsnToBlock: Array[Int] = computeBlockMap(method, allInsns)
 
-    val blockInsns: Array[Array[AbstractInsnNode]] = computeFlatten(blockMap, allInsns)
+    val blockToRawInsns: Array[Array[AbstractInsnNode]] = computeFlatten(rawInsnToBlock, allInsns)
 
-    val blockLines: Array[Array[Int]] = computeFlatten(blockMap, lineMap)
+    val blockToRawLineNumbers: Array[Array[Int]] = computeFlatten(rawInsnToBlock, lineMap)
 
     val allFrames: Seq[Seq[Frame[Box]]] =
-      computeAllFrames(method, extraFrames, blockMap, blockInsns, insnIndexMap)
+      computeAllFrames(method, extraFrames, rawInsnToBlock, blockToRawInsns, insnIndexMap)
 
-    val blockBuffers = computeBlockBuffers(clsName, blockMap, blockInsns, blockLines, allFrames)
+    val blockBuffers = computeBlockBuffers(clsName, rawInsnToBlock, blockToRawInsns, blockToRawLineNumbers, allFrames)
 
-    val realInsn = blockBuffers.map(_._2)
+    val rawInsnToFinalIndexPerBlock = blockBuffers.map(_._2)
 
 
     val basicBlocks = computeBasicBlocks(method, blockBuffers)
 
+
     val tryCatchBlocks = for(b <- Agg.from(method.tryCatchBlocks.asScala)) yield{
       def insnToPc(insn: AbstractInsnNode) = {
-        val block = blockMap(insnIndexMap(insn))
-        (block, realInsn(block)(blockInsns(block).indexOf(insn)))
+        val block = rawInsnToBlock(insnIndexMap(insn))
+        (block, rawInsnToFinalIndexPerBlock(block)(blockToRawInsns(block).indexOf(insn)))
       }
 
-      val handlerBlock = blockMap(insnIndexMap(b.handler))
+      val handlerBlock = rawInsnToBlock(insnIndexMap(b.handler))
 
       TryCatchBlock(
         insnToPc(b.start), insnToPc(b.end),
         handlerBlock,
         blockBuffers(handlerBlock)._4 {
-          val x = allFrames(blockMap(insnIndexMap(b.handler))).head
+          val x = allFrames(rawInsnToBlock(insnIndexMap(b.handler))).head
           x.getStack(x.getStackSize - 1)
         },
         Option(b.`type`).map(imm.Type.Cls.apply)
@@ -202,9 +204,9 @@ object MethodSSAConverter {
       }
 
       boxes(blockFrames(0)).flatten.map(getBox)
-      val realInsnMap = new Aggregator[Int]
+      val realInsnToPc = new Aggregator[Int]
       for ((insn, i) <- blockInsns(blockId).zipWithIndex) try {
-        realInsnMap.append(buffer.length)
+        realInsnToPc.append(buffer.length)
 
         SingleInsnSSAConverter(
           insn,
@@ -223,7 +225,7 @@ object MethodSSAConverter {
           throw e
       }
 
-      (buffer, realInsnMap, types, localMap, blockFrames.head, blockFrames.last, lineMap)
+      (buffer, realInsnToPc, types, localMap, blockFrames.head, blockFrames.last, lineMap)
     }
   }
 
