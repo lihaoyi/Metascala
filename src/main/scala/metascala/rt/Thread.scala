@@ -406,7 +406,12 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         if (vm.isArr(top) && !check(vm.arr(top).tpe, desc))
           || (vm.isObj(top) && !check(vm.obj(top).tpe, desc)) =>
 
-        throwExWithTrace("java/lang/ClassCastException", "")
+        throwExWithTrace(
+          "java/lang/ClassCastException",
+          if (vm.isObj(top)) vm.obj(top).tpe.toString
+          else if (vm.isArr(top)) vm.arr(top).tpe.toString
+          else "null"
+        )
       case _ =>
         frame.locals(dest) = frame.locals(src)
         advancePc()

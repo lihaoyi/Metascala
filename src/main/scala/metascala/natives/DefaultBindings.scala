@@ -159,6 +159,7 @@ object DefaultBindings extends Bindings{
         r.newArr("java/lang/reflect/Method",
           cls.methods.map{ m =>
             r.newObj("java/lang/reflect/Method",
+              "clazz" -> vt.typeObjCache(cls.tpe),
               "name" -> vt.internedStrings.getOrElseUpdate(
                 m.sig.name, vt.toVirtObj(m.sig.name).address
               )
@@ -289,6 +290,12 @@ object DefaultBindings extends Bindings{
       }
     },
     native("java/lang/invoke/MethodHandleNatives", "registerNatives()V").static {(vt, arg) =>},
+    native("java/lang/invoke/MethodHandleNatives", "init(Ljava/lang/invoke/MemberName;Ljava/lang/Object;)V").static.func(I, I, V) {(vt, memberName, ref) =>
+      vt.obj(ref).cls.name match {
+        case "java/lang/reflect/Method" =>
+          vt.obj(memberName).update("clazz", vt.obj(ref).apply("clazz"))
+      }
+    },
     native("java/lang/invoke/MethodHandleNatives", "getConstant(I)I").static {(vt, arg) => 9},
     native("java/lang/invoke/MethodHandleNatives", "resolve(Ljava/lang/invoke/MemberName;Ljava/lang/Class;)Ljava/lang/invoke/MemberName;").static.func(I, I, I) {
       (vt, memberName, cls) =>

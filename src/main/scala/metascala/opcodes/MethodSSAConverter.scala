@@ -67,6 +67,10 @@ object MethodSSAConverter {
 
     println("Converting " + clsName + "#" + method.name)
     val allInsns = method.instructions.toArray
+    assert(
+      method.instructions.size != 0,
+      "Unknown native method: " + clsName + " " + method.name + " " + method.desc
+    )
     val insnIndexMap = allInsns.zipWithIndex.toMap
 
     val lineMap = {
