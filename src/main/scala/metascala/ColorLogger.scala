@@ -33,7 +33,8 @@ trait ColorLogger extends rt.Logger{
 
 //    def printOrNot = clsName == "java/util/concurrent/ConcurrentHashMap" &&
 //                     frame.method.sig.name == "<init>"
-    if (true) {
+//    if (clsName.contains("MethodHandles") || clsName.contains("MemberName")) {
+    if(false){
       val indent = "    " * indentCount
       val r = Util.reader(frame.locals, 0)
       lazy val localSnapshot =

@@ -11,8 +11,8 @@ libraryDependencies ++= Seq(
   "com.lihaoyi" %% "fansi" % "0.2.4",
   "com.lihaoyi" %% "scalatags" % "0.6.5" % "test",
   "com.lihaoyi" %% "pprint" % "0.5.2",
-  "com.google.errorprone" % "javac" % "9-dev-r4023-2"
-
+  "com.google.errorprone" % "javac" % "9-dev-r4023-2",
+  "com.lihaoyi" % "ammonite" % "1.0.2" cross CrossVersion.full
 )
 
 libraryDependencies += "com.lihaoyi" %% "acyclic" % "0.1.7" % "provided"

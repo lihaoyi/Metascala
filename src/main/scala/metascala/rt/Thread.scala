@@ -554,7 +554,16 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
   @tailrec final def throwException(ex: Obj, print: Boolean = true): Unit = {
     import math.Ordering.Implicits._
-    if (print) logger.logException()
+
+    if (print) {
+      val msg = Virtualizer.toRealObj[String](ex.apply("detailMessage"))(bindingsInterface, implicitly)
+      println("Throwing " + ex.cls.name + ": " + msg)
+      for(frame <- threadStack){
+        val line = frame.method.code.blocks(frame.pc._1).lines(frame.pc._2)
+        println(frame.runningClass.name + "." + frame.method.sig + ":" + line)
+      }
+      logger.logException()
+    }
 
     threadStack.headOption match{
       case Some(frame)=>

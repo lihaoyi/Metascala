@@ -13,7 +13,6 @@ import scala.collection.mutable
 class Frame(var pc: (Int, Int) = (0, 0),
             val runningClass: rt.Cls,
             val method: rt.ClsMethod,
-            var lineNum: Int = 0,
             val returnTo: Int => Unit,
             val locals: Array[Int],
             val indexOfFrameWhosePCToIncrement: Int)

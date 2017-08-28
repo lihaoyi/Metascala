@@ -291,20 +291,70 @@ object DefaultBindings extends Bindings{
     },
     native("java/lang/invoke/MethodHandleNatives", "registerNatives()V").static {(vt, arg) =>},
     native("java/lang/invoke/MethodHandleNatives", "init(Ljava/lang/invoke/MemberName;Ljava/lang/Object;)V").static.func(I, I, V) {(vt, memberName, ref) =>
-      vt.obj(ref).cls.name match {
+      val flags = vt.obj(ref).cls.name match {
         case "java/lang/reflect/Method" =>
-          vt.obj(memberName).update("clazz", vt.obj(ref).apply("clazz"))
+          var flags = MethodHandleNativeConstants.MN_IS_METHOD
+          val modifiers = vt.obj(ref).apply("modifiers")
+          val refKinds =
+            if ((modifiers | MethodHandleNativeConstants.ACC_INTERFACE) > 0) MethodHandleNativeConstants.REF_invokeInterface
+            else if ((modifiers | MethodHandleNativeConstants.ACC_STATIC) > 0) MethodHandleNativeConstants.REF_invokeStatic
+            else MethodHandleNativeConstants.REF_invokeVirtual
+          flags = flags | (refKinds << MethodHandleNativeConstants.MN_REFERENCE_KIND_SHIFT)
+          flags
+        case "java/lang/reflect/Constructor" =>
+          var flags = MethodHandleNativeConstants.MN_IS_CONSTRUCTOR
+          val modifiers = vt.obj(ref).apply("modifiers")
+          val refKinds = MethodHandleNativeConstants.REF_invokeSpecial
+          flags = flags | (refKinds << MethodHandleNativeConstants.MN_REFERENCE_KIND_SHIFT)
+          flags
+        case "java/lang/reflect/Field" =>
+          var flags = MethodHandleNativeConstants.MN_IS_FIELD
+          val modifiers = vt.obj(ref).apply("modifiers")
+          val refKinds =
+            if ((modifiers | MethodHandleNativeConstants.ACC_STATIC) > 0) MethodHandleNativeConstants.REF_getStatic
+            else MethodHandleNativeConstants.REF_getField
+          flags = flags | (refKinds << MethodHandleNativeConstants.MN_REFERENCE_KIND_SHIFT)
+          flags
       }
+      vt.obj(memberName).update("clazz", vt.obj(ref).apply("clazz"))
+      vt.obj(memberName).update("flags", flags)
+
+      def getTypeFor(address: Int) = {
+        vt.typeObjCache.find(_._2.apply() == address).map(_._1).get
+      }
+      // Break into debug REPL with
+//      ammonite.Main(
+//        predefCode = "println(\"Starting Debugging!\")"
+//      ).run(
+//        "vt" -> vt,
+//        "memberName" -> memberName,
+//        "ref" -> ref
+//      )
+      val params =
+        vt.arr(vt.obj(ref).apply("parameterTypes")).map(getTypeFor).map(_.internalName).mkString
+      val ret = getTypeFor(vt.obj(ref).apply("returnType")).internalName
+
+      val str = "(" + params + ")" + ret
+      pprint.log(str)
+      vt.obj(memberName).update("type", vt.alloc{implicit r =>
+        val addr = vt.toVirtObj(str)
+        vt.internedStrings.getOrElseUpdate(str, addr).apply()
+      })
+      ()
     },
     native("java/lang/invoke/MethodHandleNatives", "getConstant(I)I").static {(vt, arg) => 9},
     native("java/lang/invoke/MethodHandleNatives", "resolve(Ljava/lang/invoke/MemberName;Ljava/lang/Class;)Ljava/lang/invoke/MemberName;").static.func(I, I, I) {
       (vt, memberName, cls) =>
-        vt.obj(memberName).update("flags", 1 | 0x00010000 | 0x0008 | (6 << 24))
-//        pprint.log(vt.obj(memberName).apply("flags"))
-//        pprint.log(vt.obj(memberName).apply("clazz"))
-//        pprint.log(vt.heap(vt.obj(memberName).apply("type")))
-//        pprint.log(vt.ClsTable.clsIndex(-vt.heap(vt.obj(memberName).apply("type"))))
-//        vt.obj(memberName).update("type", ???)
+
+        val memberNameName = vt.toRealObj[String](vt.obj(memberName).apply("name"))
+        val cls = vt.typeObjCache.find(_._2.apply() == vt.obj(memberName).apply("clazz")).map(_._1).get
+        val actualMethod =
+          vt.ClsTable.apply(cls.asInstanceOf[imm.Type.Cls]).methods.find(_.sig.name == memberNameName).get
+
+        if (actualMethod.static){
+          vt.obj(memberName)("flags") |= MethodHandleNativeConstants.ACC_STATIC
+        }
+
         memberName
     },
     native("java/lang/ClassLoader", "registerNatives()V").static {(vt, arg) =>},
