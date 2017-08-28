@@ -306,32 +306,134 @@ object DefaultBindings extends Bindings{
       }
     },
     native("java.lang.invoke.MethodHandleNatives", "registerNatives()V").static {(vt, arg) =>},
-    native("java.lang.invoke.MethodHandleNatives", "init(Ljava/lang/invoke/MemberName;Ljava/lang/Object;)V").static.func(I, I, V) {(vt, memberName, ref) =>
-      val flags = vt.obj(ref).cls.tpe.javaName match {
+    native(
+      "java.lang.invoke.MethodHandleNatives",
+      "getMembers(Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Class;I[Ljava/lang/invoke/MemberName;)I"
+    ).static.func(I, I, I, I, I, I, I, I) { ()
+      (vt, defc0, matchName0, matchSig0, matchFlags, caller0, skip0, results0) =>
+        vt.alloc { implicit r =>
+          pprint.log(defc0)
+          pprint.log(matchName0)
+          pprint.log(matchSig0)
+          pprint.log(matchFlags)
+          pprint.log(caller0)
+          pprint.log(skip0)
+          pprint.log(results0)
+          val searchSuperclasses = 0 != (matchFlags & MHConstants.MN_SEARCH_SUPERCLASSES)
+          val searchInterfaces = 0 != (matchFlags & MHConstants.MN_SEARCH_INTERFACES)
+          assert(!searchSuperclasses && !searchInterfaces, "Unsupported")
+          val name = Option(vt.toRealObj[String](matchName0))
+          val sig = Option(vt.toRealObj[String](matchSig0)).map(imm.Sig.read)
+          val typeObj = vt.typeObjCache.find(_._2.apply() == defc0).map(_._1).get
+          val cls = vt.ClsTable(typeObj.asInstanceOf[imm.Type.Cls])
+          val results = vt.arr(results0)
+
+          var count = 0
+          var skip = skip0
+          def addMatch(modifiers: Long,
+                       typeSwitch: String,
+                       nameStr: String,
+                       typeString: String) = {
+
+            if (count > results.length) () // do nothing
+            else if (skip > 0) skip -= 1
+            else {
+
+              val (flags0, refKinds) = typeSwitch match {
+                case "java.lang.reflect.Method" =>
+                  val flags = MHConstants.MN_IS_METHOD
+                  val refKinds =
+                    if ((modifiers | MHConstants.ACC_INTERFACE) > 0) MHConstants.REF_invokeInterface
+                    else if ((modifiers | MHConstants.ACC_STATIC) > 0) MHConstants.REF_invokeStatic
+                    else MHConstants.REF_invokeVirtual
+                  (flags, refKinds)
+
+                case "java.lang.reflect.Constructor" =>
+                  val flags = MHConstants.MN_IS_CONSTRUCTOR
+                  val refKinds = MHConstants.REF_invokeSpecial
+                  (flags, refKinds)
+
+                case "java.lang.reflect.Field" =>
+                  val flags = MHConstants.MN_IS_FIELD
+                  val refKinds =
+                    if ((modifiers | MHConstants.ACC_STATIC) > 0) MHConstants.REF_getStatic
+                    else MHConstants.REF_getField
+                  (flags, refKinds)
+              }
+              val flags = flags0 | (refKinds << MHConstants.MN_REFERENCE_KIND_SHIFT)
+              val memberName = r.newObj("java.lang.invoke.MemberName",
+                "clazz" -> Ref.Raw(defc0),
+                "name" -> vt.toVirtObj(nameStr),
+                "flags" -> Ref.Raw(flags),
+                "type" -> vt.toVirtObj(typeString)
+              )
+              results(count) = memberName.address()
+              count += 1
+
+            }
+          }
+
+          if ((matchFlags & MHConstants.MN_IS_CONSTRUCTOR) != 0) {
+            for (method <- cls.methods if method.sig.name == "<init>" && !sig.exists(_ != method.sig)) {
+              addMatch(method.accessFlags,  "java.lang.reflect.Constructor", method.sig.name, method.sig.desc.toString)
+            }
+          } else if ((matchFlags & MHConstants.MN_IS_METHOD) != 0) {
+            for {
+              method <- cls.methods
+              if method.clsIndex == cls.index
+              if method.sig.name != "<init>" &&
+                !name.exists(_ != method.sig.name) &&
+                !sig.exists(_ != method.sig)
+            } {
+              addMatch(method.accessFlags, "java.lang.reflect.Method", method.sig.name, method.sig.desc.toString)
+            }
+          } else if ((matchFlags & MHConstants.MN_IS_FIELD) != 0) {
+            for (field <- cls.fieldList if !name.exists(_ != field.name)) {
+              addMatch(field.access, "java.lang.reflect.Field", field.name, field.desc.toString)
+            }
+          }
+          count
+        }
+
+    },
+    native("java.lang.invoke.MethodHandleNatives", "objectFieldOffset(Ljava/lang/invoke/MemberName;)J").static.func(I, J) {
+      (vt, memberName) =>
+
+        val address = vt.obj(memberName).apply("clazz")
+        val name = vt.obj(memberName).apply("name")
+        val typeObj = vt.typeObjCache.find(_._2.apply() == address).map(_._1).get
+
+        vt.ClsTable(typeObj.asInstanceOf[imm.Type.Cls])
+          .fieldList
+          .lastIndexWhere(_.name == name)
+    },
+    native(
+      "java.lang.invoke.MethodHandleNatives",
+      "init(Ljava/lang/invoke/MemberName;Ljava/lang/Object;)V"
+    ).static.func(I, I, V) {(vt, memberName, ref) =>
+      val modifiers = vt.obj(ref).apply("modifiers")
+      val (flags0, refKinds) = vt.obj(ref).cls.tpe.javaName match {
         case "java.lang.reflect.Method" =>
-          var flags = MHConstants.MN_IS_METHOD
-          val modifiers = vt.obj(ref).apply("modifiers")
+          val flags = MHConstants.MN_IS_METHOD
           val refKinds =
             if ((modifiers | MHConstants.ACC_INTERFACE) > 0) MHConstants.REF_invokeInterface
             else if ((modifiers | MHConstants.ACC_STATIC) > 0) MHConstants.REF_invokeStatic
             else MHConstants.REF_invokeVirtual
-          flags = flags | (refKinds << MHConstants.MN_REFERENCE_KIND_SHIFT)
-          flags
+          (flags, refKinds)
+
         case "java.lang.reflect.Constructor" =>
-          var flags = MHConstants.MN_IS_CONSTRUCTOR
-          val modifiers = vt.obj(ref).apply("modifiers")
+          val flags = MHConstants.MN_IS_CONSTRUCTOR
           val refKinds = MHConstants.REF_invokeSpecial
-          flags = flags | (refKinds << MHConstants.MN_REFERENCE_KIND_SHIFT)
-          flags
+          (flags, refKinds)
+
         case "java.lang.reflect.Field" =>
-          var flags = MHConstants.MN_IS_FIELD
-          val modifiers = vt.obj(ref).apply("modifiers")
+          val flags = MHConstants.MN_IS_FIELD
           val refKinds =
             if ((modifiers | MHConstants.ACC_STATIC) > 0) MHConstants.REF_getStatic
             else MHConstants.REF_getField
-          flags = flags | (refKinds << MHConstants.MN_REFERENCE_KIND_SHIFT)
-          flags
+          (flags, refKinds)
       }
+      val flags = flags0 | (refKinds << MHConstants.MN_REFERENCE_KIND_SHIFT)
       vt.obj(memberName).update("clazz", vt.obj(ref).apply("clazz"))
       vt.obj(memberName).update("flags", flags)
 
