@@ -112,6 +112,7 @@ object SingleInsnSSAConverter {
     }
     def invokeDynamic(insn: InvokeDynamicInsnNode) = {
       append(Insn.InvokeDynamic(
+        top(nextFrame),
         insn.name,
         insn.desc,
         insn.bsm.getTag,

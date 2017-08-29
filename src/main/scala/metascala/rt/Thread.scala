@@ -177,8 +177,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         invokeVirtual(target, sources, clsIndex, sig, mIndex)
 
 
-      case InvokeDynamic(name, desc0, bsTag, bsOwner, bsName, bsDesc0, bsArgs) =>
-        invokeDynamic(name, desc0, bsTag, bsOwner, bsName, bsDesc0, bsArgs)
+      case InvokeDynamic(target, name, desc0, bsTag, bsOwner, bsName, bsDesc0, bsArgs) =>
+        invokeDynamic(target, name, desc0, bsTag, bsOwner, bsName, bsDesc0, bsArgs)
       case New(target, clsIndex) =>
         newInstance(target, clsIndex)
 
@@ -218,7 +218,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     newEx.setStackTrace(trace)
     throw newEx
   }
-  private def invokeDynamic(name: String,
+  private def invokeDynamic(target: Int,
+                            name: String,
                             desc0: String,
                             bsTag: Int,
                             bsOwner: String,
@@ -303,7 +304,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         }
     }
 
-    invoke(mRef, args.arr)
+    pprint.log((mRef, args.arr))
+    prepInvoke(mRef, args.arr, Util.writer(frame.locals, target), threadStack.length)
   }
 
 
