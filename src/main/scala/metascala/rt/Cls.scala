@@ -110,7 +110,16 @@ class Cls(val tpe: imm.Type.Cls,
    * A hash map of the virtual function table, used for quick lookup
    * by method signature
    */
-  lazy val vTableMap = vTable.map(m => m.sig -> m).toMap
+  lazy val vTableMap0 = vTable.map(m => m.sig -> m).toMap
+  def vTableMap(sig: imm.Sig) = {
+    vTableMap0.getOrElse(
+      sig,
+      throw new Exception(
+        "Unable to find signature [" + sig.toString + "] in class " + tpe.javaName + "\n" +
+        "available signatures:\n    " + vTableMap0.keysIterator.mkString("\n    ")
+      )
+    )
+  }
 
   override def toString() = {
     s"Cls($index, ${tpe.javaName})"
