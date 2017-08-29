@@ -219,6 +219,55 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     newEx.setStackTrace(trace)
     throw newEx
   }
+  
+  def lookupMethodHandle(methodHandleLookup: rt.Obj, 
+                         tag: Int,
+                         ownerName: String,
+                         methodName: String,
+                         desc: imm.Desc)(implicit r: Allocator) = {
+    tag match {
+      case Opcodes.H_INVOKESTATIC =>
+
+        val mRef = vm.resolveDirectRef(
+          "java.lang.invoke.MethodHandles$Lookup",
+          imm.Sig("findStatic",
+            imm.Desc(
+              Agg(
+                "java.lang.Class",
+                "java.lang.String",
+                "java.lang.invoke.MethodType"
+              ),
+              "java.lang.invoke.MethodHandle"
+            )
+          )
+        ).get
+
+      val args = new ArrayFiller(mRef.localsSize)
+      args.append(methodHandleLookup.address())
+      args.append(vm.typeObjCache(ownerName)())
+      args.append(Virtualizer.toVirtObj(methodName))
+      args.append(getMethodType(desc))
+
+      invoke0(mRef, args.arr)
+      
+      returnedVal(0)
+    }
+  }
+
+  def getMethodType(d: imm.Desc)(implicit r: Allocator) = {
+    val sig = imm.Sig.read(
+      "methodType(Ljava/lang/Class;[Ljava/lang/Class;)Ljava/lang/invoke/MethodType;"
+    )
+    val mRef = vm.resolveDirectRef("java.lang.invoke.MethodType", sig).get
+
+    val args = new ArrayFiller(mRef.localsSize)
+    args.append(vm.typeObjCache(d.ret).apply())
+    args.append(r.newArr("java.lang.Class", d.args.map(vm.typeObjCache)).address())
+    invoke0(mRef, args.arr)
+
+    returnedVal(0)
+  }
+  
   private def invokeDynamic(target: Int,
                             srcs: Agg[Int],
                             name: String,
@@ -235,105 +284,89 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         val methodHandleLookup =
           r.newObj("java.lang.invoke.MethodHandles$Lookup",
             "lookupClass" -> vm.typeObjCache(frame.runningClass.tpe),
-            "allowedModes" -> Ref.Raw(1 + 2 + 4 + 8)
+            "allowedModes" -> Ref.Raw(-1 /* MethodHandles$Lookup.TRUSTED */)
           )
 
 
         val desc = imm.Desc.read(desc0)
 
-        def getMethodType(d: imm.Desc) = {
-          val sig = imm.Sig.read(
-            "methodType(Ljava/lang/Class;[Ljava/lang/Class;)Ljava/lang/invoke/MethodType;"
-          )
-          val mRef = vm.resolveDirectRef("java.lang.invoke.MethodType", sig).get
-
-          val args = new ArrayFiller(mRef.localsSize)
-          args.append(vm.typeObjCache(d.ret).apply())
-          args.append(r.newArr("java.lang.Class", d.args.map(vm.typeObjCache)).address())
-          invoke0(mRef, args.arr)
-
-          returnedVal(0)
-        }
+        
 
 
         val methodType = getMethodType(desc)
-
-        ColorLogger.pprinter.log((name, desc))
+        
         val bsDesc = imm.Desc.read(bsDesc0)
-        val bsArgsCls = bsArgs.map(_.getClass)
-        ColorLogger.pprinter.log(bsTag)
-        ColorLogger.pprinter.log(bsOwner)
-        ColorLogger.pprinter.log(bsName)
-        ColorLogger.pprinter.log(bsDesc)
-        ColorLogger.pprinter.log(bsArgs)
-        ColorLogger.pprinter.log(bsArgsCls)
 
-        val mRef = vm.resolveDirectRef(bsOwner, imm.Sig(bsName, bsDesc)).get
-        val args = new ArrayFiller(mRef.localsSize)
-        args.append(methodHandleLookup.address())
-        args.append(Virtualizer.toVirtObj(name))
-        args.append(methodType)
+        val bsMethodHandle = lookupMethodHandle(methodHandleLookup, bsTag, bsOwner, bsName, bsDesc)
+//        val mRef = vm.resolveDirectRef(bsOwner, imm.Sig(bsName, bsDesc)).get
+        val staticArguments = mutable.Buffer.empty[Int]
+        staticArguments.append(methodHandleLookup.address())
+        staticArguments.append(Virtualizer.toVirtObj(name))
+        staticArguments.append(methodType)
 
         bsArgs.foreach {
           case x: org.objectweb.asm.Type =>
-            args.append(getMethodType(imm.Desc.read(x.getDescriptor)))
+            staticArguments.append(getMethodType(imm.Desc.read(x.getDescriptor)))
           case x: org.objectweb.asm.Handle =>
-            x.getTag match {
-              case Opcodes.H_INVOKESTATIC =>
+            staticArguments.append(lookupMethodHandle(methodHandleLookup, x.getTag, x.getOwner, x.getName, imm.Desc.read(x.getDesc)))
 
-                val mRef = vm.resolveDirectRef(
-                  "java.lang.invoke.MethodHandles$Lookup",
-                  imm.Sig("findStatic",
-                    imm.Desc(
-                      Agg(
-                        "java.lang.Class",
-                        "java.lang.String",
-                        "java.lang.invoke.MethodType"
-                      ),
-                      "java.lang.invoke.MethodHandle"
-                    )
-                  )
-                ).get
+          // All these virtualize to the boxed versions of their values, because
+          // they end up getting put into a array of java.lang.Objects
+          case x: java.lang.Byte      => Virtualizer.toVirtObj(x: AnyRef)
+          case x: java.lang.Character => Virtualizer.toVirtObj(x: AnyRef)
+          case x: java.lang.Short     => Virtualizer.toVirtObj(x: AnyRef)
+          case x: java.lang.Integer   => Virtualizer.toVirtObj(x: AnyRef)
+          case x: java.lang.Float     => Virtualizer.toVirtObj(x: AnyRef)
+          case x: java.lang.Long      => Virtualizer.toVirtObj(x: AnyRef)
+          case x: java.lang.Double    => Virtualizer.toVirtObj(x: AnyRef)
 
-              {
-                //                    pprint.log(x.getOwner)
-                //                    ???
-                val args = new ArrayFiller(mRef.localsSize)
-                args.append(methodHandleLookup.address())
-                args.append(vm.typeObjCache(x.getOwner)())
-                args.append(Virtualizer.toVirtObj(x.getName))
-                args.append(getMethodType(imm.Desc.read(x.getDesc)))
-
-                invoke0(mRef, args.arr)
-              }
-                args.append(returnedVal(0))
-            }
         }
 
-        pprint.log((mRef, args.arr))
-        invoke0(mRef, args.arr)
-        val ref = new Ref.UnsafeManual(returnedVal(0))
-        vm.indyCallSiteMap((frame.method, frame.pc._1, frame.pc._2)) = ref
-        ref
+//        pprint.log((mRef, staticArguments.arr))
+//        invoke0(mRef, staticArguments.arr)
+//        val ref = new Ref.UnsafeManual(returnedVal(0))
+//        vm.indyCallSiteMap((frame.method, frame.pc._1, frame.pc._2)) = ref
+//        ref
+
+
+        // In fact, the JVM does not directly invoke the bootstrap method.
+        // Instead, the JVM calls a HotSpot-specific method
+        // `MethodHandleNatives.linkCallSite` with the resolved bootstrap
+        // specifier information. (Other JVM implementations do not necessarily
+        // use this handshake.)
+        //
+        // https://wiki.openjdk.java.net/display/HotSpot/Method+handles+and+invokedynamic
+
+
+        val appendixResult = r.newArr("java.lang.Object", 1)
+        val mRef = vm.resolveDirectRef("java.lang.invoke.MethodHandleNatives",
+          imm.Sig.read("linkCallSite(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/invoke/MemberName;")
+        ).get
+        val linkCallSiteArgs = new ArrayFiller(mRef.localsSize)
+        val staticArgumentsArr = r.newArr("java.lang.Object", staticArguments.map(Ref.Raw))
+        linkCallSiteArgs.append(vm.typeObjCache(frame.runningClass.tpe)() /*callerObj*/)
+        linkCallSiteArgs.append(bsMethodHandle /*bootstrapMethodObj*/)
+        linkCallSiteArgs.append(Virtualizer.toVirtObj(name) /*nameObj*/)
+        linkCallSiteArgs.append(methodType /*typeObj*/)
+        linkCallSiteArgs.append(staticArgumentsArr.address() /*staticArguments*/)
+        linkCallSiteArgs.append(appendixResult.address() /*appendixResult*/)
+        println("invoking in...")
+        invoke0(mRef, linkCallSiteArgs.arr)
+        pprint.log(vm.obj(returnedVal(0)).cls)
+        ???
+      /*
+      static MemberName linkCallSite(Object callerObj,
+                                     Object bootstrapMethodObj,
+                                     Object nameObj, Object typeObj,
+                                     Object staticArguments,
+                                     Object[] appendixResult)
+       */
+
     }
-    val methodHandleAddress = vm.obj(indyCallsite.apply()).apply("target")
-    pprint.log(methodHandleAddress)
-    pprint.log(vm.obj(methodHandleAddress).cls.tpe.javaName)
-    pprint.log(vm.obj(methodHandleAddress).cls.methods.map(_.toString), height=9999)
-//    invokeBase(
-//      srcs,
-//      target,
-//      mRef =
-//        if (mIndex == -1) vm.obj(argZero).cls.vTableMap(sig)
-//        else {
-//          val cls =
-//            if (vm.isObj(argZero)) vm.obj(argZero).cls
-//            else vm.ClsTable.clsIndex(clsIndex)
-//          cls.vTable(mIndex)
-//        },
-//      thisCell = true
-//    )
-//    invokeVirtual(target, srcs, vm.obj(methodHandleAddress).cls.index, "invokeExact",)
+//    val methodHandleAddress = vm.obj(indyCallsite.apply()).apply("target")
+//    pprint.log(methodHandleAddress)
+//    pprint.log(vm.obj(methodHandleAddress).cls.tpe.javaName)
+//    pprint.log(vm.obj(methodHandleAddress).cls.methods.map(_.toString), height=9999)
     ???
   }
 
