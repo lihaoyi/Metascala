@@ -312,16 +312,9 @@ object DefaultBindings extends Bindings{
     ).static.func(I, I, I, I, I, I, I, I) { ()
       (vt, defc0, matchName0, matchSig0, matchFlags, caller0, skip0, results0) =>
         vt.alloc { implicit r =>
-          pprint.log(defc0)
-          pprint.log(matchName0)
-          pprint.log(matchSig0)
-          pprint.log(matchFlags)
-          pprint.log(caller0)
-          pprint.log(skip0)
-          pprint.log(results0)
           val searchSuperclasses = 0 != (matchFlags & MHConstants.MN_SEARCH_SUPERCLASSES)
           val searchInterfaces = 0 != (matchFlags & MHConstants.MN_SEARCH_INTERFACES)
-          assert(!searchSuperclasses && !searchInterfaces, "Unsupported")
+
           val name = Option(vt.toRealObj[String](matchName0))
           val sig = Option(vt.toRealObj[String](matchSig0)).map(imm.Sig.read)
           val typeObj = vt.typeObjCache.find(_._2.apply() == defc0).map(_._1).get

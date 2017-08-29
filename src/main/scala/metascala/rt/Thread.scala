@@ -234,14 +234,22 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     val desc = imm.Desc.read(desc0)
 
-    val methodType =
-      r.newObj("java.lang.invoke.MethodType",
-        "rtype" -> vm.typeObjCache(desc.ret),
-        "ptypes" -> r.newArr(
-          "java.lang.Class",
-          desc.args.map(vm.typeObjCache)
-        )
+    def getMethodType(d: imm.Desc) = {
+      val sig = imm.Sig.read(
+        "methodType(Ljava/lang/Class;[Ljava/lang/Class;)Ljava/lang/invoke/MethodType;"
       )
+      val mRef = vm.resolveDirectRef("java.lang.invoke.MethodType", sig).get
+
+      val args = new ArrayFiller(mRef.localsSize)
+      args.append(vm.typeObjCache(d.ret).apply())
+      args.append(r.newArr("java.lang.Class", d.args.map(vm.typeObjCache)).address())
+      invoke0(mRef, args.arr)
+
+      returnedVal(0)
+    }
+
+
+    val methodType = getMethodType(desc)
 
     ColorLogger.pprinter.log((name, desc))
     val bsDesc = imm.Desc.read(bsDesc0)
@@ -257,22 +265,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     val args = new ArrayFiller(mRef.localsSize)
     args.append(methodHandleLookup.address())
     args.append(Virtualizer.toVirtObj(name))
-    args.append(methodType.address())
+    args.append(methodType)
 
-    def getMethodType(d: imm.Desc) = {
-      val sig = imm.Sig.read(
-        "methodType(Ljava/lang/Class;[Ljava/lang/Class;)Ljava/lang/invoke/MethodType;"
-      )
-      val mRef = vm.resolveDirectRef("java.lang.invoke.MethodType", sig).get
-
-      val args = new ArrayFiller(mRef.localsSize)
-      args.append(vm.typeObjCache(d.ret).apply())
-      args.append(r.newArr("java.lang.Class", d.args.map(vm.typeObjCache)).address())
-      invoke0(mRef, args.arr)
-
-      pprint.log(vm.obj(returnedVal(0)).apply("form"))
-      returnedVal(0)
-    }
     bsArgs.foreach{
       case x: org.objectweb.asm.Type =>
         args.append(getMethodType(imm.Desc.read(x.getDescriptor)))

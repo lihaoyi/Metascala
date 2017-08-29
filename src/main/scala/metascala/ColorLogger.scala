@@ -21,6 +21,19 @@ object ColorLogger{
   val pprinter = pprint.PPrinter.Color.copy(additionalHandlers =
     sigHandler orElse pprint.PPrinter.Color.additionalHandlers
   )
+
+  def printTrace(trace: Seq[StackTraceElement]) = {
+    for(frame <- trace){
+      println(fansi.Str.join(
+        "    ",
+        fansi.Color.Red(frame.getClassName), ".",
+        fansi.Color.Cyan(frame.getMethodName), "(",
+        fansi.Color.Green(frame.getFileName), ":",
+        fansi.Color.Green(frame.getLineNumber.toString), ")"
+      ))
+    }
+
+  }
 }
 trait ColorLogger extends rt.Logger{
   def active = true
@@ -164,15 +177,7 @@ trait ColorLogger extends rt.Logger{
   def logException(cls: imm.Type.Cls, msg: String, trace: Seq[StackTraceElement]): Unit = {
     if (false){
       println(fansi.Color.Red(cls.javaName) + ": " + fansi.Color.Yellow(""+msg))
-      for(frame <- trace){
-        println(fansi.Str.join(
-          "    ",
-          fansi.Color.Red(frame.getClassName), ".",
-          fansi.Color.Cyan(frame.getMethodName), "(",
-          fansi.Color.Green(frame.getFileName), ":",
-          fansi.Color.Green(frame.getLineNumber.toString), ")"
-        ))
-      }
+      ColorLogger.printTrace(trace)
     }
   }
 }
