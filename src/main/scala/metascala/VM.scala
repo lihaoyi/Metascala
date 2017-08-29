@@ -31,6 +31,8 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
   var ready = false
   val internedStrings = mutable.Map[String, WritableRef]()
 
+  val indyCallSiteMap = mutable.Map.empty[(rt.Method, Int, Int), WritableRef]
+
   // Doesn't grow for now; we can make it grow when we need it to.
   val offHeap = new Array[Byte](10)
   var offHeapPointer = 0L

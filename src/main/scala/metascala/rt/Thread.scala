@@ -28,6 +28,7 @@ object Thread{
     def internedStrings: mutable.Map[String, WritableRef]
     def natives: Bindings
     def check(s: imm.Type, t: imm.Type): Boolean
+    def indyCallSiteMap: mutable.Map[(rt.Method, Int, Int), WritableRef]
   }
 }
 
@@ -177,8 +178,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         invokeVirtual(target, sources, clsIndex, sig, mIndex)
 
 
-      case InvokeDynamic(target, name, desc0, bsTag, bsOwner, bsName, bsDesc0, bsArgs) =>
-        invokeDynamic(target, name, desc0, bsTag, bsOwner, bsName, bsDesc0, bsArgs)
+      case InvokeDynamic(target, srcs, name, desc0, bsTag, bsOwner, bsName, bsDesc0, bsArgs) =>
+        invokeDynamic(target, srcs, name, desc0, bsTag, bsOwner, bsName, bsDesc0, bsArgs)
       case New(target, clsIndex) =>
         newInstance(target, clsIndex)
 
@@ -219,6 +220,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     throw newEx
   }
   private def invokeDynamic(target: Int,
+                            srcs: Agg[Int],
                             name: String,
                             desc0: String,
                             bsTag: Int,
@@ -226,86 +228,113 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
                             bsName: String,
                             bsDesc0: String,
                             bsArgs: Seq[AnyRef]) = vm.alloc { implicit r =>
-    val methodHandleLookup =
-      r.newObj("java.lang.invoke.MethodHandles$Lookup",
-        "lookupClass" -> vm.typeObjCache(frame.runningClass.tpe),
-        "allowedModes" -> Ref.Raw(1 + 2 + 4 + 8)
-      )
+
+    val indyCallsite = vm.indyCallSiteMap.get((frame.method, frame.pc._1, frame.pc._2)) match {
+      case Some(x) => x
+      case None =>
+        val methodHandleLookup =
+          r.newObj("java.lang.invoke.MethodHandles$Lookup",
+            "lookupClass" -> vm.typeObjCache(frame.runningClass.tpe),
+            "allowedModes" -> Ref.Raw(1 + 2 + 4 + 8)
+          )
 
 
-    val desc = imm.Desc.read(desc0)
+        val desc = imm.Desc.read(desc0)
 
-    def getMethodType(d: imm.Desc) = {
-      val sig = imm.Sig.read(
-        "methodType(Ljava/lang/Class;[Ljava/lang/Class;)Ljava/lang/invoke/MethodType;"
-      )
-      val mRef = vm.resolveDirectRef("java.lang.invoke.MethodType", sig).get
+        def getMethodType(d: imm.Desc) = {
+          val sig = imm.Sig.read(
+            "methodType(Ljava/lang/Class;[Ljava/lang/Class;)Ljava/lang/invoke/MethodType;"
+          )
+          val mRef = vm.resolveDirectRef("java.lang.invoke.MethodType", sig).get
 
-      val args = new ArrayFiller(mRef.localsSize)
-      args.append(vm.typeObjCache(d.ret).apply())
-      args.append(r.newArr("java.lang.Class", d.args.map(vm.typeObjCache)).address())
-      invoke0(mRef, args.arr)
+          val args = new ArrayFiller(mRef.localsSize)
+          args.append(vm.typeObjCache(d.ret).apply())
+          args.append(r.newArr("java.lang.Class", d.args.map(vm.typeObjCache)).address())
+          invoke0(mRef, args.arr)
 
-      returnedVal(0)
-    }
-
-
-    val methodType = getMethodType(desc)
-
-    ColorLogger.pprinter.log((name, desc))
-    val bsDesc = imm.Desc.read(bsDesc0)
-    val bsArgsCls = bsArgs.map(_.getClass)
-    ColorLogger.pprinter.log(bsTag)
-    ColorLogger.pprinter.log(bsOwner)
-    ColorLogger.pprinter.log(bsName)
-    ColorLogger.pprinter.log(bsDesc)
-    ColorLogger.pprinter.log(bsArgs)
-    ColorLogger.pprinter.log(bsArgsCls)
-
-    val mRef = vm.resolveDirectRef(bsOwner, imm.Sig(bsName, bsDesc)).get
-    val args = new ArrayFiller(mRef.localsSize)
-    args.append(methodHandleLookup.address())
-    args.append(Virtualizer.toVirtObj(name))
-    args.append(methodType)
-
-    bsArgs.foreach{
-      case x: org.objectweb.asm.Type =>
-        args.append(getMethodType(imm.Desc.read(x.getDescriptor)))
-      case x: org.objectweb.asm.Handle =>
-        x.getTag match{
-          case Opcodes.H_INVOKESTATIC =>
-
-            val mRef = vm.resolveDirectRef(
-              "java.lang.invoke.MethodHandles$Lookup",
-              imm.Sig("findStatic",
-                imm.Desc(
-                  Agg(
-                    "java.lang.Class",
-                    "java.lang.String",
-                    "java.lang.invoke.MethodType"
-                  ),
-                  "java.lang.invoke.MethodHandle"
-                )
-              )
-            ).get
-
-          {
-            //                    pprint.log(x.getOwner)
-            //                    ???
-            val args = new ArrayFiller(mRef.localsSize)
-            args.append(methodHandleLookup.address())
-            args.append(vm.typeObjCache(x.getOwner)())
-            args.append(Virtualizer.toVirtObj(x.getName))
-            args.append(getMethodType(imm.Desc.read(x.getDesc)))
-
-            invoke0(mRef, args.arr)
-          }
-            args.append(returnedVal(0))
+          returnedVal(0)
         }
-    }
 
-    pprint.log((mRef, args.arr))
-    prepInvoke(mRef, args.arr, Util.writer(frame.locals, target), threadStack.length)
+
+        val methodType = getMethodType(desc)
+
+        ColorLogger.pprinter.log((name, desc))
+        val bsDesc = imm.Desc.read(bsDesc0)
+        val bsArgsCls = bsArgs.map(_.getClass)
+        ColorLogger.pprinter.log(bsTag)
+        ColorLogger.pprinter.log(bsOwner)
+        ColorLogger.pprinter.log(bsName)
+        ColorLogger.pprinter.log(bsDesc)
+        ColorLogger.pprinter.log(bsArgs)
+        ColorLogger.pprinter.log(bsArgsCls)
+
+        val mRef = vm.resolveDirectRef(bsOwner, imm.Sig(bsName, bsDesc)).get
+        val args = new ArrayFiller(mRef.localsSize)
+        args.append(methodHandleLookup.address())
+        args.append(Virtualizer.toVirtObj(name))
+        args.append(methodType)
+
+        bsArgs.foreach {
+          case x: org.objectweb.asm.Type =>
+            args.append(getMethodType(imm.Desc.read(x.getDescriptor)))
+          case x: org.objectweb.asm.Handle =>
+            x.getTag match {
+              case Opcodes.H_INVOKESTATIC =>
+
+                val mRef = vm.resolveDirectRef(
+                  "java.lang.invoke.MethodHandles$Lookup",
+                  imm.Sig("findStatic",
+                    imm.Desc(
+                      Agg(
+                        "java.lang.Class",
+                        "java.lang.String",
+                        "java.lang.invoke.MethodType"
+                      ),
+                      "java.lang.invoke.MethodHandle"
+                    )
+                  )
+                ).get
+
+              {
+                //                    pprint.log(x.getOwner)
+                //                    ???
+                val args = new ArrayFiller(mRef.localsSize)
+                args.append(methodHandleLookup.address())
+                args.append(vm.typeObjCache(x.getOwner)())
+                args.append(Virtualizer.toVirtObj(x.getName))
+                args.append(getMethodType(imm.Desc.read(x.getDesc)))
+
+                invoke0(mRef, args.arr)
+              }
+                args.append(returnedVal(0))
+            }
+        }
+
+        pprint.log((mRef, args.arr))
+        invoke0(mRef, args.arr)
+        val ref = new Ref.UnsafeManual(returnedVal(0))
+        vm.indyCallSiteMap((frame.method, frame.pc._1, frame.pc._2)) = ref
+        ref
+    }
+    val methodHandleAddress = vm.obj(indyCallsite.apply()).apply("target")
+    pprint.log(methodHandleAddress)
+    pprint.log(vm.obj(methodHandleAddress).cls.tpe.javaName)
+    pprint.log(vm.obj(methodHandleAddress).cls.methods.map(_.toString), height=9999)
+//    invokeBase(
+//      srcs,
+//      target,
+//      mRef =
+//        if (mIndex == -1) vm.obj(argZero).cls.vTableMap(sig)
+//        else {
+//          val cls =
+//            if (vm.isObj(argZero)) vm.obj(argZero).cls
+//            else vm.ClsTable.clsIndex(clsIndex)
+//          cls.vTable(mIndex)
+//        },
+//      thisCell = true
+//    )
+//    invokeVirtual(target, srcs, vm.obj(methodHandleAddress).cls.index, "invokeExact",)
+    ???
   }
 
 

@@ -111,8 +111,12 @@ object SingleInsnSSAConverter {
       append(Insn.InvokeStatic(target, Agg.from(args), clsIndex, mIndex, special))
     }
     def invokeDynamic(insn: InvokeDynamicInsnNode) = {
+      val args = for(j <- (0 until imm.Desc.read(insn.desc).args.length).reverse) yield {
+        top(frame, j)
+      }
       append(Insn.InvokeDynamic(
         top(nextFrame),
+        Agg.from(args),
         insn.name,
         insn.desc,
         insn.bsm.getTag,

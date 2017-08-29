@@ -60,6 +60,7 @@ object Insn{
   case class InvokeStatic(dest: Int, srcs: Agg[Int], clsIndex: Int, methodIndex: Int, special: Boolean) extends Invoke
   case class InvokeVirtual(dest: Int, srcs: Agg[Int], clsIndex: Int, sig: imm.Sig, methodIndex: Int) extends Invoke
   case class InvokeDynamic(target: Int,
+                           srcs: Agg[Int],
                            name: String,
                            desc: String,
                            bsTag: Int,
