@@ -402,6 +402,16 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     )
   }
 
+  val polymorphicSignatureMethods = Set(
+    "invokeExact",
+    "invoke",
+    "invokeBasic",
+    "linkToVirtual",
+    "linkToStatic",
+    "linkToSpecial",
+    "linkToInterface"
+  )
+
   private def invokeVirtual(target: Int, sources: Agg[Int], clsIndex: Int, sig: Sig, mIndex: Int) = {
 
     val argZero = frame.locals(sources(0))
@@ -409,8 +419,13 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
       sources,
       target,
       mRef =
-        if (mIndex == -1) vm.obj(argZero).cls.vTableMap(sig)
-        else {
+        if (argZero == 0) null
+        else if (vm.ClsTable.clsIndex(clsIndex).tpe == imm.Type.Cls("java.lang.invoke.MethodHandle")
+          && polymorphicSignatureMethods(sig.name)){
+          vm.obj(argZero).cls.vTable.find(_.sig.name == sig.name).get
+        }else if (mIndex == -1) {
+          vm.obj(argZero).cls.vTableMap(sig)
+        } else {
           val cls =
             if (vm.isObj(argZero)) vm.obj(argZero).cls
             else vm.ClsTable.clsIndex(clsIndex)
@@ -659,7 +674,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
       thread.throwExWithTrace(clsName, detailMessage)
     }
 
-    def invoke(cls: Type.Cls, sig: Sig, args: Agg[Any]) = thread.invoke0(cls, sig, args)
+    def invoke0(cls: Type.Cls, sig: Sig, args: Agg[Any]) = thread.invoke0(cls, sig, args)
+    def invoke1(cls: Type.Cls, sig: Sig, args: Agg[Int]) = thread.invoke1(cls, sig, args)
 
     def returnedVal = thread.returnedVal
 
@@ -808,6 +824,13 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
   }
 
   def invoke0(cls: imm.Type.Cls, sig: imm.Sig, args: Agg[Any]): Unit = {
+    val startHeight = threadStack.length
+    prepInvoke(cls, sig, args, Util.writer(returnedVal, 0))
+
+    while(threadStack.length != startHeight) step()
+  }
+
+  def invoke1(cls: imm.Type.Cls, sig: imm.Sig, args: Agg[Int]): Unit = {
     val startHeight = threadStack.length
     prepInvoke(cls, sig, args, Util.writer(returnedVal, 0))
 

@@ -11,7 +11,8 @@ import scala.reflect.ClassTag
 object Bindings{
   trait Interface extends Obj.VMInterface{
     def throwExWithTrace(clsName: String, detailMessage: String): Unit
-    def invoke(cls: imm.Type.Cls, sig: Sig, args: Agg[Any]): Unit
+    def invoke0(cls: imm.Type.Cls, sig: Sig, args: Agg[Any]): Unit
+    def invoke1(cls: imm.Type.Cls, sig: Sig, args: Agg[Int]): Unit
 
     def returnedVal: Array[Int]
     def alloc[T](func: rt.Allocator => T): T

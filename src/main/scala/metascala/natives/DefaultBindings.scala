@@ -405,8 +405,8 @@ object DefaultBindings extends Bindings{
       "init(Ljava/lang/invoke/MemberName;Ljava/lang/Object;)V"
     ).static.func(I, I, V) {(vt, memberName, ref) =>
       val modifiers = vt.obj(ref).apply("modifiers")
-      val (flags0, refKinds) = vt.obj(ref).cls.tpe.javaName match {
-        case "java.lang.reflect.Method" =>
+      val (flags0, refKinds) = vt.obj(ref).cls.tpe match {
+        case imm.Type.Cls("java.lang.reflect.Method") =>
           val flags = MHConstants.MN_IS_METHOD
           val refKinds =
             if ((modifiers | MHConstants.ACC_INTERFACE) > 0) MHConstants.REF_invokeInterface
@@ -414,12 +414,12 @@ object DefaultBindings extends Bindings{
             else MHConstants.REF_invokeVirtual
           (flags, refKinds)
 
-        case "java.lang.reflect.Constructor" =>
+        case imm.Type.Cls("java.lang.reflect.Constructor") =>
           val flags = MHConstants.MN_IS_CONSTRUCTOR
           val refKinds = MHConstants.REF_invokeSpecial
           (flags, refKinds)
 
-        case "java.lang.reflect.Field" =>
+        case imm.Type.Cls("java.lang.reflect.Field") =>
           val flags = MHConstants.MN_IS_FIELD
           val refKinds =
             if ((modifiers | MHConstants.ACC_STATIC) > 0) MHConstants.REF_getStatic
@@ -448,25 +448,66 @@ object DefaultBindings extends Bindings{
     },
     native("java.lang.invoke.MethodHandleNatives", "getConstant(I)I").static {(vt, arg) => 9},
     native("java.lang.invoke.MethodHandleNatives", "resolve(Ljava/lang/invoke/MemberName;Ljava/lang/Class;)Ljava/lang/invoke/MemberName;").static.func(I, I, I) {
-      (vt, memberName, cls) =>
+      (vt, memberName, cls0) =>
 
-        val memberNameName = vt.toRealObj[String](vt.obj(memberName).apply("name"))
         val cls = vt.typeObjCache.find(_._2.apply() == vt.obj(memberName).apply("clazz"))
           .get._1
 
+        val memberNameStr = vt.toRealObj[String](vt.obj(memberName).apply("name"))
+
         val rtCls = vt.ClsTable.apply(cls.asInstanceOf[imm.Type.Cls])
-        (vt.obj(memberName)("flags") >> MHConstants.MN_REFERENCE_KIND_SHIFT) & MHConstants.MN_REFERENCE_KIND_MASK match {
-          case MHConstants.REF_invokeSpecial | MHConstants.REF_invokeStatic =>
-            val actualMethod = rtCls.staticTable.find(_.sig.name == memberNameName).get
+        val refFlag = (vt.obj(memberName)("flags") >> MHConstants.MN_REFERENCE_KIND_SHIFT) & MHConstants.MN_REFERENCE_KIND_MASK
+        refFlag match {
+          case MHConstants.REF_invokeInterface |
+               MHConstants.REF_invokeVirtual |
+               MHConstants.REF_invokeSpecial |
+               MHConstants.REF_invokeStatic =>
+
+            pprint.log(memberNameStr)
+            pprint.log(rtCls)
+            val actualMethod = refFlag match{
+              case MHConstants.REF_invokeSpecial | MHConstants.REF_invokeStatic =>
+                rtCls.staticTable.find(_.sig.name == memberNameStr).get
+              case MHConstants.REF_invokeInterface | MHConstants.REF_invokeVirtual =>
+                rtCls.vTable.find(_.sig.name == memberNameStr).get
+            }
+
             if (actualMethod.static) {
               vt.obj(memberName)("flags") |= MHConstants.ACC_STATIC
             }
-          case MHConstants.REF_invokeInterface | MHConstants.REF_invokeVirtual =>
-            rtCls.methods.find(_.sig.name == memberNameName).get
-          case MHConstants.REF_getStatic =>
-            rtCls.staticList.find(_.name == memberNameName).get
-          case MHConstants.REF_getField =>
-            rtCls.fieldList.find(_.name == memberNameName).get
+
+            vt.invoke1(
+              "java.lang.invoke.MethodType",
+              imm.Sig.read("toMethodDescriptorString()Ljava/lang/String;"),
+              Agg(vt.obj(memberName).apply("type"))
+            )
+            val methodDescriptor = vt.toRealObj[String](vt.returnedVal(0))
+
+            val sig = imm.Sig(memberNameStr, imm.Desc.read(methodDescriptor))
+
+            pprint.log((cls.javaName, memberNameStr, sig.toString))
+
+            val resolved =
+              if (refFlag == MHConstants.REF_invokeStatic) {
+                vt.ClsTable(cls.asInstanceOf[imm.Type.Cls]).staticTable.find(_.sig == sig)
+              }else{
+                vt.ClsTable(cls.asInstanceOf[imm.Type.Cls]).vTable.find(_.sig == sig)
+              }
+
+            pprint.log(resolved)
+
+          case MHConstants.REF_getField | MHConstants.REF_putField |
+               MHConstants.REF_getStatic | MHConstants.REF_putStatic =>
+
+//            pprint.log(vt.obj(vt.obj(memberName).apply("type")).cls)
+//            pprint.log(vt.obj(vt.obj(memberName).apply("type")).apply("rtype"))
+//            pprint.log(vt.obj(vt.obj(memberName).apply("type")).apply("ptypes"))
+//            vt.invoke1(
+//              "java.lang.invoke.MethodType",
+//              imm.Sig.read("toMethodDescriptorString()Ljava/lang/String;"),
+//              Agg(vt.obj(memberName).apply("type"))
+//            )
+//            val methodDescriptor = vt.toRealObj[String](vt.returnedVal(0))
 
         }
 
@@ -536,7 +577,7 @@ object DefaultBindings extends Bindings{
     },
     native("java.lang.reflect.Array", "set(Ljava/lang/Object;ILjava/lang/Object;)V").static{ (vt, arg) =>
       val (arr, index, obj) = (arg(), arg(), arg())
-      vt.invoke(
+      vt.invoke0(
         "metascala/patches/java/lang/reflect/Array",
         imm.Sig.read("set(Ljava/lang/Object;ILjava/lang/Object;)V"),
         Agg(arr, index, obj)
@@ -560,7 +601,7 @@ object DefaultBindings extends Bindings{
     },
 
     native("java.nio.charset.Charset", "defaultCharset()Ljava/nio/charset/Charset;").static{(vt, arg) =>
-      vt.invoke(
+      vt.invoke0(
         "metascala.DummyCharset",
         imm.Sig.read("getValue()Ljava/nio/charset/Charset;"),
         Agg.empty

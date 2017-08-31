@@ -39,7 +39,7 @@ class ControlFlowTest extends FreeSpec {
 //  }
   "invokedynamic" in {try{
     val tester = new Tester("metascala.features.javac.InvokeDynamic")
-    tester.run("run", false)
+    tester.run("handle", false)
   }catch{case e => e.printStackTrace()}}
 }
 
