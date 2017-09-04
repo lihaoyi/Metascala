@@ -31,6 +31,7 @@ object Bindings{
     def invokeRun(a: Int): Int
     def newInstance(constr: Int, argArr: Int): Int
     def methodHandleMap: mutable.Map[WritableRef, rt.Method]
+    def checkInitialized(cls: rt.Cls): Unit
   }
 }
 trait Bindings{

@@ -811,7 +811,12 @@ object DefaultBindings extends Bindings{
       (vt, unsafe, f) =>vt.obj(f).apply("slot")
     },
     native("sun.misc.Unsafe", "staticFieldBase(Ljava/lang/reflect/Field;)Ljava/lang/Object;").func(I, I, I){
-      (vt, unsafe, f) => vt.ClsTable(vt.toRealObj[String](vt.obj(vt.obj(f).apply("clazz")).apply("name"))).statics()
+      (vt, unsafe, f) =>
+        val clsObj = vt.obj(vt.obj(f).apply("clazz"))
+        val clsName = vt.toRealObj[String](clsObj.apply("name"))
+        val rtCls = vt.ClsTable(clsName)
+        vt.checkInitialized(rtCls)
+        rtCls.statics()
     },
     native("sun.misc.Unsafe", "registerNatives()V").value(V)(()),
     native("sun.misc.Unsafe", "getUnsafe()Lsun/misc/Unsafe;").static.func(I){vt => vt.theUnsafe.address()},

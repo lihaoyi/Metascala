@@ -420,7 +420,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
       && polymorphicSignatureMethods(sig.name)){
       vm.obj(argZero).cls.tpe match{
         case imm.Type.Cls("java.lang.invoke.DirectMethodHandle") =>
-          pprint.log(vm.obj(argZero).apply("member"))
+//          pprint.log(vm.obj(argZero).apply("member"))
           val method = vm.methodHandleMap.find(_._1.apply() == vm.obj(argZero).apply("member")).map(_._2).get
           val adapted =
             if (method.sig == sig) argZero
@@ -429,13 +429,14 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
               val args = new ArrayFiller(asTypeMethodRef.localsSize)
               args.append(argZero)
               args.append(getMethodType(sig.desc))
-              ColorLogger.pprinter.log(args.arr)
+//              ColorLogger.pprinter.log(args.arr)
               invoke0(asTypeMethodRef, args.arr)
               returnedVal(0)
             }
 //          pprint.log(method.sig)
 //          pprint.log(sig)
-          method
+
+          adapted
       }
     }else invokeBase(
       sources,
@@ -778,6 +779,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
       }
 
     def methodHandleMap = vm.methodHandleMap
+
+    def checkInitialized(cls: rt.Cls) = vm.checkInitialized(cls)
   }
 
   final def prepInvoke(mRef: rt.Method,
