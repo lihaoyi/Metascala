@@ -227,7 +227,7 @@ object DefaultBindings extends Bindings{
 
         (s, t) match{
 
-          case (s: imm.Type.Cls, t: imm.Type.Cls) => vt.ClsTable(s).typeAncestry.contains(t)
+          case (s: imm.Type.Cls, t: imm.Type.Cls) => vt.ClsTable(t).typeAncestry.contains(s)
           case (s: imm.Type.Arr, imm.Type.Cls("java.lang.Object")) => true
           case (s: imm.Type.Arr, imm.Type.Cls("java.lang.Cloneable")) => true
           case (s: imm.Type.Arr, imm.Type.Cls("java.io.Serializable")) => true

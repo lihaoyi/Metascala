@@ -58,6 +58,12 @@ class GetClassTest extends FreeSpec {
         new Array[Int](0).getClass.isArray
       )
     }
+    "isAssignableFrom" in tester.test{
+      Array(
+        new Object().getClass.isAssignableFrom(new String().getClass),
+        new String().getClass.isAssignableFrom(new Object().getClass)
+      )
+    }
   }
   "classloaders" - {
     val tester = new VM()
