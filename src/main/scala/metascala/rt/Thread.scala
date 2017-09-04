@@ -29,6 +29,7 @@ object Thread{
     def natives: Bindings
     def check(s: imm.Type, t: imm.Type): Boolean
     def indyCallSiteMap: mutable.Map[(rt.Method, Int, Int), WritableRef]
+    def methodHandleMap: mutable.Map[WritableRef, rt.Method]
   }
 }
 
@@ -352,7 +353,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         linkCallSiteArgs.append(appendixResult.address() /*appendixResult*/)
         println("invoking in...")
         invoke0(mRef, linkCallSiteArgs.arr)
-        pprint.log(vm.obj(returnedVal(0)).cls)
+//        pprint.log(vm.obj(returnedVal(0)).cls)
         ???
       /*
       static MemberName linkCallSite(Object callerObj,
@@ -415,15 +416,33 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
   private def invokeVirtual(target: Int, sources: Agg[Int], clsIndex: Int, sig: Sig, mIndex: Int) = {
 
     val argZero = frame.locals(sources(0))
-    invokeBase(
+    if (vm.ClsTable.clsIndex(clsIndex).tpe == imm.Type.Cls("java.lang.invoke.MethodHandle")
+      && polymorphicSignatureMethods(sig.name)){
+      vm.obj(argZero).cls.tpe match{
+        case imm.Type.Cls("java.lang.invoke.DirectMethodHandle") =>
+          pprint.log(vm.obj(argZero).apply("member"))
+          val method = vm.methodHandleMap.find(_._1.apply() == vm.obj(argZero).apply("member")).map(_._2).get
+          val adapted =
+            if (method.sig == sig) argZero
+            else vm.alloc{implicit r =>
+              val asTypeMethodRef = vm.ClsTable("java.lang.invoke.MethodHandle").methods.find(_.sig.name == "asType").get
+              val args = new ArrayFiller(asTypeMethodRef.localsSize)
+              args.append(argZero)
+              args.append(getMethodType(sig.desc))
+              ColorLogger.pprinter.log(args.arr)
+              invoke0(asTypeMethodRef, args.arr)
+              returnedVal(0)
+            }
+          pprint.log(method.sig)
+          pprint.log(sig)
+          method
+      }
+    }else invokeBase(
       sources,
       target,
       mRef =
         if (argZero == 0) null
-        else if (vm.ClsTable.clsIndex(clsIndex).tpe == imm.Type.Cls("java.lang.invoke.MethodHandle")
-          && polymorphicSignatureMethods(sig.name)){
-          vm.obj(argZero).cls.vTable.find(_.sig.name == sig.name).get
-        }else if (mIndex == -1) {
+        else if (mIndex == -1) {
           vm.obj(argZero).cls.vTableMap(sig)
         } else {
           val cls =
@@ -434,6 +453,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
       thisCell = true
     )
   }
+
 
   private def newInstance(target: Int, clsIndex: Int) = {
     val cls = vm.ClsTable.clsIndex(clsIndex)
@@ -756,6 +776,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
       vm.natives.trapped.find{case rt.NativeMethod(cls, sig, static, func) =>
         (lookupName == cls) && sig == lookupSig
       }
+
+    def methodHandleMap = vm.methodHandleMap
   }
 
   final def prepInvoke(mRef: rt.Method,

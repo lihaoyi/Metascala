@@ -305,6 +305,9 @@ object DefaultBindings extends Bindings{
         vt.alloc(vt.toVirtObj(byteStream)(_)).address()
       }
     },
+    native("java.lang.invoke.MethodHandles$Lookup", "checkAccess(BLjava/lang/Class;Ljava/lang/invoke/MemberName;)V") {(vt, arg) =>
+      // do nothing
+    },
     native("java.lang.invoke.MethodHandleNatives", "registerNatives()V").static {(vt, arg) =>},
     native(
       "java.lang.invoke.MethodHandleNatives",
@@ -450,6 +453,10 @@ object DefaultBindings extends Bindings{
     native("java.lang.invoke.MethodHandleNatives", "resolve(Ljava/lang/invoke/MemberName;Ljava/lang/Class;)Ljava/lang/invoke/MemberName;").static.func(I, I, I) {
       (vt, memberName, cls0) =>
 
+//        pprint.log(memberName)
+
+
+
         val cls = vt.typeObjCache.find(_._2.apply() == vt.obj(memberName).apply("clazz"))
           .get._1
 
@@ -463,14 +470,17 @@ object DefaultBindings extends Bindings{
                MHConstants.REF_invokeSpecial |
                MHConstants.REF_invokeStatic =>
 
-            pprint.log(memberNameStr)
-            pprint.log(rtCls)
+//            pprint.log(memberNameStr)
+//            pprint.log(rtCls)
             val actualMethod = refFlag match{
               case MHConstants.REF_invokeSpecial | MHConstants.REF_invokeStatic =>
                 rtCls.staticTable.find(_.sig.name == memberNameStr).get
               case MHConstants.REF_invokeInterface | MHConstants.REF_invokeVirtual =>
                 rtCls.vTable.find(_.sig.name == memberNameStr).get
             }
+
+//            pprint.log(actualMethod)
+            vt.methodHandleMap(new Ref.UnsafeManual(memberName)) = actualMethod
 
             if (actualMethod.static) {
               vt.obj(memberName)("flags") |= MHConstants.ACC_STATIC
@@ -485,7 +495,7 @@ object DefaultBindings extends Bindings{
 
             val sig = imm.Sig(memberNameStr, imm.Desc.read(methodDescriptor))
 
-            pprint.log((cls.javaName, memberNameStr, sig.toString))
+//            pprint.log((cls.javaName, memberNameStr, sig.toString))
 
             val resolved =
               if (refFlag == MHConstants.REF_invokeStatic) {
@@ -494,7 +504,7 @@ object DefaultBindings extends Bindings{
                 vt.ClsTable(cls.asInstanceOf[imm.Type.Cls]).vTable.find(_.sig == sig)
               }
 
-            pprint.log(resolved)
+//            pprint.log(resolved)
 
           case MHConstants.REF_getField | MHConstants.REF_putField |
                MHConstants.REF_getStatic | MHConstants.REF_putStatic =>
@@ -801,6 +811,17 @@ object DefaultBindings extends Bindings{
     },
     native("sun.misc.VM", "getSavedProperty(Ljava/lang/String;)Ljava/lang/String;").static.value(I)(0),
     native("sun.misc.VM", "initialize()V").static.value(V)(()),
+    native(
+      "java.util.EnumMap",
+      "getKeyUniverse(Ljava/lang/Class;)[Ljava/lang/Enum;"
+    ).static.func(I, I) {
+      (vt, cls0) =>
+
+        val cls = vt.typeObjCache.find(_._2.apply() == cls0).get._1
+        pprint.log(cls)
+        vt.invoke1(cls.asInstanceOf[imm.Type.Cls], imm.Sig.read("values()[Lsun/invoke/util/Wrapper;"), Agg(cls0))
+        vt.returnedVal(0)
+    },
     native("sun.reflect.Reflection", "filterFields(Ljava/lang/Class;[Ljava/lang/reflect/Field;)[Ljava/lang/reflect/Field;").static.func(I, I, I){ (vt, cls, fs) =>
       fs
     },

@@ -32,6 +32,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
   val internedStrings = mutable.Map[String, WritableRef]()
 
   val indyCallSiteMap = mutable.Map.empty[(rt.Method, Int, Int), WritableRef]
+  val methodHandleMap = mutable.Map.empty[WritableRef, rt.Method]
 
   // Doesn't grow for now; we can make it grow when we need it to.
   val offHeap = new Array[Byte](10)
@@ -189,7 +190,15 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
     val args = new Array[Int](mRef.localsSize)
     args(0) = sysProps
     threads(0).invoke(mRef, args)
+
   }
+
+  val javaLangAccessCall = ClsTable("java.lang.System")
+    .method("setJavaLangAccess", imm.Desc(Agg.empty, imm.Type.Prim.V))
+    .get
+
+  threads(0).invoke(javaLangAccessCall, new Array[Int](javaLangAccessCall.localsSize))
+
   def check(s: imm.Type, t: imm.Type): Boolean = {
 
     (s, t) match{
