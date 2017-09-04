@@ -112,16 +112,50 @@ public class InvokeDynamic {
         return (java.lang.Long)m.invoke(instance) - l;
     }
 
-    public static long findFieldSetter(long l) throws Throwable{
+    public static long findFieldSetter1(long l) throws Throwable{
         InvokeDynamic instance = new InvokeDynamic();
         MethodHandle m = lookup.findSetter(
                 InvokeDynamic.class,
                 "instanceField",
                 long.class
         );
-        m.invoke(instance, false);
-        return instance.instanceField - l;
+        m.invoke(instance, l);
+        return instance.instanceField;
     }
+
+    public static long findFieldSetter2(long l) throws Throwable{
+        InvokeDynamic instance = new InvokeDynamic();
+        MethodHandle m = lookup.findSetter(
+                InvokeDynamic.class,
+                "instanceFieldBoxed",
+                java.lang.Long.class
+        );
+        m.invoke(instance, l);
+        return instance.instanceFieldBoxed;
+    }
+
+    public static long findFieldSetter3(long l) throws Throwable{
+        InvokeDynamic instance = new InvokeDynamic();
+        MethodHandle m = lookup.findSetter(
+                InvokeDynamic.class,
+                "instanceField",
+                long.class
+        );
+        m.invoke(instance, (java.lang.Long)l);
+        return instance.instanceField;
+    }
+
+    public static long findFieldSetter4(long l) throws Throwable{
+        InvokeDynamic instance = new InvokeDynamic();
+        MethodHandle m = lookup.findSetter(
+                InvokeDynamic.class,
+                "instanceFieldBoxed",
+                java.lang.Long.class
+        );
+        m.invoke(instance, (java.lang.Long)l);
+        return instance.instanceFieldBoxed;
+    }
+
 
 
 

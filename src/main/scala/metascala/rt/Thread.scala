@@ -435,7 +435,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         val obj = r.newObj("java.lang.Long").address
         vm.obj(obj()).members(0) = reader()
         vm.obj(obj()).members(1) = reader()
-        pprint.log(vm.obj(obj()).members)
         obj
       case D =>
         val obj = r.newObj("java.lang.Double").address
@@ -452,30 +451,59 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         val obj = vm.obj(argZero)
         val fieldTypeAddress = obj.apply("fieldType")
         val fieldType = vm.typeObjCache.find(_._2.apply() == fieldTypeAddress).get._1
-        val fieldOffset = obj.apply("fieldOffset")
-        println(obj)
-        pprint.log(fieldOffset)
+        val offset = obj.apply("fieldOffset")
         sources.length match{
           case 2 => // getter
             val targetObj = vm.obj(frame.locals(sources(1)))
-            pprint.log(vm.obj(frame.locals(sources(1))).members)
             vm.alloc { implicit r =>
               frame.locals(target) = fieldType match {
                 case p: imm.Type.Prim[_] =>
                   boxIt(p, {
                     var i = 0
                     () => {
-                      val res = targetObj.members(fieldOffset + i)
+                      val res = targetObj.members(offset + i)
                       i += 1
                       res
                     }
                   }).apply()
                 case _ =>
-                  targetObj.members(fieldOffset)
+                  targetObj.members(offset)
               }
             }
           case 3 => // setter
-            ???
+            val targetObj = vm.obj(frame.locals(sources(1)))
+            val value = frame.locals(sources(2))
+            (fieldType, sig.desc.args(1)) match{
+              case (primField: imm.Type.Prim[_], boxedArg: imm.Type.Ref) =>
+                targetObj.members(offset) = vm.obj(value).members(0)
+
+                if (primField.size == 2){
+                  targetObj.members(offset + 1) = vm.obj(value).members(1)
+                }
+              case (boxedField: imm.Type.Ref, primArg: imm.Type.Prim[_]) =>
+                targetObj.members(offset) = vm.alloc { implicit r =>
+                  boxIt(primArg, {
+                    var i = sources(2)
+                    () => {
+                      val res = frame.locals(i)
+                      i += 1
+                      res
+                    }
+                  }).apply()
+                }
+              case (boxedField: imm.Type.Ref, boxedArg: imm.Type.Ref) =>
+                targetObj.members(offset) = value
+              case (primField: imm.Type.Prim[_], primArg: imm.Type.Prim[_]) =>
+                Util.blit(
+                  frame.locals,
+                  sources(2),
+                  targetObj.members,
+                  offset,
+                  primField.size,
+                  false
+                )
+
+            }
         }
 
         advancePc()

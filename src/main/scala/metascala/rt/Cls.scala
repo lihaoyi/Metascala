@@ -46,6 +46,11 @@ class Cls(val tpe: imm.Type.Cls,
                .find(m => m.sig.name == name && m.sig.desc == desc)
   }
 
+  def getFieldIndex(name: String) = {
+    val base = tpe.fieldList.lastIndexWhere(_.name == name)
+    base + 1 - tpe.fieldList(base).desc.size
+  }
+
   lazy val size = fieldList.length
 
   /**

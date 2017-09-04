@@ -63,13 +63,13 @@ class Obj(val address: WritableRef)
   def heapSize = cls.heapSize
 
   def apply(name: String): Int = {
-    members(tpe.fieldList.lastIndexWhere(_.name == name))
+    members(cls.getFieldIndex(name))
   }
 
-  def update(name: String, value: Int) = {
 
-    val index = tpe.fieldList.lastIndexWhere(_.name == name)
-    members(index + 1 - tpe.fieldList(index).desc.size) = value
+
+  def update(name: String, value: Int) = {
+    members(cls.getFieldIndex(name)) = value
   }
 
   def view = address + " " + vm.heap.memory.slice(address(), address() + heapSize).toList
