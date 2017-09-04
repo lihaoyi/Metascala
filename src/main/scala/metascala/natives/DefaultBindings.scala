@@ -818,8 +818,7 @@ object DefaultBindings extends Bindings{
       (vt, cls0) =>
 
         val cls = vt.typeObjCache.find(_._2.apply() == cls0).get._1
-//        pprint.log(cls)
-        vt.invoke1(cls.asInstanceOf[imm.Type.Cls], imm.Sig.read("values()[Lsun/invoke/util/Wrapper;"), Agg(cls0))
+        vt.invoke1(cls.asInstanceOf[imm.Type.Cls], imm.Sig.read("values()[" + cls.internalName), Agg(cls0))
         vt.returnedVal(0)
     },
     native("sun.reflect.Reflection", "filterFields(Ljava/lang/Class;[Ljava/lang/reflect/Field;)[Ljava/lang/reflect/Field;").static.func(I, I, I){ (vt, cls, fs) =>

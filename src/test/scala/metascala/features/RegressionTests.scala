@@ -2,15 +2,14 @@ package metascala.features
 
 import java.io.{ByteArrayOutputStream, PrintWriter}
 import java.security.AccessController
+import java.util
 import java.util.PropertyPermission
-import java.util.concurrent.ConcurrentHashMap
 
 import metascala.VM
 import metascala.full.ExternalLibTest
 import org.scalatest.FreeSpec
 import metascala.TestUtil._
 import sun.security.action.GetPropertyAction
-import sun.util.locale.BaseLocale
 
 import scala.sys.BooleanProp
 
@@ -68,6 +67,12 @@ class RegressionTests extends FreeSpec{
     // between Long -> Float -> Long, resulting in an invalid outcome.
     val x = new java.util.concurrent.ConcurrentHashMap[Int, Int](16, 0.75f)
     x.put(1, 1)
+  }
+  "EnumMapPutIfAbsent" in tester.test{
+    // Didn't work if EnumMap#getKeyUniverse was broken, or we weren't properly
+    // looking up interface default methods inherited through superclasses
+    val x = new util.EnumMap[java.awt.Desktop.Action, Int](classOf[java.awt.Desktop.Action])
+    x.putIfAbsent(java.awt.Desktop.Action.BROWSE, 1)
   }
   "tryCatchRanges" in {
     // This used to fail because we were not properly computing and handling

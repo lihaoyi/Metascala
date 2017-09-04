@@ -112,7 +112,7 @@ class Cls(val tpe: imm.Type.Cls,
    */
   lazy val interfaceMethodMap: Map[imm.Sig, rt.Method] = {
     val init = mutable.Map(vTable.map(m => m.sig -> m):_*)
-    for (interface <- interfaces){
+    for (interface <- superType ++ interfaces){
       for((sig, impl) <- interface.interfaceMethodMap){
         if (!init.contains(sig)){
           init(sig) = impl
