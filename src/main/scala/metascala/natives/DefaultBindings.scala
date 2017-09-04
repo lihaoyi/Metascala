@@ -539,7 +539,20 @@ object DefaultBindings extends Bindings{
     native("java.lang.Double", "longBitsToDouble(J)D").static{(vt, arg) => imm.Type.Prim.J.read(arg)},
     native("java.lang.Float", "intBitsToFloat(I)F").static{(vt, arg) => arg()},
     native("java.lang.Float", "floatToRawIntBits(F)I").static{(vt, arg) => arg()},
-    native("java.lang.Object", "clone()Ljava/lang/Object;"){(vt, arg) => arg()},
+    native("java.lang.Object", "clone()Ljava/lang/Object;"){(vt, arg) =>
+      val original = arg()
+      val heapSize =
+        if (vt.isObj(original)) vt.obj(original).cls.heapSize
+        else if (vt.isArr(original)) vt.arr(original).heapSize
+        else ???
+
+      val cloned = vt.heap.allocate(heapSize)
+      for(i <- 0 until heapSize){
+        vt.heap(cloned + i) = vt.heap(original + i)
+      }
+
+      cloned
+    },
     native("java.lang.Object", "getClass()Ljava/lang/Class;"){ (vt, arg) =>
       val value = arg()
       val string =

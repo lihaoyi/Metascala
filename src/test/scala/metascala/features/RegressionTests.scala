@@ -86,6 +86,16 @@ class RegressionTests extends FreeSpec{
         catch{case e: Throwable => e.getMessage}
     }
   }
+  "clone" in {
+    // Make sure .clone() works properly
+    val tester = new VM()
+    tester.test{
+      val x = Array(true)
+      val y = x.clone
+      y(0) = false
+      x(0)
+    }
+  }
 }
 
 object ThrownEx extends Exception()
