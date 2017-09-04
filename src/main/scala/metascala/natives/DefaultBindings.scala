@@ -260,6 +260,16 @@ object DefaultBindings extends Bindings{
         val cls = vt.ClsTable.calcFromBytes(imm.Type.Cls(name), bytes)
         vt.typeObjCache(cls.tpe)()
     },
+    native(
+      "sun.misc.Unsafe",
+      "defineClass(Ljava/lang/String;[BIILjava/lang/ClassLoader;Ljava/security/ProtectionDomain;)Ljava/lang/Class;").func(I, I, I, I, I, I, I, I){
+      (vt, unsafe, name0, arr, offset, length, classloader, protectionDomain) =>
+        val start = arr + Constants.arrayHeaderSize + offset
+        val bytes = vt.heap.memory.slice(start, start + length).map(_.toByte)
+        val name = vt.toRealObj[String](name0)
+        val cls = vt.ClsTable.calcFromBytes(imm.Type.Cls(name), bytes)
+        vt.typeObjCache(cls.tpe)()
+    },
     native("java.lang.ClassLoader", "getCaller(I)Ljava/lang/Class;"){ (vt, arg) =>
       val name = arg() match{
         case 0 => "java.lang.ClassLoader"
