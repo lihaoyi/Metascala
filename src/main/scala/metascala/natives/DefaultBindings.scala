@@ -422,12 +422,17 @@ object DefaultBindings extends Bindings{
       (vt, memberName) =>
 
         val address = vt.obj(memberName).apply("clazz")
-        val name = vt.obj(memberName).apply("name")
+        val name = vt.toRealObj[String](vt.obj(memberName).apply("name"))
+        pprint.log(name)
         val typeObj = vt.typeObjCache.find(_._2.apply() == address).map(_._1).get
 
-        vt.ClsTable(typeObj.asInstanceOf[imm.Type.Cls])
-          .fieldList
-          .lastIndexWhere(_.name == name)
+        pprint.log(typeObj)
+        val res =
+          vt.ClsTable(typeObj.asInstanceOf[imm.Type.Cls])
+            .fieldList
+            .lastIndexWhere(_.name == name)
+        pprint.log(res)
+        res
     },
     native(
       "java.lang.invoke.MethodHandleNatives",

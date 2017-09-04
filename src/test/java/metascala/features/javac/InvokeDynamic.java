@@ -90,26 +90,37 @@ public class InvokeDynamic {
 
 
 
-    public boolean instanceField = true;
-    public static boolean findFieldGetter(boolean b) throws Throwable{
+    public long instanceField = Long.MAX_VALUE;
+    public java.lang.Long instanceFieldBoxed = Long.MAX_VALUE;
+    public static long findFieldGetter(long l) throws Throwable{
         InvokeDynamic instance = new InvokeDynamic();
         MethodHandle m = lookup.findGetter(
                 InvokeDynamic.class,
                 "instanceField",
-                boolean.class
+                long.class
         );
-        return (java.lang.Boolean)m.invoke(instance) ^ b;
+        return (java.lang.Long)m.invoke(instance);
     }
 
-    public static boolean findFieldSetter(boolean b) throws Throwable{
+    public static long findFieldGetterBoxed(long l) throws Throwable{
+        InvokeDynamic instance = new InvokeDynamic();
+        MethodHandle m = lookup.findGetter(
+                InvokeDynamic.class,
+                "instanceFieldBoxed",
+                java.lang.Long.class
+        );
+        return (java.lang.Long)m.invoke(instance) - l;
+    }
+
+    public static long findFieldSetter(long l) throws Throwable{
         InvokeDynamic instance = new InvokeDynamic();
         MethodHandle m = lookup.findSetter(
                 InvokeDynamic.class,
                 "instanceField",
-                boolean.class
+                long.class
         );
         m.invoke(instance, false);
-        return instance.instanceField ^ b;
+        return instance.instanceField - l;
     }
 
 

@@ -435,6 +435,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         val obj = r.newObj("java.lang.Long").address
         vm.obj(obj()).members(0) = reader()
         vm.obj(obj()).members(1) = reader()
+        pprint.log(vm.obj(obj()).members)
         obj
       case D =>
         val obj = r.newObj("java.lang.Double").address
@@ -447,6 +448,38 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     val argZero = frame.locals(sources(0))
     vm.obj(argZero).cls.tpe match {
+      case imm.Type.Cls("java.lang.invoke.DirectMethodHandle$Accessor") =>
+        val obj = vm.obj(argZero)
+        val fieldTypeAddress = obj.apply("fieldType")
+        val fieldType = vm.typeObjCache.find(_._2.apply() == fieldTypeAddress).get._1
+        val fieldOffset = obj.apply("fieldOffset")
+        println(obj)
+        pprint.log(fieldOffset)
+        sources.length match{
+          case 2 => // getter
+            val targetObj = vm.obj(frame.locals(sources(1)))
+            pprint.log(vm.obj(frame.locals(sources(1))).members)
+            vm.alloc { implicit r =>
+              frame.locals(target) = fieldType match {
+                case p: imm.Type.Prim[_] =>
+                  boxIt(p, {
+                    var i = 0
+                    () => {
+                      val res = targetObj.members(fieldOffset + i)
+                      i += 1
+                      res
+                    }
+                  }).apply()
+                case _ =>
+                  targetObj.members(fieldOffset)
+              }
+            }
+          case 3 => // setter
+            ???
+        }
+
+        advancePc()
+
       case imm.Type.Cls("java.lang.invoke.DirectMethodHandle$StaticAccessor") =>
         val obj = vm.obj(argZero)
         val fieldTypeAddress = obj.apply("fieldType")
