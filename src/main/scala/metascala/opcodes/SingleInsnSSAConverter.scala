@@ -85,7 +85,12 @@ object SingleInsnSSAConverter {
         else runtimeCls.vTable.indexWhere(_.sig == sig)
 
       val clsIndex = vm.ClsTable.clsIndex.indexOf(runtimeCls)
-      append(Insn.InvokeVirtual(target, Agg.from(args), clsIndex, sig, mIndex))
+      if (insn.owner == "java/lang/invoke/MethodHandle" && (sig.name == "invoke" || sig.name == "invokeExact")){
+        append(Insn.InvokeHandle(target, Agg.from(args), clsIndex, sig, mIndex))
+      }else{
+
+        append(Insn.InvokeVirtual(target, Agg.from(args), clsIndex, sig, mIndex))
+      }
     }
 
     def invokeStatic(insn: MethodInsnNode, special: Boolean) = {

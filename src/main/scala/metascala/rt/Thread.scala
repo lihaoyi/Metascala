@@ -37,15 +37,20 @@ object Thread{
  * A single thread within the Metascala VM.
  */
 class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
-            (implicit val vm: Thread.VMInterface) { thread =>
+            (implicit val vm: Thread.VMInterface) {
+  thread =>
 
   private[this] var opCount = 0L
+
   def getOpCount = opCount
+
   def frame = threadStack.top
 
   val returnedVal = Array(0, 0)
   private[this] var insnCount = 0L
+
   def count = insnCount
+
   def indent = threadStack.length
 
 
@@ -55,6 +60,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     * each time.
     */
   var phiBuffer = new Array[Int](16)
+
   def doPhi(frame: Frame, oldBlock: Int, newBlock: Int) = {
     val phi = frame.method.code.blocks(newBlock).phi(oldBlock)
     if (phiBuffer.length < frame.locals.length) {
@@ -72,7 +78,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     var i = 0
     var target = phi.length
-    while(i < target){
+    while (i < target) {
       val src = phi(i)
       if (src != -1) frame.locals(i) = phiBuffer(src)
       else frame.locals(i) = 0
@@ -80,7 +86,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     }
 
     target = frame.locals.length
-    while(i < target){
+    while (i < target) {
       frame.locals(i) = 0
       i += 1
     }
@@ -96,9 +102,9 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
   def advancePc(): Unit = {
     val pc = frame.pc
     val blocks = frame.method.code.blocks
-    if (pc._2 + 1 < blocks(frame.pc._1).insns.length){
+    if (pc._2 + 1 < blocks(frame.pc._1).insns.length) {
       frame.pc = (pc._1, pc._2 + 1)
-    }else if(pc._1 + 1 < blocks.length){
+    } else if (pc._1 + 1 < blocks.length) {
       doPhi(frame, pc._1, pc._1 + 1)
       frame.pc = (pc._1 + 1, 0)
     }
@@ -107,12 +113,13 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
   def getActiveBlock() = {
     val code = frame.method.code
     var block = code.blocks(frame.pc._1)
-    while(block.insns.length == 0){
+    while (block.insns.length == 0) {
       jumpPhis(frame.pc._1 + 1)
       block = code.blocks(frame.pc._1)
     }
     block
   }
+
   final def step(): Unit = try {
     //  println(frame.pc)
 
@@ -147,11 +154,11 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         getPutField(src, obj, index, prim, get = true)
 
       case BinaryBranch(symA, symB, target, func) =>
-        if(func(frame.locals(symB), frame.locals(symA))) jumpPhis(target)
+        if (func(frame.locals(symB), frame.locals(symA))) jumpPhis(target)
         else advancePc()
 
       case UnaryBranch(sym, target, func) =>
-        if(func(frame.locals(sym))) jumpPhis(target)
+        if (func(frame.locals(sym))) jumpPhis(target)
         else advancePc()
 
       case Goto(target) => jumpPhis(target)
@@ -177,6 +184,9 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
       case InvokeVirtual(target, sources, clsIndex, sig, mIndex) =>
         invokeVirtual(target, sources, clsIndex, sig, mIndex)
+
+      case InvokeHandle(target, sources, clsIndex, sig, mIndex) =>
+        invokeHandle(target, sources, clsIndex, sig, mIndex)
 
 
       case InvokeDynamic(target, srcs, name, desc0, bsTag, bsOwner, bsName, bsDesc0, bsArgs) =>
@@ -211,17 +221,18 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     }
 
     opCount += 1
-    if (opCount > vm.insnLimit){
+    if (opCount > vm.insnLimit) {
       throw new Exception("Ran out of instructions! Limit: " + vm.insnLimit)
     }
 
-  }catch{case e: Throwable if !e.isInstanceOf[WrappedVmException] =>
-    val newEx = new InternalVmException(e)
-    newEx.setStackTrace(trace)
-    throw newEx
+  } catch {
+    case e: Throwable if !e.isInstanceOf[WrappedVmException] =>
+      val newEx = new InternalVmException(e)
+      newEx.setStackTrace(trace)
+      throw newEx
   }
-  
-  def lookupMethodHandle(methodHandleLookup: rt.Obj, 
+
+  def lookupMethodHandle(methodHandleLookup: rt.Obj,
                          tag: Int,
                          ownerName: String,
                          methodName: String,
@@ -243,15 +254,15 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
           )
         ).get
 
-      val args = new ArrayFiller(mRef.localsSize)
-      args.append(methodHandleLookup.address())
-      args.append(vm.typeObjCache(ownerName)())
-      args.append(Virtualizer.toVirtObj(methodName))
-      args.append(getMethodType(desc))
+        val args = new ArrayFiller(mRef.localsSize)
+        args.append(methodHandleLookup.address())
+        args.append(vm.typeObjCache(ownerName)())
+        args.append(Virtualizer.toVirtObj(methodName))
+        args.append(getMethodType(desc))
 
-      invoke0(mRef, args.arr)
-      
-      returnedVal(0)
+        invoke0(mRef, args.arr)
+
+        returnedVal(0)
     }
   }
 
@@ -268,7 +279,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     returnedVal(0)
   }
-  
+
   private def invokeDynamic(target: Int,
                             srcs: Agg[Int],
                             name: String,
@@ -291,15 +302,13 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
         val desc = imm.Desc.read(desc0)
 
-        
-
 
         val methodType = getMethodType(desc)
-        
+
         val bsDesc = imm.Desc.read(bsDesc0)
 
         val bsMethodHandle = lookupMethodHandle(methodHandleLookup, bsTag, bsOwner, bsName, bsDesc)
-//        val mRef = vm.resolveDirectRef(bsOwner, imm.Sig(bsName, bsDesc)).get
+        //        val mRef = vm.resolveDirectRef(bsOwner, imm.Sig(bsName, bsDesc)).get
         val staticArguments = mutable.Buffer.empty[Int]
         staticArguments.append(methodHandleLookup.address())
         staticArguments.append(Virtualizer.toVirtObj(name))
@@ -313,21 +322,21 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
           // All these virtualize to the boxed versions of their values, because
           // they end up getting put into a array of java.lang.Objects
-          case x: java.lang.Byte      => Virtualizer.toVirtObj(x: AnyRef)
+          case x: java.lang.Byte => Virtualizer.toVirtObj(x: AnyRef)
           case x: java.lang.Character => Virtualizer.toVirtObj(x: AnyRef)
-          case x: java.lang.Short     => Virtualizer.toVirtObj(x: AnyRef)
-          case x: java.lang.Integer   => Virtualizer.toVirtObj(x: AnyRef)
-          case x: java.lang.Float     => Virtualizer.toVirtObj(x: AnyRef)
-          case x: java.lang.Long      => Virtualizer.toVirtObj(x: AnyRef)
-          case x: java.lang.Double    => Virtualizer.toVirtObj(x: AnyRef)
+          case x: java.lang.Short => Virtualizer.toVirtObj(x: AnyRef)
+          case x: java.lang.Integer => Virtualizer.toVirtObj(x: AnyRef)
+          case x: java.lang.Float => Virtualizer.toVirtObj(x: AnyRef)
+          case x: java.lang.Long => Virtualizer.toVirtObj(x: AnyRef)
+          case x: java.lang.Double => Virtualizer.toVirtObj(x: AnyRef)
 
         }
 
-//        pprint.log((mRef, staticArguments.arr))
-//        invoke0(mRef, staticArguments.arr)
-//        val ref = new Ref.UnsafeManual(returnedVal(0))
-//        vm.indyCallSiteMap((frame.method, frame.pc._1, frame.pc._2)) = ref
-//        ref
+        //        pprint.log((mRef, staticArguments.arr))
+        //        invoke0(mRef, staticArguments.arr)
+        //        val ref = new Ref.UnsafeManual(returnedVal(0))
+        //        vm.indyCallSiteMap((frame.method, frame.pc._1, frame.pc._2)) = ref
+        //        ref
 
 
         // In fact, the JVM does not directly invoke the bootstrap method.
@@ -353,7 +362,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         linkCallSiteArgs.append(appendixResult.address() /*appendixResult*/)
         println("invoking in...")
         invoke0(mRef, linkCallSiteArgs.arr)
-//        pprint.log(vm.obj(returnedVal(0)).cls)
+        //        pprint.log(vm.obj(returnedVal(0)).cls)
         ???
       /*
       static MemberName linkCallSite(Object callerObj,
@@ -364,10 +373,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
        */
 
     }
-//    val methodHandleAddress = vm.obj(indyCallsite.apply()).apply("target")
-//    pprint.log(methodHandleAddress)
-//    pprint.log(vm.obj(methodHandleAddress).cls.tpe.javaName)
-//    pprint.log(vm.obj(methodHandleAddress).cls.methods.map(_.toString), height=9999)
+    //    val methodHandleAddress = vm.obj(indyCallsite.apply()).apply("target")
+    //    pprint.log(methodHandleAddress)
+    //    pprint.log(vm.obj(methodHandleAddress).cls.tpe.javaName)
+    //    pprint.log(vm.obj(methodHandleAddress).cls.methods.map(_.toString), height=9999)
     ???
   }
 
@@ -413,32 +422,34 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     "linkToInterface"
   )
 
-  private def invokeVirtual(target: Int, sources: Agg[Int], clsIndex: Int, sig: Sig, mIndex: Int) = {
+  private def invokeHandle(target: Int, sources: Agg[Int], clsIndex: Int, sig: Sig, mIndex: Int) = {
 
     val argZero = frame.locals(sources(0))
-    if (vm.ClsTable.clsIndex(clsIndex).tpe == imm.Type.Cls("java.lang.invoke.MethodHandle")
-      && polymorphicSignatureMethods(sig.name)){
-      vm.obj(argZero).cls.tpe match{
-        case imm.Type.Cls("java.lang.invoke.DirectMethodHandle") =>
-//          pprint.log(vm.obj(argZero).apply("member"))
-          val method = vm.methodHandleMap.find(_._1.apply() == vm.obj(argZero).apply("member")).map(_._2).get
-          val adapted =
-            if (method.sig == sig) argZero
-            else vm.alloc{implicit r =>
-              val asTypeMethodRef = vm.ClsTable("java.lang.invoke.MethodHandle").methods.find(_.sig.name == "asType").get
-              val args = new ArrayFiller(asTypeMethodRef.localsSize)
-              args.append(argZero)
-              args.append(getMethodType(sig.desc))
-//              ColorLogger.pprinter.log(args.arr)
-              invoke0(asTypeMethodRef, args.arr)
-              returnedVal(0)
-            }
-//          pprint.log(method.sig)
-//          pprint.log(sig)
+    vm.obj(argZero).cls.tpe match {
+      case imm.Type.Cls("java.lang.invoke.DirectMethodHandle") =>
+        //          pprint.log(vm.obj(argZero).apply("member"))
+        val method = vm.methodHandleMap.find(_._1.apply() == vm.obj(argZero).apply("member")).map(_._2).get
+        val adapted =
+          if (method.sig == sig) argZero
+          else vm.alloc { implicit r =>
+            val asTypeMethodRef = vm.ClsTable("java.lang.invoke.MethodHandle").methods.find(_.sig.name == "asType").get
+            val args = new ArrayFiller(asTypeMethodRef.localsSize)
+            args.append(argZero)
+            args.append(getMethodType(sig.desc))
+            //              ColorLogger.pprinter.log(args.arr)
+            invoke0(asTypeMethodRef, args.arr)
+            returnedVal(0)
+          }
+        //          pprint.log(method.sig)
+        //          pprint.log(sig)
 
-          adapted
-      }
-    }else invokeBase(
+        adapted
+    }
+  }
+
+  private def invokeVirtual(target: Int, sources: Agg[Int], clsIndex: Int, sig: Sig, mIndex: Int) = {
+    val argZero = frame.locals(sources(0))
+    invokeBase(
       sources,
       target,
       mRef =
