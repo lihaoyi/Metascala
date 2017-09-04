@@ -433,8 +433,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
               invoke0(asTypeMethodRef, args.arr)
               returnedVal(0)
             }
-          pprint.log(method.sig)
-          pprint.log(sig)
+//          pprint.log(method.sig)
+//          pprint.log(sig)
           method
       }
     }else invokeBase(
@@ -443,7 +443,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
       mRef =
         if (argZero == 0) null
         else if (mIndex == -1) {
-          vm.obj(argZero).cls.vTableMap(sig)
+          vm.obj(argZero).cls.lookupInterfaceMethod(sig)
         } else {
           val cls =
             if (vm.isObj(argZero)) vm.obj(argZero).cls

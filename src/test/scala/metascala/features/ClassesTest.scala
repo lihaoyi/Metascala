@@ -47,8 +47,8 @@ class ClassesTest extends FreeSpec {
 
       l.sum
     }
-
   }
+
   "inheritance" - {
     val tester = new Tester("metascala.features.classes.Inheritance")
     "implement" in tester.run("implement", 10)
@@ -58,6 +58,9 @@ class ClassesTest extends FreeSpec {
     "superMethod" in tester.run("superMethod")
     "staticInheritance" in tester.run("staticInheritance")
     "staticInheritanceMethod" in tester.run("staticInheritanceMethod")
+    "interfaceDefault" in tester.run("interfaceDefault", 19)
+    "indirectInterfaceDefault" in tester.run("indirectInterfaceDefault", 19)
+    "overridenDefault" in tester.run("overridenDefault", 19)
   }
 }
 

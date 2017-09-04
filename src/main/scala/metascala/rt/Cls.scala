@@ -110,13 +110,23 @@ class Cls(val tpe: imm.Type.Cls,
    * A hash map of the virtual function table, used for quick lookup
    * by method signature
    */
-  lazy val vTableMap0 = vTable.map(m => m.sig -> m).toMap
-  def vTableMap(sig: imm.Sig) = {
-    vTableMap0.getOrElse(
+  lazy val interfaceMethodMap: Map[imm.Sig, rt.Method] = {
+    val init = mutable.Map(vTable.map(m => m.sig -> m):_*)
+    for (interface <- interfaces){
+      for((sig, impl) <- interface.interfaceMethodMap){
+        if (!init.contains(sig)){
+          init(sig) = impl
+        }
+      }
+    }
+    init.toMap
+  }
+  def lookupInterfaceMethod(sig: imm.Sig) = {
+    interfaceMethodMap.getOrElse(
       sig,
       throw new Exception(
         "Unable to find signature [" + sig.toString + "] in class " + tpe.javaName + "\n" +
-        "available signatures:\n    " + vTableMap0.keysIterator.mkString("\n    ")
+        "available signatures:\n    " + interfaceMethodMap.keysIterator.mkString("\n    ")
       )
     )
   }

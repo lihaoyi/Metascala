@@ -193,11 +193,11 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
 
   }
 
-  val javaLangAccessCall = ClsTable("java.lang.System")
-    .method("setJavaLangAccess", imm.Desc(Agg.empty, imm.Type.Prim.V))
-    .get
-
-  threads(0).invoke(javaLangAccessCall, new Array[Int](javaLangAccessCall.localsSize))
+//  val javaLangAccessCall = ClsTable("java.lang.System")
+//    .method("setJavaLangAccess", imm.Desc(Agg.empty, imm.Type.Prim.V))
+//    .get
+//
+//  threads(0).invoke(javaLangAccessCall, new Array[Int](javaLangAccessCall.localsSize))
 
   def check(s: imm.Type, t: imm.Type): Boolean = {
 

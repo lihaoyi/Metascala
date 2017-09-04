@@ -5,6 +5,18 @@ public class Inheritance {
         Baas b = new Sheep();
         return b.baa(n);
     }
+    public static int interfaceDefault(int n){
+        Baas b = new Sheep();
+        return b.defaultInherited(n);
+    }
+    public static int overridenDefault(int n){
+        Baas b = new Sheep();
+        return b.overridenDefault(n);
+    }
+    public static int indirectInterfaceDefault(int n){
+        Baas b = new Sheep();
+        return b.indirectDefaultInherited(  n);
+    }
     public static String abstractClass(){
         Car toyota = new Toyota();
         return toyota.vroom();
@@ -71,7 +83,23 @@ class Sheep implements Baas{
         return s;
     }
 }
-interface Baas{
+interface Baas0 {
+    default int indirectDefaultInherited(int n){
+        return n + 13;
+    }
+    default int overridenDefault(int n){
+        return n + 1;
+    }
+
+}
+interface Baas extends Baas0{
+    default int defaultInherited(int n){
+        return n + 1337;
+    }
+
+    default int overridenDefault(int n){
+        return n + 2;
+    }
     public String baa(int n);
 }
 class Toyota extends Car{
