@@ -241,7 +241,8 @@ object DefaultBindings extends Bindings{
     native("java.lang.Class", "isInterface()Z"){(vt, arg) =>
 
       val clsObj = vt.obj(arg())
-      vt.ClsTable(vt.toRealObj[String](clsObj("name"))).isInterface
+      val name = vt.toRealObj[String](clsObj("name"))
+      !Prim.allJava.contains(name) && vt.ClsTable(name).isInterface
     },
     native("java.lang.Class", "isPrimitive()Z"){(vt, arg) =>
 
@@ -319,6 +320,21 @@ object DefaultBindings extends Bindings{
       // do nothing
     },
     native("java.lang.invoke.MethodHandleNatives", "registerNatives()V").static {(vt, arg) =>},
+    native("java.lang.invoke.MethodHandleNatives", "staticFieldOffset(Ljava/lang/invoke/MemberName;)J").static.func(I, J) {
+      (vt, memberName) =>
+        val cls = vt.obj(memberName).apply("clazz")
+        val name = vt.toRealObj[String](vt.obj(memberName).apply("name"))
+        val typeObj = vt.typeObjCache.find(_._2.apply() == cls).map(_._1).get
+        vt.ClsTable(typeObj.asInstanceOf[imm.Type.Cls]).staticList.indexWhere(_.name == name)
+    },
+    native("java.lang.invoke.MethodHandleNatives", "staticFieldBase(Ljava/lang/invoke/MemberName;)Ljava/lang/Object;").static.func(I, J) {
+      (vt, memberName) =>
+        val cls = vt.obj(memberName).apply("clazz")
+        val typeObj = vt.typeObjCache.find(_._2.apply() == cls).map(_._1).get
+        val rtCls = vt.ClsTable(typeObj.asInstanceOf[imm.Type.Cls])
+        vt.checkInitialized(rtCls)
+        rtCls.statics.apply()
+    },
     native(
       "java.lang.invoke.MethodHandleNatives",
       "getMembers(Ljava/lang/Class;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Class;I[Ljava/lang/invoke/MemberName;)I"
@@ -516,9 +532,9 @@ object DefaultBindings extends Bindings{
 
 //            pprint.log(resolved)
 
-          case MHConstants.REF_getField | MHConstants.REF_putField |
-               MHConstants.REF_getStatic | MHConstants.REF_putStatic =>
-
+          case MHConstants.REF_getField | MHConstants.REF_putField =>
+          case MHConstants.REF_getStatic | MHConstants.REF_putStatic =>
+            vt.obj(memberName)("flags") |= MHConstants.ACC_STATIC
 //            pprint.log(vt.obj(vt.obj(memberName).apply("type")).cls)
 //            pprint.log(vt.obj(vt.obj(memberName).apply("type")).apply("rtype"))
 //            pprint.log(vt.obj(vt.obj(memberName).apply("type")).apply("ptypes"))

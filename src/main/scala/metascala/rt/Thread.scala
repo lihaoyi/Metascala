@@ -422,10 +422,91 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     "linkToInterface"
   )
 
+  def boxIt(tpe: imm.Type.Prim[_], reader: () => Int)(implicit r: Allocator) = {
+    import imm.Type.Prim._
+    tpe match{
+      case Z => r.newObj("java.lang.Boolean", "value" -> new Ref.Raw(if (Z.read(reader)) 1 else 0)).address
+      case B => r.newObj("java.lang.Byte", "value" -> new Ref.Raw(reader())).address
+      case S => r.newObj("java.lang.Short", "value" -> new Ref.Raw(reader())).address
+      case C => r.newObj("java.lang.Character", "value" -> new Ref.Raw(reader())).address
+      case I => r.newObj("java.lang.Integer", "value" -> new Ref.Raw(reader())).address
+      case F => r.newObj("java.lang.Float", "value" -> new Ref.Raw(reader())).address
+      case J =>
+        val obj = r.newObj("java.lang.Long").address
+        vm.obj(obj()).members(0) = reader()
+        vm.obj(obj()).members(1) = reader()
+        obj
+      case D =>
+        val obj = r.newObj("java.lang.Double").address
+        vm.obj(obj()).members(0) = reader()
+        vm.obj(obj()).members(1) = reader()
+        obj
+    }
+  }
   private def invokeHandle(target: Int, sources: Agg[Int], clsIndex: Int, sig: Sig, mIndex: Int) = {
 
     val argZero = frame.locals(sources(0))
     vm.obj(argZero).cls.tpe match {
+      case imm.Type.Cls("java.lang.invoke.DirectMethodHandle$StaticAccessor") =>
+        val obj = vm.obj(argZero)
+        val fieldTypeAddress = obj.apply("fieldType")
+        val fieldType = vm.typeObjCache.find(_._2.apply() == fieldTypeAddress).get._1
+
+        val name = Virtualizer.toRealObj[String](vm.obj(obj.apply("member")).apply("name"))(bindingsInterface, implicitly)
+        val ownerTypeObj = vm.obj(obj.apply("member")).apply("clazz")
+        val ownerType = vm.typeObjCache.find(_._2.apply() == ownerTypeObj).get._1
+        val statics = vm.arr(vm.ClsTable(ownerType.asInstanceOf[imm.Type.Cls]).statics())
+        val offset = vm.ClsTable(ownerType.asInstanceOf[imm.Type.Cls]).staticList.indexWhere(_.name == name)
+
+        sources.length match{
+          case 1 => // getter
+            vm.alloc { implicit r =>
+              val boxed = fieldType match{
+                case p: imm.Type.Prim[_] =>
+                  boxIt(p, {
+                    var i = 0
+                    () => {
+                      val res = statics(offset + i)
+                      i += 1
+                      res
+                    }
+                  }).apply()
+                case _ =>
+                  statics(offset)
+              }
+              frame.locals(target) = boxed
+            }
+
+          case 2 => // setter
+            (fieldType, sig.desc.args(0)) match{
+              case (primField: imm.Type.Prim[_], boxedArg: imm.Type.Ref) =>
+                statics(offset) = vm.obj(frame.locals(sources(1))).members(0)
+                if (primField.size == 2){
+                  statics(offset + 1) = vm.obj(frame.locals(sources(1))).members(1)
+                }
+              case (boxedField: imm.Type.Ref, primArg: imm.Type.Prim[_]) =>
+                statics(offset) = vm.alloc { implicit r =>
+                  boxIt(primArg, {
+                    var i = sources(1)
+                    () => {
+                      val res = frame.locals(offset + i)
+                      i += 1
+                      res
+                    }
+                  }).apply()
+                }
+              case (boxedField: imm.Type.Ref, boxedArg: imm.Type.Ref) =>
+                statics(offset) = frame.locals(sources(1))
+              case (primField: imm.Type.Prim[_], primArg: imm.Type.Prim[_]) =>
+                statics(offset) = frame.locals(sources(1))
+                if (primField.size == 2){
+                  statics(offset + 1) = frame.locals(sources(1) + 1)
+                }
+            }
+        }
+
+        advancePc()
+
       case imm.Type.Cls("java.lang.invoke.DirectMethodHandle") =>
         //          pprint.log(vm.obj(argZero).apply("member"))
         val method = vm.methodHandleMap.find(_._1.apply() == vm.obj(argZero).apply("member")).map(_._2).get
