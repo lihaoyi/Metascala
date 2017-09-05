@@ -85,11 +85,13 @@ object SingleInsnSSAConverter {
         else runtimeCls.vTable.indexWhere(_.sig == sig)
 
       val clsIndex = vm.ClsTable.clsIndex.indexOf(runtimeCls)
-      if (insn.owner == "java/lang/invoke/MethodHandle" && (sig.name == "invoke" || sig.name == "invokeExact")){
-        append(Insn.InvokeHandle(target, Agg.from(args), clsIndex, sig, mIndex))
+      if (insn.owner == "java/lang/invoke/MethodHandle" &&
+        (sig.name == "invoke" || sig.name == "invokeExact" || sig.name == "invokeBasic")){
+        append(Insn.InvokeHandle(target, Agg.from(args), sig))
+      }else if (indexed && mIndex != -1){
+        append(Insn.InvokeVirtual(target, Agg.from(args), clsIndex, mIndex))
       }else{
-
-        append(Insn.InvokeVirtual(target, Agg.from(args), clsIndex, sig, mIndex))
+        append(Insn.InvokeInterface(target, Agg.from(args), sig))
       }
     }
 

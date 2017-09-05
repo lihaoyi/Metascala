@@ -58,8 +58,9 @@ object Insn{
   case class Ldc(dest: Int, value: Int) extends Insn
 
   case class InvokeStatic(dest: Int, srcs: Agg[Int], clsIndex: Int, methodIndex: Int, special: Boolean) extends Invoke
-  case class InvokeVirtual(dest: Int, srcs: Agg[Int], clsIndex: Int, sig: imm.Sig, methodIndex: Int) extends Invoke
-  case class InvokeHandle(dest: Int, srcs: Agg[Int], clsIndex: Int, sig: imm.Sig, methodIndex: Int) extends Invoke
+  case class InvokeVirtual(dest: Int, srcs: Agg[Int], clsIndex: Int, methodIndex: Int) extends Invoke
+  case class InvokeInterface(dest: Int, srcs: Agg[Int], sig: imm.Sig) extends Invoke
+  case class InvokeHandle(dest: Int, srcs: Agg[Int], sig: imm.Sig) extends Invoke
   case class InvokeDynamic(target: Int,
                            srcs: Agg[Int],
                            name: String,

@@ -182,11 +182,14 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
       case InvokeStatic(target, sources, clsIndex, mIndex, special) =>
         invokeStatic(target, sources, clsIndex, mIndex, special)
 
-      case InvokeVirtual(target, sources, clsIndex, sig, mIndex) =>
-        invokeVirtual(target, sources, clsIndex, sig, mIndex)
+      case InvokeVirtual(target, sources, clsIndex, mIndex) =>
+        invokeVirtual(target, sources, clsIndex, mIndex)
 
-      case InvokeHandle(target, sources, clsIndex, sig, mIndex) =>
-        invokeHandle(target, sources, clsIndex, sig, mIndex)
+      case InvokeInterface(target, sources, sig) =>
+        invokeInterface(target, sources, sig)
+
+      case InvokeHandle(target, sources, sig) =>
+        invokeHandle(target, sources, sig)
 
 
       case InvokeDynamic(target, srcs, name, desc0, bsTag, bsOwner, bsName, bsDesc0, bsArgs) =>
@@ -443,167 +446,182 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         obj
     }
   }
-  private def invokeHandle(target: Int, sources: Agg[Int], clsIndex: Int, sig: Sig, mIndex: Int) = {
-
+  private def invokeHandle(target: Int, sources: Agg[Int], sig: Sig) = {
     val argZero = frame.locals(sources(0))
-    vm.obj(argZero).cls.tpe match {
-      case imm.Type.Cls("java.lang.invoke.DirectMethodHandle$Accessor") =>
-        val obj = vm.obj(argZero)
-        val fieldTypeAddress = obj.apply("fieldType")
-        val fieldType = vm.typeObjCache.find(_._2.apply() == fieldTypeAddress).get._1
-        val offset = obj.apply("fieldOffset")
-        sources.length match{
-          case 2 => // getter
-            val targetObj = vm.obj(frame.locals(sources(1)))
-            vm.alloc { implicit r =>
-              frame.locals(target) = fieldType match {
-                case p: imm.Type.Prim[_] =>
-                  boxIt(p, {
-                    var i = 0
-                    () => {
-                      val res = targetObj.members(offset + i)
-                      i += 1
-                      res
-                    }
-                  }).apply()
-                case _ =>
-                  targetObj.members(offset)
+    if (argZero == 0)throwExWithTrace("java.lang.NullPointerException", "null")
+    else{
+
+
+      vm.obj(argZero).cls.tpe match {
+        case imm.Type.Cls("java.lang.invoke.DirectMethodHandle$Accessor") =>
+          val obj = vm.obj(argZero)
+          val fieldTypeAddress = obj.apply("fieldType")
+          val fieldType = vm.typeObjCache.find(_._2.apply() == fieldTypeAddress).get._1
+          val offset = obj.apply("fieldOffset")
+          sources.length match{
+            case 2 => // getter
+              val targetObj = vm.obj(frame.locals(sources(1)))
+              vm.alloc { implicit r =>
+                frame.locals(target) = fieldType match {
+                  case p: imm.Type.Prim[_] =>
+                    boxIt(p, {
+                      var i = 0
+                      () => {
+                        val res = targetObj.members(offset + i)
+                        i += 1
+                        res
+                      }
+                    }).apply()
+                  case _ =>
+                    targetObj.members(offset)
+                }
               }
-            }
-          case 3 => // setter
-            val targetObj = vm.obj(frame.locals(sources(1)))
-            val value = frame.locals(sources(2))
-            (fieldType, sig.desc.args(1)) match{
-              case (primField: imm.Type.Prim[_], boxedArg: imm.Type.Ref) =>
-                targetObj.members(offset) = vm.obj(value).members(0)
+            case 3 => // setter
+              val targetObj = vm.obj(frame.locals(sources(1)))
+              val value = frame.locals(sources(2))
+              (fieldType, sig.desc.args(1)) match{
+                case (primField: imm.Type.Prim[_], boxedArg: imm.Type.Ref) =>
+                  targetObj.members(offset) = vm.obj(value).members(0)
 
-                if (primField.size == 2){
-                  targetObj.members(offset + 1) = vm.obj(value).members(1)
-                }
-              case (boxedField: imm.Type.Ref, primArg: imm.Type.Prim[_]) =>
-                targetObj.members(offset) = vm.alloc { implicit r =>
-                  boxIt(primArg, {
-                    var i = sources(2)
-                    () => {
-                      val res = frame.locals(i)
-                      i += 1
-                      res
-                    }
-                  }).apply()
-                }
-              case (boxedField: imm.Type.Ref, boxedArg: imm.Type.Ref) =>
-                targetObj.members(offset) = value
-              case (primField: imm.Type.Prim[_], primArg: imm.Type.Prim[_]) =>
-                Util.blit(
-                  frame.locals,
-                  sources(2),
-                  targetObj.members,
-                  offset,
-                  primField.size,
-                  false
-                )
+                  if (primField.size == 2){
+                    targetObj.members(offset + 1) = vm.obj(value).members(1)
+                  }
+                case (boxedField: imm.Type.Ref, primArg: imm.Type.Prim[_]) =>
+                  targetObj.members(offset) = vm.alloc { implicit r =>
+                    boxIt(primArg, {
+                      var i = sources(2)
+                      () => {
+                        val res = frame.locals(i)
+                        i += 1
+                        res
+                      }
+                    }).apply()
+                  }
+                case (boxedField: imm.Type.Ref, boxedArg: imm.Type.Ref) =>
+                  targetObj.members(offset) = value
+                case (primField: imm.Type.Prim[_], primArg: imm.Type.Prim[_]) =>
+                  Util.blit(
+                    frame.locals,
+                    sources(2),
+                    targetObj.members,
+                    offset,
+                    primField.size,
+                    false
+                  )
 
-            }
-        }
-
-        advancePc()
-
-      case imm.Type.Cls("java.lang.invoke.DirectMethodHandle$StaticAccessor") =>
-        val obj = vm.obj(argZero)
-        val fieldTypeAddress = obj.apply("fieldType")
-        val fieldType = vm.typeObjCache.find(_._2.apply() == fieldTypeAddress).get._1
-
-        val name = Virtualizer.toRealObj[String](vm.obj(obj.apply("member")).apply("name"))(bindingsInterface, implicitly)
-        val ownerTypeObj = vm.obj(obj.apply("member")).apply("clazz")
-        val ownerType = vm.typeObjCache.find(_._2.apply() == ownerTypeObj).get._1
-        val statics = vm.arr(vm.ClsTable(ownerType.asInstanceOf[imm.Type.Cls]).statics())
-        val offset = vm.ClsTable(ownerType.asInstanceOf[imm.Type.Cls]).staticList.indexWhere(_.name == name)
-
-        sources.length match{
-          case 1 => // getter
-            vm.alloc { implicit r =>
-              val boxed = fieldType match{
-                case p: imm.Type.Prim[_] =>
-                  boxIt(p, {
-                    var i = 0
-                    () => {
-                      val res = statics(offset + i)
-                      i += 1
-                      res
-                    }
-                  }).apply()
-                case _ =>
-                  statics(offset)
               }
-              frame.locals(target) = boxed
-            }
-
-          case 2 => // setter
-            (fieldType, sig.desc.args(0)) match{
-              case (primField: imm.Type.Prim[_], boxedArg: imm.Type.Ref) =>
-                statics(offset) = vm.obj(frame.locals(sources(1))).members(0)
-                if (primField.size == 2){
-                  statics(offset + 1) = vm.obj(frame.locals(sources(1))).members(1)
-                }
-              case (boxedField: imm.Type.Ref, primArg: imm.Type.Prim[_]) =>
-                statics(offset) = vm.alloc { implicit r =>
-                  boxIt(primArg, {
-                    var i = sources(1)
-                    () => {
-                      val res = frame.locals(offset + i)
-                      i += 1
-                      res
-                    }
-                  }).apply()
-                }
-              case (boxedField: imm.Type.Ref, boxedArg: imm.Type.Ref) =>
-                statics(offset) = frame.locals(sources(1))
-              case (primField: imm.Type.Prim[_], primArg: imm.Type.Prim[_]) =>
-                statics(offset) = frame.locals(sources(1))
-                if (primField.size == 2){
-                  statics(offset + 1) = frame.locals(sources(1) + 1)
-                }
-            }
-        }
-
-        advancePc()
-
-      case imm.Type.Cls("java.lang.invoke.DirectMethodHandle") =>
-        //          pprint.log(vm.obj(argZero).apply("member"))
-        val method = vm.methodHandleMap.find(_._1.apply() == vm.obj(argZero).apply("member")).map(_._2).get
-        val adapted =
-          if (method.sig == sig) argZero
-          else vm.alloc { implicit r =>
-            val asTypeMethodRef = vm.ClsTable("java.lang.invoke.MethodHandle").methods.find(_.sig.name == "asType").get
-            val args = new ArrayFiller(asTypeMethodRef.localsSize)
-            args.append(argZero)
-            args.append(getMethodType(sig.desc))
-            //              ColorLogger.pprinter.log(args.arr)
-            invoke0(asTypeMethodRef, args.arr)
-            returnedVal(0)
           }
-        //          pprint.log(method.sig)
-        //          pprint.log(sig)
 
-        adapted
+          advancePc()
+
+        case imm.Type.Cls("java.lang.invoke.DirectMethodHandle$StaticAccessor") =>
+          val obj = vm.obj(argZero)
+          val fieldTypeAddress = obj.apply("fieldType")
+          val fieldType = vm.typeObjCache.find(_._2.apply() == fieldTypeAddress).get._1
+
+          val name = Virtualizer.toRealObj[String](vm.obj(obj.apply("member")).apply("name"))(bindingsInterface, implicitly)
+          val ownerTypeObj = vm.obj(obj.apply("member")).apply("clazz")
+          val ownerType = vm.typeObjCache.find(_._2.apply() == ownerTypeObj).get._1
+          val statics = vm.arr(vm.ClsTable(ownerType.asInstanceOf[imm.Type.Cls]).statics())
+          val offset = vm.ClsTable(ownerType.asInstanceOf[imm.Type.Cls]).staticList.indexWhere(_.name == name)
+
+          sources.length match{
+            case 1 => // getter
+              vm.alloc { implicit r =>
+                val boxed = fieldType match{
+                  case p: imm.Type.Prim[_] =>
+                    boxIt(p, {
+                      var i = 0
+                      () => {
+                        val res = statics(offset + i)
+                        i += 1
+                        res
+                      }
+                    }).apply()
+                  case _ =>
+                    statics(offset)
+                }
+                frame.locals(target) = boxed
+              }
+
+            case 2 => // setter
+              (fieldType, sig.desc.args(0)) match{
+                case (primField: imm.Type.Prim[_], boxedArg: imm.Type.Ref) =>
+                  statics(offset) = vm.obj(frame.locals(sources(1))).members(0)
+                  if (primField.size == 2){
+                    statics(offset + 1) = vm.obj(frame.locals(sources(1))).members(1)
+                  }
+                case (boxedField: imm.Type.Ref, primArg: imm.Type.Prim[_]) =>
+                  statics(offset) = vm.alloc { implicit r =>
+                    boxIt(primArg, {
+                      var i = sources(1)
+                      () => {
+                        val res = frame.locals(offset + i)
+                        i += 1
+                        res
+                      }
+                    }).apply()
+                  }
+                case (boxedField: imm.Type.Ref, boxedArg: imm.Type.Ref) =>
+                  statics(offset) = frame.locals(sources(1))
+                case (primField: imm.Type.Prim[_], primArg: imm.Type.Prim[_]) =>
+                  statics(offset) = frame.locals(sources(1))
+                  if (primField.size == 2){
+                    statics(offset + 1) = frame.locals(sources(1) + 1)
+                  }
+              }
+          }
+
+          advancePc()
+
+        case imm.Type.Cls("java.lang.invoke.DirectMethodHandle") =>
+          //          pprint.log(vm.obj(argZero).apply("member"))
+          val method = vm.methodHandleMap.find(_._1.apply() == vm.obj(argZero).apply("member")).map(_._2).get
+          val adapted =
+            if (method.sig == sig) argZero
+            else vm.alloc { implicit r =>
+              val asTypeMethodRef = vm.ClsTable("java.lang.invoke.MethodHandle").methods.find(_.sig.name == "asType").get
+              val args = new ArrayFiller(asTypeMethodRef.localsSize)
+              args.append(argZero)
+              args.append(getMethodType(sig.desc))
+              //              ColorLogger.pprinter.log(args.arr)
+              invoke0(asTypeMethodRef, args.arr)
+              returnedVal(0)
+            }
+          //          pprint.log(method.sig)
+          //          pprint.log(sig)
+
+          val adaptedMethod = vm.methodHandleMap.find(_._1() == vm.obj(adapted).apply("member")).get._2
+          invokeBase(sources, target, adaptedMethod, !adaptedMethod.static)
+      }
     }
   }
 
-  private def invokeVirtual(target: Int, sources: Agg[Int], clsIndex: Int, sig: Sig, mIndex: Int) = {
+  private def invokeInterface(target: Int, sources: Agg[Int], sig: Sig) = {
     val argZero = frame.locals(sources(0))
-    invokeBase(
+    if (argZero == 0)throwExWithTrace("java.lang.NullPointerException", "null")
+    else invokeBase(
       sources,
       target,
-      mRef =
-        if (argZero == 0) null
-        else if (mIndex == -1) {
-          vm.obj(argZero).cls.lookupInterfaceMethod(sig)
-        } else {
-          val cls =
-            if (vm.isObj(argZero)) vm.obj(argZero).cls
-            else vm.ClsTable.clsIndex(clsIndex)
-          cls.vTable(mIndex)
-        },
+      mRef = vm.obj(argZero).cls.lookupInterfaceMethod(sig),
+      thisCell = true
+    )
+  }
+
+  private def invokeVirtual(target: Int, sources: Agg[Int], clsIndex: Int, mIndex: Int) = {
+    val argZero = frame.locals(sources(0))
+    if (argZero == 0)throwExWithTrace("java.lang.NullPointerException", "null")
+    else invokeBase(
+      sources,
+      target,
+      mRef = {
+        val cls =
+          if (vm.isObj(argZero)) vm.obj(argZero).cls
+          else if (vm.isArr(argZero)) vm.ClsTable("java.lang.Object")
+          else ???
+
+        cls.vTable(mIndex)
+      },
       thisCell = true
     )
   }
@@ -706,30 +724,27 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
                  mRef: rt.Method,
                  thisCell: Boolean) = {
 
-    if (thisCell && frame.locals(sources(0)) == 0){
-      throwExWithTrace("java.lang.NullPointerException", "null")
-    }else {
-      val args = new ArrayFiller(mRef.localsSize)
 
-      val thisCellOffset = if (thisCell) {
-        args.append(frame.locals(sources(0)))
-        1
-      } else {
-        0
-      }
+    val args = new ArrayFiller(mRef.localsSize)
 
-      val mArgs = mRef.sig.desc.args
-      for (i <- 0 until mArgs.length) {
-        val sourceOffset = sources(i + thisCellOffset)
-        args.append(frame.locals(sourceOffset))
-        mArgs(i).size match {
-          case 1 =>
-          case 2 => args.append(frame.locals(sourceOffset + 1))
-        }
-      }
-
-      prepInvoke(mRef, args.arr, Util.writer(frame.locals, target), threadStack.length)
+    val thisCellOffset = if (thisCell) {
+      args.append(frame.locals(sources(0)))
+      1
+    } else {
+      0
     }
+
+    val mArgs = mRef.sig.desc.args
+    for (i <- 0 until mArgs.length) {
+      val sourceOffset = sources(i + thisCellOffset)
+      args.append(frame.locals(sourceOffset))
+      mArgs(i).size match {
+        case 1 =>
+        case 2 => args.append(frame.locals(sourceOffset + 1))
+      }
+    }
+
+    prepInvoke(mRef, args.arr, Util.writer(frame.locals, target), threadStack.length)
   }
 
   def getPutField(src: Int, obj: Int, index: Int, prim: Type, get: Boolean) = {
