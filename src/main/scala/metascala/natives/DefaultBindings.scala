@@ -702,7 +702,12 @@ object DefaultBindings extends Bindings{
       val bytes = vt.heap.memory.slice(start, start + bytesArray.length).map(_.toByte)
       ammonite.ops.write.over(ammonite.ops.pwd/"test.class", bytes)
       val name = "AnonymousClass" + math.abs(scala.util.Random.nextInt())
-      val cls = vt.clsTable.calcFromBytes(imm.Type.Cls(name), bytes)
+      val cpMap = vt.arr(cpPatches0)
+        .zipWithIndex
+        .collect{case (addr, index) if addr != 0 => (index, addr)}
+        .toMap
+
+      val cls = vt.clsTable.calcFromBytes(imm.Type.Cls(name), bytes, cpMap)
 
       // We need to apply the constant pool patches to the parsed classfiles
       //
@@ -714,7 +719,6 @@ object DefaultBindings extends Bindings{
         for ((p, i) <- vt.arr(cpPatches0).zipWithIndex) {
           if (p != 0) println("patching " + i + " to " + vt.obj(p).cls)
         }
-        ???
       }
 
       vt.typeObjCache(name)()

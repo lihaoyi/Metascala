@@ -16,16 +16,23 @@ import java.io.FileInputStream
 import java.io.StringWriter
 import java.io.PrintWriter
 import java.util
+
+import metascala.rt.PatchedConstantBox
 import org.objectweb.asm._
 import org.objectweb.asm.tree._
 import org.objectweb.asm.util._
 
-
-
 import scala.reflect.ClassTag
 
 class AbstractFunnyInterpreter(mergeLeft: Boolean) extends Interpreter[Box](ASM4){
-  val internal = new BasicInterpreter()
+  val internal = new BasicInterpreter(){
+    override def newOperation(insn: AbstractInsnNode): BasicValue = {
+      if (insn.getOpcode == Opcodes.LDC &&
+        insn.asInstanceOf[LdcInsnNode].cst.isInstanceOf[PatchedConstantBox]){
+          return BasicValue.REFERENCE_VALUE
+      }else return super.newOperation(insn)
+    }
+  }
   type AIN = AbstractInsnNode
 
   def newValue(tpe: org.objectweb.asm.Type) =

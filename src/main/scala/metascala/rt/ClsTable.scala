@@ -2,8 +2,8 @@ package metascala.rt
 
 import metascala.imm.{Sig, Type}
 import metascala.opcodes.MethodSSAConverter
-import metascala.{imm, opcodes, rt}
-import metascala.util.NullSafe
+import metascala.{imm, opcodes, rt, util}
+import metascala.util.{NullSafe, Ref, WritableRef}
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
 
@@ -12,6 +12,9 @@ import scala.collection.mutable
 object ClsTable{
   case class ClsNotFound(tpe: imm.Type.Cls) extends Exception("Can't find " + tpe.javaName)
 }
+
+case class PatchedConstantBox(addr: WritableRef)
+
 /**
   * Cache of all the classes loaded so far within the Metascala VM.
   */
@@ -33,22 +36,30 @@ class ClsTable(fileLoader: String => Option[Array[Byte]])
     val fileName = t.javaName.replace('.', '/') + ".class"
     val input = fileLoader(fileName).getOrElse(throw ClsTable.ClsNotFound(t))
 
-    calcFromBytes0(input)
+    calcFromBytes0(input, null)
   }
 
-  def calcFromBytes(x: imm.Type.Cls, input: Array[Byte]): rt.Cls = {
+  def calcFromBytes(x: imm.Type.Cls, input: Array[Byte], cpPatches: Map[Int, Int] = null): rt.Cls = {
     cache.get(x) match{
       case Some(y) => y
       case None =>
-        val newY = calcFromBytes0(input)
+        val newY = calcFromBytes0(input, cpPatches)
         cache(x) = newY
         clsIndex.append(newY)
         newY
     }
   }
-  def calcFromBytes0(input: Array[Byte]): rt.Cls = {
+  def calcFromBytes0(input: Array[Byte], cpPatches: Map[Int, Int]): rt.Cls = {
     val classNode = new ClassNode()
-    val cr = new ClassReader(input)
+    val cr = new ClassReader(input){
+      override def readConst(item: Int, buf: Array[Char]): AnyRef ={
+        if (cpPatches != null && cpPatches.contains(item)){
+          PatchedConstantBox(new util.Ref.UnsafeManual(cpPatches(item)))
+        }else{
+          super.readConst(item, buf)
+        }
+      }
+    }
     cr.accept(classNode, ClassReader.EXPAND_FRAMES)
 
     Option(classNode.superName).map(Type.Cls.apply).map(apply)

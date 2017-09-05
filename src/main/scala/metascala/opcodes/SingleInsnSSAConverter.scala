@@ -12,7 +12,7 @@ import scala.collection.JavaConverters._
 import org.objectweb.asm.tree.analysis._
 import org.objectweb.asm.Opcodes._
 import Insn._
-import metascala.rt.Logger
+import metascala.rt.{Logger, PatchedConstantBox}
 import metascala.util.{Agg, Ref, WritableRef}
 object SingleInsnSSAConverter {
   trait VMInterface extends rt.Obj.VMInterface{
@@ -214,6 +214,10 @@ object SingleInsnSSAConverter {
       case SIPUSH => push(insn.operand, I)
       case LDC =>
         insn.asInstanceOf[LdcInsnNode].cst match{
+          case PatchedConstantBox(addr) =>
+            val index = vm.interned.length
+            vm.interned.append(addr)
+            append(Ldc(top(nextFrame), index))
           case s: String =>
             val index = vm.interned.length
             vm.interned.append(new Ref.UnsafeManual(vm.alloc(Virtualizer.pushVirtual(s)(_)).apply(0)))

@@ -8,7 +8,7 @@ import scala.collection.mutable
 trait ClsTable0 extends rt.Arr.ClsTable with (imm.Type.Cls => rt.Cls){
   def indexOfType(tpe: imm.Type.Cls): Int = this(tpe).index
   def typeAtIndex(i: Int): imm.Type = this.clsIndex(i).tpe
-  def calcFromBytes(x: imm.Type.Cls, input: Array[Byte]): rt.Cls
+  def calcFromBytes(x: imm.Type.Cls, input: Array[Byte], cpPatches: Map[Int, Int] = null): rt.Cls
   val clsIndex: mutable.ArrayBuffer[rt.Cls]
 }
 
