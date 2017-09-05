@@ -188,7 +188,7 @@ public class InvokeDynamic {
         if (b){
             return (boolean)m.invoke(b);
         }else{
-            return (java.lang.Boolean)(m.invoke((java.lang.Boolean)b));
+            return (java.lang.Boolean)(m.invoke(b));
         }
     }
 

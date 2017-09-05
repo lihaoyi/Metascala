@@ -3,7 +3,7 @@ package rt
 
 import scala.collection.mutable
 import annotation.tailrec
-import metascala.opcodes.{BasicBlock, Box, Insn, TryCatchBlock}
+import metascala.opcodes._
 import Insn._
 import Insn.Push
 import Insn.InvokeStatic
@@ -120,6 +120,12 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     block
   }
 
+  def printType(x: Int) = {
+    if (x == 0) "null"
+    else if (vm.isObj(x)) Util.shortedJava(vm.obj(x).cls.tpe.javaName)
+    else if (vm.isArr(x)) Util.shortedJava(vm.arr(x).tpe.javaName)
+    else ???
+  }
   final def step(): Unit = try {
     //  println(frame.pc)
 
@@ -134,11 +140,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
       frame,
       node,
       block,
-      x =>
-        if (x == 0) null
-        else if (vm.isObj(x)) Util.shortedJava(vm.obj(x).cls.tpe.javaName)
-        else if (vm.isArr(x)) Util.shortedJava(vm.arr(x).tpe.javaName)
-        else ???
+      printType
     )
 
     node match {
@@ -193,8 +195,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
       case InvokeInterface(target, sources, sig) =>
         invokeInterface(target, sources, sig)
 
-      case InvokeHandle(target, sources, sig) =>
-        invokeHandle(target, sources, sig)
+      case InvokeHandle(target, sources, sig, basic) =>
+        invokeHandle(target, sources, sig, basic)
 
 
       case InvokeDynamic(target, srcs, name, desc0, bsTag, bsOwner, bsName, bsDesc0, bsArgs) =>
@@ -275,10 +277,12 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
   }
 
   def getMethodType(d: imm.Desc)(implicit r: Allocator) = {
-    val sig = imm.Sig.read(
-      "methodType(Ljava/lang/Class;[Ljava/lang/Class;)Ljava/lang/invoke/MethodType;"
-    )
-    val mRef = vm.resolveDirectRef("java.lang.invoke.MethodType", sig).get
+    val mRef = vm.resolveDirectRef(
+      "java.lang.invoke.MethodType",
+      imm.Sig.read(
+        "methodType(Ljava/lang/Class;[Ljava/lang/Class;)Ljava/lang/invoke/MethodType;"
+      )
+    ).get
 
     val args = new ArrayFiller(mRef.localsSize)
     args.append(vm.typeObjCache(d.ret).apply())
@@ -490,7 +494,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     }
   }
-  private def invokeHandle(target: Int, sources: Agg[Int], sig: Sig) = {
+  private def invokeHandle(target: Int, sources: Agg[Int], sig: Sig, basic: Boolean) = {
     val argZero = frame.locals(sources(0))
     if (argZero == 0)throwExWithTrace("java.lang.NullPointerException", "null")
     else{
@@ -569,22 +573,55 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
           //          pprint.log(vm.obj(argZero).apply("member"))
           val method = vm.methodHandleMap.find(_._1.apply() == vm.obj(argZero).apply("member")).map(_._2).get
           val adapted =
-            if (method.sig.desc == sig.desc) argZero
-            else vm.alloc { implicit r =>
-              val asTypeMethodRef = vm.ClsTable("java.lang.invoke.MethodHandle").methods.find(_.sig.name == "asType").get
+            if (basic || method.sig.desc == sig.desc) {
+              val lformVmEntry = vm.obj(vm.obj(argZero).apply("form")).apply("vmentry")
+              val vmEntryMethod = vm.methodHandleMap
+                .find(_._1.apply() == lformVmEntry)
+                .get
+                ._2
+                .asInstanceOf[ClsMethod]
+
+              method
+            } else vm.alloc { implicit r =>
+              val asTypeMethodRef = vm.ClsTable("java.lang.invoke.MethodHandle")
+                .methods
+                .find(_.sig.name == "asType")
+                .get
+
               val args = new ArrayFiller(asTypeMethodRef.localsSize)
               args.append(argZero)
               args.append(getMethodType(sig.desc))
               //              ColorLogger.pprinter.log(args.arr)
               invoke0(asTypeMethodRef, args.arr)
-              returnedVal(0)
-            }
-          //          pprint.log(method.sig)
-          //          pprint.log(sig)
+              val adapted = returnedVal(0)
+              val lformVmEntry = vm.obj(vm.obj(adapted).apply("form")).apply("vmentry")
+              val adaptedMethod = vm.methodHandleMap
+                .find(_._1.apply() == lformVmEntry)
+                .get
+                ._2
+                .asInstanceOf[ClsMethod]
 
-          val lformVmEntry = vm.obj(vm.obj(adapted).apply("form")).apply("vmentry")
-          val adaptedMethod = vm.methodHandleMap.find(_._1.apply() == lformVmEntry).get._2
-          invokeBase(sources.drop(1), target, adaptedMethod, !adaptedMethod.static)
+
+              adaptedMethod
+            }
+
+          val r = Util.reader(frame.locals, 0)
+          val localSnapshot =
+            frame.method.code.blocks(frame.pc._1).locals
+              .flatMap{
+                case LocalType.Ref =>
+                  val r0 = r()
+                  Seq(printType(r0) + "#" + r0)
+                case x => Seq(x.prettyRead(r)).padTo(x.size, "~")
+              }
+              .toList
+
+          assert(
+            adapted.sig.desc.args.length == method.sig.desc.args.length,
+            "adapted method does not have same argument count as original!\n" +
+            s"adapted: ${adapted.sig.desc.args}, original: ${method.sig.desc.args}"
+          )
+          invokeBase(sources.drop(1), target, adapted, !adapted.static)
       }
     }
   }
