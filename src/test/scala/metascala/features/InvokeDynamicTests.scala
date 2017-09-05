@@ -35,7 +35,7 @@ class InvokeDynamicTests extends FreeSpec {
 //    "findStaticMethod" in {
 //      val tester = new Tester("metascala.features.javac.InvokeDynamic")
 //      tester.run("findStaticMethod", false)
-//      tester.run("findStaticMethod", true)
+////      tester.run("findStaticMethod", true)
 //    }
   }
 }

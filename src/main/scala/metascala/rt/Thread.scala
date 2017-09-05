@@ -446,6 +446,45 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         obj
     }
   }
+  def adaptBoxiness(targetType: Type,
+                    target: mutable.Seq[Int],
+                    targetOffset: Int,
+                    sourceType: Type,
+                    source: mutable.Seq[Int],
+                    sourceOffset: Int) = {
+    val value = source(sourceOffset)
+    (targetType, sourceType) match{
+      case (primField: imm.Type.Prim[_], boxedArg: imm.Type.Ref) =>
+        target(targetOffset) = vm.obj(value).members(0)
+
+        if (primField.size == 2){
+          target(targetOffset + 1) = vm.obj(value).members(1)
+        }
+      case (boxedField: imm.Type.Ref, primArg: imm.Type.Prim[_]) =>
+        target(targetOffset) = vm.alloc { implicit r =>
+          boxIt(primArg, {
+            var i = sourceOffset
+            () => {
+              val res = source(i)
+              i += 1
+              res
+            }
+          }).apply()
+        }
+      case (boxedField: imm.Type.Ref, boxedArg: imm.Type.Ref) =>
+        target(targetOffset) = value
+      case (primField: imm.Type.Prim[_], primArg: imm.Type.Prim[_]) =>
+        Util.blit(
+          source,
+          sourceOffset,
+          target,
+          targetOffset,
+          primField.size,
+          false
+        )
+
+    }
+  }
   private def invokeHandle(target: Int, sources: Agg[Int], sig: Sig) = {
     val argZero = frame.locals(sources(0))
     if (argZero == 0)throwExWithTrace("java.lang.NullPointerException", "null")
@@ -462,54 +501,25 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
             case 2 => // getter
               val targetObj = vm.obj(frame.locals(sources(1)))
               vm.alloc { implicit r =>
-                frame.locals(target) = fieldType match {
-                  case p: imm.Type.Prim[_] =>
-                    boxIt(p, {
-                      var i = 0
-                      () => {
-                        val res = targetObj.members(offset + i)
-                        i += 1
-                        res
-                      }
-                    }).apply()
-                  case _ =>
-                    targetObj.members(offset)
-                }
+                adaptBoxiness(
+                  sig.desc.ret,
+                  frame.locals,
+                  target,
+                  fieldType,
+                  targetObj.members,
+                  offset
+                )
               }
             case 3 => // setter
               val targetObj = vm.obj(frame.locals(sources(1)))
-              val value = frame.locals(sources(2))
-              (fieldType, sig.desc.args(1)) match{
-                case (primField: imm.Type.Prim[_], boxedArg: imm.Type.Ref) =>
-                  targetObj.members(offset) = vm.obj(value).members(0)
-
-                  if (primField.size == 2){
-                    targetObj.members(offset + 1) = vm.obj(value).members(1)
-                  }
-                case (boxedField: imm.Type.Ref, primArg: imm.Type.Prim[_]) =>
-                  targetObj.members(offset) = vm.alloc { implicit r =>
-                    boxIt(primArg, {
-                      var i = sources(2)
-                      () => {
-                        val res = frame.locals(i)
-                        i += 1
-                        res
-                      }
-                    }).apply()
-                  }
-                case (boxedField: imm.Type.Ref, boxedArg: imm.Type.Ref) =>
-                  targetObj.members(offset) = value
-                case (primField: imm.Type.Prim[_], primArg: imm.Type.Prim[_]) =>
-                  Util.blit(
-                    frame.locals,
-                    sources(2),
-                    targetObj.members,
-                    offset,
-                    primField.size,
-                    false
-                  )
-
-              }
+              adaptBoxiness(
+                fieldType,
+                targetObj.members,
+                offset,
+                sig.desc.args(1),
+                frame.locals,
+                sources(2)
+              )
           }
 
           advancePc()
@@ -527,49 +537,25 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
           sources.length match{
             case 1 => // getter
-              vm.alloc { implicit r =>
-                val boxed = fieldType match{
-                  case p: imm.Type.Prim[_] =>
-                    boxIt(p, {
-                      var i = 0
-                      () => {
-                        val res = statics(offset + i)
-                        i += 1
-                        res
-                      }
-                    }).apply()
-                  case _ =>
-                    statics(offset)
-                }
-                frame.locals(target) = boxed
-              }
+              adaptBoxiness(
+                sig.desc.ret,
+                frame.locals,
+                target,
+                fieldType,
+                statics,
+                offset
+              )
+
 
             case 2 => // setter
-              (fieldType, sig.desc.args(0)) match{
-                case (primField: imm.Type.Prim[_], boxedArg: imm.Type.Ref) =>
-                  statics(offset) = vm.obj(frame.locals(sources(1))).members(0)
-                  if (primField.size == 2){
-                    statics(offset + 1) = vm.obj(frame.locals(sources(1))).members(1)
-                  }
-                case (boxedField: imm.Type.Ref, primArg: imm.Type.Prim[_]) =>
-                  statics(offset) = vm.alloc { implicit r =>
-                    boxIt(primArg, {
-                      var i = sources(1)
-                      () => {
-                        val res = frame.locals(offset + i)
-                        i += 1
-                        res
-                      }
-                    }).apply()
-                  }
-                case (boxedField: imm.Type.Ref, boxedArg: imm.Type.Ref) =>
-                  statics(offset) = frame.locals(sources(1))
-                case (primField: imm.Type.Prim[_], primArg: imm.Type.Prim[_]) =>
-                  statics(offset) = frame.locals(sources(1))
-                  if (primField.size == 2){
-                    statics(offset + 1) = frame.locals(sources(1) + 1)
-                  }
-              }
+              adaptBoxiness(
+                fieldType,
+                statics,
+                offset,
+                sig.desc.args(0),
+                frame.locals,
+                sources(1)
+              )
           }
 
           advancePc()
@@ -577,8 +563,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         case imm.Type.Cls("java.lang.invoke.DirectMethodHandle") =>
           //          pprint.log(vm.obj(argZero).apply("member"))
           val method = vm.methodHandleMap.find(_._1.apply() == vm.obj(argZero).apply("member")).map(_._2).get
+          pprint.log(sig.desc)
+          pprint.log(method.sig.desc)
           val adapted =
-            if (method.sig == sig) argZero
+            if (method.sig.desc == sig.desc) argZero
             else vm.alloc { implicit r =>
               val asTypeMethodRef = vm.ClsTable("java.lang.invoke.MethodHandle").methods.find(_.sig.name == "asType").get
               val args = new ArrayFiller(asTypeMethodRef.localsSize)

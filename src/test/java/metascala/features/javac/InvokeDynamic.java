@@ -176,8 +176,6 @@ public class InvokeDynamic {
         return (java.lang.Boolean)m.invoke(b);
     }
 
-
-
     public static boolean run(boolean b) {
         boolean[] msg = {b};
         something(x -> msg[0] = msg[0] | x);
