@@ -73,7 +73,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
       indent,
       vm.clsTable.clsIndex(frame.method.clsIndex).tpe.javaName,
       frame,
-      phi.indices.iterator.map(i => (i, phi(i)))
+      phi
     )
 
     var i = 0
@@ -694,6 +694,15 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
                  thisCell: Boolean) = {
 
 
+    if (mRef.sig.name == "constantPlaceholder"){
+      pprint.log(frame.locals(sources(0)))
+      pprint.log(vm.obj(frame.locals(sources(0))).cls)
+      if (frame.locals(sources(1)) == 0){
+        ???
+      }
+      pprint.log(frame.locals(sources(1)))
+      pprint.log(vm.obj(frame.locals(sources(1))).cls)
+    }
     val args = new ArrayFiller(mRef.localsSize)
 
     val thisCellOffset = if (thisCell) {

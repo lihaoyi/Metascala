@@ -8,7 +8,7 @@ class InvokeDynamicTests extends FreeSpec {
   "invokedynamic" - {
     "findStaticField" in {
       val tester = new Tester("metascala.features.javac.InvokeDynamic")
-//      tester.run("findStaticGetter", false)
+      tester.run("findStaticGetter", false)
 //      tester.run("findStaticGetter", true)
 //      tester.run("findStaticGetterBoxed", false)
 //      tester.run("findStaticGetterBoxed", true)

@@ -36,6 +36,18 @@ object ColorLogger{
   }
 }
 trait ColorLogger extends rt.Logger{
+  val methodNames = Set(
+    "java.lang.invoke.InvokerBytecodeGenerator.emitInvoke",
+    "java.lang.invoke.InvokerBytecodeGenerator.generateCustomizedCodeBytes",
+    "java.lang.invoke.InvokerBytecodeGenerator.generateCustomizedCode",
+    "java.lang.invoke.LambdaForm.compileToBytecode",
+    "java.lang.invoke.DirectMethodHandle.maybeCompile",
+    "java.lang.invoke.DirectMethodHandle.preparedFieldLambdaForm",
+    "java.lang.invoke.DirectMethodHandle.make",
+    "java.lang.invoke.DirectMethodHandle.make",
+    "java.lang.invoke.MethodHandles$Lookup.getDirectFieldCommon",
+    "java.lang.invoke.MethodHandles$Lookup.getDirectField"
+  )
   def active = true
 
   def logStep(indentCount: Int,
@@ -48,7 +60,8 @@ trait ColorLogger extends rt.Logger{
 //    def printOrNot = clsName == "java.util.concurrent.ConcurrentHashMap" &&
 //                     frame.method.sig.name == "<init>"
 //    if (clsName.contains("MethodHandles") || clsName.contains("MemberName")) {
-    if(false){
+//    if(methodNames(clsName + "." + frame.method.sig.name)){
+    if (frame.method.sig.name == "emitInvoke"){
       val indent = "    " * indentCount
       val r = Util.reader(frame.locals, 0)
       lazy val localSnapshot =
@@ -91,11 +104,12 @@ trait ColorLogger extends rt.Logger{
     }
   }
 
-  def logPhi(indentCount: Int, clsName: String, frame: Frame, shifts: Iterator[(Int, Int)]) = {
+  def logPhi(indentCount: Int, clsName: String, frame: Frame, shifts: Agg[Int]) = {
 //    def printOrNot = clsName == "java.util.concurrent.ConcurrentHashMap" &&
 //      frame.method.sig.name == "<init>"
 
-    if (false) {
+//    if (methodNames(clsName + "." + frame.method.sig.name)) {
+    if (frame.method.sig.name == "emitInvoke"){
       val indent = "    " * indentCount
       val output = mutable.Buffer.empty[fansi.Str]
       output.append(indent)
@@ -103,7 +117,7 @@ trait ColorLogger extends rt.Logger{
       output.append("  ")
       output.append("{")
       var first = true
-      for ((src, dest) <- shifts) {
+      for ((src, dest) <- shifts.zipWithIndex if src != -1) {
         if (!first) {
           output.append(", ")
         }
@@ -128,7 +142,7 @@ trait ColorLogger extends rt.Logger{
                      tryCatchBlocks: Agg[TryCatchBlock]) = {
     //    def printOrNot = clsName == "java.util.concurrent.ConcurrentHashMap" &&
     //      frame.method.sig.name == "<init>"
-    if(false){
+    if(methodName == "emitInvoke"){
 
       def flatten[T](x: TraversableOnce[T]): String = x.mkString("[", ", ", "]")
       def arrow(x: (Any, Any)): String = fansi.Color.Green(x._1.toString) + " -> " + fansi.Color.Green(x._2.toString)
@@ -152,7 +166,7 @@ trait ColorLogger extends rt.Logger{
           first = false
           output.append(fansi.Color.Green(phiIndex.toString), ": [")
           var first1 = true
-          for ((dest, src) <- phi.zipWithIndex if src != -1){
+          for ((src, dest) <- phi.zipWithIndex if src != -1){
             if (!first1) output.append(", ")
             output.append(arrow((src, dest)))
             first1 = false
