@@ -48,7 +48,8 @@ class Cls(val tpe: imm.Type.Cls,
 
   def getFieldIndex(name: String) = {
     val base = tpe.fieldList.lastIndexWhere(_.name == name)
-    base + 1 - tpe.fieldList(base).desc.size
+    if (base == -1) throw new Exception("Cannot find field [" + name + "] in class [" + tpe.javaName + "]")
+    else base + 1 - tpe.fieldList(base).desc.size
   }
 
   lazy val size = fieldList.length

@@ -133,7 +133,12 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
       vm.ClsTable.clsIndex(frame.method.clsIndex).tpe.javaName,
       frame,
       node,
-      block
+      block,
+      x =>
+        if (x == 0) null
+        else if (vm.isObj(x)) Util.shortedJava(vm.obj(x).cls.tpe.javaName)
+        else if (vm.isArr(x)) Util.shortedJava(vm.arr(x).tpe.javaName)
+        else ???
     )
 
     node match {
@@ -563,8 +568,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         case imm.Type.Cls("java.lang.invoke.DirectMethodHandle") =>
           //          pprint.log(vm.obj(argZero).apply("member"))
           val method = vm.methodHandleMap.find(_._1.apply() == vm.obj(argZero).apply("member")).map(_._2).get
-          pprint.log(sig.desc)
-          pprint.log(method.sig.desc)
           val adapted =
             if (method.sig.desc == sig.desc) argZero
             else vm.alloc { implicit r =>
@@ -579,8 +582,9 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
           //          pprint.log(method.sig)
           //          pprint.log(sig)
 
-          val adaptedMethod = vm.methodHandleMap.find(_._1() == vm.obj(adapted).apply("member")).get._2
-          invokeBase(sources, target, adaptedMethod, !adaptedMethod.static)
+          val lformVmEntry = vm.obj(vm.obj(adapted).apply("form")).apply("vmentry")
+          val adaptedMethod = vm.methodHandleMap.find(_._1.apply() == lformVmEntry).get._2
+          invokeBase(sources.drop(1), target, adaptedMethod, !adaptedMethod.static)
       }
     }
   }

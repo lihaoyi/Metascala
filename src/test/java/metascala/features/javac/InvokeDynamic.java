@@ -163,17 +163,33 @@ public class InvokeDynamic {
     public static boolean staticMethod(boolean b){
         return !b;
     }
-    public static boolean findStaticMethod(boolean b) throws Throwable{
+    public static boolean asType(boolean b) throws Throwable{
 
         MethodType mt = MethodType.methodType(boolean.class, boolean.class);
-        Class<?> firstParam = mt.parameterType(0);
-        InvokeDynamic.class.getDeclaredMethod("staticMethod", boolean.class);
         MethodHandle m = lookup.findStatic(
                 InvokeDynamic.class,
                 "staticMethod",
                 mt
         );
-        return (java.lang.Boolean)m.invoke(b);
+        MethodHandle m2 = m.asType(
+                b ? MethodType.methodType(java.lang.Boolean.class, java.lang.Boolean.class)
+                  : MethodType.methodType(boolean.class, boolean.class)
+        );
+        return m == m2;
+    }
+    public static boolean findStaticMethod(boolean b) throws Throwable{
+
+        MethodType mt = MethodType.methodType(boolean.class, boolean.class);
+        MethodHandle m = lookup.findStatic(
+                InvokeDynamic.class,
+                "staticMethod",
+                mt
+        );
+        if (b){
+            return (boolean)m.invoke(b);
+        }else{
+            return (java.lang.Boolean)(m.invoke((java.lang.Boolean)b));
+        }
     }
 
     public static boolean run(boolean b) {

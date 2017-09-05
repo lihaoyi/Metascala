@@ -164,8 +164,8 @@ object DefaultBindings extends Bindings{
               "clazz" -> vt.typeObjCache(cls.tpe),
               "name" -> vt.internedStrings.getOrElseUpdate(
                 m.sig.name, vt.toVirtObj(m.sig.name).address
-              )
-              ,
+              ),
+              "modifiers" -> new Ref.Raw(m.accessFlags),
               "returnType" -> vt.typeObjCache(m.sig.desc.ret),
               "parameterTypes" -> r.newArr("java.lang.Class",
                 m.sig.desc.args.map(vt.typeObjCache)
@@ -430,14 +430,16 @@ object DefaultBindings extends Bindings{
       "init(Ljava/lang/invoke/MemberName;Ljava/lang/Object;)V"
     ).static.func(I, I, V) {(vt, memberName, ref) =>
       val modifiers = vt.obj(ref).apply("modifiers")
+
       val (flags0, refKinds) = vt.obj(ref).cls.tpe match {
         case imm.Type.Cls("java.lang.reflect.Method") =>
-          val flags = MHConstants.MN_IS_METHOD
-          val refKinds =
-            if ((modifiers | MHConstants.ACC_INTERFACE) > 0) MHConstants.REF_invokeInterface
-            else if ((modifiers | MHConstants.ACC_STATIC) > 0) MHConstants.REF_invokeStatic
-            else MHConstants.REF_invokeVirtual
-          (flags, refKinds)
+          if ((modifiers & MHConstants.ACC_INTERFACE) > 0) {
+            (MHConstants.MN_IS_METHOD, MHConstants.REF_invokeInterface)
+          } else if ((modifiers & MHConstants.ACC_STATIC) > 0) {
+            (MHConstants.MN_IS_METHOD | MHConstants.ACC_STATIC, MHConstants.REF_invokeStatic)
+          } else {
+            (MHConstants.MN_IS_METHOD, MHConstants.REF_invokeVirtual)
+          }
 
         case imm.Type.Cls("java.lang.reflect.Constructor") =>
           val flags = MHConstants.MN_IS_CONSTRUCTOR
@@ -447,11 +449,12 @@ object DefaultBindings extends Bindings{
         case imm.Type.Cls("java.lang.reflect.Field") =>
           val flags = MHConstants.MN_IS_FIELD
           val refKinds =
-            if ((modifiers | MHConstants.ACC_STATIC) > 0) MHConstants.REF_getStatic
+            if ((modifiers & MHConstants.ACC_STATIC) > 0) MHConstants.REF_getStatic
             else MHConstants.REF_getField
           (flags, refKinds)
       }
       val flags = flags0 | (refKinds << MHConstants.MN_REFERENCE_KIND_SHIFT)
+
       vt.obj(memberName).update("clazz", vt.obj(ref).apply("clazz"))
       vt.obj(memberName).update("flags", flags)
 
@@ -474,10 +477,6 @@ object DefaultBindings extends Bindings{
     native("java.lang.invoke.MethodHandleNatives", "getConstant(I)I").static {(vt, arg) => 9},
     native("java.lang.invoke.MethodHandleNatives", "resolve(Ljava/lang/invoke/MemberName;Ljava/lang/Class;)Ljava/lang/invoke/MemberName;").static.func(I, I, I) {
       (vt, memberName, cls0) =>
-
-//        pprint.log(memberName)
-
-
 
         val cls = vt.typeObjCache.find(_._2.apply() == vt.obj(memberName).apply("clazz"))
           .get._1

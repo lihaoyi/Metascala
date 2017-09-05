@@ -31,6 +31,10 @@ object Util{
     val some :+ last = name.split("/").toSeq
     (some.map(_(0)) :+ last).mkString("/")
   }
+  def shortedJava(name: String) = {
+    val some :+ last = name.split('.').toSeq
+    (some.map(_(0)) :+ last).mkString(".")
+  }
 
   def blit(src: mutable.Seq[Int], srcIndex: Int, dest: mutable.Seq[Int], destIndex: Int, length: Int, flip: Boolean) = {
     if (!flip) dest(destIndex) = src(srcIndex)

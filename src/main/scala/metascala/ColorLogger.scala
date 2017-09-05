@@ -1,7 +1,7 @@
 package metascala
 
 import org.objectweb.asm.tree.MethodNode
-import metascala.opcodes.{BasicBlock, Box, Insn, TryCatchBlock}
+import metascala.opcodes._
 import metascala.rt.Frame
 import metascala.util.{Agg, Util}
 
@@ -42,7 +42,8 @@ trait ColorLogger extends rt.Logger{
               clsName: String,
               frame: Frame,
               node: Insn,
-              block: BasicBlock) = {
+              block: BasicBlock,
+              getType: Int => String) = {
 
 //    def printOrNot = clsName == "java.util.concurrent.ConcurrentHashMap" &&
 //                     frame.method.sig.name == "<init>"
@@ -52,7 +53,12 @@ trait ColorLogger extends rt.Logger{
       val r = Util.reader(frame.locals, 0)
       lazy val localSnapshot =
         block.locals
-          .flatMap(x => Seq(x.prettyRead(r)).padTo(x.size, "~"))
+          .flatMap{
+              case LocalType.Ref =>
+                val r0 = r()
+                Seq(getType(r0) + "#" + r0)
+              case x => Seq(x.prettyRead(r)).padTo(x.size, "~")
+          }
           .toList
 
       val output = mutable.Buffer.empty[fansi.Str]
