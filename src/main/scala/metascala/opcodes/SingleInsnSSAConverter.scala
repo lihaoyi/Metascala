@@ -79,12 +79,12 @@ object SingleInsnSSAConverter {
       val sig = new imm.Sig(insn.name, desc)
       val target = if (desc.ret == V) 0 else top(nextFrame): Int
 
-      val runtimeCls = vm.ClsTable(cls)
+      val runtimeCls = vm.clsTable(cls)
       val mIndex =
         if (!indexed) -1
         else runtimeCls.vTable.indexWhere(_.sig == sig)
 
-      val clsIndex = vm.ClsTable.clsIndex.indexOf(runtimeCls)
+      val clsIndex = vm.clsTable.clsIndex.indexOf(runtimeCls)
       if (insn.owner == "java/lang/invoke/MethodHandle" &&
         (sig.name == "invoke" || sig.name == "invokeExact" || sig.name == "invokeBasic")){
         append(Insn.InvokeHandle(target, Agg.from(args), sig, sig.name == "invokeBasic"))
@@ -109,12 +109,12 @@ object SingleInsnSSAConverter {
         case c: imm.Type.Cls => c
         case _ => imm.Type.Cls("java.lang.Object")
       }
-      val runtimeCls = vm.ClsTable(cls)
+      val runtimeCls = vm.clsTable(cls)
       val mIndex =
         if (special) runtimeCls.vTable.indexWhere(_.sig == sig)
         else runtimeCls.staticTable.indexWhere(_.sig == sig)
 
-      val clsIndex = vm.ClsTable.clsIndex.indexOf(runtimeCls)
+      val clsIndex = vm.clsTable.clsIndex.indexOf(runtimeCls)
       append(Insn.InvokeStatic(target, Agg.from(args), clsIndex, mIndex, special))
     }
     def invokeDynamic(insn: InvokeDynamicInsnNode) = {
@@ -145,18 +145,18 @@ object SingleInsnSSAConverter {
 
       def resolve(cls: rt.Cls): (Int, rt.Cls) = {
         list(cls).lastIndexWhere(_.name == insn.name) match{
-          case -1 => resolve(vm.ClsTable(cls.clsAncestry(1)))
+          case -1 => resolve(vm.clsTable(cls.clsAncestry(1)))
           case x =>  (x, cls)
         }
       }
-      val (index, cls) = resolve(vm.ClsTable(insn.owner))
+      val (index, cls) = resolve(vm.clsTable(insn.owner))
       assert(
         index >= 0,
         s"no field found in ${insn.owner}: ${insn.name}\n" +
-        "Fields\n" + list(vm.ClsTable(insn.owner)).map(_.name).mkString("\n")
+        "Fields\n" + list(vm.clsTable(insn.owner)).map(_.name).mkString("\n")
       )
       val prim = list(cls)(index).desc
-      append(func(vm.ClsTable.clsIndex.indexOf(cls), index - prim.size + 1, prim))
+      append(func(vm.clsTable.clsIndex.indexOf(cls), index - prim.size + 1, prim))
     }
     def refStaticField(list: rt.Cls => Seq[imm.Field], func: (Int, Int, imm.Type) => Insn) = {
       // Unlike instance fields, and unlike static methods, static fields can
@@ -169,16 +169,16 @@ object SingleInsnSSAConverter {
           seen.add(cls.tpe)
           cls.staticList.lastIndexWhere(_.name == insn.name) match{
             case -1 =>
-              (cls.superType.toSeq ++ cls.interfaces).flatMap(ancestor => resolve(vm.ClsTable(ancestor)))
+              (cls.superType.toSeq ++ cls.interfaces).flatMap(ancestor => resolve(vm.clsTable(ancestor)))
             case n => Seq((n, cls))
           }
         }
       }
-      resolve(vm.ClsTable(insn.owner)) match{
+      resolve(vm.clsTable(insn.owner)) match{
         case Seq((index, cls)) =>
           assert(index >= 0, s"no field found in ${insn.owner}: ${insn.name}\n")
           val prim = cls.staticList(index).desc
-          append(func(vm.ClsTable.clsIndex.indexOf(cls), index - prim.size + 1, prim))
+          append(func(vm.clsTable.clsIndex.indexOf(cls), index - prim.size + 1, prim))
         case res => throw new Exception("Zero or Multiple Possible Fields Inherited! " + res)
       }
     }
@@ -342,7 +342,7 @@ object SingleInsnSSAConverter {
       case NEW =>
         append(Insn.New(
           top(nextFrame),
-          vm.ClsTable.clsIndex.indexOf(vm.ClsTable(insn.asInstanceOf[TypeInsnNode].desc))
+          vm.clsTable.clsIndex.indexOf(vm.clsTable(insn.asInstanceOf[TypeInsnNode].desc))
         ))
       case NEWARRAY =>
         val typeRef: imm.Type = insn.operand match{

@@ -34,7 +34,7 @@ class Obj(val address: WritableRef)
    */
   import vm._
 
-  def cls: rt.Cls = vm.ClsTable.clsIndex(-vm.heap(address()))
+  def cls: rt.Cls = vm.clsTable.clsIndex(-vm.heap(address()))
 
   object members extends mutable.Seq[Int]{
     def apply(n: Int): Int = {

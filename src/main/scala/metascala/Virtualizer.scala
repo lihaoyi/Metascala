@@ -123,7 +123,7 @@ object Virtualizer {
         var index = 0
         val contents = mutable.Buffer.empty[Ref]
         val decFields = b.getClass.getDeclaredFields
-        for(field <- vm.ClsTable(imm.Type.Cls.apply(b.getClass.getName)).fieldList.distinct) yield {
+        for(field <- vm.clsTable(imm.Type.Cls.apply(b.getClass.getName)).fieldList.distinct) yield {
           val f = decFields.find(_.getName == field.name).get
           f.setAccessible(true)
           pushVirtual(f.get(b), x =>

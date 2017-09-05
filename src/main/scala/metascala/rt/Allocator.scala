@@ -59,7 +59,7 @@ class Allocator()(implicit val vm: rt.Obj.VMInterface) {
   }
 
   def newObj(cls: imm.Type.Cls, initMembers: (String, Ref)*): Obj = {
-    newObj0(vm.ClsTable(cls), initMembers:_*)
+    newObj0(vm.clsTable(cls), initMembers:_*)
   }
 
   def newObj0(cls: rt.Cls, initMembers: (String, Ref)*): Obj = {

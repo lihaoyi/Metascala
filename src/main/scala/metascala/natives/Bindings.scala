@@ -32,6 +32,7 @@ object Bindings{
     def newInstance(constr: Int, argArr: Int): Int
     def methodHandleMap: mutable.Map[WritableRef, rt.Method]
     def checkInitialized(cls: rt.Cls): Unit
+    def getTypeForTypeObj(addr: Int): imm.Type
   }
 }
 trait Bindings{

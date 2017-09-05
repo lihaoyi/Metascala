@@ -91,7 +91,7 @@ object DefaultBindings extends Bindings{
       val nameString = vt.toRealObj[String](arg())
       val tpe = imm.Type.readJava(nameString)
       try{
-        if (!nameString.contains("["))vt.ClsTable(tpe.asInstanceOf[imm.Type.Cls])
+        if (!nameString.contains("["))vt.clsTable(tpe.asInstanceOf[imm.Type.Cls])
         val x = vt.typeObjCache(tpe)()
         x
       } catch{case e: Exception =>
@@ -110,7 +110,7 @@ object DefaultBindings extends Bindings{
       val obj = vt.obj(arg())
 
       val name = vt.toRealObj[String](obj("name"))
-      val cls = vt.ClsTable(name)
+      val cls = vt.clsTable(name)
       val realFields = cls.fieldList ++ cls.staticList
 
       vt.alloc(implicit r =>
@@ -133,7 +133,7 @@ object DefaultBindings extends Bindings{
 
       val clsObj = vt.obj(arg())
       val clsName = vt.toRealObj[String](clsObj("name"))
-      val cls = vt.ClsTable(clsName)
+      val cls = vt.clsTable(clsName)
       val realMethods = cls.methods.filter(_.sig.name == "<init>")
       val vrtArr = vt.alloc(implicit r =>
         r.newArr("java.lang.reflect.Constructor",
@@ -156,7 +156,7 @@ object DefaultBindings extends Bindings{
     },
     native("java.lang.Class", "getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;"){ (vt, arg) =>
 
-      val cls = vt.ClsTable(vt.toRealObj[String](vt.obj(arg()).apply("name")))
+      val cls = vt.clsTable(vt.toRealObj[String](vt.obj(arg()).apply("name")))
       vt.alloc(implicit r =>
         r.newArr("java.lang.reflect.Method",
           cls.methods.map{ m =>
@@ -179,13 +179,13 @@ object DefaultBindings extends Bindings{
     native("java.lang.Class", "getDeclaringClass()Ljava/lang/Class;"){(vt, arg) => 0},
     native("java.lang.Class", "getInterfaces()[Ljava/lang/Class;"){(vt, arg) =>
 
-      val cls = vt.ClsTable(vt.toRealObj[String](vt.obj(arg()).apply("name")))
+      val cls = vt.clsTable(vt.toRealObj[String](vt.obj(arg()).apply("name")))
       vt.alloc(implicit r =>
         r.newArr("java.lang.Class",
           cls.typeAncestry
             .filter(x => !cls.clsAncestry.contains(x))
             .toSeq
-            .map(x => vt.typeObjCache(vt.ClsTable(x).tpe))
+            .map(x => vt.typeObjCache(vt.clsTable(x).tpe))
         )
       ).address()
     },
@@ -193,7 +193,7 @@ object DefaultBindings extends Bindings{
 
       val topClsName = vt.toRealObj[String](vt.obj(arg()).apply("name"))
 
-      vt.ClsTable(topClsName).accessFlags
+      vt.clsTable(topClsName).accessFlags
     },
     native("java.lang.Class", "getPrimitiveClass(Ljava/lang/String;)Ljava/lang/Class;").static {(vt, arg) =>
 
@@ -203,7 +203,7 @@ object DefaultBindings extends Bindings{
 
       val topClsName = vt.toRealObj[String](vt.obj(arg()).apply("name"))
 
-      vt.ClsTable(topClsName)
+      vt.clsTable(topClsName)
         .superType
         .map(tpe => vt.typeObjCache(tpe)())
         .getOrElse(0)
@@ -227,7 +227,7 @@ object DefaultBindings extends Bindings{
 
         (s, t) match{
 
-          case (s: imm.Type.Cls, t: imm.Type.Cls) => vt.ClsTable(t).typeAncestry.contains(s)
+          case (s: imm.Type.Cls, t: imm.Type.Cls) => vt.clsTable(t).typeAncestry.contains(s)
           case (s: imm.Type.Arr, imm.Type.Cls("java.lang.Object")) => true
           case (s: imm.Type.Arr, imm.Type.Cls("java.lang.Cloneable")) => true
           case (s: imm.Type.Arr, imm.Type.Cls("java.io.Serializable")) => true
@@ -242,7 +242,7 @@ object DefaultBindings extends Bindings{
 
       val clsObj = vt.obj(arg())
       val name = vt.toRealObj[String](clsObj("name"))
-      !Prim.allJava.contains(name) && vt.ClsTable(name).isInterface
+      !Prim.allJava.contains(name) && vt.clsTable(name).isInterface
     },
     native("java.lang.Class", "isPrimitive()Z"){(vt, arg) =>
 
@@ -258,7 +258,7 @@ object DefaultBindings extends Bindings{
         val start = arr + Constants.arrayHeaderSize + offset
         val bytes = vt.heap.memory.slice(start, start + length).map(_.toByte)
         val name = vt.toRealObj[String](name0)
-        val cls = vt.ClsTable.calcFromBytes(imm.Type.Cls(name), bytes)
+        val cls = vt.clsTable.calcFromBytes(imm.Type.Cls(name), bytes)
         vt.typeObjCache(cls.tpe)()
     },
     native(
@@ -268,7 +268,7 @@ object DefaultBindings extends Bindings{
         val start = arr + Constants.arrayHeaderSize + offset
         val bytes = vt.heap.memory.slice(start, start + length).map(_.toByte)
         val name = vt.toRealObj[String](name0)
-        val cls = vt.ClsTable.calcFromBytes(imm.Type.Cls(name), bytes)
+        val cls = vt.clsTable.calcFromBytes(imm.Type.Cls(name), bytes)
         vt.typeObjCache(cls.tpe)()
     },
     native("java.lang.ClassLoader", "getCaller(I)Ljava/lang/Class;"){ (vt, arg) =>
@@ -282,7 +282,7 @@ object DefaultBindings extends Bindings{
     native("java.lang.ClassLoader", "findLoadedClass0(Ljava/lang/String;)Ljava/lang/Class;").func(I, I, I) { (vt, clsLoader, str) =>
       val name = vt.toRealObj[String](str)
       try{
-        vt.ClsTable.apply(name)
+        vt.clsTable.apply(name)
         vt.typeObjCache(name).apply()
       }catch{case e: rt.ClsTable.ClsNotFound =>
         0
@@ -291,7 +291,7 @@ object DefaultBindings extends Bindings{
     native("java.lang.ClassLoader", "findBootstrapClass(Ljava/lang/String;)Ljava/lang/Class;").func(I, I, I) { (vt, clsLoader, str) =>
       val name = vt.toRealObj[String](str)
       try{
-        vt.ClsTable.apply(name)
+        vt.clsTable.apply(name)
         vt.typeObjCache(name).apply()
       }catch{case e: rt.ClsTable.ClsNotFound =>
         0
@@ -324,14 +324,14 @@ object DefaultBindings extends Bindings{
       (vt, memberName) =>
         val cls = vt.obj(memberName).apply("clazz")
         val name = vt.toRealObj[String](vt.obj(memberName).apply("name"))
-        val typeObj = vt.typeObjCache.find(_._2.apply() == cls).map(_._1).get
-        vt.ClsTable(typeObj.asInstanceOf[imm.Type.Cls]).staticList.indexWhere(_.name == name)
+        val typeObj = vt.getTypeForTypeObj(cls)
+        vt.clsTable(typeObj.asInstanceOf[imm.Type.Cls]).staticList.indexWhere(_.name == name)
     },
     native("java.lang.invoke.MethodHandleNatives", "staticFieldBase(Ljava/lang/invoke/MemberName;)Ljava/lang/Object;").static.func(I, J) {
       (vt, memberName) =>
         val cls = vt.obj(memberName).apply("clazz")
-        val typeObj = vt.typeObjCache.find(_._2.apply() == cls).map(_._1).get
-        val rtCls = vt.ClsTable(typeObj.asInstanceOf[imm.Type.Cls])
+        val typeObj = vt.getTypeForTypeObj(cls)
+        val rtCls = vt.clsTable(typeObj.asInstanceOf[imm.Type.Cls])
         vt.checkInitialized(rtCls)
         rtCls.statics.apply()
     },
@@ -346,8 +346,8 @@ object DefaultBindings extends Bindings{
 
           val name = Option(vt.toRealObj[String](matchName0))
           val sig = Option(vt.toRealObj[String](matchSig0)).map(imm.Sig.read)
-          val typeObj = vt.typeObjCache.find(_._2.apply() == defc0).map(_._1).get
-          val cls = vt.ClsTable(typeObj.asInstanceOf[imm.Type.Cls])
+          val typeObj = vt.getTypeForTypeObj(defc0)
+          val cls = vt.clsTable(typeObj.asInstanceOf[imm.Type.Cls])
           val results = vt.arr(results0)
 
           var count = 0
@@ -422,8 +422,8 @@ object DefaultBindings extends Bindings{
       (vt, memberName) =>
         val address = vt.obj(memberName).apply("clazz")
         val name = vt.toRealObj[String](vt.obj(memberName).apply("name"))
-        val typeObj = vt.typeObjCache.find(_._2.apply() == address).map(_._1).get
-        vt.ClsTable(typeObj.asInstanceOf[imm.Type.Cls]).getFieldIndex(name)
+        val typeObj = vt.getTypeForTypeObj(address)
+        vt.clsTable(typeObj.asInstanceOf[imm.Type.Cls]).getFieldIndex(name)
     },
     native(
       "java.lang.invoke.MethodHandleNatives",
@@ -458,13 +458,10 @@ object DefaultBindings extends Bindings{
       vt.obj(memberName).update("clazz", vt.obj(ref).apply("clazz"))
       vt.obj(memberName).update("flags", flags)
 
-      def getTypeFor(address: Int) = {
-        vt.typeObjCache.find(_._2.apply() == address).map(_._1).get
-      }
 
       val params =
-        vt.arr(vt.obj(ref).apply("parameterTypes")).map(getTypeFor).map(_.internalName).mkString
-      val ret = getTypeFor(vt.obj(ref).apply("returnType")).internalName
+        vt.arr(vt.obj(ref).apply("parameterTypes")).map(vt.getTypeForTypeObj).map(_.internalName).mkString
+      val ret = vt.getTypeForTypeObj(vt.obj(ref).apply("returnType")).internalName
 
       val str = "(" + params + ")" + ret
 
@@ -478,12 +475,11 @@ object DefaultBindings extends Bindings{
     native("java.lang.invoke.MethodHandleNatives", "resolve(Ljava/lang/invoke/MemberName;Ljava/lang/Class;)Ljava/lang/invoke/MemberName;").static.func(I, I, I) {
       (vt, memberName, cls0) =>
 
-        val cls = vt.typeObjCache.find(_._2.apply() == vt.obj(memberName).apply("clazz"))
-          .get._1
+        val cls = vt.getTypeForTypeObj(vt.obj(memberName).apply("clazz"))
 
         val memberNameStr = vt.toRealObj[String](vt.obj(memberName).apply("name"))
 
-        val rtCls = vt.ClsTable.apply(cls.asInstanceOf[imm.Type.Cls])
+        val rtCls = vt.clsTable.apply(cls.asInstanceOf[imm.Type.Cls])
         val refFlag = (vt.obj(memberName)("flags") >> MHConstants.MN_REFERENCE_KIND_SHIFT) & MHConstants.MN_REFERENCE_KIND_MASK
         refFlag match {
           case MHConstants.REF_invokeInterface |
@@ -520,9 +516,9 @@ object DefaultBindings extends Bindings{
 
             val resolved =
               if (refFlag == MHConstants.REF_invokeStatic) {
-                vt.ClsTable(cls.asInstanceOf[imm.Type.Cls]).staticTable.find(_.sig == sig)
+                vt.clsTable(cls.asInstanceOf[imm.Type.Cls]).staticTable.find(_.sig == sig)
               }else{
-                vt.ClsTable(cls.asInstanceOf[imm.Type.Cls]).vTable.find(_.sig == sig)
+                vt.clsTable(cls.asInstanceOf[imm.Type.Cls]).vTable.find(_.sig == sig)
               }
 
 //            pprint.log(resolved)
@@ -704,7 +700,7 @@ object DefaultBindings extends Bindings{
       val start = bytes0 + Constants.arrayHeaderSize
       val bytes = vt.heap.memory.slice(start, start + bytesArray.length).map(_.toByte)
       val name = "AnonymousClass" + math.abs(scala.util.Random.nextInt())
-      val cls = vt.ClsTable.calcFromBytes(imm.Type.Cls(name), bytes)
+      val cls = vt.clsTable.calcFromBytes(imm.Type.Cls(name), bytes)
       vt.typeObjCache(name)()
     },
     native("sun.misc.Unsafe", "freeMemory(J)V").value(V)(()),// Do nothing lol
@@ -838,7 +834,7 @@ object DefaultBindings extends Bindings{
       (vt, unsafe, f) =>
         val clsObj = vt.obj(vt.obj(f).apply("clazz"))
         val clsName = vt.toRealObj[String](clsObj.apply("name"))
-        val rtCls = vt.ClsTable(clsName)
+        val rtCls = vt.clsTable(clsName)
         vt.checkInitialized(rtCls)
         rtCls.statics()
     },
@@ -856,7 +852,7 @@ object DefaultBindings extends Bindings{
     ).static.func(I, I) {
       (vt, cls0) =>
 
-        val cls = vt.typeObjCache.find(_._2.apply() == cls0).get._1
+        val cls = vt.getTypeForTypeObj(cls0)
         vt.invoke1(cls.asInstanceOf[imm.Type.Cls], imm.Sig.read("values()[" + cls.internalName), Agg(cls0))
         vt.returnedVal(0)
     },
@@ -884,7 +880,7 @@ object DefaultBindings extends Bindings{
 
       val addr = vt.obj(o).apply("name")
       val str = vt.toRealObj[String](addr)
-      val res = vt.ClsTable(str).accessFlags
+      val res = vt.clsTable(str).accessFlags
       res
     },
     native("metascala.Virtualizer$", "unsafe()Lsun/misc/Unsafe;").func(I){vt =>

@@ -8,7 +8,6 @@ import Insn._
 import Insn.Push
 import Insn.InvokeStatic
 import Insn.ReturnVal
-import org.objectweb.asm.tree.MethodNode
 import metascala.imm.{Desc, Sig, Type}
 import metascala.natives.Bindings
 import metascala.util._
@@ -30,6 +29,7 @@ object Thread{
     def check(s: imm.Type, t: imm.Type): Boolean
     def indyCallSiteMap: mutable.Map[(rt.Method, Int, Int), WritableRef]
     def methodHandleMap: mutable.Map[WritableRef, rt.Method]
+    def getTypeForTypeObj(addr: Int): imm.Type
   }
 }
 
@@ -71,7 +71,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     if (vm.logger.active) vm.logger.logPhi(
       indent,
-      vm.ClsTable.clsIndex(frame.method.clsIndex).tpe.javaName,
+      vm.clsTable.clsIndex(frame.method.clsIndex).tpe.javaName,
       frame,
       phi.indices.iterator.map(i => (i, phi(i)))
     )
@@ -136,7 +136,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     if (vm.logger.active) vm.logger.logStep(
       indent,
-      vm.ClsTable.clsIndex(frame.method.clsIndex).tpe.javaName,
+      vm.clsTable.clsIndex(frame.method.clsIndex).tpe.javaName,
       frame,
       node,
       block,
@@ -413,7 +413,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
   }
 
   private def invokeStatic(target: Int, sources: Agg[Int], clsIndex: Int, mIndex: Int, special: Boolean) = {
-    val cls = vm.ClsTable.clsIndex(clsIndex)
+    val cls = vm.clsTable.clsIndex(clsIndex)
     vm.checkInitialized(cls)
     invokeBase(
       sources,
@@ -504,7 +504,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         case imm.Type.Cls("java.lang.invoke.DirectMethodHandle$Accessor") =>
           val obj = vm.obj(argZero)
           val fieldTypeAddress = obj.apply("fieldType")
-          val fieldType = vm.typeObjCache.find(_._2.apply() == fieldTypeAddress).get._1
+          val fieldType = vm.getTypeForTypeObj(fieldTypeAddress)
           val offset = obj.apply("fieldOffset")
           sources.length match{
             case 2 => // getter
@@ -536,13 +536,13 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         case imm.Type.Cls("java.lang.invoke.DirectMethodHandle$StaticAccessor") =>
           val obj = vm.obj(argZero)
           val fieldTypeAddress = obj.apply("fieldType")
-          val fieldType = vm.typeObjCache.find(_._2.apply() == fieldTypeAddress).get._1
+          val fieldType = vm.getTypeForTypeObj(fieldTypeAddress)
 
           val name = Virtualizer.toRealObj[String](vm.obj(obj.apply("member")).apply("name"))(bindingsInterface, implicitly)
           val ownerTypeObj = vm.obj(obj.apply("member")).apply("clazz")
-          val ownerType = vm.typeObjCache.find(_._2.apply() == ownerTypeObj).get._1
-          val statics = vm.arr(vm.ClsTable(ownerType.asInstanceOf[imm.Type.Cls]).statics())
-          val offset = vm.ClsTable(ownerType.asInstanceOf[imm.Type.Cls]).staticList.indexWhere(_.name == name)
+          val ownerType = vm.getTypeForTypeObj(ownerTypeObj)
+          val statics = vm.arr(vm.clsTable(ownerType.asInstanceOf[imm.Type.Cls]).statics())
+          val offset = vm.clsTable(ownerType.asInstanceOf[imm.Type.Cls]).staticList.indexWhere(_.name == name)
 
           sources.length match{
             case 1 => // getter
@@ -570,20 +570,27 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
           advancePc()
 
         case imm.Type.Cls("java.lang.invoke.DirectMethodHandle") =>
-          //          pprint.log(vm.obj(argZero).apply("member"))
-          val method = vm.methodHandleMap.find(_._1.apply() == vm.obj(argZero).apply("member")).map(_._2).get
-          val adapted =
-            if (basic || method.sig.desc == sig.desc) {
-              val lformVmEntry = vm.obj(vm.obj(argZero).apply("form")).apply("vmentry")
-              val vmEntryMethod = vm.methodHandleMap
-                .find(_._1.apply() == lformVmEntry)
-                .get
-                ._2
-                .asInstanceOf[ClsMethod]
+          val memberName = vm.obj(argZero).apply("member")
+          val owner = vm.getTypeForTypeObj(vm.obj(memberName).apply("clazz"))
 
-              method
-            } else vm.alloc { implicit r =>
-              val asTypeMethodRef = vm.ClsTable("java.lang.invoke.MethodHandle")
+          val name = Virtualizer.toRealObj[String](vm.obj(memberName).apply("name"))(bindingsInterface, implicitly)
+          val desc = {
+            val tpeAddr = vm.obj(memberName).apply("type")
+            val rtype = vm.getTypeForTypeObj(vm.obj(tpeAddr).apply("rtype"))
+
+
+            val ptypes =
+              for(ptype <- vm.arr(vm.obj(tpeAddr).apply("ptypes")))
+              yield vm.getTypeForTypeObj(ptype)
+
+            imm.Desc(Agg.from(ptypes), rtype)
+          }
+
+          val method = vm.resolveDirectRef(owner.asInstanceOf[imm.Type.Cls], imm.Sig(name, desc)).get
+          val adapted =
+            if (basic || method.sig.desc == sig.desc) method
+            else vm.alloc { implicit r =>
+              val asTypeMethodRef = vm.clsTable("java.lang.invoke.MethodHandle")
                 .methods
                 .find(_.sig.name == "asType")
                 .get
@@ -601,20 +608,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
                 ._2
                 .asInstanceOf[ClsMethod]
 
-
               adaptedMethod
             }
-
-          val r = Util.reader(frame.locals, 0)
-          val localSnapshot =
-            frame.method.code.blocks(frame.pc._1).locals
-              .flatMap{
-                case LocalType.Ref =>
-                  val r0 = r()
-                  Seq(printType(r0) + "#" + r0)
-                case x => Seq(x.prettyRead(r)).padTo(x.size, "~")
-              }
-              .toList
 
           assert(
             adapted.sig.desc.args.length == method.sig.desc.args.length,
@@ -646,7 +641,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
       mRef = {
         val cls =
           if (vm.isObj(argZero)) vm.obj(argZero).cls
-          else if (vm.isArr(argZero)) vm.ClsTable("java.lang.Object")
+          else if (vm.isArr(argZero)) vm.clsTable("java.lang.Object")
           else ???
 
         cls.vTable(mIndex)
@@ -657,7 +652,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
 
   private def newInstance(target: Int, clsIndex: Int) = {
-    val cls = vm.ClsTable.clsIndex(clsIndex)
+    val cls = vm.clsTable.clsIndex(clsIndex)
     vm.checkInitialized(cls)
     val obj = vm.alloc(_.newObj(cls.tpe))
     frame.locals(target) = obj.address()
@@ -786,7 +781,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
   }
 
   def getPutStatic(target: Int, clsIndex: Int, index: Int, prim: Type, get: Boolean) = {
-    val cls = vm.ClsTable.clsIndex(clsIndex)
+    val cls = vm.clsTable.clsIndex(clsIndex)
     vm.checkInitialized(cls)
     Util.blit(new rt.Arr(cls.statics)(vm), index, frame.locals, target, prim.size, flip = !get)
     advancePc()
@@ -918,7 +913,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
       val descStr = toRealObj[String](r.obj(constr).apply("signature"))
 
-      val mRef = vm.ClsTable(name).method(
+      val mRef = vm.clsTable(name).method(
         "<init>",
         Desc.read(descStr)
       ).get
@@ -956,7 +951,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     def currentThread = vm.currentThread
 
-    implicit def ClsTable = vm.ClsTable
+    implicit def clsTable = vm.clsTable
 
     def heap = vm.heap
 
@@ -978,6 +973,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     def methodHandleMap = vm.methodHandleMap
 
     def checkInitialized(cls: rt.Cls) = vm.checkInitialized(cls)
+
+    def getTypeForTypeObj(addr: Int) = vm.getTypeForTypeObj(addr)
   }
 
   final def prepInvoke(mRef: rt.Method,
@@ -997,7 +994,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
 
         val startFrame = new Frame(
-          runningClass = vm.ClsTable.clsIndex(clsIndex),
+          runningClass = vm.clsTable.clsIndex(clsIndex),
           method = m,
           returnTo = returnTo,
           locals = args,

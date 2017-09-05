@@ -15,7 +15,7 @@ trait ClsTable0 extends rt.Arr.ClsTable with (imm.Type.Cls => rt.Cls){
 object Cls{
 
   trait VMInterface extends rt.Arr.VMInterface{
-    implicit def ClsTable: ClsTable0
+    implicit def clsTable: ClsTable0
     def lookupNatives(expectedCls: imm.Type.Cls, sig: imm.Sig): Option[rt.Method]
   }
 }
@@ -60,7 +60,7 @@ class Cls(val tpe: imm.Type.Cls,
   lazy val clsAncestry: List[imm.Type.Cls] = {
     superType match{
       case None => List(tpe)
-      case Some(superT) => tpe :: ClsTable(superT).clsAncestry
+      case Some(superT) => tpe :: clsTable(superT).clsAncestry
     }
   }
 
@@ -69,8 +69,8 @@ class Cls(val tpe: imm.Type.Cls,
    */
   lazy val typeAncestry: Set[imm.Type.Cls] = {
     Set(tpe) ++
-    superType.toSeq.flatMap(ClsTable(_).typeAncestry) ++
-    interfaces.flatMap(ClsTable(_).typeAncestry)
+    superType.toSeq.flatMap(clsTable(_).typeAncestry) ++
+    interfaces.flatMap(clsTable(_).typeAncestry)
   }
 
 

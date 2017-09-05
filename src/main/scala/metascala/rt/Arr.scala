@@ -13,7 +13,7 @@ object Arr{
 
   trait VMInterface {
     def heap: Heap
-    def ClsTable: ClsTable
+    def clsTable: ClsTable
   }
 
   implicit def unwrap2(x: Arr): WritableRef = x.address
@@ -35,7 +35,7 @@ object Arr{
       // We pack primitives into the integer separately, since arrays can
       // contain primitives but primitives do not fit in the class table.
       case p: imm.Type.Prim[_] => p.index
-      case cls: imm.Type.Cls => vm.ClsTable.indexOfType(cls) + imm.Type.Prim.indexed.length
+      case cls: imm.Type.Cls => vm.clsTable.indexOfType(cls) + imm.Type.Prim.indexed.length
     }
     ((nesting & 0xff) << 24) + innerPacked
   }
@@ -45,7 +45,7 @@ object Arr{
     val n = tpeInfo & 0x00ffffff
     val innermostType =
       if (n < imm.Type.Prim.indexed.length) imm.Type.Prim.indexed(n)
-      else vm.ClsTable.typeAtIndex(n - imm.Type.Prim.indexed.length)
+      else vm.clsTable.typeAtIndex(n - imm.Type.Prim.indexed.length)
 
     var nesting = tpeInfo >> 24
     var current: imm.Type = innermostType

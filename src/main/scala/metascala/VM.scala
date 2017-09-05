@@ -54,7 +54,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
         .foreach(x => threads(0).invoke(x, new Array[Int](x.localsSize)))
 
       cls.superType.foreach{ cls =>
-        checkInitialized(vm.ClsTable(cls))
+        checkInitialized(vm.clsTable(cls))
       }
     }
   }
@@ -97,6 +97,8 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
     )
   }
 
+  def getTypeForTypeObj(addr: Int) = typeObjCache.find(_._2.apply() == addr).get._1
+
 
   def lookupNatives(expectedCls: imm.Type.Cls, lookupSig: imm.Sig) =
     vm.natives.trapped.find{case rt.NativeMethod(cls, sig, static, func) =>
@@ -108,7 +110,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
   def getLinks(tpe: Int, length: Int): Seq[Int] = {
     if (isObj(tpe)) {
       for {
-        (x, i) <- ClsTable.clsIndex(-heap(tpe)).fieldList.zipWithIndex
+        (x, i) <- clsTable.clsIndex(-heap(tpe)).fieldList.zipWithIndex
         if x.desc.isRef
       } yield i + Constants.objectHeaderSize
     } else {
@@ -133,11 +135,11 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
       }
     }
 
-    for (cls <- ClsTable.clsIndex) {
+    for (cls <- clsTable.clsIndex) {
       if (cls != null && cls.statics != null) cb(cls.statics)
     }
 
-    for (cls <- ClsTable.clsIndex){
+    for (cls <- clsTable.clsIndex){
       if (cls != null && cls.statics != null){
 
         for(i <- cls.staticList.indices){
@@ -168,10 +170,10 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
     */
   lazy val theUnsafe = vm.alloc(_.newObj("sun.misc.Unsafe"))
 
-  implicit object ClsTable extends rt.ClsTable(natives.fileLoader)
+  implicit object clsTable extends rt.ClsTable(natives.fileLoader)
 
   if (initializeStdout) {
-    val systemCls = ClsTable.apply("java.lang.System")
+    val systemCls = clsTable.apply("java.lang.System")
     checkInitialized(systemCls)
     val dummyWriter = vm.alloc( r =>
       r.newObj("java.io.PrintWriter",
@@ -186,7 +188,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
     new rt.Arr(systemCls.statics)(systemCls.staticList.indexWhere(_.name == "out")) = dummyWriter
     new rt.Arr(systemCls.statics)(systemCls.staticList.indexWhere(_.name == "err")) = dummyWriter
     new rt.Arr(systemCls.statics)(systemCls.staticList.indexWhere(_.name == "props")) = sysProps
-    val mRef = ClsTable("java.util.Properties").method("<init>", imm.Desc(Agg.empty, imm.Type.Prim.V)).get
+    val mRef = clsTable("java.util.Properties").method("<init>", imm.Desc(Agg.empty, imm.Type.Prim.V)).get
     val args = new Array[Int](mRef.localsSize)
     args(0) = sysProps
     threads(0).invoke(mRef, args)
@@ -203,7 +205,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
 
     (s, t) match{
 
-      case (s: imm.Type.Cls, t: imm.Type.Cls) => ClsTable(s).typeAncestry.contains(t)
+      case (s: imm.Type.Cls, t: imm.Type.Cls) => clsTable(s).typeAncestry.contains(t)
       case (s: imm.Type.Arr, imm.Type.Cls("java.lang.Object")) => true
       case (s: imm.Type.Arr, imm.Type.Cls("java.lang.Cloneable")) => true
       case (s: imm.Type.Arr, imm.Type.Cls("java.io.Serializable")) => true
@@ -222,7 +224,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
       imm.Type.Cls.apply(bootClass),
       imm.Sig(
         mainMethod,
-        ClsTable(bootClass)
+        clsTable(bootClass)
           .methods
           .find(x => x.sig.name == mainMethod)
           .map(_.sig.desc)
@@ -247,7 +249,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
         .find(x => x.sig == sig && x.cls == owner)
 
     val method =
-      ClsTable(owner)
+      clsTable(owner)
            .methods
            .find(_.sig == sig)
 
