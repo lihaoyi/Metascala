@@ -11,6 +11,16 @@ import org.objectweb.asm.tree._
 import scala.collection.JavaConverters._
 import org.objectweb.asm.tree.analysis._
 import org.objectweb.asm.Opcodes._
+import java.io.InputStream
+import java.io.FileInputStream
+import java.io.StringWriter
+import java.io.PrintWriter
+import java.util
+import org.objectweb.asm._
+import org.objectweb.asm.tree._
+import org.objectweb.asm.util._
+
+
 
 import scala.reflect.ClassTag
 
@@ -34,10 +44,24 @@ class AbstractFunnyInterpreter(mergeLeft: Boolean) extends Interpreter[Box](ASM4
   def merge(v1: Box, v2: Box) = if (mergeLeft) v1 else v2
 }
 
+
+
+
 object IncrementalInterpreter extends AbstractFunnyInterpreter(mergeLeft = false)
 object FullInterpreter extends AbstractFunnyInterpreter(mergeLeft = true)
 
 object MethodSSAConverter {
+  def insnToString(insn: AbstractInsnNode) = {
+    insn.accept(mp)
+    val sw = new StringWriter
+    printer.print(new PrintWriter(sw))
+    printer.getText.clear()
+    sw.toString
+  }
+
+  private val printer = new Textifier
+  private val mp = new TraceMethodVisitor(printer)
+
   val unconditionalJumps = Seq(GOTO, RETURN, ARETURN, IRETURN, FRETURN, LRETURN, DRETURN, ATHROW)
 
   def boxes(x: Frame[Box]) = {
@@ -67,6 +91,9 @@ object MethodSSAConverter {
 
     val allInsns = method.instructions.toArray
 
+    if (method.name == "getBooleanStaticInit"){
+      allInsns.map(insnToString).foreach(println)
+    }
     assert(
       method.instructions.size != 0,
       "Unknown native method: " + clsName + " " + method.name + " " + method.desc
@@ -124,7 +151,15 @@ object MethodSSAConverter {
       )
     }
 
-    vm.logger.logBasicBlocks(clsName, method, basicBlocks, blockBuffers.map(_._4), tryCatchBlocks)
+
+    vm.logger.logBasicBlocks(
+      clsName,
+      method.name,
+      method.desc,
+      basicBlocks,
+      blockBuffers.map(_._4),
+      tryCatchBlocks
+    )
 
     Code(basicBlocks, tryCatchBlocks)
   }

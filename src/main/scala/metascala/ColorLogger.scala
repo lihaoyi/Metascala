@@ -121,20 +121,23 @@ trait ColorLogger extends rt.Logger{
   }
 
   def logBasicBlocks(clsName: String,
-                     method: MethodNode,
+                     methodName: String,
+                     desc: String,
                      basicBlocks: TraversableOnce[BasicBlock],
                      blockBufferThrees: Agg[mutable.Map[Box, Int]],
                      tryCatchBlocks: Agg[TryCatchBlock]) = {
     //    def printOrNot = clsName == "java.util.concurrent.ConcurrentHashMap" &&
     //      frame.method.sig.name == "<init>"
-    if (false) {
+    if(false){
+
       def flatten[T](x: TraversableOnce[T]): String = x.mkString("[", ", ", "]")
       def arrow(x: (Any, Any)): String = fansi.Color.Green(x._1.toString) + " -> " + fansi.Color.Green(x._2.toString)
       val output = mutable.Buffer.empty[fansi.Str]
       output.append(
-        fansi.Color.Magenta("=" * 20 + clsName + "#" + method.name + "=" * 20),
+        fansi.Color.Magenta("=" * 20 + clsName + "#" + methodName + "=" * 20),
         "\n\b"
       )
+      output.append(desc)
       for(t <- tryCatchBlocks){
         output.appendAll(ColorLogger.pprinter.tokenize(t))
         output.append("\n")

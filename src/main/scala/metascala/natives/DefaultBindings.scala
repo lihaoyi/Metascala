@@ -696,11 +696,27 @@ object DefaultBindings extends Bindings{
       "sun.misc.Unsafe",
       "defineAnonymousClass(Ljava/lang/Class;[B[Ljava/lang/Object;)Ljava/lang/Class;"
     ).func(I, I, I, I, I){ (vt, unsafe, hostCls0, bytes0, cpPatches0) =>
+
       val bytesArray = vt.arr(bytes0)
       val start = bytes0 + Constants.arrayHeaderSize
       val bytes = vt.heap.memory.slice(start, start + bytesArray.length).map(_.toByte)
+      ammonite.ops.write.over(ammonite.ops.pwd/"test.class", bytes)
       val name = "AnonymousClass" + math.abs(scala.util.Random.nextInt())
       val cls = vt.clsTable.calcFromBytes(imm.Type.Cls(name), bytes)
+
+      // We need to apply the constant pool patches to the parsed classfiles
+      //
+      // https://blogs.oracle.com/jrose/anonymous-classes-in-the-vm
+      if (cls.methods.exists(_.sig.name == "getBooleanStaticInit")) {
+        pprint.log(cpPatches0)
+        pprint.log(vt.arr(cpPatches0).length)
+        pprint.log(vt.arr(cpPatches0))
+        for ((p, i) <- vt.arr(cpPatches0).zipWithIndex) {
+          if (p != 0) println("patching " + i + " to " + vt.obj(p).cls)
+        }
+        ???
+      }
+
       vt.typeObjCache(name)()
     },
     native("sun.misc.Unsafe", "freeMemory(J)V").value(V)(()),// Do nothing lol

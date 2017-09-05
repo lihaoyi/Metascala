@@ -63,12 +63,15 @@ class Obj(val address: WritableRef)
   def heapSize = cls.heapSize
 
   def apply(name: String): Int = {
-    members(cls.getFieldIndex(name))
+    assert(address() != 0, "Cannot lookup field of null entry")
+    val index = cls.getFieldIndex(name)
+    members(index)
   }
 
 
 
   def update(name: String, value: Int) = {
+    assert(address() != 0, "Cannot update field of null entry")
     members(cls.getFieldIndex(name)) = value
   }
 

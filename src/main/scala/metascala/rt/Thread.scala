@@ -198,6 +198,9 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
       case InvokeHandle(target, sources, sig, basic) =>
         invokeHandle(target, sources, sig, basic)
 
+      case InvokeLink(target, sources, flag) =>
+        invokeLink(target, sources, flag)
+
 
       case InvokeDynamic(target, srcs, name, desc0, bsTag, bsOwner, bsName, bsDesc0, bsArgs) =>
         invokeDynamic(target, srcs, name, desc0, bsTag, bsOwner, bsName, bsDesc0, bsArgs)
@@ -424,16 +427,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     )
   }
 
-  val polymorphicSignatureMethods = Set(
-    "invokeExact",
-    "invoke",
-    "invokeBasic",
-    "linkToVirtual",
-    "linkToStatic",
-    "linkToSpecial",
-    "linkToInterface"
-  )
-
   def boxIt(tpe: imm.Type.Prim[_], reader: () => Int)(implicit r: Allocator) = {
     import imm.Type.Prim._
     tpe match{
@@ -494,132 +487,84 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     }
   }
+  private def invokeLink(target: Int, sources: Agg[Int], flag: String) = {
+    println("Running invokeLink")
+    flag match{
+      case "linkToVirtual" => ???
+      case "linkToStatic" =>
+        val memberName = frame.locals(sources.last)
+        val owner = vm.getTypeForTypeObj(vm.obj(memberName).apply("clazz"))
+
+        val name = Virtualizer.toRealObj[String](vm.obj(memberName).apply("name"))(bindingsInterface, implicitly)
+        val desc = {
+          val tpeAddr = vm.obj(memberName).apply("type")
+          val rtype = vm.getTypeForTypeObj(vm.obj(tpeAddr).apply("rtype"))
+
+
+          val ptypes =
+            for(ptype <- vm.arr(vm.obj(tpeAddr).apply("ptypes")))
+              yield vm.getTypeForTypeObj(ptype)
+
+          imm.Desc(Agg.from(ptypes), rtype)
+        }
+        val method = vm.resolveDirectRef(owner.asInstanceOf[imm.Type.Cls], imm.Sig(name, desc)).get
+        invokeBase(sources.take(sources.length-1), target, method, false)
+      case "linkToSpecial" => ???
+      case "linkToInterface" => ???
+    }
+  }
   private def invokeHandle(target: Int, sources: Agg[Int], sig: Sig, basic: Boolean) = {
+    println("Running invokeHandle")
     val argZero = frame.locals(sources(0))
     if (argZero == 0)throwExWithTrace("java.lang.NullPointerException", "null")
     else{
 
+      // https://wiki.openjdk.java.net/display/HotSpot/Method+handles+and+invokedynamic
+      //
+      // """
+      // Thus, in the steady state, a hot method handle is executed without
+      // the lambda form interpreter. The low-level JVM steps are as follows:
+      // - Fetch MethodHandle.form.
+      // - Fetch LambdaForm.vmentry.
+      // - Fetch MemberName.vmtarget, a hidden Method* pointer.
+      // - Fetch Method::from_compiled_entry.
+      // - Jump to optimized code.
+      // """
+      val adapted =
+        if (basic) {
+          argZero
+        } else vm.alloc { implicit r =>
+          println("Adapting...")
+          val asTypeMethodRef = vm.clsTable("java.lang.invoke.MethodHandle")
+            .methods
+            .find(_.sig.name == "asType")
+            .get
 
-      vm.obj(argZero).cls.tpe match {
-        case imm.Type.Cls("java.lang.invoke.DirectMethodHandle$Accessor") =>
-          val obj = vm.obj(argZero)
-          val fieldTypeAddress = obj.apply("fieldType")
-          val fieldType = vm.getTypeForTypeObj(fieldTypeAddress)
-          val offset = obj.apply("fieldOffset")
-          sources.length match{
-            case 2 => // getter
-              val targetObj = vm.obj(frame.locals(sources(1)))
-              vm.alloc { implicit r =>
-                adaptBoxiness(
-                  sig.desc.ret,
-                  frame.locals,
-                  target,
-                  fieldType,
-                  targetObj.members,
-                  offset
-                )
-              }
-            case 3 => // setter
-              val targetObj = vm.obj(frame.locals(sources(1)))
-              adaptBoxiness(
-                fieldType,
-                targetObj.members,
-                offset,
-                sig.desc.args(1),
-                frame.locals,
-                sources(2)
-              )
-          }
-
-          advancePc()
-
-        case imm.Type.Cls("java.lang.invoke.DirectMethodHandle$StaticAccessor") =>
-          val obj = vm.obj(argZero)
-          val fieldTypeAddress = obj.apply("fieldType")
-          val fieldType = vm.getTypeForTypeObj(fieldTypeAddress)
-
-          val name = Virtualizer.toRealObj[String](vm.obj(obj.apply("member")).apply("name"))(bindingsInterface, implicitly)
-          val ownerTypeObj = vm.obj(obj.apply("member")).apply("clazz")
-          val ownerType = vm.getTypeForTypeObj(ownerTypeObj)
-          val statics = vm.arr(vm.clsTable(ownerType.asInstanceOf[imm.Type.Cls]).statics())
-          val offset = vm.clsTable(ownerType.asInstanceOf[imm.Type.Cls]).staticList.indexWhere(_.name == name)
-
-          sources.length match{
-            case 1 => // getter
-              adaptBoxiness(
-                sig.desc.ret,
-                frame.locals,
-                target,
-                fieldType,
-                statics,
-                offset
-              )
+          val args = new ArrayFiller(asTypeMethodRef.localsSize)
+          args.append(argZero)
+          args.append(getMethodType(sig.desc))
 
 
-            case 2 => // setter
-              adaptBoxiness(
-                fieldType,
-                statics,
-                offset,
-                sig.desc.args(0),
-                frame.locals,
-                sources(1)
-              )
-          }
+          invoke0(asTypeMethodRef, args.arr)
 
-          advancePc()
+          returnedVal(0)
+        }
 
-        case imm.Type.Cls("java.lang.invoke.DirectMethodHandle") =>
-          val memberName = vm.obj(argZero).apply("member")
-          val owner = vm.getTypeForTypeObj(vm.obj(memberName).apply("clazz"))
-
-          val name = Virtualizer.toRealObj[String](vm.obj(memberName).apply("name"))(bindingsInterface, implicitly)
-          val desc = {
-            val tpeAddr = vm.obj(memberName).apply("type")
-            val rtype = vm.getTypeForTypeObj(vm.obj(tpeAddr).apply("rtype"))
+      val form = vm.obj(adapted).apply("form")
+      val lformVmEntry = vm.obj(form).apply("vmentry")
+      val adaptedMethod = vm.methodHandleMap
+        .find(_._1.apply() == lformVmEntry)
+        .get
+        ._2
+        .asInstanceOf[ClsMethod]
 
 
-            val ptypes =
-              for(ptype <- vm.arr(vm.obj(tpeAddr).apply("ptypes")))
-              yield vm.getTypeForTypeObj(ptype)
+      invokeBase(sources, target, adaptedMethod, !adaptedMethod.static)
+      frame.locals(0) = adapted
 
-            imm.Desc(Agg.from(ptypes), rtype)
-          }
-
-          val method = vm.resolveDirectRef(owner.asInstanceOf[imm.Type.Cls], imm.Sig(name, desc)).get
-          val adapted =
-            if (basic || method.sig.desc == sig.desc) method
-            else vm.alloc { implicit r =>
-              val asTypeMethodRef = vm.clsTable("java.lang.invoke.MethodHandle")
-                .methods
-                .find(_.sig.name == "asType")
-                .get
-
-              val args = new ArrayFiller(asTypeMethodRef.localsSize)
-              args.append(argZero)
-              args.append(getMethodType(sig.desc))
-              //              ColorLogger.pprinter.log(args.arr)
-              invoke0(asTypeMethodRef, args.arr)
-              val adapted = returnedVal(0)
-              val lformVmEntry = vm.obj(vm.obj(adapted).apply("form")).apply("vmentry")
-              val adaptedMethod = vm.methodHandleMap
-                .find(_._1.apply() == lformVmEntry)
-                .get
-                ._2
-                .asInstanceOf[ClsMethod]
-
-              adaptedMethod
-            }
-
-          assert(
-            adapted.sig.desc.args.length == method.sig.desc.args.length,
-            "adapted method does not have same argument count as original!\n" +
-            s"adapted: ${adapted.sig.desc.args}, original: ${method.sig.desc.args}"
-          )
-          invokeBase(sources.drop(1), target, adapted, !adapted.static)
-      }
     }
   }
+
 
   private def invokeInterface(target: Int, sources: Agg[Int], sig: Sig) = {
     val argZero = frame.locals(sources(0))

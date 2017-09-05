@@ -110,12 +110,23 @@ object SingleInsnSSAConverter {
         case _ => imm.Type.Cls("java.lang.Object")
       }
       val runtimeCls = vm.clsTable(cls)
-      val mIndex =
-        if (special) runtimeCls.vTable.indexWhere(_.sig == sig)
-        else runtimeCls.staticTable.indexWhere(_.sig == sig)
+      val table =
+        if (special) runtimeCls.vTable
+        else runtimeCls.staticTable
 
-      val clsIndex = vm.clsTable.clsIndex.indexOf(runtimeCls)
-      append(Insn.InvokeStatic(target, Agg.from(args), clsIndex, mIndex, special))
+      val mIndex = table.indexWhere(_.sig == sig)
+      if (insn.owner == "java/lang/invoke/MethodHandle" &&
+        (sig.name == "linkToVirtual" ||
+          sig.name == "linkToStatic" ||
+          sig.name == "linkToSpecial" ||
+          sig.name == "linkToInterface")){
+        append(InvokeLink(target, Agg.from(args), sig.name))
+      }else{
+
+        assert(mIndex != -1, "Can't find sig " + sig + " in\n" + table.mkString("\n"))
+        val clsIndex = vm.clsTable.clsIndex.indexOf(runtimeCls)
+        append(Insn.InvokeStatic(target, Agg.from(args), clsIndex, mIndex, special))
+      }
     }
     def invokeDynamic(insn: InvokeDynamicInsnNode) = {
       val args = for(j <- (0 until imm.Desc.read(insn.desc).args.length).reverse) yield {
