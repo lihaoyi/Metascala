@@ -74,23 +74,22 @@ class ReflectTests extends FreeSpec {
   "properties" - {
 
     "getName" in tester.test{
-      classOf[String].getName
+      classOf[java.util.Properties].getName
     }
     "getCanonicalName" in tester.test{
-      classOf[String].getCanonicalName
+      classOf[java.util.Properties].getCanonicalName
     }
-//    "getFieldsNames" in {try tester.test{
-//      val x = classOf[String].getDeclaredFields
-//      1
-//    } catch{case e => e.printStackTrace()}}
+    "getFieldsNames" in tester.test{
+      classOf[String].getFields.map(_.getName).toList
+    }
 //    "getDeclaredFieldsNames" in tester.test{
-//      classOf[String].getDeclaredFields.map(_.getName).toList
+//      classOf[java.util.Properties].getDeclaredFields.map(_.getName).toList.sorted
 //    }
 //    "getMethodsNames" in tester.test{
-//      classOf[String].getMethods.map(_.getName).toList
+//      classOf[java.util.Properties].getMethods.map(_.getName).toList.sorted
 //    }
 //    "getDeclaredMethodsNames" in tester.test{
-//      classOf[String].getDeclaredMethods.map(_.getName).toList
+//      classOf[java.util.Properties].getDeclaredMethods.map(_.getName).toList.sorted
 //    }
   }
 //  "getSetStatic" - {

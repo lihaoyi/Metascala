@@ -169,7 +169,7 @@ object DefaultBindings extends Bindings{
       val cls = vt.clsTable(vt.toRealObj[String](vt.obj(arg()).apply("name")))
       vt.alloc(implicit r =>
         r.newArr("java.lang.reflect.Method",
-          cls.methods.map{ m =>
+          for(m <- cls.methods if m.sig.name != "<init>" && m.sig.name != "<clinit>") yield {
             r.newObj("java.lang.reflect.Method",
               "clazz" -> vt.typeObjCache(cls.tpe),
               "name" -> vt.internedStrings.getOrElseUpdate(
