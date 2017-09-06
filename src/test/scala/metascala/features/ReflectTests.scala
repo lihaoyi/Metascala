@@ -71,13 +71,35 @@ class ReflectTests extends FreeSpec {
       f.getDouble(point)
     }
   }
-  "getSetStatic" - {
+  "properties" - {
+
+    "getName" in tester.test{
+      classOf[String].getName
+    }
+    "getCanonicalName" in tester.test{
+      classOf[String].getCanonicalName
+    }
+//    "getFieldsNames" in {try tester.test{
+//      val x = classOf[String].getDeclaredFields
+//      1
+//    } catch{case e => e.printStackTrace()}}
+//    "getDeclaredFieldsNames" in tester.test{
+//      classOf[String].getDeclaredFields.map(_.getName).toList
+//    }
+//    "getMethodsNames" in tester.test{
+//      classOf[String].getMethods.map(_.getName).toList
+//    }
+//    "getDeclaredMethodsNames" in tester.test{
+//      classOf[String].getDeclaredMethods.map(_.getName).toList
+//    }
+  }
+//  "getSetStatic" - {
 //    "double" in tester.testFunc{ () =>
 //      val f = classOf[Point2D.Double].getDeclaredField("serialVersionUID")
 //      f.setAccessible(true)
 //      f.getDouble(null)
 //    }
-  }
+//  }
   "allocate" in {
     val p = Virtualizer.unsafe
                        .allocateInstance(classOf[Point2D.Float])

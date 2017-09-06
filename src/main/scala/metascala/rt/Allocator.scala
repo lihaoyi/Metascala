@@ -63,10 +63,10 @@ class Allocator()(implicit val vm: rt.Obj.VMInterface) {
   }
 
   def newObj0(cls: rt.Cls, initMembers: (String, Ref)*): Obj = {
-    val address = vm.heap.allocate(Constants.objectHeaderSize + cls.fieldList.length)
+    val address = vm.heap.allocate(Constants.objectHeaderSize + cls.fieldInfo.slotCount)
     //    println("Allocating " + cls.name + " at " + address)
     vm.heap(address) = -cls.index
-    vm.heap(address + 1) = cls.fieldList.length
+    vm.heap(address + 1) = cls.fieldInfo.slotCount
     val obj = new Obj(register(address))
     for ((s, v) <- initMembers){
       obj(s) = v()

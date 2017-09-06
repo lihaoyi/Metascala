@@ -45,7 +45,7 @@ class Obj(val address: WritableRef)
       vm.heap(address() + n + Constants.objectHeaderSize) = v
     }
 
-    def length = cls.fieldList.length
+    def length = cls.fieldInfo.slotCount
 
     def iterator: Iterator[Int] = new Iterator[Int]{
       var index = 0
@@ -64,7 +64,7 @@ class Obj(val address: WritableRef)
 
   def apply(name: String): Int = {
     assert(address() != 0, "Cannot lookup field of null entry")
-    val index = cls.getFieldIndex(name)
+    val index = cls.fieldInfo.getIndex(name)
     members(index)
   }
 
@@ -72,7 +72,7 @@ class Obj(val address: WritableRef)
 
   def update(name: String, value: Int) = {
     assert(address() != 0, "Cannot update field of null entry")
-    members(cls.getFieldIndex(name)) = value
+    members(cls.fieldInfo.getIndex(name)) = value
   }
 
   def view = address + " " + vm.heap.memory.slice(address(), address() + heapSize).toList

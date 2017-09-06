@@ -61,7 +61,7 @@ object Virtualizer {
             val obj = unsafe.allocateInstance(Class.forName(vm.obj(address).cls.tpe.javaName))
             refs += (address -> obj)
             var index = 0
-            for(field <- vm.obj(address).cls.fieldList.distinct){
+            for(field <- vm.obj(address).cls.fieldList0){
               // workaround for http://bugs.sun.com/view_bug.do?bug_id=4763881
               if (field.name == "backtrace") index += 1 // just skip it
               else{
@@ -123,7 +123,7 @@ object Virtualizer {
         var index = 0
         val contents = mutable.Buffer.empty[Ref]
         val decFields = b.getClass.getDeclaredFields
-        for(field <- vm.clsTable(imm.Type.Cls.apply(b.getClass.getName)).fieldList.distinct) yield {
+        for(field <- vm.clsTable(imm.Type.Cls.apply(b.getClass.getName)).fieldList0) yield {
           val f = decFields.find(_.getName == field.name).get
           f.setAccessible(true)
           pushVirtual(f.get(b), x =>

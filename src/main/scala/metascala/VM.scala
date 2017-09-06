@@ -47,7 +47,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
   def checkInitialized(cls: rt.Cls): Unit = {
     if (!cls.initialized){
       cls.statics = vm.alloc(r =>
-        r.newArr(imm.Type.Prim.I, cls.staticList.length)
+        r.newArr(imm.Type.Prim.I, cls.staticInfo.slotCount)
       )
       cls.initialized = true
       vm.resolveDirectRef(cls.tpe, Sig("<clinit>", imm.Desc.read("()V")))
@@ -111,7 +111,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
   def getLinks(tpe: Int, length: Int): Seq[Int] = {
     if (isObj(tpe)) {
       for {
-        (x, i) <- clsTable.clsIndex(-heap(tpe)).fieldList.zipWithIndex
+        (x, i) <- clsTable.clsIndex(-heap(tpe)).fieldInfo.slottedList
         if x.desc.isRef
       } yield i + Constants.objectHeaderSize
     } else {
@@ -143,8 +143,8 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
     for (cls <- clsTable.clsIndex){
       if (cls != null && cls.statics != null){
 
-        for(i <- cls.staticList.indices){
-          if (cls.staticList(i).desc.isRef){
+        for((static, i) <- cls.staticInfo.slottedList){
+          if (static.desc.isRef){
             cb(new Ref.UnsafeArr(
               () => heap(cls.statics() + i + Constants.arrayHeaderSize),
               heap(cls.statics() + i + Constants.arrayHeaderSize) = _
@@ -186,9 +186,9 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
       r.newObj("java.util.Properties").address()
     )
 
-    new rt.Arr(systemCls.statics)(systemCls.staticList.indexWhere(_.name == "out")) = dummyWriter
-    new rt.Arr(systemCls.statics)(systemCls.staticList.indexWhere(_.name == "err")) = dummyWriter
-    new rt.Arr(systemCls.statics)(systemCls.staticList.indexWhere(_.name == "props")) = sysProps
+    new rt.Arr(systemCls.statics)(systemCls.staticInfo.getIndex("out")) = dummyWriter
+    new rt.Arr(systemCls.statics)(systemCls.staticInfo.getIndex("err")) = dummyWriter
+    new rt.Arr(systemCls.statics)(systemCls.staticInfo.getIndex("props")) = sysProps
     val mRef = clsTable("java.util.Properties").method("<init>", imm.Desc(Agg.empty, imm.Type.Prim.V)).get
     val args = new Array[Int](mRef.localsSize)
     args(0) = sysProps

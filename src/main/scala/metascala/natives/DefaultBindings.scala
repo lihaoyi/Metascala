@@ -111,14 +111,14 @@ object DefaultBindings extends Bindings{
 
       val name = vt.toRealObj[String](obj("name"))
       val cls = vt.clsTable(name)
-      val realFields = cls.fieldList ++ cls.staticList
+      val realFields = cls.fieldInfo.slottedList ++ cls.staticInfo.slottedList
 
       vt.alloc(implicit r =>
         r.newArr("java.lang.reflect.Field",
-          realFields.zipWithIndex.map{ case (f, i) =>
+          for((f, i) <- realFields) yield {
             r.newObj("java.lang.reflect.Field",
               "clazz" -> obj.address,
-              "slot" -> Ref.Raw((if (f.static) cls.staticList else cls.fieldList).indexOf(f)),
+              "slot" -> Ref.Raw(i),
               "name" -> vt.internedStrings.getOrElseUpdate(f.name, vt.toVirtObj(f.name)),
               "modifiers" -> Ref.Raw(f.access),
               "type" -> vt.typeObjCache(f.desc)
@@ -337,7 +337,7 @@ object DefaultBindings extends Bindings{
         val cls = vt.obj(memberName).apply("clazz")
         val name = vt.toRealObj[String](vt.obj(memberName).apply("name"))
         val typeObj = vt.getTypeForTypeObj(cls)
-        vt.clsTable(typeObj.asInstanceOf[imm.Type.Cls]).staticList.indexWhere(_.name == name)
+        vt.clsTable(typeObj.asInstanceOf[imm.Type.Cls]).staticInfo.getIndex(name)
     },
     native("java.lang.invoke.MethodHandleNatives", "staticFieldBase(Ljava/lang/invoke/MemberName;)Ljava/lang/Object;").static.func(I, J) {
       (vt, memberName) =>
@@ -422,7 +422,7 @@ object DefaultBindings extends Bindings{
               addMatch(method.accessFlags, "java.lang.reflect.Method", method.sig.name, method.sig.desc.toString)
             }
           } else if ((matchFlags & MHConstants.MN_IS_FIELD) != 0) {
-            for (field <- cls.fieldList if !name.exists(_ != field.name)) {
+            for (field <- cls.fieldList0 if !name.exists(_ != field.name)) {
               addMatch(field.access, "java.lang.reflect.Field", field.name, field.desc.toString)
             }
           }
@@ -435,7 +435,7 @@ object DefaultBindings extends Bindings{
         val address = vt.obj(memberName).apply("clazz")
         val name = vt.toRealObj[String](vt.obj(memberName).apply("name"))
         val typeObj = vt.getTypeForTypeObj(address)
-        vt.clsTable(typeObj.asInstanceOf[imm.Type.Cls]).getFieldIndex(name)
+        vt.clsTable(typeObj.asInstanceOf[imm.Type.Cls]).fieldInfo.getIndex(name)
     },
     native(
       "java.lang.invoke.MethodHandleNatives",

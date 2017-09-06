@@ -154,24 +154,26 @@ object SingleInsnSSAConverter {
         case x: FieldInsnNode => new MethodInsnNode(x.getOpcode, x.owner, x.name, x.desc)
       }
     }
-    def refField(list: rt.Cls => Seq[imm.Field], func: (Int, Int, imm.Type) => Insn) = {
+    def refField(func: (Int, Int, imm.Type) => Insn) = {
 
       def resolve(cls: rt.Cls): (Int, rt.Cls) = {
-        list(cls).lastIndexWhere(_.name == insn.name) match{
+        cls.fieldInfo.getIndex0(insn.name) match{
           case -1 => resolve(vm.clsTable(cls.clsAncestry(1)))
           case x =>  (x, cls)
         }
       }
-      val (index, cls) = resolve(vm.clsTable(insn.owner))
+      val cls0 = vm.clsTable(insn.owner)
+      val (index, cls) = resolve(cls0)
       assert(
         index >= 0,
         s"no field found in ${insn.owner}: ${insn.name}\n" +
-        "Fields\n" + list(vm.clsTable(insn.owner)).map(_.name).mkString("\n")
+        "Fields\n" + cls0.fieldList0.map(_.name).mkString("\n")
       )
-      val prim = list(cls)(index).desc
-      append(func(vm.clsTable.clsIndex.indexOf(cls), index - prim.size + 1, prim))
+      val prim = cls.fieldInfo.get(index).desc
+      append(func(vm.clsTable.clsIndex.indexOf(cls), index, prim))
     }
-    def refStaticField(list: rt.Cls => Seq[imm.Field], func: (Int, Int, imm.Type) => Insn) = {
+    def refStaticField(func: (Int, Int, imm.Type) => Insn) = {
+
       // Unlike instance fields, and unlike static methods, static fields can
       // be inherited from both the main superclass as well as from any auxilliary
       // interfaces you implement!
@@ -180,18 +182,19 @@ object SingleInsnSSAConverter {
         if (seen(cls.tpe)) Nil
         else {
           seen.add(cls.tpe)
-          cls.staticList.lastIndexWhere(_.name == insn.name) match{
+          cls.staticInfo.getIndex0(insn.name) match{
             case -1 =>
               (cls.superType.toSeq ++ cls.interfaces).flatMap(ancestor => resolve(vm.clsTable(ancestor)))
             case n => Seq((n, cls))
           }
         }
       }
+
       resolve(vm.clsTable(insn.owner)) match{
         case Seq((index, cls)) =>
           assert(index >= 0, s"no field found in ${insn.owner}: ${insn.name}\n")
-          val prim = cls.staticList(index).desc
-          append(func(vm.clsTable.clsIndex.indexOf(cls), index - prim.size + 1, prim))
+          val prim = cls.staticInfo.get(index).desc
+          append(func(cls.index, index, prim))
         case res => throw new Exception("Zero or Multiple Possible Fields Inherited! " + res)
       }
     }
@@ -347,10 +350,10 @@ object SingleInsnSSAConverter {
       case DRETURN => returnVal(D)
       case ARETURN => returnVal("java.lang.Object")
       case RETURN => returnVal(V)
-      case GETSTATIC => refStaticField(_.staticList, Insn.GetStatic(top(nextFrame), _, _, _))
-      case PUTSTATIC => refStaticField(_.staticList, Insn.PutStatic(top(frame), _, _, _))
-      case GETFIELD  => refField(_.fieldList, (a, b, c) => Insn.GetField(top(nextFrame), top(frame), b, c))
-      case PUTFIELD  => refField(_.fieldList, (a, b, c) => Insn.PutField(top(frame), top(frame, 1), b, c))
+      case GETSTATIC => refStaticField(Insn.GetStatic(top(nextFrame), _, _, _))
+      case PUTSTATIC => refStaticField(Insn.PutStatic(top(frame), _, _, _))
+      case GETFIELD  => refField((a, b, c) => Insn.GetField(top(nextFrame), top(frame), b, c))
+      case PUTFIELD  => refField((a, b, c) => Insn.PutField(top(frame), top(frame, 1), b, c))
       case INVOKESTATIC    => invokeStatic(insn, special = false)
       case INVOKESPECIAL   => invokeStatic(insn, special = true)
       case INVOKEVIRTUAL   => invokeVirtual(insn, indexed = true)

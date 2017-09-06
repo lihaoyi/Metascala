@@ -85,15 +85,8 @@ class ClsTable(fileLoader: String => Option[Array[Byte]])
               () => MethodSSAConverter.apply(classNode.name, mn)
             )
           },
-      fieldList =
-        superType.toSeq.flatMap(apply(_).fieldList) ++
-          fields.filter(!_.static).flatMap{x =>
-            Seq.fill(x.desc.size)(x)
-          },
-      staticList =
-        fields.filter(_.static).flatMap{x =>
-          Seq.fill(x.desc.size)(x)
-        },
+      fieldList0 = fields.filter(!_.static),
+      staticList0 = fields.filter(_.static),
       outerCls = NullSafe(classNode.outerClass).map(Type.Cls.apply),
       clsIndex.length
     )

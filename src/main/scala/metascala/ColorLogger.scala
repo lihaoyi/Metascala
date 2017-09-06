@@ -65,7 +65,7 @@ trait ColorLogger extends rt.Logger{
 //    if (frame.method.sig.name == "isStaticallyInvocable" || frame.method.sig.name == "isStaticallyNameable"){
       val indent = "    " * indentCount
       val r = Util.reader(frame.locals, 0)
-      lazy val localSnapshot =
+      val localSnapshot =
         block.locals
           .flatMap{
               case LocalType.Ref =>
@@ -144,7 +144,7 @@ trait ColorLogger extends rt.Logger{
                      tryCatchBlocks: Agg[TryCatchBlock]) = {
     //    def printOrNot = clsName == "java.util.concurrent.ConcurrentHashMap" &&
     //      frame.method.sig.name == "<init>"
-    if(false){
+    if (false){
 //    if(methodName == "isStaticallyNameable" || methodName == "isStaticallyInvocable"){
 
       def flatten[T](x: TraversableOnce[T]): String = x.mkString("[", ", ", "]")
