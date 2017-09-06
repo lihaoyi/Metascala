@@ -698,7 +698,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
       pprint.log(frame.locals(sources(0)))
       pprint.log(vm.obj(frame.locals(sources(0))).cls)
       if (frame.locals(sources(1)) == 0){
-        ???
+        throw new Exception("Cannot call constantPlaceholder with a null argument!s")
       }
       pprint.log(frame.locals(sources(1)))
       pprint.log(vm.obj(frame.locals(sources(1))).cls)
