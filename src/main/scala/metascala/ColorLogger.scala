@@ -61,7 +61,8 @@ trait ColorLogger extends rt.Logger{
 //                     frame.method.sig.name == "<init>"
 //    if (clsName.contains("MethodHandles") || clsName.contains("MemberName")) {
 //    if(methodNames(clsName + "." + frame.method.sig.name)){
-    if (frame.method.sig.name == "emitInvoke"){
+    if (false){
+//    if (frame.method.sig.name == "isStaticallyInvocable" || frame.method.sig.name == "isStaticallyNameable"){
       val indent = "    " * indentCount
       val r = Util.reader(frame.locals, 0)
       lazy val localSnapshot =
@@ -109,7 +110,8 @@ trait ColorLogger extends rt.Logger{
 //      frame.method.sig.name == "<init>"
 
 //    if (methodNames(clsName + "." + frame.method.sig.name)) {
-    if (frame.method.sig.name == "emitInvoke"){
+    if (false){
+//    if (frame.method.sig.name == "isStaticallyInvocable" || frame.method.sig.name == "isStaticallyNameable"){
       val indent = "    " * indentCount
       val output = mutable.Buffer.empty[fansi.Str]
       output.append(indent)
@@ -142,7 +144,8 @@ trait ColorLogger extends rt.Logger{
                      tryCatchBlocks: Agg[TryCatchBlock]) = {
     //    def printOrNot = clsName == "java.util.concurrent.ConcurrentHashMap" &&
     //      frame.method.sig.name == "<init>"
-    if(methodName == "emitInvoke"){
+    if(false){
+//    if(methodName == "isStaticallyNameable" || methodName == "isStaticallyInvocable"){
 
       def flatten[T](x: TraversableOnce[T]): String = x.mkString("[", ", ", "]")
       def arrow(x: (Any, Any)): String = fansi.Color.Green(x._1.toString) + " -> " + fansi.Color.Green(x._2.toString)

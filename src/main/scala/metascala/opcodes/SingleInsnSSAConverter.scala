@@ -12,8 +12,10 @@ import scala.collection.JavaConverters._
 import org.objectweb.asm.tree.analysis._
 import org.objectweb.asm.Opcodes._
 import Insn._
-import metascala.rt.{Logger, PatchedConstantBox}
+import metascala.rt.Logger
 import metascala.util.{Agg, Ref, WritableRef}
+
+case class PatchedConstantBox(addr: WritableRef)
 object SingleInsnSSAConverter {
   trait VMInterface extends rt.Obj.VMInterface{
     def alloc[T](func: rt.Allocator => T): T

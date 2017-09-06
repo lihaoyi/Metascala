@@ -16,7 +16,7 @@ object Cls{
 
   trait VMInterface extends rt.Arr.VMInterface{
     implicit def clsTable: ClsTable0
-    def lookupNatives(expectedCls: imm.Type.Cls, sig: imm.Sig): Option[rt.Method]
+    def lookupNatives(expectedCls: imm.Type.Cls, sig: imm.Sig): Option[Int => rt.Method]
   }
 }
 
@@ -27,6 +27,7 @@ class Cls(val tpe: imm.Type.Cls,
           val superType: Option[imm.Type.Cls],
           val sourceFile: Option[String],
           val interfaces: Seq[imm.Type.Cls],
+          val innerClasses: Seq[imm.Type.Cls],
           val accessFlags: Int,
           val methods: Seq[rt.ClsMethod],
           val fieldList: Seq[imm.Field],
@@ -86,7 +87,7 @@ class Cls(val tpe: imm.Type.Cls,
     for(m <- methods) if (m.static == static){
       val actualMethod = vm.lookupNatives(tpe, m.sig) match {
         case None => m
-        case Some(native) => native
+        case Some(native) => native(m.accessFlags)
       }
       val index = oldMethods.indexWhere{ mRef => mRef.sig == m.sig }
       if (index == -1) oldMethods.append(actualMethod)

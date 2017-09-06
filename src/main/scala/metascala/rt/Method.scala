@@ -7,7 +7,7 @@ package rt
 trait Method{
   def sig: imm.Sig
   def static: Boolean
-
+  def accessFlags: Int
   def localsSize: Int
 }
 

@@ -34,49 +34,49 @@ object DefaultBindings extends Bindings{
 
     def apply[T: Prim](f: (Bindings.Interface, () => Int) => T) = {
       NativeMethod(
-        cls, sig, isStatic,
+        cls, sig, isStatic, 0,
         (vt, arg, ret) => implicitly[Prim[T]].write(f(vt, arg), ret)
       )
     }
     def func[T](out: Prim[T])(f: Bindings.Interface => T) =
-      NativeMethod(cls, sig, isStatic,
+      NativeMethod(cls, sig, isStatic, 0,
         (t: Bindings.Interface, args: () => Int, ret: Int => Unit) =>
           out.write(f(t), ret)
       )
     def func[A, T](a: Prim[A], out: Prim[T])(f: (Bindings.Interface, A) => T) =
-      NativeMethod(cls, sig, isStatic,
+      NativeMethod(cls, sig, isStatic, 0,
         (t: Bindings.Interface, args: () => Int, ret: Int => Unit) =>
           out.write(f(t, a.read(args)), ret)
       )
     def func[A, B, T](a: Prim[A], b: Prim[B], out: Prim[T])(f: (Bindings.Interface, A, B) => T) =
-      NativeMethod(cls, sig, isStatic,
+      NativeMethod(cls, sig, isStatic, 0,
         (t: Bindings.Interface, args: () => Int, ret: Int => Unit) =>
           out.write(f(t, a.read(args), b.read(args)), ret)
       )
     def func[A, B, C, T](a: Prim[A], b: Prim[B], c: Prim[C], out: Prim[T])(f: (Bindings.Interface, A, B, C) => T) =
-      NativeMethod(cls, sig, isStatic,
+      NativeMethod(cls, sig, isStatic, 0,
         (t: Bindings.Interface, args: () => Int, ret: Int => Unit) =>
           out.write(f(t, a.read(args), b.read(args), c.read(args)), ret)
       )
     def func[A, B, C, D, T](a: Prim[A], b: Prim[B], c: Prim[C], d: Prim[D], out: Prim[T])(f: (Bindings.Interface, A, B, C, D) => T) =
-      NativeMethod(cls, sig, isStatic,
+      NativeMethod(cls, sig, isStatic, 0,
         (t: Bindings.Interface, args: () => Int, ret: Int => Unit) =>
           out.write(f(t, a.read(args), b.read(args), c.read(args), d.read(args)), ret)
       )
     def func[A, B, C, D, E, T](a: Prim[A], b: Prim[B], c: Prim[C], d: Prim[D], e: Prim[E], out: Prim[T])(f: (Bindings.Interface, A, B, C, D, E) => T) =
-      NativeMethod(cls, sig, isStatic,
+      NativeMethod(cls, sig, isStatic, 0,
         (t: Bindings.Interface, args: () => Int, ret: Int => Unit) =>
           out.write(f(t, a.read(args), b.read(args), c.read(args), d.read(args), e.read(args)), ret)
       )
 
     def func[A, B, C, D, E, F, T](a: Prim[A], b: Prim[B], c: Prim[C], d: Prim[D], e: Prim[E], f: Prim[F], out: Prim[T])(func: (Bindings.Interface, A, B, C, D, E, F) => T) =
-      NativeMethod(cls, sig, isStatic,
+      NativeMethod(cls, sig, isStatic, 0,
         (t: Bindings.Interface, args: () => Int, ret: Int => Unit) =>
           out.write(func(t, a.read(args), b.read(args), c.read(args), d.read(args), e.read(args), f.read(args)), ret)
       )
 
     def func[A, B, C, D, E, F, G, T](a: Prim[A], b: Prim[B], c: Prim[C], d: Prim[D], e: Prim[E], f: Prim[F], g: Prim[G], out: Prim[T])(func: (Bindings.Interface, A, B, C, D, E, F, G) => T) =
-      NativeMethod(cls, sig, isStatic,
+      NativeMethod(cls, sig, isStatic, 0,
         (t: Bindings.Interface, args: () => Int, ret: Int => Unit) =>
           out.write(func(t, a.read(args), b.read(args), c.read(args), d.read(args), e.read(args), f.read(args), g.read(args)), ret)
       )
@@ -85,8 +85,8 @@ object DefaultBindings extends Bindings{
   val trapped = Agg(
     native("java.io.UnixFileSystem", "initIDs()V;").static { (vt, arg) => },
     native("java.lang.Class", "getProtectionDomain0()Ljava/security/ProtectionDomain;") { (vt, arg) => },
-    native("java.lang.Class", "desiredAssertionStatus0(Ljava/lang/Class;)Z").static { (vt, arg) => },
-    native("java.lang.Class", "desiredAssertionStatus()Z") { (vt, arg) => },
+    native("java.lang.Class", "desiredAssertionStatus0(Ljava/lang/Class;)Z").static { (vt, arg) => 0 },
+    native("java.lang.Class", "desiredAssertionStatus()Z") { (vt, arg) => 0 },
     native("java.lang.Class", "forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;Ljava/lang/Class;)Ljava/lang/Class;").static  { (vt, arg) =>
       val nameString = vt.toRealObj[String](arg())
       val tpe = imm.Type.readJava(nameString)
@@ -128,6 +128,16 @@ object DefaultBindings extends Bindings{
       ).address()
       // if (f.static) cls.staticList else cls.fieldList).indexOf(f)
       // f.static(cls.staticList, cls.fieldList).indexOf(f)
+    },
+    native("java.lang.Class", "getDeclaredClasses0()[Ljava/lang/Class;"){(vt, arg) =>
+      val obj = arg()
+
+      val tpe = vt.getTypeForTypeObj(obj)
+      vt.alloc{implicit r =>
+        r.newArr("java.lang.Class",
+          vt.clsTable(tpe.asInstanceOf[imm.Type.Cls]).innerClasses.map(vt.typeObjCache)
+        )
+      }.address()
     },
     native("java.lang.Class", "getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;"){ (vt, arg) =>
 
@@ -320,6 +330,8 @@ object DefaultBindings extends Bindings{
       // do nothing
     },
     native("java.lang.invoke.MethodHandleNatives", "registerNatives()V").static {(vt, arg) =>},
+    native("java.lang.invoke.MethodHandleNatives", "verifyConstants()Z").static {(vt, arg) => 1},
+    native("java.lang.invoke.MemberName", "vminfoIsConsistent()Z") {(vt, arg) => 1},
     native("java.lang.invoke.MethodHandleNatives", "staticFieldOffset(Ljava/lang/invoke/MemberName;)J").static.func(I, J) {
       (vt, memberName) =>
         val cls = vt.obj(memberName).apply("clazz")
@@ -431,6 +443,7 @@ object DefaultBindings extends Bindings{
     ).static.func(I, I, V) {(vt, memberName, ref) =>
       val modifiers = vt.obj(ref).apply("modifiers")
 
+      println(vt.toRealObj[String](vt.obj(ref).apply("name")))
       val (flags0, refKinds) = vt.obj(ref).cls.tpe match {
         case imm.Type.Cls("java.lang.reflect.Method") =>
           if ((modifiers & MHConstants.ACC_INTERFACE) > 0) {
@@ -475,6 +488,9 @@ object DefaultBindings extends Bindings{
     native("java.lang.invoke.MethodHandleNatives", "resolve(Ljava/lang/invoke/MemberName;Ljava/lang/Class;)Ljava/lang/invoke/MemberName;").static.func(I, I, I) {
       (vt, memberName, cls0) =>
 
+        println(vt.toRealObj[String](vt.obj(memberName).apply("name")))
+        println(vt.obj(memberName).apply("flags"))
+        println(MHConstants.ACC_PUBLIC & vt.obj(memberName).apply("flags"))
         val cls = vt.getTypeForTypeObj(vt.obj(memberName).apply("clazz"))
 
         val memberNameStr = vt.toRealObj[String](vt.obj(memberName).apply("name"))
@@ -487,8 +503,6 @@ object DefaultBindings extends Bindings{
                MHConstants.REF_invokeSpecial |
                MHConstants.REF_invokeStatic =>
 
-//            pprint.log(memberNameStr)
-//            pprint.log(rtCls)
             val actualMethod = refFlag match{
               case MHConstants.REF_invokeSpecial | MHConstants.REF_invokeStatic =>
                 rtCls.staticTable.find(_.sig.name == memberNameStr).get
@@ -496,12 +510,9 @@ object DefaultBindings extends Bindings{
                 rtCls.vTable.find(_.sig.name == memberNameStr).get
             }
 
-//            pprint.log(actualMethod)
             vt.methodHandleMap(new Ref.UnsafeManual(memberName)) = actualMethod
 
-            if (actualMethod.static) {
-              vt.obj(memberName)("flags") |= MHConstants.ACC_STATIC
-            }
+            vt.obj(memberName)("flags") |= actualMethod.accessFlags
 
             vt.invoke1(
               "java.lang.invoke.MethodType",
@@ -520,6 +531,7 @@ object DefaultBindings extends Bindings{
               }else{
                 vt.clsTable(cls.asInstanceOf[imm.Type.Cls]).vTable.find(_.sig == sig)
               }
+
 
 //            pprint.log(resolved)
 
@@ -845,7 +857,8 @@ object DefaultBindings extends Bindings{
       (vt, unsafe, f) => vt.obj(f).apply("slot")
     },
     native("sun.misc.Unsafe", "shouldBeInitialized(Ljava/lang/Class;)Z").func(I, I, Z){
-      (vt, unsafe, cls) => true
+      (vt, unsafe, cls) =>
+        !vt.clsTable(vt.getTypeForTypeObj(cls).asInstanceOf[imm.Type.Cls]).initialized
     },
     native("sun.misc.Unsafe", "staticFieldOffset(Ljava/lang/reflect/Field;)J").func(I, I, J){
       (vt, unsafe, f) =>vt.obj(f).apply("slot")

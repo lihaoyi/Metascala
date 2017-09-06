@@ -3,7 +3,7 @@ package metascala.natives
 
 import metascala.imm.Sig
 import metascala.rt.Obj
-import metascala.util.{Agg, Ref, WritableRef}
+import metascala.util.{Agg, WritableRef}
 import metascala.{imm, rt}
 
 import scala.collection.mutable

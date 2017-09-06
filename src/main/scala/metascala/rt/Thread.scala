@@ -919,11 +919,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     def natives = vm.natives
 
-    def lookupNatives(lookupName: imm.Type.Cls, lookupSig: imm.Sig) =
-      vm.natives.trapped.find{case rt.NativeMethod(cls, sig, static, func) =>
-        (lookupName == cls) && sig == lookupSig
-      }
-
+    def lookupNatives(expectedCls: Type.Cls, sig: Sig) = vm.lookupNatives(expectedCls, sig)
     def methodHandleMap = vm.methodHandleMap
 
     def checkInitialized(cls: rt.Cls) = vm.checkInitialized(cls)
@@ -938,7 +934,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 //    println(indent + "PrepInvoke " + mRef + " with " + args)
     assert(args.length == mRef.localsSize)
     mRef match{
-      case rt.NativeMethod(cls, sig, static, op) =>
+      case rt.NativeMethod(cls, sig, static, flags, op) =>
         try op(bindingsInterface, Util.reader(args, 0), returnTo)
         finally if (threadStack.length == advanceParentPC) {
           advancePc()

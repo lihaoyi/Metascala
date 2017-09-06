@@ -17,7 +17,7 @@ import java.io.StringWriter
 import java.io.PrintWriter
 import java.util
 
-import metascala.rt.PatchedConstantBox
+
 import org.objectweb.asm._
 import org.objectweb.asm.tree._
 import org.objectweb.asm.util._

@@ -9,6 +9,7 @@ import metascala.natives.Bindings
 case class NativeMethod(cls: imm.Type.Cls,
                         sig: imm.Sig,
                         static: Boolean,
+                        accessFlags: Int,
                         func: (Bindings.Interface, () => Int, Int => Unit) => Unit)
   extends Method{
   override def toString = s"Method.Native(${cls.javaName}, ${sig.unparse}})"

@@ -1,7 +1,7 @@
 package metascala.rt
 
 import metascala.imm.{Sig, Type}
-import metascala.opcodes.MethodSSAConverter
+import metascala.opcodes.{MethodSSAConverter, PatchedConstantBox}
 import metascala.{imm, opcodes, rt, util}
 import metascala.util.{NullSafe, Ref, WritableRef}
 import org.objectweb.asm.ClassReader
@@ -13,7 +13,7 @@ object ClsTable{
   case class ClsNotFound(tpe: imm.Type.Cls) extends Exception("Can't find " + tpe.javaName)
 }
 
-case class PatchedConstantBox(addr: WritableRef)
+
 
 /**
   * Cache of all the classes loaded so far within the Metascala VM.
@@ -51,6 +51,7 @@ class ClsTable(fileLoader: String => Option[Array[Byte]])
   }
   def calcFromBytes0(input: Array[Byte], cpPatches: Map[Int, Int]): rt.Cls = {
     val classNode = new ClassNode()
+
     val cr = new ClassReader(input){
       override def readConst(item: Int, buf: Array[Char]): AnyRef ={
         if (cpPatches != null && cpPatches.contains(item)){
@@ -70,6 +71,7 @@ class ClsTable(fileLoader: String => Option[Array[Byte]])
       superType = superType,
       sourceFile = NullSafe(classNode.sourceFile),
       interfaces = NullSafe(classNode.interfaces).map(Type.Cls.apply),
+      innerClasses = NullSafe(classNode.innerClasses).map(x => Type.Cls(x.name)),
       accessFlags = classNode.access,
       methods =
         NullSafe(classNode.methods)

@@ -101,8 +101,9 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
 
 
   def lookupNatives(expectedCls: imm.Type.Cls, lookupSig: imm.Sig) =
-    vm.natives.trapped.find{case rt.NativeMethod(cls, sig, static, func) =>
-      (expectedCls == cls) && sig == lookupSig
+    vm.natives.trapped.collectFirst{
+      case n @ rt.NativeMethod(cls, sig, static, flags, func)
+        if (expectedCls== cls) && sig == lookupSig => (i: Int) => n.copy(accessFlags = i)
     }
 
   ready = true
