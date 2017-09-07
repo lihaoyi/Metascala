@@ -37,6 +37,12 @@ object Cls{
         case v => v
       }
     }
+    def get(name: String) = {
+      getIndex0(name) match {
+        case -1 => throw new Exception(s"Invalid field name [$name] in class [$javaName]")
+        case v => lookupArray(v)
+      }
+    }
 
     def getIndex0(name: String) = {
       lookupArray.lastIndexWhere(x => x != null && x.name == name)

@@ -153,7 +153,7 @@ object DefaultBindings extends Bindings{
         r.newArr("java.lang.reflect.Constructor",
           for{
             (f, i) <- realMethods.zipWithIndex
-            if (!publicOnly || (f.accessFlags & MHConstants.ACC_PUBLIC) > 0)
+            if !publicOnly || (f.accessFlags & MHConstants.ACC_PUBLIC) > 0
           } yield {
             r.newObj("java.lang.reflect.Constructor",
               "clazz" -> clsObj.address,
@@ -514,9 +514,6 @@ object DefaultBindings extends Bindings{
     native("java.lang.invoke.MethodHandleNatives", "resolve(Ljava/lang/invoke/MemberName;Ljava/lang/Class;)Ljava/lang/invoke/MemberName;").static.func(I, I, I) {
       (vt, memberName, cls0) =>
 
-        println(vt.toRealObj[String](vt.obj(memberName).apply("name")))
-        println(vt.obj(memberName).apply("flags"))
-        println(MHConstants.ACC_PUBLIC & vt.obj(memberName).apply("flags"))
         val cls = vt.getTypeForTypeObj(vt.obj(memberName).apply("clazz"))
 
         val memberNameStr = vt.toRealObj[String](vt.obj(memberName).apply("name"))
@@ -540,40 +537,10 @@ object DefaultBindings extends Bindings{
 
             vt.obj(memberName)("flags") |= actualMethod.accessFlags
 
-            vt.invoke1(
-              "java.lang.invoke.MethodType",
-              imm.Sig.read("toMethodDescriptorString()Ljava/lang/String;"),
-              Agg(vt.obj(memberName).apply("type"))
-            )
-            val methodDescriptor = vt.toRealObj[String](vt.returnedVal(0))
-
-            val sig = imm.Sig(memberNameStr, imm.Desc.read(methodDescriptor))
-
-//            pprint.log((cls.javaName, memberNameStr, sig.toString))
-
-            val resolved =
-              if (refFlag == MHConstants.REF_invokeStatic) {
-                vt.clsTable(cls.asInstanceOf[imm.Type.Cls]).staticTable.find(_.sig == sig)
-              }else{
-                vt.clsTable(cls.asInstanceOf[imm.Type.Cls]).vTable.find(_.sig == sig)
-              }
-
-
-//            pprint.log(resolved)
-
           case MHConstants.REF_getField | MHConstants.REF_putField =>
+            vt.obj(memberName)("flags") |= rtCls.fieldInfo.get(memberNameStr).access
           case MHConstants.REF_getStatic | MHConstants.REF_putStatic =>
-            vt.obj(memberName)("flags") |= MHConstants.ACC_STATIC
-//            pprint.log(vt.obj(vt.obj(memberName).apply("type")).cls)
-//            pprint.log(vt.obj(vt.obj(memberName).apply("type")).apply("rtype"))
-//            pprint.log(vt.obj(vt.obj(memberName).apply("type")).apply("ptypes"))
-//            vt.invoke1(
-//              "java.lang.invoke.MethodType",
-//              imm.Sig.read("toMethodDescriptorString()Ljava/lang/String;"),
-//              Agg(vt.obj(memberName).apply("type"))
-//            )
-//            val methodDescriptor = vt.toRealObj[String](vt.returnedVal(0))
-
+            vt.obj(memberName)("flags") |= rtCls.staticInfo.get(memberNameStr).access
         }
 
         memberName
