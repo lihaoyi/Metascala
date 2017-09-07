@@ -60,11 +60,12 @@ class Cls(val tpe: imm.Type.Cls,
           val innerClasses: Seq[imm.Type.Cls],
           val accessFlags: Int,
           val methods: Seq[rt.ClsMethod],
-          val fieldList0: Seq[imm.Field],
-          val staticList0: Seq[imm.Field],
+          val allFieldList: Seq[imm.Field],
           val outerCls: Option[imm.Type.Cls],
           val index: Int)
          (implicit vm: Cls.VMInterface){
+
+  val (fieldList0, staticList0) = allFieldList.partition(!_.static)
   import vm._
 
   var initialized = false

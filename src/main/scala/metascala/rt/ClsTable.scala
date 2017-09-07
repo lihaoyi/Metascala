@@ -85,8 +85,7 @@ class ClsTable(fileLoader: String => Option[Array[Byte]])
               () => MethodSSAConverter.apply(classNode.name, mn)
             )
           },
-      fieldList0 = fields.filter(!_.static),
-      staticList0 = fields.filter(_.static),
+      allFieldList = fields,
       outerCls = NullSafe(classNode.outerClass).map(Type.Cls.apply),
       clsIndex.length
     )

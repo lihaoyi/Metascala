@@ -108,19 +108,22 @@ object DefaultBindings extends Bindings{
     },
     native("java.lang.Class", "getDeclaredFields0(Z)[Ljava/lang/reflect/Field;"){(vt, arg) =>
       val obj = vt.obj(arg())
+      val publicOnly = arg() > 0
 
       val name = vt.toRealObj[String](obj("name"))
       val cls = vt.clsTable(name)
-      val realFields = cls.fieldInfo.slottedList ++ cls.staticInfo.slottedList
+      val realFields =
+        cls.fieldInfo.slottedList.takeRight(cls.fieldList0.length) ++
+        cls.staticInfo.slottedList
 
       vt.alloc(implicit r =>
         r.newArr("java.lang.reflect.Field",
-          for((f, i) <- realFields) yield {
+          for((f, i) <- realFields if !publicOnly || (f.access & MHConstants.ACC_PUBLIC) > 0) yield {
             r.newObj("java.lang.reflect.Field",
               "clazz" -> obj.address,
               "slot" -> Ref.Raw(i),
               "name" -> vt.internedStrings.getOrElseUpdate(f.name, vt.toVirtObj(f.name)),
-              "modifiers" -> Ref.Raw(f.access),
+              "modifiers" -> Ref.Raw(f.access & java.lang.reflect.Modifier.fieldModifiers()),
               "type" -> vt.typeObjCache(f.desc)
             ).address
           }
@@ -142,12 +145,16 @@ object DefaultBindings extends Bindings{
     native("java.lang.Class", "getDeclaredConstructors0(Z)[Ljava/lang/reflect/Constructor;"){ (vt, arg) =>
 
       val clsObj = vt.obj(arg())
+      val publicOnly = arg() > 0
       val clsName = vt.toRealObj[String](clsObj("name"))
       val cls = vt.clsTable(clsName)
       val realMethods = cls.methods.filter(_.sig.name == "<init>")
       val vrtArr = vt.alloc(implicit r =>
         r.newArr("java.lang.reflect.Constructor",
-          realMethods.zipWithIndex.map{ case (f, i) =>
+          for{
+            (f, i) <- realMethods.zipWithIndex
+            if (!publicOnly || (f.accessFlags & MHConstants.ACC_PUBLIC) > 0)
+          } yield {
             r.newObj("java.lang.reflect.Constructor",
               "clazz" -> clsObj.address,
               "slot" -> Ref.Raw(i),
@@ -157,7 +164,7 @@ object DefaultBindings extends Bindings{
                   vt.typeObjCache(imm.Type.readJava(t.realCls.getName))
                 )
               ),
-              "modifiers" -> Ref.Raw(f.accessFlags)
+              "modifiers" -> Ref.Raw(f.accessFlags & java.lang.reflect.Modifier.classModifiers())
             ).address
           }
         )
@@ -167,15 +174,26 @@ object DefaultBindings extends Bindings{
     native("java.lang.Class", "getDeclaredMethods0(Z)[Ljava/lang/reflect/Method;"){ (vt, arg) =>
 
       val cls = vt.clsTable(vt.toRealObj[String](vt.obj(arg()).apply("name")))
+      val publicOnly = arg() > 0
       vt.alloc(implicit r =>
         r.newArr("java.lang.reflect.Method",
-          for(m <- cls.methods if m.sig.name != "<init>" && m.sig.name != "<clinit>") yield {
+          for{
+            m <- cls.methods
+            if m.sig.name != "<init>" && m.sig.name != "<clinit>" &&
+               (!publicOnly || (m.accessFlags & MHConstants.ACC_PUBLIC) > 0)
+          } yield {
             r.newObj("java.lang.reflect.Method",
               "clazz" -> vt.typeObjCache(cls.tpe),
               "name" -> vt.internedStrings.getOrElseUpdate(
                 m.sig.name, vt.toVirtObj(m.sig.name).address
               ),
-              "modifiers" -> new Ref.Raw(m.accessFlags),
+              // Not sure why `&`ing this (and others) is necessary, but for some reason
+              // ASM 5.2 parses the modifiers for java.util.Properties#save to be 131073,
+              // (100000000000000001) but "normal" java reflect returns 1. The high-order
+              // bit on the ASM modifiers value seems to be outside the allowed values
+              // of method modifiers. No idea why it's there, but mask it out so the final
+              // result matches what java.lang.reflect returns.
+              "modifiers" -> new Ref.Raw(m.accessFlags & java.lang.reflect.Modifier.methodModifiers()),
               "returnType" -> vt.typeObjCache(m.sig.desc.ret),
               "parameterTypes" -> r.newArr("java.lang.Class",
                 m.sig.desc.args.map(vt.typeObjCache)

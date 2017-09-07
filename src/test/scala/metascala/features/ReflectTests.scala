@@ -7,8 +7,19 @@ import metascala.{Gen, VM, Virtualizer}
 import metascala.Gen._
 import org.scalatest.FreeSpec
 
+object ReflectTests{
+  def sortNames[T <: java.lang.reflect.Member](in: Array[T]) = {
+    in.map(_.getName).sorted.toList
+  }
+  def sortModifiers[T <: java.lang.reflect.Member](in: Array[T]) = {
+    in.map(x => x.getName -> x.getModifiers)
+      .sorted
+      .toList
+  }
+}
 
 class ReflectTests extends FreeSpec {
+  import ReflectTests.{sortNames, sortModifiers}
   implicit val intAll10 = 10 ** Gen.intAll
   val tester = new VM()
   "getSetX" - {
@@ -71,7 +82,7 @@ class ReflectTests extends FreeSpec {
       f.getDouble(point)
     }
   }
-  "properties" - {
+  "memberListing" - {
 
     "getName" in tester.test{
       classOf[java.util.Properties].getName
@@ -79,19 +90,84 @@ class ReflectTests extends FreeSpec {
     "getCanonicalName" in tester.test{
       classOf[java.util.Properties].getCanonicalName
     }
+
+
+
     "getFieldsNames" in tester.test{
-      classOf[String].getFields.map(_.getName).toList
+      sortNames(classOf[String].getFields)
     }
-//    "getDeclaredFieldsNames" in tester.test{
-//      classOf[java.util.Properties].getDeclaredFields.map(_.getName).toList.sorted
+    "getFieldsNames2" in tester.test{
+      sortNames(classOf[java.util.Properties].getFields)
+    }
+    "getDeclaredFieldsNames" in tester.test{
+      sortNames(classOf[String].getDeclaredFields)
+    }
+    "getDeclaredFieldsNames2" in tester.test{
+      sortNames(classOf[java.util.Properties].getDeclaredFields)
+    }
+
+
+    "getMethodsNames" in tester.test{
+      sortNames(classOf[String].getMethods)
+    }
+    "getMethodsNames2" in tester.test{
+      sortNames(classOf[java.util.Properties].getMethods)
+    }
+    "getDeclaredMethodsNames" in tester.test{
+      sortNames(classOf[String].getDeclaredMethods)
+    }
+    "getDeclaredMethodsNames2" in tester.test{
+      sortNames(classOf[java.util.Properties].getDeclaredMethods)
+    }
+
+    "getConstructors" in tester.test{
+      sortNames(classOf[String].getConstructors)
+    }
+    "getConstructors2" in tester.test{
+      sortNames(classOf[java.util.Properties].getConstructors)
+    }
+
+    "getDeclaredConstructors" in tester.test{
+      sortNames(classOf[String].getDeclaredConstructors)
+    }
+    "getDeclaredConstructors2" in tester.test{
+      sortNames(classOf[java.util.Properties].getDeclaredConstructors)
+    }
+
+
+    "getDeclaredFieldsModifiers" in tester.test{
+      sortModifiers(classOf[String].getDeclaredFields)
+    }
+    "getDeclaredFieldsModifiers2" in tester.test{
+      sortModifiers(classOf[java.util.Properties].getDeclaredFields)
+    }
+
+    // This currently fails because the following code:
+    // Class.forName("java.lang.String")
+    //   .getDeclaredMethods
+    //   .find(_.getName == "join")
+    //   .get
+    //   .getModifiers & ~(java.lang.reflect.Modifier.methodModifiers())
+    //
+    // Currently returns `128` rather than `0`. Somehow, the `java.lang.String#join`
+    // method is being flagged as trasient by the Hotspot JVM, which differs
+    // from Doppio which masks java.lang.reflect.* object flags based on the
+    // flags allowed for each type in java.lang.reflect.Modifier
+//    "getDeclaredMethodsModifiers" in tester.test{
+//      sortModifiers(classOf[String].getDeclaredMethods)
 //    }
-//    "getMethodsNames" in tester.test{
-//      classOf[java.util.Properties].getMethods.map(_.getName).toList.sorted
-//    }
-//    "getDeclaredMethodsNames" in tester.test{
-//      classOf[java.util.Properties].getDeclaredMethods.map(_.getName).toList.sorted
-//    }
+    "getDeclaredMethodsModifiers2" in tester.test{
+      sortModifiers(classOf[java.util.Properties].getDeclaredMethods)
+    }
+
+    "getDeclaredConstructorModifiers" in tester.test{
+      sortModifiers(classOf[String].getDeclaredConstructors)
+    }
+    "getDeclaredConstructorModifiers2" in tester.test{
+      sortModifiers(classOf[java.util.Properties].getDeclaredConstructors)
+    }
   }
+
 //  "getSetStatic" - {
 //    "double" in tester.testFunc{ () =>
 //      val f = classOf[Point2D.Double].getDeclaredField("serialVersionUID")
