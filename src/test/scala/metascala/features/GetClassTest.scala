@@ -19,14 +19,14 @@ class GetClassTest extends FreeSpec {
     "nameObjArray" in tester.test{ new Array[Long](100).getClass.getName }
 
     "forName" in {
-      val cases = Seq(
+      val cases = Array(
         "java.lang.Object",
         "java.lang.Object",
         "java.util.AbstractCollection",
         "[I",
         "[Ljava.lang.Object;"
       )
-      for(s <- cases) tester.test{
+      for(s <- cases) yield tester.test{
         val x = Class.forName(s)
         x.getCanonicalName
       }
@@ -62,6 +62,21 @@ class GetClassTest extends FreeSpec {
       Array(
         new Object().getClass.isAssignableFrom(new String().getClass),
         new String().getClass.isAssignableFrom(new Object().getClass)
+      )
+    }
+    "isInstance" in tester.test{
+      Seq(
+        classOf[java.lang.Object].isInstance(new java.lang.Object()), // true
+        classOf[java.lang.Object].isInstance(new java.lang.Integer(1)), // true
+        classOf[java.lang.Object].isInstance(new Array[Int](1)), // true
+        classOf[java.lang.Object].isInstance(new Array[java.lang.Object](1)), // true
+        classOf[java.lang.Integer].isInstance(new java.lang.Object()), // false
+        classOf[java.lang.Integer].isInstance(new Array[java.lang.Object](1)), // false
+        classOf[Array[java.lang.Integer]].isInstance(new Array[java.lang.Object](1)), // false
+        classOf[Array[java.lang.Object]].isInstance(new Array[java.lang.Integer](1)), // false
+        classOf[Array[java.lang.Integer]].isInstance(new Array[java.lang.Integer](1)), // true
+        classOf[Array[java.lang.Object]].isInstance(new Array[java.lang.Object](1)), // true
+        classOf[Int].isInstance(new java.lang.Integer(1)) // false
       )
     }
   }

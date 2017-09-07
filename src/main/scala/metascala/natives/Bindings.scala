@@ -33,6 +33,7 @@ object Bindings{
     def methodHandleMap: mutable.Map[WritableRef, rt.Method]
     def checkInitialized(cls: rt.Cls): Unit
     def getTypeForTypeObj(addr: Int): imm.Type
+    def check(s: imm.Type, t: imm.Type): Boolean
   }
 }
 trait Bindings{

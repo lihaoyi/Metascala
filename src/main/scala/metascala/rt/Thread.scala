@@ -925,6 +925,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     def checkInitialized(cls: rt.Cls) = vm.checkInitialized(cls)
 
     def getTypeForTypeObj(addr: Int) = vm.getTypeForTypeObj(addr)
+
+    def check(s: imm.Type, t: imm.Type) = vm.check(s, t)
   }
 
   final def prepInvoke(mRef: rt.Method,

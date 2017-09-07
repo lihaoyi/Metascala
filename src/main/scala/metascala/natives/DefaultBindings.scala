@@ -85,6 +85,16 @@ object DefaultBindings extends Bindings{
   val trapped = Agg(
     native("java.io.UnixFileSystem", "initIDs()V;").static { (vt, arg) => },
     native("java.lang.Class", "getProtectionDomain0()Ljava/security/ProtectionDomain;") { (vt, arg) => },
+    native("java.lang.Class", "isInstance(Ljava/lang/Object;)Z").func(I, I, Z) { (vt, cls0, obj0) =>
+      val tpe = vt.getTypeForTypeObj(cls0)
+      if (vt.isArr(obj0)) {
+        vt.check(vt.arr(obj0).tpe, tpe)
+      }else if (vt.isObj(obj0)){
+        vt.check(vt.obj(obj0).tpe, tpe)
+      }else /*obj is null*/{
+        false
+      }
+    },
     native("java.lang.Class", "desiredAssertionStatus0(Ljava/lang/Class;)Z").static { (vt, arg) => 0 },
     native("java.lang.Class", "desiredAssertionStatus()Z") { (vt, arg) => 0 },
     native("java.lang.Class", "forName0(Ljava/lang/String;ZLjava/lang/ClassLoader;Ljava/lang/Class;)Ljava/lang/Class;").static  { (vt, arg) =>
@@ -784,38 +794,65 @@ object DefaultBindings extends Bindings{
       }
     },
     native("sun.misc.Unsafe", "ensureClassInitialized(Ljava/lang/Class;)V").value(V)(()),
-    native("sun.misc.Unsafe", "getObject(Ljava/lang/Object;J)Ljava/lang/Object;").func(I, I, J, I){
-      (vt, unsafe, o, offset) => vt.obj(o).members(offset.toInt)
-    },
+
     native("sun.misc.Unsafe", "getBooleanVolatile(Ljava/lang/Object;J)Z").func(I, I, J, Z){
+      (vt, unsafe, o, offset) => vt.obj(o).members(offset.toInt) != 0
+    },
+    native("sun.misc.Unsafe", "getBoolean(Ljava/lang/Object;J)Z").func(I, I, J, Z){
       (vt, unsafe, o, offset) => vt.obj(o).members(offset.toInt) != 0
     },
     native("sun.misc.Unsafe", "putBooleanVolatile(Ljava/lang/Object;JZ)V").func(I, I, J, Z, V){
       (vt, unsafe, o, offset, bool) => Z.write(bool, vt.obj(o).members(offset.toInt) = _)
     },
+    native("sun.misc.Unsafe", "putBoolean(Ljava/lang/Object;JZ)V").func(I, I, J, Z, V){
+      (vt, unsafe, o, offset, bool) =>
+
+        Z.write(bool, vt.obj(o).members(offset.toInt) = _)
+    },
     native("sun.misc.Unsafe", "getByteVolatile(Ljava/lang/Object;J)B").func(I, I, J, B){
+      (vt, unsafe, o, offset) => vt.obj(o).members(offset.toInt).toByte
+    },
+    native("sun.misc.Unsafe", "getByte(Ljava/lang/Object;J)B").func(I, I, J, B){
       (vt, unsafe, o, offset) => vt.obj(o).members(offset.toInt).toByte
     },
     native("sun.misc.Unsafe", "putByteVolatile(Ljava/lang/Object;JB)V").func(I, I, J, B, V){
       (vt, unsafe, o, offset, byte) => B.write(byte, vt.obj(o).members(offset.toInt) = _)
     },
+    native("sun.misc.Unsafe", "putByte(Ljava/lang/Object;JB)V").func(I, I, J, B, V){
+      (vt, unsafe, o, offset, byte) => B.write(byte, vt.obj(o).members(offset.toInt) = _)
+    },
     native("sun.misc.Unsafe", "getCharVolatile(Ljava/lang/Object;J)C").func(I, I, J, C){
+      (vt, unsafe, o, offset) => vt.obj(o).members(offset.toInt).toChar
+    },
+    native("sun.misc.Unsafe", "getChar(Ljava/lang/Object;J)C").func(I, I, J, C){
       (vt, unsafe, o, offset) => vt.obj(o).members(offset.toInt).toChar
     },
     native("sun.misc.Unsafe", "putCharVolatile(Ljava/lang/Object;JC)V").func(I, I, J, C, V){
       (vt, unsafe, o, offset, char) => C.write(char, vt.obj(o).members(offset.toInt) = _)
     },
-    native("sun.misc.Unsafe", "getInt(Ljava/lang/Object;J)I").func(I, I, J, I){
-      (vt, unsafe, o, offset) => vt.obj(o).members(offset.toInt)
+    native("sun.misc.Unsafe", "putChar(Ljava/lang/Object;JC)V").func(I, I, J, C, V){
+      (vt, unsafe, o, offset, char) => C.write(char, vt.obj(o).members(offset.toInt) = _)
     },
     native("sun.misc.Unsafe", "getIntVolatile(Ljava/lang/Object;J)I").func(I, I, J, I){
       (vt, unsafe, o, offset) => vt.obj(o).members(offset.toInt)
     },
+    native("sun.misc.Unsafe", "getInt(Ljava/lang/Object;J)I").func(I, I, J, I){
+      (vt, unsafe, o, offset) => vt.obj(o).members(offset.toInt)
+    },
+    native("sun.misc.Unsafe", "putIntVolatile(Ljava/lang/Object;JI)V").func(I, I, J, I, V){
+      (vt, unsafe, o, offset, int) => I.write(int, vt.obj(o).members(offset.toInt) = _)
+    },
     native("sun.misc.Unsafe", "putInt(Ljava/lang/Object;JI)V").func(I, I, J, I, V){
       (vt, unsafe, o, offset, int) => I.write(int, vt.obj(o).members(offset.toInt) = _)
     },
+    native("sun.misc.Unsafe", "getFloatVolatile(Ljava/lang/Object;J)F").func(I, I, J, F){
+      (vt, unsafe, o, offset) => F.read(() => vt.obj(o).members(offset.toInt))
+    },
     native("sun.misc.Unsafe", "getFloat(Ljava/lang/Object;J)F").func(I, I, J, F){
       (vt, unsafe, o, offset) => F.read(() => vt.obj(o).members(offset.toInt))
+    },
+    native("sun.misc.Unsafe", "putFloatVolatile(Ljava/lang/Object;JF)V").func(I, I, J, F, V){
+      (vt, unsafe, o, offset, float) => F.write(float, vt.obj(o).members(offset.toInt) = _)
     },
     native("sun.misc.Unsafe", "putFloat(Ljava/lang/Object;JF)V").func(I, I, J, F, V){
       (vt, unsafe, o, offset, float) => F.write(float, vt.obj(o).members(offset.toInt) = _)
@@ -823,11 +860,23 @@ object DefaultBindings extends Bindings{
     native("sun.misc.Unsafe", "getLongVolatile(Ljava/lang/Object;J)J").func(I, I, J, J){
       (vt, unsafe, o, offset) => J.read(Util.reader(vt.obj(o).members, offset.toInt))
     },
+    native("sun.misc.Unsafe", "getLong(Ljava/lang/Object;J)J").func(I, I, J, J){
+      (vt, unsafe, o, offset) => J.read(Util.reader(vt.obj(o).members, offset.toInt))
+    },
     native("sun.misc.Unsafe", "putLongVolatile(Ljava/lang/Object;JJ)V").func(I, I, J, J, V){
       (vt, unsafe, o, offset, long) => J.write(long, Util.writer(vt.obj(o).members, offset.toInt))
     },
+    native("sun.misc.Unsafe", "putLong(Ljava/lang/Object;JJ)V").func(I, I, J, J, V){
+      (vt, unsafe, o, offset, long) => J.write(long, Util.writer(vt.obj(o).members, offset.toInt))
+    },
+    native("sun.misc.Unsafe", "getDoubleVolatile(Ljava/lang/Object;J)D").func(I, I, J, D){
+      (vt, unsafe, o, offset) => D.read(Util.reader(vt.obj(o).members, offset.toInt))
+    },
     native("sun.misc.Unsafe", "getDouble(Ljava/lang/Object;J)D").func(I, I, J, D){
       (vt, unsafe, o, offset) => D.read(Util.reader(vt.obj(o).members, offset.toInt))
+    },
+    native("sun.misc.Unsafe", "putDoubleVolatile(Ljava/lang/Object;JD)V").func(I, I, J, D, V){
+      (vt, unsafe, o, offset, double) => D.write(double, Util.writer(vt.obj(o).members, offset.toInt))
     },
     native("sun.misc.Unsafe", "putDouble(Ljava/lang/Object;JD)V").func(I, I, J, D, V){
       (vt, unsafe, o, offset, double) => D.write(double, Util.writer(vt.obj(o).members, offset.toInt))
@@ -835,6 +884,10 @@ object DefaultBindings extends Bindings{
     native("sun.misc.Unsafe", "getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;").func(I, I, J, I){
       (vt, unsafe, o, offset) => vt.obj(o).members(offset.toInt)
     },
+    native("sun.misc.Unsafe", "getObject(Ljava/lang/Object;J)Ljava/lang/Object;").func(I, I, J, I){
+      (vt, unsafe, o, offset) => vt.obj(o).members(offset.toInt)
+    },
+
     native("sun.misc.Unsafe", "putObjectVolatile(Ljava/lang/Object;JLjava/lang/Object;)V").func(I, I, J, I, V){
       (vt, unsafe, o, offset, ref) => vt.obj(o).members(offset.toInt) = ref
     },

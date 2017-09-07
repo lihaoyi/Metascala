@@ -68,7 +68,7 @@ object Type{
 
     def realCls = classOf[Object]
 
-    override val hashCode = internalName.hashCode
+    override def hashCode() = internalName.hashCode
     override def equals(other: Any) = other match{
       case o: Cls => o.internalName == internalName
       case _ => false
