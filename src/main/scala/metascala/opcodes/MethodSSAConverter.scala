@@ -5,7 +5,7 @@ import org.objectweb.asm.Type
 
 import scala.collection.mutable
 import imm.Type.Prim._
-import metascala.util.{Agg, Aggregator}
+import metascala.util.{Agg, Aggregator, Util}
 import org.objectweb.asm.tree._
 
 import scala.collection.JavaConverters._
@@ -98,9 +98,6 @@ object MethodSSAConverter {
 
     val allInsns = method.instructions.toArray
 
-    if (method.name == "getBooleanStaticInit"){
-      allInsns.map(insnToString).foreach(println)
-    }
     assert(
       method.instructions.size != 0,
       "Unknown native method: " + clsName + " " + method.name + " " + method.desc
@@ -165,7 +162,13 @@ object MethodSSAConverter {
       method.desc,
       basicBlocks,
       blockBuffers.map(_._4),
-      tryCatchBlocks
+      tryCatchBlocks,
+      clsIndex => Util.shortenJava(vm.clsTable.clsIndex(clsIndex).tpe.javaName),
+      (static, clsIndex, methodIndex) => {
+        val cls = vm.clsTable.clsIndex(clsIndex)
+        val table = if (static) cls.staticTable else cls.vTable
+        table(methodIndex).sig.unparseShort
+      }
     )
 
     Code(basicBlocks, tryCatchBlocks)

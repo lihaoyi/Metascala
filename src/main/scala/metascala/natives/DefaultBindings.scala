@@ -479,7 +479,6 @@ object DefaultBindings extends Bindings{
     ).static.func(I, I, V) {(vt, memberName, ref) =>
       val modifiers = vt.obj(ref).apply("modifiers")
 
-      println(vt.toRealObj[String](vt.obj(ref).apply("name")))
       val (flags0, refKinds) = vt.obj(ref).cls.tpe match {
         case imm.Type.Cls("java.lang.reflect.Method") =>
           if ((modifiers & MHConstants.ACC_INTERFACE) > 0) {
@@ -884,7 +883,11 @@ object DefaultBindings extends Bindings{
       (vt, unsafe, o, offset) => vt.obj(o).members(offset.toInt)
     },
     native("sun.misc.Unsafe", "getObject(Ljava/lang/Object;J)Ljava/lang/Object;").func(I, I, J, I){
-      (vt, unsafe, o, offset) => vt.obj(o).members(offset.toInt)
+      (vt, unsafe, o, offset) =>
+        pprint.log(o)
+        pprint.log(offset)
+        assert(o != 0)
+        vt.obj(o).members(offset.toInt)
     },
 
     native("sun.misc.Unsafe", "putObjectVolatile(Ljava/lang/Object;JLjava/lang/Object;)V").func(I, I, J, I, V){

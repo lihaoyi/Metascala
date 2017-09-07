@@ -1,6 +1,6 @@
 package metascala
 package imm
-import metascala.util.Agg
+import metascala.util.{Agg, Util}
 
 import collection.mutable
 import reflect.ClassTag
@@ -257,6 +257,13 @@ object Desc{
       case x => x.internalName
     }
   }
+  def unparseShort(t: Type): String = {
+    t match{
+      case t: Type.Cls => "L" + Util.shorten(t.internalName.drop(1))
+      case t: Type.Arr => "[" + unparseShort(t.innerType)
+      case x => x.internalName
+    }
+  }
 }
 
 /**
@@ -264,5 +271,6 @@ object Desc{
  */
 case class Desc(args: Agg[Type], ret: Type){
   def unparse = "(" + args.map(Desc.unparse).foldLeft("")(_+_) + ")" + Desc.unparse(ret)
+  def unparseShort = "(" + args.map(x => Desc.unparseShort(x)).foldLeft("")(_+_) + ")" + Desc.unparseShort(ret)
   override def toString = unparse
 }

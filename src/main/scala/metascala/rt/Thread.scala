@@ -122,8 +122,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
   def printType(x: Int) = {
     if (x == 0) "null"
-    else if (vm.isObj(x)) Util.shortedJava(vm.obj(x).cls.tpe.javaName)
-    else if (vm.isArr(x)) Util.shortedJava(vm.arr(x).tpe.javaName)
+    else if (vm.isObj(x)) Util.shortenJava(vm.obj(x).cls.tpe.javaName)
+    else if (vm.isArr(x)) Util.shortenJava(vm.arr(x).tpe.javaName)
     else ???
   }
   final def step(): Unit = try {
@@ -140,7 +140,13 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
       frame,
       node,
       block,
-      printType
+      printType,
+      clsIndex => Util.shortenJava(vm.clsTable.clsIndex(clsIndex).tpe.javaName),
+      (static, clsIndex, methodIndex) => {
+        val cls = vm.clsTable.clsIndex(clsIndex)
+        val table = if (static) cls.staticTable else cls.vTable
+        table(methodIndex).sig.unparseShort
+      }
     )
 
     node match {
@@ -154,11 +160,11 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
       case GetStatic(src, clsIndex, index, prim) =>
         getPutStatic(src, clsIndex, index, prim, get = true)
 
-      case PutField(src, obj, index, prim) =>
-        getPutField(src, obj, index, prim, get = false)
+      case PutField(src, obj, clsIndex, index, prim) =>
+        getPutField(src, obj, clsIndex, index, prim, get = false)
 
-      case GetField(src, obj, index, prim) =>
-        getPutField(src, obj, index, prim, get = true)
+      case GetField(src, obj, clsIndex, index, prim) =>
+        getPutField(src, obj, clsIndex, index, prim, get = true)
 
       case BinaryBranch(symA, symB, target, func) =>
         if (func(frame.locals(symB), frame.locals(symA))) jumpPhis(target)
@@ -375,7 +381,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         linkCallSiteArgs.append(methodType /*typeObj*/)
         linkCallSiteArgs.append(staticArgumentsArr.address() /*staticArguments*/)
         linkCallSiteArgs.append(appendixResult.address() /*appendixResult*/)
-        println("invoking in...")
+//        println("invoking in...")
         invoke0(mRef, linkCallSiteArgs.arr)
         //        pprint.log(vm.obj(returnedVal(0)).cls)
         ???
@@ -488,7 +494,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     }
   }
   private def invokeLink(target: Int, sources: Agg[Int], flag: String) = {
-    println("Running invokeLink")
     flag match{
       case "linkToVirtual" => ???
       case "linkToStatic" =>
@@ -514,7 +519,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     }
   }
   private def invokeHandle(target: Int, sources: Agg[Int], sig: Sig, basic: Boolean) = {
-    println("Running invokeHandle")
     val argZero = frame.locals(sources(0))
     if (argZero == 0)throwExWithTrace("java.lang.NullPointerException", "null")
     else{
@@ -550,6 +554,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
           returnedVal(0)
         }
 
+
       val form = vm.obj(adapted).apply("form")
       val lformVmEntry = vm.obj(form).apply("vmentry")
       val adaptedMethod = vm.methodHandleMap
@@ -558,7 +563,11 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         ._2
         .asInstanceOf[ClsMethod]
 
-
+      pprint.log(basic)
+      pprint.log(sources)
+      pprint.log(target)
+      pprint.log(sig)
+      pprint.log(adaptedMethod.sig)
       invokeBase(sources, target, adaptedMethod, !adaptedMethod.static)
       frame.locals(0) = adapted
 
@@ -693,16 +702,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
                  mRef: rt.Method,
                  thisCell: Boolean) = {
 
-
-    if (mRef.sig.name == "constantPlaceholder"){
-      pprint.log(frame.locals(sources(0)))
-      pprint.log(vm.obj(frame.locals(sources(0))).cls)
-      if (frame.locals(sources(1)) == 0){
-        throw new Exception("Cannot call constantPlaceholder with a null argument!s")
-      }
-      pprint.log(frame.locals(sources(1)))
-      pprint.log(vm.obj(frame.locals(sources(1))).cls)
-    }
     val args = new ArrayFiller(mRef.localsSize)
 
     val thisCellOffset = if (thisCell) {
@@ -725,7 +724,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     prepInvoke(mRef, args.arr, Util.writer(frame.locals, target), threadStack.length)
   }
 
-  def getPutField(src: Int, obj: Int, index: Int, prim: Type, get: Boolean) = {
+  def getPutField(src: Int, obj: Int, clsIndex: Int, index: Int, prim: Type, get: Boolean) = {
 
     if (frame.locals(obj) == 0) throwExWithTrace("java.lang.NullPointerException", "null")
     else{

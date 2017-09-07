@@ -37,16 +37,11 @@ object ColorLogger{
 }
 trait ColorLogger extends rt.Logger{
   val methodNames = Set(
-    "java.lang.invoke.InvokerBytecodeGenerator.emitInvoke",
-    "java.lang.invoke.InvokerBytecodeGenerator.generateCustomizedCodeBytes",
-    "java.lang.invoke.InvokerBytecodeGenerator.generateCustomizedCode",
-    "java.lang.invoke.LambdaForm.compileToBytecode",
-    "java.lang.invoke.DirectMethodHandle.maybeCompile",
-    "java.lang.invoke.DirectMethodHandle.preparedFieldLambdaForm",
-    "java.lang.invoke.DirectMethodHandle.make",
-    "java.lang.invoke.DirectMethodHandle.make",
-    "java.lang.invoke.MethodHandles$Lookup.getDirectFieldCommon",
-    "java.lang.invoke.MethodHandles$Lookup.getDirectField"
+    "java.lang.Class.cast",
+    "java.lang.invoke.DirectMethodHandle$StaticAccessor.checkCast",
+    "java.lang.invoke.DirectMethodHandle.checkCast",
+    "java.lang.invoke.LambdaForm$MH.getObjectStaticCast",
+    "metascala.features.javac.InvokeDynamic.findStaticGetterBoxed"
   )
   def active = true
 
@@ -55,7 +50,9 @@ trait ColorLogger extends rt.Logger{
               frame: Frame,
               node: Insn,
               block: BasicBlock,
-              getType: Int => String) = {
+              printType: Int => String,
+              printCls: Int => String,
+              printMethod: (Boolean, Int, Int) => String) = {
 
 //    def printOrNot = clsName == "java.util.concurrent.ConcurrentHashMap" &&
 //                     frame.method.sig.name == "<init>"
@@ -70,7 +67,7 @@ trait ColorLogger extends rt.Logger{
           .flatMap{
               case LocalType.Ref =>
                 val r0 = r()
-                Seq(getType(r0) + "#" + r0)
+                Seq(printType(r0) + "#" + r0)
               case x => Seq(x.prettyRead(r)).padTo(x.size, "~")
           }
           .toList
@@ -98,13 +95,39 @@ trait ColorLogger extends rt.Logger{
       output.append(indent)
       output.appendAll(ColorLogger.pprinter.tokenize(frame.pc, width = 320))
       output.append("  ")
-      output.appendAll(ColorLogger.pprinter.tokenize(node, width = 320))
+
+      printInsn(output, node, printCls, printMethod)
+      output.append(" ")
       println(fansi.Str.join(output:_*))
       println()
       //      println(indent + "::\t" + vm.heap.dump().replace("\n", "\n" + indent + "::\t"))
     }
   }
 
+  def printInsn(output: mutable.Buffer[fansi.Str],
+                node: Insn,
+                printCls: Int => String,
+                printMethod: (Boolean, Int, Int) => String) = {
+    output.appendAll(ColorLogger.pprinter.tokenize(node, width = 320))
+    val suffix = node match{
+      case i: Insn.GetStatic => Some(printCls(i.clsIndex))
+      case i: Insn.PutStatic => Some(printCls(i.clsIndex))
+      case i: Insn.GetField => Some(printCls(i.clsIndex))
+      case i: Insn.PutField => Some(printCls(i.clsIndex))
+      case i: Insn.InvokeStatic =>
+        Some(printCls(i.clsIndex) + "#" + printMethod(true, i.clsIndex, i.methodIndex))
+      case i: Insn.InvokeVirtual =>
+        Some(printCls(i.clsIndex) + "#" + printMethod(false, i.clsIndex, i.methodIndex))
+      case i: Insn.InvokeInterface => Some(i.sig.toString)
+      case i: Insn.InvokeLink => None
+      case i: Insn.InvokeHandle => None
+      case _ => None
+    }
+    for(s <- suffix){
+      output.append(" ")
+      output.append(fansi.Color.Blue(s))
+    }
+  }
   def logPhi(indentCount: Int, clsName: String, frame: Frame, shifts: Agg[Int]) = {
 //    def printOrNot = clsName == "java.util.concurrent.ConcurrentHashMap" &&
 //      frame.method.sig.name == "<init>"
@@ -141,10 +164,13 @@ trait ColorLogger extends rt.Logger{
                      desc: String,
                      basicBlocks: TraversableOnce[BasicBlock],
                      blockBufferThrees: Agg[mutable.Map[Box, Int]],
-                     tryCatchBlocks: Agg[TryCatchBlock]) = {
+                     tryCatchBlocks: Agg[TryCatchBlock],
+                     printCls: Int => String,
+                     printMethod: (Boolean, Int, Int) => String) = {
     //    def printOrNot = clsName == "java.util.concurrent.ConcurrentHashMap" &&
     //      frame.method.sig.name == "<init>"
     if (false){
+//    if (methodNames(clsName.replace('/', '.') + "." + methodName)){
 //    if(methodName == "isStaticallyNameable" || methodName == "isStaticallyInvocable"){
 
       def flatten[T](x: TraversableOnce[T]): String = x.mkString("[", ", ", "]")
@@ -154,7 +180,7 @@ trait ColorLogger extends rt.Logger{
         fansi.Color.Magenta("=" * 20 + clsName + "#" + methodName + "=" * 20),
         "\n\b"
       )
-      output.append(desc)
+      output.append(fansi.Color.Magenta(desc))
       for(t <- tryCatchBlocks){
         output.appendAll(ColorLogger.pprinter.tokenize(t))
         output.append("\n")
@@ -190,7 +216,8 @@ trait ColorLogger extends rt.Logger{
             "        ",
             fansi.Color.Green(block.lines(i).toString.padTo(8, ' '))
           )
-          output.appendAll(ColorLogger.pprinter.tokenize(block.insns(i), width = 320))
+
+          printInsn(output, block.insns(i), printCls, printMethod)
           output.append("\n")
         }
         output.append("\n")
@@ -201,6 +228,7 @@ trait ColorLogger extends rt.Logger{
   }
 
   def logException(cls: imm.Type.Cls, msg: String, trace: Seq[StackTraceElement]): Unit = {
+//    if (true){
     if (false){
       println(fansi.Color.Red(cls.javaName) + ": " + fansi.Color.Yellow(""+msg))
       ColorLogger.printTrace(trace)

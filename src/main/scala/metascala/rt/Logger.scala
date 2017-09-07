@@ -24,14 +24,18 @@ trait Logger{
               frame: Frame,
               node: Insn,
               block: BasicBlock,
-              getType: Int => String): Unit
+              getType: Int => String,
+              printCls: Int => String,
+              printMethod: (Boolean, Int, Int) => String): Unit
   def logPhi(indentCount: Int, clsName: String, frame: Frame, shifts: Agg[Int]): Unit
   def logBasicBlocks(clsName: String,
                      methodName: String,
                      desc: String,
                      basicBlocks: TraversableOnce[BasicBlock],
                      blockBufferThrees: Agg[mutable.Map[Box, Int]],
-                     tryCatchBlocks: Agg[TryCatchBlock]): Unit
+                     tryCatchBlocks: Agg[TryCatchBlock],
+                     printCls: Int => String,
+                     printMethod: (Boolean, Int, Int) => String): Unit
   def logException(cls: imm.Type.Cls, msg: String, frames: Seq[StackTraceElement]): Unit
 }
 
@@ -42,13 +46,17 @@ object NonLogger extends Logger{
               frame: Frame,
               node: Insn,
               block: BasicBlock,
-              getType: Int => String): Unit = ()
+              getType: Int => String,
+              printCls: Int => String,
+              printMethod: (Boolean, Int, Int) => String): Unit = ()
   def logPhi(indentCount: Int, clsName: String, frame: Frame, shifts: Agg[Int]): Unit = ()
   def logBasicBlocks(clsName: String,
                      methodName: String,
                      desc: String,
                      basicBlocks: TraversableOnce[BasicBlock],
                      blockBufferThrees: Agg[mutable.Map[Box, Int]],
-                     tryCatchBlocks: Agg[TryCatchBlock]): Unit = ()
+                     tryCatchBlocks: Agg[TryCatchBlock],
+                     printCls: Int => String,
+                     printMethod: (Boolean, Int, Int) => String): Unit = ()
   def logException(cls: imm.Type.Cls, msg: String, frames: Seq[StackTraceElement]) = ()
 }

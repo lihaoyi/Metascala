@@ -37,6 +37,7 @@ object Sig{
 case class Sig(name: String, desc: Desc){
   override lazy val hashCode = name.hashCode + desc.hashCode
   def unparse = name + desc.unparse
+  def unparseShort = name + desc.unparseShort
 
   override def toString = unparse
   def shortName = {

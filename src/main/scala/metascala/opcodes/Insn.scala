@@ -81,8 +81,8 @@ object Insn{
   case class GetStatic(dest: Int, clsIndex: Int, index: Int, prim: Type) extends Insn
 
   // offsets relative/fixed
-  case class PutField(src: Int, obj: Int, index: Int, prim: Type) extends Insn
-  case class GetField(dest: Int, obj: Int, index: Int, prim: Type) extends Insn
+  case class PutField(src: Int, obj: Int, clsIndex: Int, index: Int, prim: Type) extends Insn
+  case class GetField(dest: Int, obj: Int, clsIndex: Int, index: Int, prim: Type) extends Insn
 
   // offsets relative/relative
   case class PutArray(src: Int, indexSrc: Int, array: Int, prim: Type) extends Insn

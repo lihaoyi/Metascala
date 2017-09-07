@@ -31,7 +31,7 @@ object Util{
     val some :+ last = name.split("/").toSeq
     (some.map(_(0)) :+ last).mkString("/")
   }
-  def shortedJava(name: String) = {
+  def shortenJava(name: String) = {
     val some :+ last = name.split('.').toSeq
     (some.map(_(0)) :+ last).mkString(".")
   }
