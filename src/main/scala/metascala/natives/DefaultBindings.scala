@@ -715,7 +715,6 @@ object DefaultBindings extends Bindings{
       val bytesArray = vt.arr(bytes0)
       val start = bytes0 + Constants.arrayHeaderSize
       val bytes = vt.heap.memory.slice(start, start + bytesArray.length).map(_.toByte)
-      ammonite.ops.write.over(ammonite.ops.pwd/"test.class", bytes)
       val name = "AnonymousClass" + math.abs(scala.util.Random.nextInt())
       val cpMap = vt.arr(cpPatches0)
         .zipWithIndex
