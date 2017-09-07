@@ -193,7 +193,15 @@ object DefaultBindings extends Bindings{
               // bit on the ASM modifiers value seems to be outside the allowed values
               // of method modifiers. No idea why it's there, but mask it out so the final
               // result matches what java.lang.reflect returns.
-              "modifiers" -> new Ref.Raw(m.accessFlags & java.lang.reflect.Modifier.methodModifiers()),
+              "modifiers" -> new Ref.Raw(
+                m.accessFlags &
+                (
+                  0x80 /*java.lang.reflect.Modifier.VARARGS*/ |
+                  0x40 /*java.lang.reflect.Modifier.BRIDGE*/ |
+                  0x1000 /*java.lang.reflect.Modifier.TRANSIENT*/ |
+                  java.lang.reflect.Modifier.methodModifiers()
+                )
+              ),
               "returnType" -> vt.typeObjCache(m.sig.desc.ret),
               "parameterTypes" -> r.newArr("java.lang.Class",
                 m.sig.desc.args.map(vt.typeObjCache)

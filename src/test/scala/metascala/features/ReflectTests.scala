@@ -142,20 +142,10 @@ class ReflectTests extends FreeSpec {
       sortModifiers(classOf[java.util.Properties].getDeclaredFields)
     }
 
-    // This currently fails because the following code:
-    // Class.forName("java.lang.String")
-    //   .getDeclaredMethods
-    //   .find(_.getName == "join")
-    //   .get
-    //   .getModifiers & ~(java.lang.reflect.Modifier.methodModifiers())
-    //
-    // Currently returns `128` rather than `0`. Somehow, the `java.lang.String#join`
-    // method is being flagged as trasient by the Hotspot JVM, which differs
-    // from Doppio which masks java.lang.reflect.* object flags based on the
-    // flags allowed for each type in java.lang.reflect.Modifier
-//    "getDeclaredMethodsModifiers" in tester.test{
-//      sortModifiers(classOf[String].getDeclaredMethods)
-//    }
+
+    "getDeclaredMethodsModifiers" in tester.test{
+      sortModifiers(classOf[String].getDeclaredMethods)
+    }
     "getDeclaredMethodsModifiers2" in tester.test{
       sortModifiers(classOf[java.util.Properties].getDeclaredMethods)
     }
