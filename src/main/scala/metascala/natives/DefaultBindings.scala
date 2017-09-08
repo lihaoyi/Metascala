@@ -536,9 +536,9 @@ object DefaultBindings extends Bindings{
                MHConstants.REF_invokeStatic =>
 
             val actualMethod = refFlag match{
-              case MHConstants.REF_invokeSpecial | MHConstants.REF_invokeStatic =>
+              case MHConstants.REF_invokeStatic =>
                 rtCls.staticTable.find(_.sig.name == memberNameStr).get
-              case MHConstants.REF_invokeInterface | MHConstants.REF_invokeVirtual =>
+              case MHConstants.REF_invokeSpecial | MHConstants.REF_invokeInterface | MHConstants.REF_invokeVirtual =>
                 rtCls.vTable.find(_.sig.name == memberNameStr).get
             }
 

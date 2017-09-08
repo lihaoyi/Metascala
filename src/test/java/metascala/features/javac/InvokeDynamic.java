@@ -192,6 +192,93 @@ public class InvokeDynamic {
         }
     }
 
+
+
+
+    public char virtualMethod(char input, int offset) {
+        if (Character.isLowerCase(input + offset)) {
+            return Character.toUpperCase((char)(input + offset));
+        }
+        else {
+            return Character.toLowerCase((char)(input + offset));
+        }
+    }
+
+    public static char findVirtualMethod(char c) throws Throwable{
+
+        MethodType mt = MethodType.methodType(char.class, char.class, int.class);
+        MethodHandle m = lookup.findVirtual(
+                InvokeDynamic.class,
+                "virtualMethod",
+                mt
+        );
+        if (Character.isUpperCase(c)){
+            return (char)m.invoke(new InvokeDynamic(), c, 3);
+        }else{
+            return (java.lang.Character)(m.invoke(
+                    new InvokeDynamic(),
+                    (java.lang.Character)c, 4
+            ));
+        }
+    }
+
+
+
+
+
+    private char specialMethod(char input, int offset) {
+        if (Character.isLowerCase(input + offset)) {
+            return Character.toUpperCase((char)(input + offset));
+        }
+        else {
+            return Character.toLowerCase((char)(input + offset));
+        }
+    }
+
+    public static char findSpecialMethod(char c) throws Throwable{
+
+        MethodType mt = MethodType.methodType(char.class, char.class, int.class);
+        MethodHandle m = lookup.findSpecial(
+                InvokeDynamic.class,
+                "specialMethod",
+                mt,
+                InvokeDynamic.class
+        );
+        if (Character.isUpperCase(c)){
+            return (char)m.invoke(new InvokeDynamic(), c, 3);
+        }else{
+            return (java.lang.Character)(m.invoke(
+                    new InvokeDynamic(),
+                    (java.lang.Character)c, 4
+            ));
+        }
+    }
+
+
+
+
+
+    public static char findInterfaceMethod(int index) throws Throwable{
+        MethodType mt = MethodType.methodType(char.class, int.class);
+        MethodHandle m = lookup.findVirtual(
+                CharSequence.class,
+                "charAt",
+                mt
+        );
+
+        if (index % 2 == 0) {
+
+            return (char)m.invoke("Hello", index);
+        }else{
+            return (Character)m.invoke("World", (Integer)index);
+        }
+    }
+
+
+
+
+
+
     public static boolean run(boolean b) {
         boolean[] msg = {b};
         something(x -> msg[0] = msg[0] | x);

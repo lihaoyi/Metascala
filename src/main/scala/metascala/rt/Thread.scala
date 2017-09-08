@@ -494,28 +494,33 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     }
   }
   private def invokeLink(target: Int, sources: Agg[Int], flag: String) = {
+    val memberName = frame.locals(sources.last)
+    val owner = vm.getTypeForTypeObj(vm.obj(memberName).apply("clazz"))
+
+    val name = Virtualizer.toRealObj[String](vm.obj(memberName).apply("name"))(bindingsInterface, implicitly)
+    val desc = {
+      val tpeAddr = vm.obj(memberName).apply("type")
+      val rtype = vm.getTypeForTypeObj(vm.obj(tpeAddr).apply("rtype"))
+
+
+      val ptypes =
+        for(ptype <- vm.arr(vm.obj(tpeAddr).apply("ptypes")))
+          yield vm.getTypeForTypeObj(ptype)
+
+      imm.Desc(Agg.from(ptypes), rtype)
+    }
+    val sig = imm.Sig(name, desc)
+    def directMethod = vm.resolveDirectRef(owner.asInstanceOf[imm.Type.Cls], sig).get
     flag match{
-      case "linkToVirtual" => ???
+      case "linkToVirtual" =>
+        invokeBase(sources.take(sources.length-1), target, directMethod, true)
       case "linkToStatic" =>
-        val memberName = frame.locals(sources.last)
-        val owner = vm.getTypeForTypeObj(vm.obj(memberName).apply("clazz"))
-
-        val name = Virtualizer.toRealObj[String](vm.obj(memberName).apply("name"))(bindingsInterface, implicitly)
-        val desc = {
-          val tpeAddr = vm.obj(memberName).apply("type")
-          val rtype = vm.getTypeForTypeObj(vm.obj(tpeAddr).apply("rtype"))
-
-
-          val ptypes =
-            for(ptype <- vm.arr(vm.obj(tpeAddr).apply("ptypes")))
-              yield vm.getTypeForTypeObj(ptype)
-
-          imm.Desc(Agg.from(ptypes), rtype)
-        }
-        val method = vm.resolveDirectRef(owner.asInstanceOf[imm.Type.Cls], imm.Sig(name, desc)).get
-        invokeBase(sources.take(sources.length-1), target, method, false)
-      case "linkToSpecial" => ???
-      case "linkToInterface" => ???
+        invokeBase(sources.take(sources.length-1), target, directMethod, false)
+      case "linkToSpecial" =>
+        invokeBase(sources.take(sources.length-1), target, directMethod, true)
+      case "linkToInterface" =>
+        val concrete = vm.obj(frame.locals(sources(0))).cls.lookupInterfaceMethod(sig)
+        invokeBase(sources.take(sources.length-1), target, concrete, true)
     }
   }
   private def invokeHandle(target: Int, sources: Agg[Int], sig: Sig, basic: Boolean) = {
@@ -538,7 +543,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         if (basic) {
           argZero
         } else vm.alloc { implicit r =>
-          println("Adapting...")
           val asTypeMethodRef = vm.clsTable("java.lang.invoke.MethodHandle")
             .methods
             .find(_.sig.name == "asType")
@@ -563,11 +567,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         ._2
         .asInstanceOf[ClsMethod]
 
-      pprint.log(basic)
-      pprint.log(sources)
-      pprint.log(target)
-      pprint.log(sig)
-      pprint.log(adaptedMethod.sig)
       invokeBase(sources, target, adaptedMethod, !adaptedMethod.static)
       frame.locals(0) = adapted
 

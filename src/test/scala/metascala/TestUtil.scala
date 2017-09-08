@@ -151,8 +151,8 @@ object TestUtil {
     val ref = new ReflectiveRunner(className)
     def run(main: String, args: Any*) = {
 
-      val svmRes = svm.run(main, args:_*)
       val refRes = ref.run(main, args:_*)
+      val svmRes = svm.run(main, args:_*)
       val inString = args.toString
 //      println("svmRes " + svmRes)
 //      println("refRes " + refRes)
