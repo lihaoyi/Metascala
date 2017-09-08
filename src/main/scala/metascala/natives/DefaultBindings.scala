@@ -375,7 +375,7 @@ object DefaultBindings extends Bindings{
         val typeObj = vt.getTypeForTypeObj(cls)
         vt.clsTable(typeObj.asInstanceOf[imm.Type.Cls]).staticInfo.getIndex(name)
     },
-    native("java.lang.invoke.MethodHandleNatives", "staticFieldBase(Ljava/lang/invoke/MemberName;)Ljava/lang/Object;").static.func(I, J) {
+    native("java.lang.invoke.MethodHandleNatives", "staticFieldBase(Ljava/lang/invoke/MemberName;)Ljava/lang/Object;").static.func(I, I) {
       (vt, memberName) =>
         val cls = vt.obj(memberName).apply("clazz")
         val typeObj = vt.getTypeForTypeObj(cls)

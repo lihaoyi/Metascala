@@ -62,13 +62,19 @@ trait ColorLogger extends rt.Logger{
 //    if (frame.method.sig.name == "isStaticallyInvocable" || frame.method.sig.name == "isStaticallyNameable"){
       val indent = "    " * indentCount
       val r = Util.reader(frame.locals, 0)
-      val localSnapshot =
+      val localSnapshot: Seq[fansi.Str] =
         block.locals
+          .zipWithIndex
           .flatMap{
-              case LocalType.Ref =>
+              case (LocalType.Ref, index) =>
                 val r0 = r()
-                Seq(printType(r0) + "#" + r0)
-              case x => Seq(x.prettyRead(r)).padTo(x.size, "~")
+                Seq[fansi.Str](
+                  fansi.Color.Green(index.toString) ++
+                  ":" ++
+                  fansi.Color.Blue(printType(r0) + "#" + r0)
+                )
+              case (x, index) =>
+                Seq(x.prettyRead(r)).padTo(x.size, "~").map(fansi.Color.Blue(_))
           }
           .toList
 
@@ -84,7 +90,7 @@ trait ColorLogger extends rt.Logger{
       output.append(":")
       output.append(fansi.Color.Green(block.lines(frame.pc._2).toString))
       output.append("  [")
-      localSnapshot.map(fansi.Color.Blue(_)) match{
+      localSnapshot match{
         case Nil =>
         case head :: tail =>
           output.append(head)
@@ -115,7 +121,7 @@ trait ColorLogger extends rt.Logger{
       case i: Insn.GetField => Some(printCls(i.clsIndex))
       case i: Insn.PutField => Some(printCls(i.clsIndex))
       case i: Insn.InvokeStatic =>
-        Some(printCls(i.clsIndex) + "#" + printMethod(true, i.clsIndex, i.methodIndex))
+        Some(printCls(i.clsIndex) + "#" + printMethod(!i.special, i.clsIndex, i.methodIndex))
       case i: Insn.InvokeVirtual =>
         Some(printCls(i.clsIndex) + "#" + printMethod(false, i.clsIndex, i.methodIndex))
       case i: Insn.InvokeInterface => Some(i.sig.toString)
