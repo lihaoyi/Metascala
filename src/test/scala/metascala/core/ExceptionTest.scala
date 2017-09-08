@@ -1,4 +1,4 @@
-package metascala.features
+package metascala.core
 
 import org.scalatest.FreeSpec
 

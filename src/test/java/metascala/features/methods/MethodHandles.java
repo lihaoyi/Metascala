@@ -1,23 +1,22 @@
-package metascala.features.javac;
+package metascala.features.methods;
 
 import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 
-public class InvokeDynamic {
-    final static MethodHandles.Lookup lookup = java.lang.invoke.MethodHandles.lookup();
+public class MethodHandles {
+    final static java.lang.invoke.MethodHandles.Lookup lookup = java.lang.invoke.MethodHandles.lookup();
 
     public static boolean findStatic0(){
         return true;
     }
     public static boolean findStaticInner() throws Throwable{
         MethodHandle m = lookup.findStatic(
-                InvokeDynamic.class,
+                MethodHandles.class,
                 "findStatic0",
                 MethodType.methodType(boolean.class)
         );
 
-        boolean called = (java.lang.Boolean)m.invoke();
+        boolean called = (Boolean)m.invoke();
         return called;
     }
 
@@ -30,29 +29,29 @@ public class InvokeDynamic {
 
 
     public static boolean staticField = true;
-    public static java.lang.Boolean staticFieldBoxed = true;
+    public static Boolean staticFieldBoxed = true;
     public static boolean findStaticGetter(boolean b) throws Throwable{
         MethodHandle m = lookup.findStaticGetter(
-            InvokeDynamic.class,
+            MethodHandles.class,
             "staticField",
             boolean.class
         );
 
-        return (java.lang.Boolean)m.invoke() ^ b;
+        return (Boolean)m.invoke() ^ b;
     }
     public static boolean findStaticGetterBoxed(boolean b) throws Throwable{
         MethodHandle m = lookup.findStaticGetter(
-            InvokeDynamic.class,
+            MethodHandles.class,
             "staticFieldBoxed",
-            java.lang.Boolean.class
+            Boolean.class
         );
 
-        return (java.lang.Boolean)m.invoke() ^ b;
+        return (Boolean)m.invoke() ^ b;
     }
 
     public static boolean findStaticSetter1(boolean b) throws Throwable{
         MethodHandle m = lookup.findStaticSetter(
-                InvokeDynamic.class,
+                MethodHandles.class,
                 "staticField",
                 boolean.class
         );
@@ -61,9 +60,9 @@ public class InvokeDynamic {
     }
     public static boolean findStaticSetter2(boolean b) throws Throwable{
         MethodHandle m = lookup.findStaticSetter(
-                InvokeDynamic.class,
+                MethodHandles.class,
                 "staticFieldBoxed",
-                java.lang.Boolean.class
+                Boolean.class
         );
         m.invoke(false);
         return staticField ^ b;
@@ -71,51 +70,51 @@ public class InvokeDynamic {
 
     public static boolean findStaticSetter3(boolean b) throws Throwable{
         MethodHandle m = lookup.findStaticSetter(
-                InvokeDynamic.class,
+                MethodHandles.class,
                 "staticField",
                 boolean.class
         );
-        m.invoke((java.lang.Boolean)false);
+        m.invoke((Boolean)false);
         return staticField ^ b;
     }
     public static boolean findStaticSetter4(boolean b) throws Throwable{
         MethodHandle m = lookup.findStaticSetter(
-                InvokeDynamic.class,
+                MethodHandles.class,
                 "staticFieldBoxed",
-                java.lang.Boolean.class
+                Boolean.class
         );
-        m.invoke((java.lang.Boolean)false);
+        m.invoke((Boolean)false);
         return staticField ^ b;
     }
 
 
 
     public long instanceField = Long.MAX_VALUE;
-    public java.lang.Long instanceFieldBoxed = Long.MAX_VALUE;
+    public Long instanceFieldBoxed = Long.MAX_VALUE;
     public static long findFieldGetter(long l) throws Throwable{
-        InvokeDynamic instance = new InvokeDynamic();
+        MethodHandles instance = new MethodHandles();
         MethodHandle m = lookup.findGetter(
-                InvokeDynamic.class,
+                MethodHandles.class,
                 "instanceField",
                 long.class
         );
-        return (java.lang.Long)m.invoke(instance);
+        return (Long)m.invoke(instance);
     }
 
     public static long findFieldGetterBoxed(long l) throws Throwable{
-        InvokeDynamic instance = new InvokeDynamic();
+        MethodHandles instance = new MethodHandles();
         MethodHandle m = lookup.findGetter(
-                InvokeDynamic.class,
+                MethodHandles.class,
                 "instanceFieldBoxed",
-                java.lang.Long.class
+                Long.class
         );
-        return (java.lang.Long)m.invoke(instance) - l;
+        return (Long)m.invoke(instance) - l;
     }
 
     public static long findFieldSetter1(long l) throws Throwable{
-        InvokeDynamic instance = new InvokeDynamic();
+        MethodHandles instance = new MethodHandles();
         MethodHandle m = lookup.findSetter(
-                InvokeDynamic.class,
+                MethodHandles.class,
                 "instanceField",
                 long.class
         );
@@ -124,35 +123,35 @@ public class InvokeDynamic {
     }
 
     public static long findFieldSetter2(long l) throws Throwable{
-        InvokeDynamic instance = new InvokeDynamic();
+        MethodHandles instance = new MethodHandles();
         MethodHandle m = lookup.findSetter(
-                InvokeDynamic.class,
+                MethodHandles.class,
                 "instanceFieldBoxed",
-                java.lang.Long.class
+                Long.class
         );
         m.invoke(instance, l);
         return instance.instanceFieldBoxed;
     }
 
     public static long findFieldSetter3(long l) throws Throwable{
-        InvokeDynamic instance = new InvokeDynamic();
+        MethodHandles instance = new MethodHandles();
         MethodHandle m = lookup.findSetter(
-                InvokeDynamic.class,
+                MethodHandles.class,
                 "instanceField",
                 long.class
         );
-        m.invoke(instance, (java.lang.Long)l);
+        m.invoke(instance, (Long)l);
         return instance.instanceField;
     }
 
     public static long findFieldSetter4(long l) throws Throwable{
-        InvokeDynamic instance = new InvokeDynamic();
+        MethodHandles instance = new MethodHandles();
         MethodHandle m = lookup.findSetter(
-                InvokeDynamic.class,
+                MethodHandles.class,
                 "instanceFieldBoxed",
-                java.lang.Long.class
+                Long.class
         );
-        m.invoke(instance, (java.lang.Long)l);
+        m.invoke(instance, (Long)l);
         return instance.instanceFieldBoxed;
     }
 
@@ -167,12 +166,12 @@ public class InvokeDynamic {
 
         MethodType mt = MethodType.methodType(double.class, double.class);
         MethodHandle m = lookup.findStatic(
-                InvokeDynamic.class,
+                MethodHandles.class,
                 "staticMethod",
                 mt
         );
         MethodHandle m2 = m.asType(
-                b ? MethodType.methodType(java.lang.Double.class, java.lang.Double.class)
+                b ? MethodType.methodType(Double.class, Double.class)
                   : MethodType.methodType(double.class, double.class)
         );
         return m == m2;
@@ -181,14 +180,14 @@ public class InvokeDynamic {
 
         MethodType mt = MethodType.methodType(double.class, double.class);
         MethodHandle m = lookup.findStatic(
-                InvokeDynamic.class,
+                MethodHandles.class,
                 "staticMethod",
                 mt
         );
         if (d < 0){
             return (double)m.invoke(d);
         }else{
-            return (java.lang.Double)(m.invoke((java.lang.Double)d));
+            return (Double)(m.invoke((Double)d));
         }
     }
 
@@ -208,16 +207,16 @@ public class InvokeDynamic {
 
         MethodType mt = MethodType.methodType(char.class, char.class, int.class);
         MethodHandle m = lookup.findVirtual(
-                InvokeDynamic.class,
+                MethodHandles.class,
                 "virtualMethod",
                 mt
         );
         if (Character.isUpperCase(c)){
-            return (char)m.invoke(new InvokeDynamic(), c, 3);
+            return (char)m.invoke(new MethodHandles(), c, 3);
         }else{
-            return (java.lang.Character)(m.invoke(
-                    new InvokeDynamic(),
-                    (java.lang.Character)c, 4
+            return (Character)(m.invoke(
+                    new MethodHandles(),
+                    (Character)c, 4
             ));
         }
     }
@@ -239,17 +238,17 @@ public class InvokeDynamic {
 
         MethodType mt = MethodType.methodType(char.class, char.class, int.class);
         MethodHandle m = lookup.findSpecial(
-                InvokeDynamic.class,
+                MethodHandles.class,
                 "specialMethod",
                 mt,
-                InvokeDynamic.class
+                MethodHandles.class
         );
         if (Character.isUpperCase(c)){
-            return (char)m.invoke(new InvokeDynamic(), c, 3);
+            return (char)m.invoke(new MethodHandles(), c, 3);
         }else{
-            return (java.lang.Character)(m.invoke(
-                    new InvokeDynamic(),
-                    (java.lang.Character)c, 4
+            return (Character)(m.invoke(
+                    new MethodHandles(),
+                    (Character)c, 4
             ));
         }
     }

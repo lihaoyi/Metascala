@@ -1,4 +1,4 @@
-package metascala.imm
+package metascala.unit
 
 import org.scalatest.FreeSpec
 
