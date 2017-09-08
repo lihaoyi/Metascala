@@ -759,142 +759,123 @@ object DefaultBindings extends Bindings{
     },
     native("sun.misc.Unsafe", "addressSize()I").value(I)(4),
     native("sun.misc.Unsafe", "compareAndSwapInt(Ljava/lang/Object;JII)Z").func(I, I, J, I, I, Z){
-      (vt, unsafe, o, slot, expected, x) =>
-
-        val obj = vt.obj(o)
-        if (obj.members(slot.toInt) == expected){
-          obj.members(slot.toInt) = x
-          true
-        }else{
-          false
-        }
+      compareAndSwapWord(_, _, _, _, _, _, I)
     },
     native("sun.misc.Unsafe", "compareAndSwapObject(Ljava/lang/Object;JLjava/lang/Object;Ljava/lang/Object;)Z").func(I, I, J, I, I, Z){
-      (vt, unsafe, o, slot, expected, x) =>
-
-        val obj = vt.obj(o)
-        if (obj.members(slot.toInt) == expected){
-          obj.members(slot.toInt) = x
-          true
-        }else{
-          false
-        }
-
+      compareAndSwapWord(_, _, _, _, _, _, I)
     },
-    native("sun.misc.Unsafe", "compareAndSwapLong(Ljava/lang/Object;JJJ)Z").func(I, I, J, J, J, Z){ (vt, unsafe, o, slot, expected, x) =>
-      val obj = vt.obj(o)
-      val current = J.read(Util.reader(obj.members, slot.toInt))
-      if (current == expected){
-        J.write(x, Util.writer(obj.members, slot.toInt))
-        true
-      }else{
-        false
-      }
+    native("sun.misc.Unsafe", "compareAndSwapLong(Ljava/lang/Object;JJJ)Z").func(I, I, J, J, J, Z){
+      compareAndSwapWord(_, _, _, _, _, _, J)
     },
     native("sun.misc.Unsafe", "ensureClassInitialized(Ljava/lang/Class;)V").value(V)(()),
 
     native("sun.misc.Unsafe", "getBooleanVolatile(Ljava/lang/Object;J)Z").func(I, I, J, Z){
-      (vt, unsafe, o, offset) => vt.obj(o).members(offset.toInt) != 0
+      unsafeGet(_, _, _, _, Z)
     },
     native("sun.misc.Unsafe", "getBoolean(Ljava/lang/Object;J)Z").func(I, I, J, Z){
-      (vt, unsafe, o, offset) => vt.obj(o).members(offset.toInt) != 0
+      unsafeGet(_, _, _, _, Z)
     },
     native("sun.misc.Unsafe", "putBooleanVolatile(Ljava/lang/Object;JZ)V").func(I, I, J, Z, V){
-      (vt, unsafe, o, offset, bool) => Z.write(bool, vt.obj(o).members(offset.toInt) = _)
+      unsafePut(_, _, _, _, _, Z)
     },
     native("sun.misc.Unsafe", "putBoolean(Ljava/lang/Object;JZ)V").func(I, I, J, Z, V){
-      (vt, unsafe, o, offset, bool) =>
-
-        Z.write(bool, vt.obj(o).members(offset.toInt) = _)
+      unsafePut(_, _, _, _, _, Z)
     },
     native("sun.misc.Unsafe", "getByteVolatile(Ljava/lang/Object;J)B").func(I, I, J, B){
-      (vt, unsafe, o, offset) => vt.obj(o).members(offset.toInt).toByte
+      unsafeGet(_, _, _, _, B)
     },
     native("sun.misc.Unsafe", "getByte(Ljava/lang/Object;J)B").func(I, I, J, B){
-      (vt, unsafe, o, offset) => vt.obj(o).members(offset.toInt).toByte
+      unsafeGet(_, _, _, _, B)
     },
     native("sun.misc.Unsafe", "putByteVolatile(Ljava/lang/Object;JB)V").func(I, I, J, B, V){
-      (vt, unsafe, o, offset, byte) => B.write(byte, vt.obj(o).members(offset.toInt) = _)
+      unsafePut(_, _, _, _, _, B)
     },
     native("sun.misc.Unsafe", "putByte(Ljava/lang/Object;JB)V").func(I, I, J, B, V){
-      (vt, unsafe, o, offset, byte) => B.write(byte, vt.obj(o).members(offset.toInt) = _)
+      unsafePut(_, _, _, _, _, B)
     },
     native("sun.misc.Unsafe", "getCharVolatile(Ljava/lang/Object;J)C").func(I, I, J, C){
-      (vt, unsafe, o, offset) => vt.obj(o).members(offset.toInt).toChar
+      unsafeGet(_, _, _, _, C)
     },
     native("sun.misc.Unsafe", "getChar(Ljava/lang/Object;J)C").func(I, I, J, C){
-      (vt, unsafe, o, offset) => vt.obj(o).members(offset.toInt).toChar
+      unsafeGet(_, _, _, _, C)
     },
     native("sun.misc.Unsafe", "putCharVolatile(Ljava/lang/Object;JC)V").func(I, I, J, C, V){
-      (vt, unsafe, o, offset, char) => C.write(char, vt.obj(o).members(offset.toInt) = _)
+      unsafePut(_, _, _, _, _, C)
     },
     native("sun.misc.Unsafe", "putChar(Ljava/lang/Object;JC)V").func(I, I, J, C, V){
-      (vt, unsafe, o, offset, char) => C.write(char, vt.obj(o).members(offset.toInt) = _)
+      unsafePut(_, _, _, _, _, C)
+    },
+    native("sun.misc.Unsafe", "getShortVolatile(Ljava/lang/Object;J)S").func(I, I, J, S){
+      unsafeGet(_, _, _, _, S)
+    },
+    native("sun.misc.Unsafe", "getShort(Ljava/lang/Object;J)S").func(I, I, J, S){
+      unsafeGet(_, _, _, _, S)
+    },
+    native("sun.misc.Unsafe", "putShortVolatile(Ljava/lang/Object;JS)V").func(I, I, J, S, V){
+      unsafePut(_, _, _, _, _, S)
+    },
+    native("sun.misc.Unsafe", "putShort(Ljava/lang/Object;JS)V").func(I, I, J, S, V){
+      unsafePut(_, _, _, _, _, S)
     },
     native("sun.misc.Unsafe", "getIntVolatile(Ljava/lang/Object;J)I").func(I, I, J, I){
-      (vt, unsafe, o, offset) => vt.obj(o).members(offset.toInt)
+      unsafeGet(_, _, _, _, I)
     },
     native("sun.misc.Unsafe", "getInt(Ljava/lang/Object;J)I").func(I, I, J, I){
-      (vt, unsafe, o, offset) => vt.obj(o).members(offset.toInt)
+      unsafeGet(_, _, _, _, I)
     },
     native("sun.misc.Unsafe", "putIntVolatile(Ljava/lang/Object;JI)V").func(I, I, J, I, V){
-      (vt, unsafe, o, offset, int) => I.write(int, vt.obj(o).members(offset.toInt) = _)
+      unsafePut(_, _, _, _, _, I)
     },
     native("sun.misc.Unsafe", "putInt(Ljava/lang/Object;JI)V").func(I, I, J, I, V){
-      (vt, unsafe, o, offset, int) => I.write(int, vt.obj(o).members(offset.toInt) = _)
+      unsafePut(_, _, _, _, _, I)
     },
     native("sun.misc.Unsafe", "getFloatVolatile(Ljava/lang/Object;J)F").func(I, I, J, F){
-      (vt, unsafe, o, offset) => F.read(() => vt.obj(o).members(offset.toInt))
+      unsafeGet(_, _, _, _, F)
     },
     native("sun.misc.Unsafe", "getFloat(Ljava/lang/Object;J)F").func(I, I, J, F){
-      (vt, unsafe, o, offset) => F.read(() => vt.obj(o).members(offset.toInt))
+      unsafeGet(_, _, _, _, F)
     },
     native("sun.misc.Unsafe", "putFloatVolatile(Ljava/lang/Object;JF)V").func(I, I, J, F, V){
-      (vt, unsafe, o, offset, float) => F.write(float, vt.obj(o).members(offset.toInt) = _)
+      unsafePut(_, _, _, _, _, F)
     },
     native("sun.misc.Unsafe", "putFloat(Ljava/lang/Object;JF)V").func(I, I, J, F, V){
-      (vt, unsafe, o, offset, float) => F.write(float, vt.obj(o).members(offset.toInt) = _)
+      unsafePut(_, _, _, _, _, F)
     },
     native("sun.misc.Unsafe", "getLongVolatile(Ljava/lang/Object;J)J").func(I, I, J, J){
-      (vt, unsafe, o, offset) => J.read(Util.reader(vt.obj(o).members, offset.toInt))
+      unsafeGet(_, _, _, _, J)
     },
     native("sun.misc.Unsafe", "getLong(Ljava/lang/Object;J)J").func(I, I, J, J){
-      (vt, unsafe, o, offset) => J.read(Util.reader(vt.obj(o).members, offset.toInt))
+      unsafeGet(_, _, _, _, J)
     },
     native("sun.misc.Unsafe", "putLongVolatile(Ljava/lang/Object;JJ)V").func(I, I, J, J, V){
-      (vt, unsafe, o, offset, long) => J.write(long, Util.writer(vt.obj(o).members, offset.toInt))
+      unsafePut(_, _, _, _, _, J)
     },
     native("sun.misc.Unsafe", "putLong(Ljava/lang/Object;JJ)V").func(I, I, J, J, V){
-      (vt, unsafe, o, offset, long) => J.write(long, Util.writer(vt.obj(o).members, offset.toInt))
+      unsafePut(_, _, _, _, _, J)
     },
     native("sun.misc.Unsafe", "getDoubleVolatile(Ljava/lang/Object;J)D").func(I, I, J, D){
-      (vt, unsafe, o, offset) => D.read(Util.reader(vt.obj(o).members, offset.toInt))
+      unsafeGet(_, _, _, _, D)
     },
     native("sun.misc.Unsafe", "getDouble(Ljava/lang/Object;J)D").func(I, I, J, D){
-      (vt, unsafe, o, offset) => D.read(Util.reader(vt.obj(o).members, offset.toInt))
+      unsafeGet(_, _, _, _, D)
     },
     native("sun.misc.Unsafe", "putDoubleVolatile(Ljava/lang/Object;JD)V").func(I, I, J, D, V){
-      (vt, unsafe, o, offset, double) => D.write(double, Util.writer(vt.obj(o).members, offset.toInt))
+      unsafePut(_, _, _, _, _, D)
     },
     native("sun.misc.Unsafe", "putDouble(Ljava/lang/Object;JD)V").func(I, I, J, D, V){
-      (vt, unsafe, o, offset, double) => D.write(double, Util.writer(vt.obj(o).members, offset.toInt))
+      unsafePut(_, _, _, _, _, D)
     },
     native("sun.misc.Unsafe", "getObjectVolatile(Ljava/lang/Object;J)Ljava/lang/Object;").func(I, I, J, I){
-      (vt, unsafe, o, offset) => vt.obj(o).members(offset.toInt)
+      unsafeGet(_, _, _, _, I)
     },
     native("sun.misc.Unsafe", "getObject(Ljava/lang/Object;J)Ljava/lang/Object;").func(I, I, J, I){
-      (vt, unsafe, o, offset) =>
-        pprint.log(o)
-        pprint.log(offset)
-        assert(o != 0)
-        vt.obj(o).members(offset.toInt)
+      unsafeGet(_, _, _, _, I)
     },
-
     native("sun.misc.Unsafe", "putObjectVolatile(Ljava/lang/Object;JLjava/lang/Object;)V").func(I, I, J, I, V){
-      (vt, unsafe, o, offset, ref) => vt.obj(o).members(offset.toInt) = ref
+      unsafePut(_, _, _, _, _, I)
     },
     native("sun.misc.Unsafe", "putObject(Ljava/lang/Object;JLjava/lang/Object;)V").func(I, I, J, I, V){
-      (vt, unsafe, o, offset, ref) => vt.obj(o).members(offset.toInt) = ref
+      unsafePut(_, _, _, _, _, I)
     },
     native("sun.misc.Unsafe", "putOrderedObject(Ljava/lang/Object;JLjava/lang/Object;)V").func(I, I, J, I, V){
       (vt, unsafe, o, offset, ref) =>
@@ -941,21 +922,10 @@ object DefaultBindings extends Bindings{
       fs
     },
     native("sun.reflect.Reflection", "getCallerClass(I)Ljava/lang/Class;").static.func(I, I){ (vt, n) =>
-
-      if (n >= vt.threadStackLength) 0
-      else {
-        val name = vt.runningClassName(n)
-        vt.typeObjCache(imm.Type.readJava(name))()
-      }
+      getCallerClass(vt, n)
     },
     native("sun.reflect.Reflection", "getCallerClass()Ljava/lang/Class;").static.func(I){ (vt) =>
-
-      val n = 1
-      if (n >= vt.threadStackLength) 0
-      else {
-        val name = vt.runningClassName(n)
-        vt.typeObjCache(imm.Type.readJava(name))()
-      }
+      getCallerClass(vt, 1)
     },
     native("sun.reflect.Reflection", "getClassAccessFlags(Ljava/lang/Class;)I").static.func(I, I){ (vt, o) =>
 
@@ -968,4 +938,60 @@ object DefaultBindings extends Bindings{
       vt.theUnsafe.address()
     }
   )
+
+
+  def unsafeCheck[T](vt: Bindings.Interface,
+                     o: Int,
+                     offset: Long,
+                     prim: imm.Type.Prim[T]) = {
+    assert(o != 0)
+    if (vt.isObj(o)){
+      assert(vt.obj(o).cls.fieldInfo.get(offset.toInt).desc.size == prim.size)
+    }else /*(vt.isArr(o))*/{
+      assert(vt.arr(o).innerType.size == prim.size)
+      assert(vt.arr(o).length > offset + prim.size - 1)
+    }
+  }
+
+  def compareAndSwapWord[T](vt: Bindings.Interface,
+                            unsafe: Int,
+                            o: Int,
+                            slot: Long,
+                            expected: T,
+                            x: T,
+                            prim: imm.Type.Prim[T]) = {
+    unsafeCheck(vt, o, slot, prim)
+    val obj = vt.obj(o)
+    val current = prim.read(Util.reader(obj.members, slot.toInt))
+    if (current == expected){
+      prim.write(x, Util.writer(obj.members, slot.toInt))
+      true
+    }else{
+      false
+    }
+  }
+  def getCallerClass(vt: Bindings.Interface, n: Int) = {
+    if (n >= vt.threadStackLength) 0
+    else {
+      val name = vt.runningClassName(n)
+      vt.typeObjCache(imm.Type.readJava(name))()
+    }
+  }
+  def unsafeGet[T](vt: Bindings.Interface,
+                   unsafe0: Int,
+                   o: Int,
+                   offset: Long,
+                   prim: imm.Type.Prim[T]): T = {
+    unsafeCheck(vt, o, offset, prim)
+    prim.read(Util.reader(vt.obj(o).members, offset.toInt))
+  }
+  def unsafePut[T](vt: Bindings.Interface,
+                   unsafe0: Int,
+                   o: Int,
+                   offset: Long,
+                   value: T,
+                   prim: imm.Type.Prim[T]): Unit = {
+    unsafeCheck(vt, o, offset, prim)
+    prim.write(value, Util.writer(vt.obj(o).members, offset.toInt))
+  }
 }
