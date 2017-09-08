@@ -1,7 +1,6 @@
 package metascala
 
 import java.io.DataInputStream
-import org.scalatest.exceptions.TestFailedException
 import scala.util.Random
 
 
@@ -124,8 +123,12 @@ object TestUtil {
 //      println("refRes " + refRes)
 
       try{
-        assertEquals(svmRes, refRes)
-      }catch {case ex: TestFailedException =>
+        (svmRes, refRes) match{
+          case (x: Array[_], y: Array[_]) => assert(x.toSeq == y.toSeq)
+          case _ => assert(svmRes == refRes)
+        }
+
+      }catch {case ex: utest.AssertionError =>
         println("Test failed for input")
         println(inString)
 
@@ -158,8 +161,11 @@ object TestUtil {
 //      println("refRes " + refRes)
 //      println("args " + args)
       try{
-        assertEquals(svmRes, refRes)
-      }catch {case ex: TestFailedException =>
+        (svmRes, refRes) match{
+          case (x: Array[_], y: Array[_]) => assert(x.toSeq == y.toSeq)
+          case _ => assert(svmRes == refRes)
+        }
+      }catch {case ex: utest.AssertionError =>
         println("Test failed for input")
         println(inString)
 

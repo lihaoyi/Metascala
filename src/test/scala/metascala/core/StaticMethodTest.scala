@@ -1,25 +1,24 @@
 package metascala
 package core
 
-import org.scalatest.FreeSpec
+import utest._
 
 import metascala.{Gen, TestUtil}
 import metascala.Gen._
 import java.awt.Point
 
-class StaticMethodTest extends FreeSpec {
+class StaticMethodTest extends utest.TestSuite{
   import TestUtil._
 
   implicit val intAll10 = 10 ** Gen.intAll
-
-  "static" - {
+  def tests = this {
     val tester = new Tester("metascala.features.methods.Statics")
-    "helloWorld" in chk(tester.run("helloWorld", _: Int))
+    "helloWorld" - chk(tester.run("helloWorld", _: Int))
 
-    "helloWorld2" in chk(tester.run("helloWorld2", _: Int, _: Int))
-    "tailFactorial" in chk(tester.run("tailFactorial", _: Int))(Seq(2, 5, 10, 20, 50))
-    "fibonacci" in chk(tester.run("fibonacci", _: Int))(Seq(2, 5, 10))
-    "callAtPhiBoundary" in tester.run("callAtPhiBoundary", 0)
+    "helloWorld2" - chk(tester.run("helloWorld2", _: Int, _: Int))
+    "tailFactorial" - chk(tester.run("tailFactorial", _: Int))(Seq(2, 5, 10, 20, 50))
+    "fibonacci" - chk(tester.run("fibonacci", _: Int))(Seq(2, 5, 10))
+    "callAtPhiBoundary" - tester.run("callAtPhiBoundary", 0)
   }
 }
 

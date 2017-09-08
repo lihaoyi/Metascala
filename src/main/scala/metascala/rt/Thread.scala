@@ -515,10 +515,12 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
       case "linkToVirtual" =>
         invokeBase(sources.take(sources.length-1), target, directMethod, true)
       case "linkToStatic" =>
+
         invokeBase(sources.take(sources.length-1), target, directMethod, false)
       case "linkToSpecial" =>
         invokeBase(sources.take(sources.length-1), target, directMethod, true)
       case "linkToInterface" =>
+        ???
         val concrete = vm.obj(frame.locals(sources(0))).cls.lookupInterfaceMethod(sig)
         invokeBase(sources.take(sources.length-1), target, concrete, true)
     }
