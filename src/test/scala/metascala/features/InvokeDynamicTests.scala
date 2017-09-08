@@ -22,26 +22,28 @@ class InvokeDynamicTests extends FreeSpec {
       tester.run("findStaticSetter4", false)
       tester.run("findStaticSetter4", true)
     }
-//
-//    "findInstanceField" in {
-//      val tester = new Tester("metascala.features.javac.InvokeDynamic")
-//      tester.run("findFieldGetter", 31337L)
-//
-//      tester.run("findFieldSetter1", 31337L)
-//      tester.run("findFieldSetter2", 31337L)
-//      tester.run("findFieldSetter3", 31337L)
-//      tester.run("findFieldSetter4", 31337L)
-//    }
-//    "asType" in {
-//      val tester = new Tester("metascala.features.javac.InvokeDynamic")
-//      tester.run("asType", false)
-//      tester.run("asType", true)
-//    }
-//    "findStaticMethod" in {try{
-//      val tester = new Tester("metascala.features.javac.InvokeDynamic")
-//      tester.run("findStaticMethod", false)
-//      tester.run("findStaticMethod", true)
-//    }catch{case e=>e.printStackTrace()}}
+
+    "findInstanceField" in {
+      val tester = new Tester("metascala.features.javac.InvokeDynamic")
+      tester.run("findFieldGetter", 31337L)
+
+      tester.run("findFieldSetter1", 31337L)
+      tester.run("findFieldSetter2", 31337L)
+      tester.run("findFieldSetter3", 31337L)
+      tester.run("findFieldSetter4", 31337L)
+    }
+    "asType" in {
+      val tester = new Tester("metascala.features.javac.InvokeDynamic")
+      tester.run("asType", false)
+      tester.run("asType", true)
+    }
+    "findStaticMethod" in {
+      val tester = new Tester("metascala.features.javac.InvokeDynamic")
+      tester.run("findStaticMethod", 31.337)
+      tester.run("findStaticMethod", 3.1415926)
+      tester.run("findStaticMethod", -2.71828182846)
+      tester.run("findStaticMethod", -1337.0)
+    }
   }
 }
 
