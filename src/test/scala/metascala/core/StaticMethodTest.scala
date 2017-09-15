@@ -11,7 +11,7 @@ class StaticMethodTest extends utest.TestSuite{
   import TestUtil._
 
   implicit val intAll10 = 10 ** Gen.intAll
-  def tests = this {
+  def tests = Tests {
     val tester = new Tester("metascala.features.methods.Statics")
     "helloWorld" - chk(tester.run("helloWorld", _: Int))
 

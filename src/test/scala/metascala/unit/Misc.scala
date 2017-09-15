@@ -20,7 +20,7 @@ object  Misc extends utest.TestSuite {
     }(cases)
   }
 
-  def tests = this {
+  def tests = Tests {
     "making sure Prim[T] write & pops preserve the value T" - {
       "testZ" - test(Z)(Seq(true, false))
       "testB" - test(B)(30 ** Gen.intAll.toByte)

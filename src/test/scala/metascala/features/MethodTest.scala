@@ -13,7 +13,7 @@ object MethodTest extends utest.TestSuite {
 
   implicit val intAll10 = 10 ** Gen.intAll
 
-  def tests = this {
+  def tests = Tests {
     "natives" - {
       val tester = new VM()
       "intBitsToFloat" - {

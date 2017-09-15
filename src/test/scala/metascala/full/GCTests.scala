@@ -13,7 +13,7 @@ object GCTests extends utest.TestSuite {
 
   import TestUtil._
 
-  def tests = this {
+  def tests = Tests {
     "helloObj" - {
       for {
         memory <- List(30, 67, 121)

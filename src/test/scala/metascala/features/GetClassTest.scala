@@ -10,7 +10,7 @@ import metascala.Gen._
 
 import TestUtil._
 object GetClassTest extends utest.TestSuite {
-  def tests = this {
+  def tests = Tests {
     "class stuff" - {
       val tester = new VM()
 

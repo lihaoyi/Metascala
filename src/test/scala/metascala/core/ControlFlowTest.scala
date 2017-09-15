@@ -5,7 +5,7 @@ import utest._
 import Gen.chk
 object ControlFlowTest extends utest.TestSuite {
 
-  def tests = this {
+  def tests = Tests {
     "ifElse" - {
       val tester = new Tester("metascala.features.controlflow.IfElse")
       "basicIf" - tester.run("basicIf")

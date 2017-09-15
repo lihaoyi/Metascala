@@ -6,7 +6,7 @@ import metascala.imm.Type.Prim._
 import metascala.imm.Type.Prim
 
 object Type extends utest.TestSuite {
-  def tests = this {
+  def tests = Tests {
     "helloObj" - {
       def test(p: Prim[_]) = {
         assert(p.javaName == p.primClass.getName)

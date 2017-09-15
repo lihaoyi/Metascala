@@ -19,7 +19,8 @@ object ReflectTests extends utest.TestSuite {
   }
 
   implicit val intAll10 = 10 ** Gen.intAll
-  def tests = this {
+
+  def tests = Tests {
     val tester = new VM()
     "getSetX" - {
 

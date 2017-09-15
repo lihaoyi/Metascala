@@ -219,7 +219,6 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
   lazy val threads = List(new Thread())
 
   def invoke(bootClass: String, mainMethod: String, args: Seq[Any] = Nil): Any = {
-    println(s"Invoking VM with $bootClass.$mainMethod")
 
     val res = threads(0).invoke(
       imm.Type.Cls.apply(bootClass),

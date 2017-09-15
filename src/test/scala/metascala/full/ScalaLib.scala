@@ -30,7 +30,7 @@ object ScalaLib extends utest.TestSuite {
     s + "\n" + methods.mkString("\n")
   }
 
-  def tests = this {
+  def tests = Tests {
     val buffer = new BufferLog(4000)
 
     val tester = new VM(memorySize = 64 * 1024)

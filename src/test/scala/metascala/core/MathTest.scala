@@ -16,7 +16,7 @@ object MathTest extends utest.TestSuite{
   implicit def longAll10 = 10 ** Gen.longAll
   implicit def doubleAll110 = 10 ** Gen.doubleAll
   val tester = new VM()
-  def tests = this {
+  def tests = Tests {
     "single precision" - {
       "hello math" - {
         "imain" - tester.test {

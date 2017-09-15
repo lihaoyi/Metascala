@@ -4,7 +4,7 @@ import metascala.TestUtil._
 import utest._
 
 object MethodHandleTests extends utest.TestSuite {
-  def tests = this {
+  def tests = Tests {
 
 
     "findStaticField" - {

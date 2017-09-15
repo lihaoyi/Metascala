@@ -14,7 +14,7 @@ import java.util.concurrent.locks.ReentrantLock
 import TestUtil._
 object JavaLibTest extends utest.TestSuite {
   implicit val intAll10 = 10 ** Gen.intAll
-  def tests = this {
+  def tests = Tests {
     "sudoku" - {
       val tester = new Tester("metascala.full.Sudoku")
       tester.run("run")

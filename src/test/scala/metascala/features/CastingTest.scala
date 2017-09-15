@@ -10,7 +10,7 @@ import java.awt.geom.Point2D
 import TestUtil._
 class CastingTest extends utest.TestSuite {
 
-  def tests = this {
+  def tests = Tests {
     val buffer = new BufferLog(4000)
     "if else" - {
       val tester = new VM()

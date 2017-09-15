@@ -6,7 +6,7 @@ import metascala.features.Bull
 
 import TestUtil._
 object MetacircularTest extends utest.TestSuite {
-  def tests = this {
+  def tests = Tests {
     "sqrtFinder" - {
       new VM(memorySize = 250 * 1024).test {
         val x = new VM(memorySize = 1024)

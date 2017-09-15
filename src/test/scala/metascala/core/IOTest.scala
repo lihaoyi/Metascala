@@ -14,7 +14,7 @@ object IOTest extends utest.TestSuite {
   import TestUtil._
 
   implicit val intAll10 = 10 ** Gen.intAll
-  def tests = this {
+  def tests = Tests {
     val tester = new VM()
     "primitives" - {
       "retInt" - tester.testFunc(() => 1337)

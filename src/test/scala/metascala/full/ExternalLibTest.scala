@@ -9,7 +9,7 @@ import utest._
 
 object ExternalLibTest extends utest.TestSuite {
   def func(f: Object) = f
-  def tests = this {
+  def tests = Tests {
     val tester = new VM(memorySize = 256 * 1024)
     "fansi" - tester.test {
       (fansi.Color.Red("Hello") ++ fansi.Color.Red("World"))

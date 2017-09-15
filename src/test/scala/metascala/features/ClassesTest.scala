@@ -7,7 +7,7 @@ import metascala.TestUtil
 object ClassesTest extends utest.TestSuite {
   import TestUtil._
 
-  def tests = this {
+  def tests = Tests {
     "classes" - {
       val tester = new VM()
       "customClass" - tester.test {

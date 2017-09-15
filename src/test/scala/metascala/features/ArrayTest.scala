@@ -16,7 +16,7 @@ object ArrayTest extends utest.TestSuite{
     }
     arr
   }
-  def tests = this {
+  def tests = Tests {
     val tester = new VM()
     "array stuff" - {
       "makeIntArray" - {

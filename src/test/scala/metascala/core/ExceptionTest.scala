@@ -6,7 +6,7 @@ import metascala.{BufferLog, Gen, TestUtil}
 import Gen.chk
 import TestUtil._
 object ExceptionTest extends utest.TestSuite{
-  def tests = this {
+  def tests = Tests {
     val tester = new Tester("metascala.features.exceptions.Exceptions")
 
     "throwCatch" - chk(tester.run("throwCatch", _: Int))(Seq(-1, 0, 1, 2))
