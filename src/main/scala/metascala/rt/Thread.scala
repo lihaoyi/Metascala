@@ -520,9 +520,12 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
       case "linkToSpecial" =>
         invokeBase(sources.take(sources.length-1), target, directMethod, true)
       case "linkToInterface" =>
-        ???
-        val concrete = vm.obj(frame.locals(sources(0))).cls.lookupInterfaceMethod(sig)
-        invokeBase(sources.take(sources.length-1), target, concrete, true)
+        invokeBase(
+          sources.take(sources.length-1),
+          target,
+          mRef = vm.obj(frame.locals(sources(0))).cls.lookupInterfaceMethod(sig),
+          thisCell = true
+        )
     }
   }
   private def invokeHandle(target: Int, sources: Agg[Int], sig: Sig, basic: Boolean) = {
