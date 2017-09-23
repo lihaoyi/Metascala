@@ -34,6 +34,7 @@ object Bindings{
     def checkInitialized(cls: rt.Cls): Unit
     def getTypeForTypeObj(addr: Int): imm.Type
     def check(s: imm.Type, t: imm.Type): Boolean
+    def boxIt(tpe: imm.Type.Prim[_], reader: () => Int)(implicit r: rt.Allocator): WritableRef
   }
 }
 trait Bindings{

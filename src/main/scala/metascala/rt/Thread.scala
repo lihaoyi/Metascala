@@ -930,6 +930,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     def getTypeForTypeObj(addr: Int) = vm.getTypeForTypeObj(addr)
 
     def check(s: imm.Type, t: imm.Type) = vm.check(s, t)
+
+    def boxIt(tpe: imm.Type.Prim[_], reader: () => Int)(implicit r: Allocator) = thread.boxIt(tpe, reader)
   }
 
   final def prepInvoke(mRef: rt.Method,

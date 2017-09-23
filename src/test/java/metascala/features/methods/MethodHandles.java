@@ -1,6 +1,7 @@
 package metascala.features.methods;
 
 import java.lang.invoke.MethodHandle;
+
 import java.lang.invoke.MethodType;
 
 public class MethodHandles {
@@ -276,12 +277,53 @@ public class MethodHandles {
 
 
 
+    public static double negate(double d){
+        return -d;
+    }
+
+    public static double triple(double d){
+        return  3 * d;
+    }
+
+    public static double transformStaticMethod(double d) throws Throwable{
+
+        MethodType mt = MethodType.methodType(double.class, double.class);
+        MethodHandle m = lookup.findStatic(
+                MethodHandles.class,
+                "staticMethod",
+                mt
+        );
+
+        MethodHandle m2 = java.lang.invoke.MethodHandles.filterArguments(
+                m,
+                0,
+                lookup.findStatic(MethodHandles.class, "triple", mt)
+        );
+        MethodHandle m3 = java.lang.invoke.MethodHandles.insertArguments(m2, 0, d);
+        MethodHandle m4 = java.lang.invoke.MethodHandles.filterReturnValue(
+                m3,
+                lookup.findStatic(MethodHandles.class, "negate", mt)
+        );
+
+        return (double)m4.invoke();
+    }
 
 
-    public static boolean run(boolean b) {
-        boolean[] msg = {b};
-        something(x -> msg[0] = msg[0] | x);
-        return msg[0];
+    public static int count(Object... input){
+        return input.length;
+    }
+
+    public static boolean varargs(boolean b) throws Exception{
+
+        lookup.findStatic(
+                MethodHandles.class,
+                "count",
+                MethodType.methodType(int.class, Object[].class)
+        );
+
+//        boolean[] msg = {b};
+//        something(x -> msg[0] = msg[0] | x);
+        return true;
     }
     static void something(java.util.function.Consumer<Boolean> consumer) {
         consumer.accept(true);

@@ -523,9 +523,12 @@ object DefaultBindings extends Bindings{
     native("java.lang.invoke.MethodHandleNatives", "resolve(Ljava/lang/invoke/MemberName;Ljava/lang/Class;)Ljava/lang/invoke/MemberName;").static.func(I, I, I) {
       (vt, memberName, cls0) =>
 
+
         val cls = vt.getTypeForTypeObj(vt.obj(memberName).apply("clazz"))
 
         val memberNameStr = vt.toRealObj[String](vt.obj(memberName).apply("name"))
+
+
 
         val rtCls = vt.clsTable.apply(cls.asInstanceOf[imm.Type.Cls])
         val refFlag = (vt.obj(memberName)("flags") >> MHConstants.MN_REFERENCE_KIND_SHIFT) & MHConstants.MN_REFERENCE_KIND_MASK
@@ -535,21 +538,56 @@ object DefaultBindings extends Bindings{
                MHConstants.REF_invokeSpecial |
                MHConstants.REF_invokeStatic =>
 
+            val tpe = vt.obj(memberName).apply("type")
+            val ret = vt.getTypeForTypeObj(vt.obj(tpe).apply("rtype"))
+            val params = vt.arr(vt.obj(tpe).apply("ptypes")).map(vt.getTypeForTypeObj)
+
+            val sig = imm.Sig(memberNameStr, imm.Desc(Agg.from(params), ret))
+
             val actualMethod = refFlag match{
               case MHConstants.REF_invokeStatic =>
-                rtCls.staticTable.find(_.sig.name == memberNameStr).get
+                if (rtCls.tpe.javaName == "java.lang.invoke.MethodHandle" &&
+                  (memberNameStr == "linkToVirtual" ||
+                    memberNameStr == "linkToStatic" ||
+                    memberNameStr == "linkToSpecial" ||
+                    memberNameStr == "linkToInterface")){
+                  rtCls.staticTable.find(_.sig.name == memberNameStr)
+                }else{
+                  rtCls.staticTable.find(_.sig == sig)
+                }
               case MHConstants.REF_invokeSpecial | MHConstants.REF_invokeInterface | MHConstants.REF_invokeVirtual =>
-                rtCls.vTable.find(_.sig.name == memberNameStr).get
+                if (rtCls.tpe.javaName == "java.lang.invoke.MethodHandle" &&
+                  (memberNameStr == "invoke" ||
+                    memberNameStr == "invokeExact" ||
+                    memberNameStr == "invokeBasic")){
+                  rtCls.vTable.find(_.sig.name == memberNameStr)
+                }else {
+                  rtCls.vTable.find(_.sig == sig)
+                }
+
             }
 
-            vt.methodHandleMap(new Ref.UnsafeManual(memberName)) = actualMethod
+            actualMethod match{
+              case None => vt.throwExWithTrace("java.lang.NoSuchMethodError", "lol")
+              case Some(actualMethod) =>
+                vt.methodHandleMap(new Ref.UnsafeManual(memberName)) = actualMethod
 
-            vt.obj(memberName)("flags") |= actualMethod.accessFlags
+                vt.obj(memberName)("flags") |= actualMethod.accessFlags
+            }
+
 
           case MHConstants.REF_getField | MHConstants.REF_putField =>
-            vt.obj(memberName)("flags") |= rtCls.fieldInfo.get(memberNameStr).access
+            if (rtCls.fieldInfo.getIndex0(memberNameStr) == -1){
+              vt.throwExWithTrace("java.lang.NoSuchFieldError", "lol")
+            }else{
+              vt.obj(memberName)("flags") |= rtCls.fieldInfo.get(memberNameStr).access
+            }
           case MHConstants.REF_getStatic | MHConstants.REF_putStatic =>
-            vt.obj(memberName)("flags") |= rtCls.staticInfo.get(memberNameStr).access
+            if (rtCls.staticInfo.getIndex0(memberNameStr) == -1) {
+              vt.throwExWithTrace("java.lang.NoSuchFieldError", "lol")
+            }else{
+              vt.obj(memberName)("flags") |= rtCls.staticInfo.get(memberNameStr).access
+            }
         }
 
         memberName
@@ -647,12 +685,28 @@ object DefaultBindings extends Bindings{
         val name = vt.toRealObj[String](vt.obj(vt.obj(cons).apply("clazz")).apply("name"))
         vt.alloc(_.newObj(name)).address()
     },
-    native("java.lang.StrictMath", "log(D)D").static.func(D, D){ (vt, arg) =>
-      math.log(arg)
-    },
-    native("java.lang.StrictMath", "pow(DD)D").static.func(D, D, D) { (vt, arg1, arg2) =>
-      math.pow(arg1, arg2)
-    },
+    native("java.lang.StrictMath", "sin(D)D").static.func(D, D){ (vt, arg) => StrictMath.sin(arg)},
+    native("java.lang.StrictMath", "cos(D)D").static.func(D, D){ (vt, arg) => StrictMath.cos(arg)},
+    native("java.lang.StrictMath", "tan(D)D").static.func(D, D){ (vt, arg) => StrictMath.tan(arg)},
+    native("java.lang.StrictMath", "asin(D)D").static.func(D, D){ (vt, arg) => StrictMath.asin(arg)},
+    native("java.lang.StrictMath", "acos(D)D").static.func(D, D){ (vt, arg) => StrictMath.acos(arg)},
+    native("java.lang.StrictMath", "atan(D)D").static.func(D, D){ (vt, arg) => StrictMath.atan(arg)},
+    native("java.lang.StrictMath", "toRadians(D)D").static.func(D, D){ (vt, arg) => StrictMath.toRadians(arg)},
+    native("java.lang.StrictMath", "toDegrees(D)D").static.func(D, D){ (vt, arg) => StrictMath.toDegrees(arg)},
+    native("java.lang.StrictMath", "exp(D)D").static.func(D, D){ (vt, arg) => StrictMath.exp(arg)},
+    native("java.lang.StrictMath", "log(D)D").static.func(D, D){ (vt, arg) => StrictMath.log(arg)},
+    native("java.lang.StrictMath", "log10(D)D").static.func(D, D){ (vt, arg) => StrictMath.log10(arg)},
+    native("java.lang.StrictMath", "sqrt(D)D").static.func(D, D){ (vt, arg) => StrictMath.sqrt(arg)},
+    native("java.lang.StrictMath", "cbrt(D)D").static.func(D, D){ (vt, arg) => StrictMath.cbrt(arg)},
+    native("java.lang.StrictMath", "IEEEremainder(DD)D").static.func(D, D, D){ (vt, arg1, arg2) => StrictMath.IEEEremainder(arg1, arg2)},
+    native("java.lang.StrictMath", "atan2(DD)D").static.func(D, D, D){ (vt, arg1, arg2) => StrictMath.atan2(arg1, arg2)},
+    native("java.lang.StrictMath", "pow(DD)D").static.func(D, D, D) { (vt, arg1, arg2) => StrictMath.pow(arg1, arg2)},
+    native("java.lang.StrictMath", "sinh(D)D").static.func(D, D){ (vt, arg) => StrictMath.sinh(arg)},
+    native("java.lang.StrictMath", "cosh(D)D").static.func(D, D){ (vt, arg) => StrictMath.cosh(arg)},
+    native("java.lang.StrictMath", "tanh(D)D").static.func(D, D){ (vt, arg) => StrictMath.tanh(arg)},
+    native("java.lang.StrictMath", "hypot(DD)D").static.func(D, D, D) { (vt, arg1, arg2) => StrictMath.hypot(arg1, arg2)},
+    native("java.lang.StrictMath", "expm1(D)D").static.func(D, D){ (vt, arg) => StrictMath.expm1(arg)},
+    native("java.lang.StrictMath", "log1p(D)D").static.func(D, D){ (vt, arg) => StrictMath.log1p(arg)},
 
     native("java.nio.charset.Charset", "defaultCharset()Ljava/nio/charset/Charset;").static{(vt, arg) =>
       vt.invoke0(
@@ -917,6 +971,36 @@ object DefaultBindings extends Bindings{
         val cls = vt.getTypeForTypeObj(cls0)
         vt.invoke1(cls.asInstanceOf[imm.Type.Cls], imm.Sig.read("values()[" + cls.internalName), Agg(cls0))
         vt.returnedVal(0)
+    },
+    native("sun.reflect.NativeMethodAccessorImpl", "invoke0(Ljava/lang/reflect/Method;Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;")
+      .static.func(I, I, I, I){ (vt, m0, this0, argsArr0) =>
+
+      val name = vt.toRealObj[String](vt.obj(m0).apply("name"))
+      val ret = vt.getTypeForTypeObj(vt.obj(m0).apply("returnType"))
+      val params = vt.arr(vt.obj(m0).apply("parameterTypes")).map(vt.getTypeForTypeObj)
+      val cls = vt.getTypeForTypeObj(vt.obj(m0).apply("clazz")).asInstanceOf[imm.Type.Cls]
+      val rtCls = vt.clsTable(cls)
+
+      val mRef = rtCls.method(name, imm.Desc(Agg.from(params), ret)).get
+      val unboxedArgs = for((v, i) <- Agg.from(vt.arr(argsArr0)).zipWithIndex) yield {
+        mRef.sig.desc.args(i) match{
+          case p: imm.Type.Prim[_] =>
+            vt.obj(v).members
+          case _ => Seq(v)
+        }
+      }
+
+      val thisCell = if (mRef.static) Agg() else Agg(this0)
+
+      vt.invoke1(cls, imm.Sig(name, imm.Desc(Agg.from(params), ret)), thisCell ++ unboxedArgs.flatten)
+      ret match{
+        case p: imm.Type.Prim[_] =>
+          vt.alloc{implicit r =>
+            vt.boxIt(p, Util.reader(vt.returnedVal, 0)).apply()
+          }
+        case _ => vt.returnedVal(0)
+      }
+
     },
     native("sun.reflect.Reflection", "filterFields(Ljava/lang/Class;[Ljava/lang/reflect/Field;)[Ljava/lang/reflect/Field;").static.func(I, I, I){ (vt, cls, fs) =>
       fs

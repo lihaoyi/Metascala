@@ -70,6 +70,15 @@ object MethodHandleTests extends utest.TestSuite {
       tester.run("findInterfaceMethod", 3)
       tester.run("findInterfaceMethod", 4)
     }
-
+    "transformStaticMethod" - {
+      val tester = new Tester("metascala.features.methods.MethodHandles")
+      tester.run("transformStaticMethod", 0.5)
+      tester.run("transformStaticMethod", 1.5)
+      tester.run("transformStaticMethod", -100000000.0)
+    }
+    "varargs" - {
+      val tester = new Tester("metascala.features.methods.MethodHandles")
+      tester.run("varargs", true)
+    }
   }
 }

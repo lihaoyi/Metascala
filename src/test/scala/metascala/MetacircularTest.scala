@@ -8,7 +8,7 @@ import TestUtil._
 object MetacircularTest extends utest.TestSuite {
   def tests = Tests {
     "sqrtFinder" - {
-      new VM(memorySize = 250 * 1024).test {
+      new VM(memorySize = 300 * 1024).test {
         val x = new VM(memorySize = 1024)
         x.invoke("metascala.features.controlflow.Loops", "sqrtFinder", Seq(5.0))
       }

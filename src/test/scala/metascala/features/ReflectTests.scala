@@ -157,6 +157,14 @@ object ReflectTests extends utest.TestSuite {
       }
     }
 
+    'invoke - tester.test{
+      classOf[String].getMethod("substring", classOf[Int], classOf[Int])
+        .invoke("hello", 1: Integer, 3: Integer)
+    }
+    'invokeStatic - tester.test{
+      classOf[Math].getMethod("sqrt", classOf[Double])
+        .invoke(null, 2.25: java.lang.Double)
+    }
     //  "getSetStatic" - {
     //    "double" - tester.testFunc{ () =>
     //      val f = classOf[Point2D.Double].getDeclaredField("serialVersionUID")
