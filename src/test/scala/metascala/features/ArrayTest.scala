@@ -134,7 +134,6 @@ object ArrayTest extends utest.TestSuite{
 
     }
     "multi dim arrays" - {
-      val buffer = new BufferLog(4000)
       "make2D" - {
         for (i <- Seq(0, 1, 2)) tester.test {
           metascala.features.arrays.MultiDimArrays.make2D(i, i)

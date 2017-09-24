@@ -1,20 +1,24 @@
 package metascala
 package core
-
-
 import utest._
-import Gen._
-import metascala.TestUtil
+
+import metascala.TestUtil._
 import scala.util.Random
 
 
 
 object MathTest extends utest.TestSuite{
-  import TestUtil._
-  implicit def intAll10 = 10 ** Gen.intAll
-  implicit def floatAll110 = 10 ** Gen.floatAll
-  implicit def longAll10 = 10 ** Gen.longAll
-  implicit def doubleAll110 = 10 ** Gen.doubleAll
+  implicit def intAll10 = Iterator.fill(10)(Random.nextInt())
+  implicit def longAll10 = Iterator.fill(10)(Random.nextLong())
+  implicit def floatAll10 = Iterator.fill(10)(Random.nextFloat())
+  implicit def doubleAll10 = Iterator.fill(10)(Random.nextDouble())
+  def checkBinaryFunc[T1, T2](test: (T1, T2) => Unit)
+                             (implicit gen1: Iterator[T1], gen2: Iterator[T2]) = {
+    for ((i, j) <- gen1 zip gen2){
+      test(i, j)
+    }
+  }
+
   val tester = new VM()
   def tests = Tests {
     "single precision" - {
@@ -28,74 +32,72 @@ object MathTest extends utest.TestSuite{
       }
       "basic math" - {
         "int" - {
-          "ineg" - chk(tester.testFunc(-(_: Int)) _)
-          "iadd" - chk(tester.testFunc((_: Int) + (_: Int)) _)
-          "isub" - chk(tester.testFunc((_: Int) - (_: Int)) _)
-          "imul" - chk(tester.testFunc((_: Int) * (_: Int)) _)
-          "idiv" - chk(tester.testFunc((_: Int) / (_: Int)) _)
-          "imod" - chk(tester.testFunc((_: Int) % (_: Int)) _)
+          "ineg" - intAll10.foreach(x => tester.test(-x))
+          "iadd" - checkBinaryFunc(tester.testFunc((_: Int) + (_: Int)))
+          "isub" - checkBinaryFunc(tester.testFunc((_: Int) - (_: Int)))
+          "imul" - checkBinaryFunc(tester.testFunc((_: Int) * (_: Int)))
+          "idiv" - checkBinaryFunc(tester.testFunc((_: Int) / (_: Int)))
+          "imod" - checkBinaryFunc(tester.testFunc((_: Int) % (_: Int)))
         }
         "float" - {
-          "fneg" - chk(tester.testFunc(-(_: Float)) _)
-          "fadd" - chk(tester.testFunc((_: Float) + (_: Float)) _)
-          "fsub" - chk(tester.testFunc((_: Float) - (_: Float)) _)
-          "fmul" - chk(tester.testFunc((_: Float) * (_: Float)) _)
-          "fdiv" - chk(tester.testFunc((_: Float) / (_: Float)) _)
-          "fmod" - chk(tester.testFunc((_: Float) % (_: Float)) _)
+          "fneg" - floatAll10.foreach(x => tester.test(-x))
+          "fadd" - checkBinaryFunc(tester.testFunc((_: Float) + (_: Float)))
+          "fsub" - checkBinaryFunc(tester.testFunc((_: Float) - (_: Float)))
+          "fmul" - checkBinaryFunc(tester.testFunc((_: Float) * (_: Float)))
+          "fdiv" - checkBinaryFunc(tester.testFunc((_: Float) / (_: Float)))
+          "fmod" - checkBinaryFunc(tester.testFunc((_: Float) % (_: Float)))
         }
         "more int stuff" - {
-          "ishl" - chk(tester.testFunc((_: Int) << (_: Int)) _)(10 ** Gen.intAll, 10 ** Gen.int(5))
-          "ishr" - chk(tester.testFunc((_: Int) >> (_: Int)) _)(10 ** Gen.intAll, 10 ** Gen.int(5))
-          "iushr" - chk(tester.testFunc((_: Int) >>> (_: Int)) _)(10 ** Gen.intAll, 10 ** Gen.int(5))
-          "iand" - chk(tester.testFunc((_: Int) & (_: Int)) _)
-          "ior" - chk(tester.testFunc((_: Int) | (_: Int)) _)
-          "ixor" - chk(tester.testFunc((_: Int) ^ (_: Int)) _)
+          "ishl" - checkBinaryFunc(tester.testFunc((_: Int) << (_: Int)))(implicitly, Iterator.fill(10)(Random.nextInt(5)))
+          "ishr" - checkBinaryFunc(tester.testFunc((_: Int) >> (_: Int)))(implicitly, Iterator.fill(10)(Random.nextInt(5)))
+          "iushr" - checkBinaryFunc(tester.testFunc((_: Int) >>> (_: Int)))(implicitly, Iterator.fill(10)(Random.nextInt(5)))
+          "iand" - checkBinaryFunc(tester.testFunc((_: Int) & (_: Int)))
+          "ior" - checkBinaryFunc(tester.testFunc((_: Int) | (_: Int)))
+          "ixor" - checkBinaryFunc(tester.testFunc((_: Int) ^ (_: Int)))
         }
       }
     }
     "double precision" - {
 
       "hello math" - {
-        "lmain" - tester.testFunc { () => 313373133731337L }
-        "dmain" - tester.testFunc { () => 31.337 }
+        "lmain" - tester.test { 313373133731337L }
+        "dmain" - tester.test { 31.337 }
       }
       "basic math" - {
         "long" - {
-          "lneg" - chk(tester.testFunc(-(_: Long)) _)
-          "ladd" - chk(tester.testFunc((_: Long) + (_: Long)) _)
-          "lsub" - chk(tester.testFunc((_: Long) - (_: Long)) _)
-          "lmul" - chk(tester.testFunc((_: Long) * (_: Long)) _)
-          "ldiv" - chk(tester.testFunc((_: Long) / (_: Long)) _)
-          "lmod" - chk(tester.testFunc((_: Long) % (_: Long)) _)
+          "lneg" - longAll10.foreach(x => tester.test(-x))
+          "ladd" - checkBinaryFunc(tester.testFunc((_: Long) + (_: Long)))
+          "lsub" - checkBinaryFunc(tester.testFunc((_: Long) - (_: Long)))
+          "lmul" - checkBinaryFunc(tester.testFunc((_: Long) * (_: Long)))
+          "ldiv" - checkBinaryFunc(tester.testFunc((_: Long) / (_: Long)))
+          "lmod" - checkBinaryFunc(tester.testFunc((_: Long) % (_: Long)))
         }
         "double" - {
-          "dneg" - chk(tester.testFunc(-(_: Double)) _)
-          "dadd" - chk(tester.testFunc((_: Double) + (_: Double)) _)
-          "dsub" - chk(tester.testFunc((_: Double) - (_: Double)) _)
-          "dmul" - chk(tester.testFunc((_: Double) * (_: Double)) _)
-          "ddiv" - chk(tester.testFunc((_: Double) / (_: Double)) _)
-          "dmod" - chk(tester.testFunc((_: Double) % (_: Double)) _)
+          "dneg" - doubleAll10.foreach(x => tester.test(-x))
+          "dadd" - checkBinaryFunc(tester.testFunc((_: Double) + (_: Double)))
+          "dsub" - checkBinaryFunc(tester.testFunc((_: Double) - (_: Double)))
+          "dmul" - checkBinaryFunc(tester.testFunc((_: Double) * (_: Double)))
+          "ddiv" - checkBinaryFunc(tester.testFunc((_: Double) / (_: Double)))
+          "dmod" - checkBinaryFunc(tester.testFunc((_: Double) % (_: Double)))
         }
         "more long stuff" - {
-          "ishl" - chk(tester.testFunc((_: Long) << (_: Int)) _)(10 ** Gen.longAll, 10 ** Gen.int(5))
-          "ishr" - chk(tester.testFunc((_: Long) >> (_: Int)) _)(10 ** Gen.longAll, 10 ** Gen.int(5))
-          "iushr" - chk(tester.testFunc((_: Long) >>> (_: Int)) _)(10 ** Gen.longAll, 10 ** Gen.int(5))
-          "iand" - chk(tester.testFunc((_: Long) & (_: Long)) _)
-          "ior" - chk(tester.testFunc((_: Long) | (_: Long)) _)
-          "ixor" - chk(tester.testFunc((_: Long) ^ (_: Long)) _)
+          "ishl" - checkBinaryFunc(tester.testFunc((_: Long) << (_: Int)))(implicitly, Iterator.fill(10)(Random.nextInt(5)))
+          "ishr" - checkBinaryFunc(tester.testFunc((_: Long) >> (_: Int)))(implicitly, Iterator.fill(10)(Random.nextInt(5)))
+          "iushr" - checkBinaryFunc(tester.testFunc((_: Long) >>> (_: Int)))(implicitly, Iterator.fill(10)(Random.nextInt(5)))
+          "iand" - checkBinaryFunc(tester.testFunc((_: Long) & (_: Long)))
+          "ior" - checkBinaryFunc(tester.testFunc((_: Long) | (_: Long)))
+          "ixor" - checkBinaryFunc(tester.testFunc((_: Long) ^ (_: Long)))
         }
       }
     }
 
     "combined" - {
       "hmsToDays" - {
-        chk(tester.testFunc(
-          (h: Double, m: Double, s: Double) => (((h * 60) + m) * 60 + s) / 86400
-        ) _)(
-          Seq.fill(0)(Random.nextInt(24).toDouble),
-          Seq.fill(0)(Random.nextInt(60).toDouble),
-          Seq.fill(0)(Random.nextInt(60).toDouble)
-        )
+        for{
+          h <- Seq.fill(0)(Random.nextInt(24).toDouble)
+          m <- Seq.fill(0)(Random.nextInt(60).toDouble)
+          s <- Seq.fill(0)(Random.nextInt(60).toDouble)
+        } tester.test((((h * 60) + m) * 60 + s) / 86400)
       }
 
 

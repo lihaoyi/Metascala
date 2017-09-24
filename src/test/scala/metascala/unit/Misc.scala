@@ -1,34 +1,32 @@
 package metascala.unit
 
 import utest._
-
-import org.objectweb.asm.Opcodes
 import metascala._
 import metascala.imm.Type.Prim
-import metascala.Gen._
 import metascala.imm.Type.Prim._
 import metascala.util.Util
-
 import TestUtil._
+
+import scala.util.Random
 object  Misc extends utest.TestSuite {
   val arr = new Array[Int](2)
 
-  def test[T](p: Prim[T])(cases: Iterable[T]) {
-    chk { x: T =>
+  def test[T](p: Prim[T])(cases: Iterator[T]) {
+    cases.foreach { x =>
       p.write(x, Util.writer(arr, 0))
       assertEquals(p.read(Util.reader(arr, 0)), x)
-    }(cases)
+    }
   }
 
   def tests = Tests {
     "making sure Prim[T] write & pops preserve the value T" - {
-      "testZ" - test(Z)(Seq(true, false))
-      "testB" - test(B)(30 ** Gen.intAll.toByte)
-      "testC" - test(C)(30 ** Gen.intAll.toChar)
-      "testS" - test(S)(30 ** Gen.intAll.toShort)
-      "testF" - test(F)(30 ** java.lang.Float.intBitsToFloat(Gen.intAll))
-      "testL" - test(J)(30 ** Gen.longAll)
-      "testD" - test(D)(30 ** Gen.doubleAll)
+      "testZ" - test(Z)(Iterator(true, false))
+      "testB" - test(B)(Iterator.fill(30)(Random.nextInt.toByte))
+      "testC" - test(C)(Iterator.fill(30)(Random.nextInt.toChar))
+      "testS" - test(S)(Iterator.fill(30)(Random.nextInt.toShort))
+      "testF" - test(F)(Iterator.fill(30)(Random.nextFloat()))
+      "testL" - test(J)(Iterator.fill(30)(Random.nextLong))
+      "testD" - test(D)(Iterator.fill(30)(Random.nextDouble()))
     }
   }
 }

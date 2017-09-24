@@ -3,11 +3,6 @@ package features
 
 import utest._
 
-import metascala.TestUtil
-import scala.Some
-import java.util.Arrays
-import metascala.Gen._
-
 import TestUtil._
 object GetClassTest extends utest.TestSuite {
   def tests = Tests {

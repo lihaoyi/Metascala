@@ -2,23 +2,19 @@ package metascala
 package core
 
 import utest._
-import metascala.Gen._
 
 import scala.util.{Failure, Try}
-import metascala.{BufferLog, Gen, TestUtil}
-import metascala.TestUtil.SingleClassVM
 import metascala.util.UncaughtVmException
 
 object IOTest extends utest.TestSuite {
 
   import TestUtil._
 
-  implicit val intAll10 = 10 ** Gen.intAll
   def tests = Tests {
     val tester = new VM()
     "primitives" - {
-      "retInt" - tester.testFunc(() => 1337)
-      "retDouble" - tester.testFunc(() => 3.1337)
+      "retInt" - tester.test(1337)
+      "retDouble" - tester.test(3.1337)
       "argInt" - tester.testFunc((i: Int) => i)(10)
       "argDouble" - tester.testFunc((i: Double) => i)(10.01)
       "multiArgD" - tester.testFunc((i: Int, d: Double) => d)(27, 3.14)
@@ -39,8 +35,8 @@ object IOTest extends utest.TestSuite {
     "exceptions" - {
       "runtime" - {
         val svmRes = Try(tester.testFunc { () =>
-          val s: String = null;
-          s.charAt(0);
+          val s: String = null
+          s.charAt(0)
           10
         })
 

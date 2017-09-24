@@ -3,15 +3,12 @@ package features
 
 import utest._
 
-import metascala.{BufferLog, Gen, TestUtil}
-import Gen.chk
 import java.awt.geom.Point2D
 
 import TestUtil._
 class CastingTest extends utest.TestSuite {
 
   def tests = Tests {
-    val buffer = new BufferLog(4000)
     "if else" - {
       val tester = new VM()
       "basicCasts" - {

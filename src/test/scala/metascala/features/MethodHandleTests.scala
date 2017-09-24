@@ -80,5 +80,9 @@ object MethodHandleTests extends utest.TestSuite {
       val tester = new Tester("metascala.features.methods.MethodHandles")
       tester.run("varargs", true)
     }
+    "lambda" - {
+      val tester = new Tester("metascala.features.methods.MethodHandles")
+      tester.run("lambda", true)
+    }
   }
 }

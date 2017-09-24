@@ -2,7 +2,6 @@ package metascala
 package core
 import TestUtil._
 import utest._
-import Gen.chk
 object ControlFlowTest extends utest.TestSuite {
 
   def tests = Tests {
@@ -18,20 +17,20 @@ object ControlFlowTest extends utest.TestSuite {
     "loops" - {
       val tester = new Tester("metascala.features.controlflow.Loops")
       "nullFor" - tester.run("nullFor", 100)
-      "basicFor" - chk(tester.run("basicFor", _: Int))(Seq.fill(0)(Gen.int(256)))
+      "basicFor" - Seq(0, 10, 100, 1000).foreach(tester.run("basicFor", _: Int))
       "nullWhile" - tester.run("nullWhile", 100)
-      "basicWhile" - chk(tester.run("basicWhile", _: Int))(Seq.fill(0)(Gen.int(256)))
-      "sqrtFinder" - chk(tester.run("sqrtFinder", _: Double))(Seq.fill(10)(Math.random() * 1000))
+      "basicWhile" - Seq(0, 10, 100, 1000).foreach(tester.run("basicWhile", _: Int))
+      "sqrtFinder" - Seq.fill(10)(Math.random() * 1000).foreach(tester.run("sqrtFinder", _: Double))
     }
     "switches" - {
       val tester = new Tester("metascala.features.controlflow.Switches")
-      "smallSwitch" - chk(tester.run("smallSwitch", _: Int))(Seq(0, 1, 2))
-      "bigDenseSwitch" - chk(tester.run("bigDenseSwitch", _: Int))(0 to 30)
-      "bigSparseSwitch" - chk(tester.run("bigSparseSwitch", _: Int))((0 to 23).map(x => Math.pow(2, x).toInt))
-      "charSwitch" - chk(tester.run("charSwitch", _: Char))('a' to 'k')
-      "byteSwitch" - chk(tester.run("byteSwitch", _: Byte))((0 to 8).map(x => Math.pow(2, x).toByte))
-      "stringSwitch" - chk(tester.run("stringSwitch", _: Int))(Seq(1))
-      "stringSwitchTwo" - chk(tester.run("stringSwitchTwo", _: String))(Seq("omg", "wtf", "bbq", "lol"))
+      "smallSwitch" - Seq(0, 1, 2).foreach(tester.run("smallSwitch", _: Int))
+      "bigDenseSwitch" - (0 to 30).foreach(tester.run("bigDenseSwitch", _: Int))
+      "bigSparseSwitch" - (0 to 23).map(x => Math.pow(2, x).toInt).foreach(tester.run("bigSparseSwitch", _: Int))
+      "charSwitch" - ('a' to 'k').foreach(tester.run("charSwitch", _: Char))
+      "byteSwitch" - (0 to 8).map(x => Math.pow(2, x).toByte).foreach(tester.run("byteSwitch", _: Byte))
+      "stringSwitch" - Seq(-1, 0, 1, 2, 3).foreach(tester.run("stringSwitch", _: Int))
+      "stringSwitchTwo" - Seq("omg", "wtf", "bbq", "lol").foreach(tester.run("stringSwitchTwo", _: String))
     }
   }
 }

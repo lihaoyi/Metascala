@@ -325,7 +325,11 @@ public class MethodHandles {
 //        something(x -> msg[0] = msg[0] | x);
         return true;
     }
-    static void something(java.util.function.Consumer<Boolean> consumer) {
+
+    public static boolean lambda(boolean b) throws Exception{
+        boolean[] msg = {b};
+        java.util.function.Consumer<Boolean> consumer = x -> msg[0] = msg[0] | x;
         consumer.accept(true);
+        return msg[0];
     }
 }

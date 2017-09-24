@@ -2,18 +2,16 @@ package metascala.core
 
 import utest._
 
-import metascala.{BufferLog, Gen, TestUtil}
-import Gen.chk
-import TestUtil._
+import metascala.TestUtil._
 object ExceptionTest extends utest.TestSuite{
   def tests = Tests {
     val tester = new Tester("metascala.features.exceptions.Exceptions")
 
-    "throwCatch" - chk(tester.run("throwCatch", _: Int))(Seq(-1, 0, 1, 2))
-    "multiCatch" - chk(tester.run("multiCatch", _: Int))(Seq(0, 1, 2, 3, 4))
-    "nullPointer" - chk(tester.run("nullPointer", _: Object))(Seq("omg", null))
+    "throwCatch" - Seq(-1, 0, 1, 2).foreach(tester.run("throwCatch", _: Int))
+    "multiCatch" - Seq(0, 1, 2, 3, 4).foreach(tester.run("multiCatch", _: Int))
+    "nullPointer" - Seq("omg", null).foreach(tester.run("nullPointer", _: Object))
     "arrayIndexOutOfBounds" - {
-      chk(tester.run("arrayIndexOutOfBounds", _: Int))(Seq(-1, 0, 1, 2, 3, 4, 5, 100))
+      Seq(-1, 0, 1, 2, 3, 4, 5, 100).foreach(tester.run("arrayIndexOutOfBounds", _: Int))
     }
   }
 }

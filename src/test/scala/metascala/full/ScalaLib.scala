@@ -31,7 +31,6 @@ object ScalaLib extends utest.TestSuite {
   }
 
   def tests = Tests {
-    val buffer = new BufferLog(4000)
 
     val tester = new VM(memorySize = 64 * 1024)
 

@@ -1,9 +1,8 @@
 package metascala
-package features
+package full
 
 import utest._
 
-import metascala.Gen._
 import java.math.BigInteger
 import java.util.regex.{Matcher, Pattern}
 import java.util.concurrent.atomic.{AtomicLong, AtomicInteger, AtomicBoolean}
@@ -13,7 +12,6 @@ import java.util.concurrent.locks.ReentrantLock
 
 import TestUtil._
 object JavaLibTest extends utest.TestSuite {
-  implicit val intAll10 = 10 ** Gen.intAll
   def tests = Tests {
     "sudoku" - {
       val tester = new Tester("metascala.full.Sudoku")
@@ -25,7 +23,7 @@ object JavaLibTest extends utest.TestSuite {
         val arr: Array[Int] = new Array[Int](250)
 
         var current: Int = 94664704
-        for (i <- 0 until arr.length) {
+        for (i <- arr.indices) {
           current = 23 * current % 100000000 + 1
           arr(i) = current % 100000
         }
@@ -139,15 +137,6 @@ object JavaLibTest extends utest.TestSuite {
       "locales" - tester.test {
         new java.util.Locale("").toString
       }
-      //    "rhino" - tester.test{
-      //      classOf[VMBridge_jdk15].newInstance()
-      //      /*val cx = Context.enter()
-      //      val scope = cx.initStandardObjects()
-      //      val script = "var s = 'omg'"
-      //      val obj = cx.evaluateString(scope, script, "Test Script", 1, null)
-      //      println(obj)
-      //      1*/
-      //    }
     }
   }
 }

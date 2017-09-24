@@ -3,8 +3,7 @@ package metascala.features
 import java.awt.geom.Point2D
 
 import metascala.TestUtil._
-import metascala.{Gen, VM, Virtualizer}
-import metascala.Gen._
+import metascala.{VM, Virtualizer}
 import utest._
 
 
@@ -18,7 +17,7 @@ object ReflectTests extends utest.TestSuite {
       .toList
   }
 
-  implicit val intAll10 = 10 ** Gen.intAll
+
 
   def tests = Tests {
     val tester = new VM()

@@ -2,22 +2,18 @@ package metascala
 package features
 
 import utest._
-
-import metascala.{Gen, TestUtil}
-import metascala.Gen._
+import metascala.TestUtil._
 import java.awt.Point
 
+import scala.util.Random
+
 object MethodTest extends utest.TestSuite {
-
-  import TestUtil._
-
-  implicit val intAll10 = 10 ** Gen.intAll
 
   def tests = Tests {
     "natives" - {
       val tester = new VM()
       "intBitsToFloat" - {
-        for (n <- intAll10) {
+        for (n <- Iterator.fill(10)(Random.nextInt())) {
           tester.test(java.lang.Float.intBitsToFloat(n))
         }
       }
@@ -65,7 +61,7 @@ object MethodTest extends utest.TestSuite {
       }
 
       "points" - (
-        for (i <- intAll10) {
+        for (i <- Iterator.fill(10)(Random.nextInt())) {
           tester.test {
             val p = new Point(i, i)
             p.getX
@@ -73,7 +69,7 @@ object MethodTest extends utest.TestSuite {
         }
         )
       "points2" - (
-        for (n <- intAll10) {
+        for (n <- Iterator.fill(10)(Random.nextInt())) {
           tester.test {
             val p = new Point(10, 10)
             p.translate(5, -5)
