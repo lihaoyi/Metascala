@@ -15,6 +15,9 @@ object TestUtil {
     def test[T](thunk: => T) = {
       assertEquals(vm.exec(thunk), thunk)
     }
+    def testSafe[T: VReader](thunk: => T) = {
+      assertEquals(vm.execSafe(thunk), thunk)
+    }
     def testFunc[A, B, C, R](t: (A, B, C) => R)(a: A, b: B, c: C) = {
       func(t, Seq(a, b, c))
     }
@@ -22,11 +25,20 @@ object TestUtil {
     def testFunc[A, B, R](t: (A, B) => R)(a: A, b: B) = {
       func(t, Seq(a, b))
     }
+    def testFuncSafe[A, B, R: VReader](t: (A, B) => R)(a: A, b: B) = {
+      funcSafe(t, Seq(a, b))
+    }
     def testFunc[A, R](t: (A) => R)(a: A) = {
       func(t, Seq(a))
     }
+    def testFuncSafe[A, R: VReader](t: (A) => R)(a: A) = {
+      funcSafe(t, Seq(a))
+    }
     def testFunc[R](t: () => R) = {
       func(t, Nil)
+    }
+    def testFuncSafe[R: VReader](t: () => R) = {
+      funcSafe(t, Nil)
     }
     def func(t: Any, args: Seq[Any]) = {
       val path = t.getClass.getName.replace('.', '/')
@@ -41,6 +53,39 @@ object TestUtil {
         .get
 
       val svmRes = vm.invoke(path, "apply", Seq(t) ++ args.map(_.asInstanceOf[AnyRef]))
+
+      val refRes = method.invoke(t, args.map(_.asInstanceOf[AnyRef]):_*)
+
+      val inString = args.toString
+//      println("svmRes " + svmRes)
+//      println("refRes " + refRes)
+
+      try{
+        (svmRes, refRes) match{
+          case (x: Array[_], y: Array[_]) => assert(x.toSeq == y.toSeq)
+          case _ => assert(svmRes == refRes)
+        }
+
+      }catch {case ex: utest.AssertionError =>
+        println("Test failed for input")
+        println(inString)
+
+        throw ex
+      }
+    }
+    def funcSafe[T: VReader](t: Any, args: Seq[Any]): Unit = {
+      val path = t.getClass.getName.replace('.', '/')
+//      println(path)
+//      println(getClass.getResourceAsStream(path + ".class"))
+//      println("args " + args)
+
+
+      val method = t.getClass
+        .getMethods()
+        .find(_.getName == "apply")
+        .get
+
+      val svmRes = vm.invokeSafe(path, "apply", Seq(t) ++ args.map(_.asInstanceOf[AnyRef]))
 
       val refRes = method.invoke(t, args.map(_.asInstanceOf[AnyRef]):_*)
 

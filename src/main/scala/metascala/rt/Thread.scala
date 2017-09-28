@@ -498,7 +498,11 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     val memberName = frame.locals(sources.last)
     val owner = vm.getTypeForTypeObj(vm.obj(memberName).apply("clazz"))
 
-    val name = Virtualizer.toRealObj[String](vm.obj(memberName).apply("name"))(bindingsInterface, implicitly)
+    val mn = vm.obj(memberName)
+    val name = Virtualizer.toRealObjSafe[String](
+      mn.address() + mn.cls.fieldInfo.getIndex("name") + Constants.objectHeaderSize
+    )(implicitly, bindingsInterface)
+
     val desc = {
       val tpeAddr = vm.obj(memberName).apply("type")
       val rtype = vm.getTypeForTypeObj(vm.obj(tpeAddr).apply("rtype"))
@@ -802,7 +806,11 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
 
     if (print) {
-      val msg = Virtualizer.toRealObj[String](ex.apply("detailMessage"))(bindingsInterface, implicitly)
+      val msg =
+        Virtualizer.toRealObjSafe[String](
+          ex.address() + ex.cls.fieldInfo.getIndex("detailMessage") + Constants.objectHeaderSize
+        )(implicitly, bindingsInterface)
+
       vm.logger.logException(ex.cls.tpe, msg, trace)
     }
 
@@ -872,12 +880,22 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     }
     def newInstance(constr: Int, argArr: Int): Int = alloc{r =>
       val cls = r.obj(constr).apply("clazz")
-      val name = toRealObj[String](r.obj(cls).apply("name")).replace('.', '/')
+      // val name = toRealObj[String](r.obj(cls).apply("name")).replace('.', '/')
+      val name = Virtualizer.toRealObjSafe[String](
+        cls + r.obj(cls).cls.fieldInfo.getIndex("name") + Constants.objectHeaderSize
+      )(implicitly, this).replace('.', '/')
       val newObj = alloc { implicit r =>
         r.newObj(name).address()
       }
 
-      val descStr = toRealObj[String](r.obj(constr).apply("signature"))
+      // val descStr = toRealObj[String](r.obj(constr).apply("signature"))
+      val descStr = Virtualizer.toRealObjSafe[String](
+        constr + r.obj(constr).cls.fieldInfo.getIndex("signature") + Constants.objectHeaderSize
+      )(implicitly, this)
+
+
+
+
 
       val mRef = vm.clsTable(name).method(
         "<init>",
@@ -1016,6 +1034,10 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
   def invoke(cls: imm.Type.Cls, sig: imm.Sig, args: Agg[Any]): Any = {
     invoke0(cls, sig, args)
     Virtualizer.popVirtual(sig.desc.ret, Util.reader(returnedVal, 0))(bindingsInterface)
+  }
+  def invokeSafe[T: VReader](cls: imm.Type.Cls, sig: imm.Sig, args: Agg[Any]): T = {
+    invoke0(cls, sig, args)
+    implicitly[VReader[T]].readAny(0, returnedVal, vm.heap.memory)
   }
 
   def invoke0(cls: imm.Type.Cls, sig: imm.Sig, args: Agg[Any]): Unit = {

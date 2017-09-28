@@ -235,9 +235,30 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
     res
   }
 
+  def invokeSafe[T: VReader](bootClass: String, mainMethod: String, args: Seq[Any] = Nil): T = {
+
+    val res = threads(0).invokeSafe[T](
+      imm.Type.Cls.apply(bootClass),
+      imm.Sig(
+        mainMethod,
+        clsTable(bootClass)
+          .methods
+          .find(x => x.sig.name == mainMethod)
+          .map(_.sig.desc)
+          .getOrElse(throw new IllegalArgumentException("Can't find method: " + mainMethod))
+      ),
+      Agg.from(args)
+    )
+    res
+  }
+
   def exec[T](thunk: => T): T = {
     val wrapped = () => thunk
     invoke(wrapped.getClass.getName, "apply", Seq(wrapped)).asInstanceOf[T]
+  }
+  def execSafe[T: VReader](thunk: => T): T = {
+    val wrapped = () => thunk
+    invokeSafe[T](wrapped.getClass.getName, "apply", Seq(wrapped))
   }
 //  println("Initialized VM")
 
