@@ -8,14 +8,14 @@ import TestUtil._
 object MetacircularTest extends utest.TestSuite {
   def tests = Tests {
     "sqrtFinder" - {
-      new VM(memorySize = 300 * 1024).test {
+      new VM(memorySize = 500 * 1024).test {
         val x = new VM(memorySize = 1024)
         x.invoke("metascala.features.controlflow.Loops", "sqrtFinder", Seq(5.0))
       }
     }
 
     "fibonacci" - {
-      new VM(memorySize = 3 * 1024 * 1024).test {
+      new VM(memorySize = 4 * 1024 * 1024).test {
         val x = new metascala.VM()
         x.invoke("metascala.features.methods.Statics", "fibonacci", Seq(12))
       }

@@ -53,6 +53,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
   def indent = threadStack.length
 
+  var stackStarts = List.empty[Int]
 
   /**
     * Use a persistent scratch buffer to perform the local variable
@@ -799,44 +800,52 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
   @tailrec final def throwException(ex: Obj, print: Boolean = true): Unit = {
     import math.Ordering.Implicits._
 
+
     if (print) {
       val msg = Virtualizer.toRealObj[String](ex.apply("detailMessage"))(bindingsInterface, implicitly)
       vm.logger.logException(ex.cls.tpe, msg, trace)
     }
 
-    threadStack.headOption match{
-      case Some(frame)=>
-        val handler =
-          frame.method.code.tryCatches.find{handler =>
-            // Inclusive start index, exclusive end index.
-            //
-            // This is due to the way many bytecode instructions do not survive
-            // during the SSA transform (e.g. swap, dup, all the *load ops).
-            // As a result, the handler's start and end indices are actually
-            // the start and end index of the *next* surviving instruction.
-            // The next surviving instruction after `start` is indeed covered
-            // by the try-catch range, but the next surviving instruction after
-            // `end` is *not*. Hence the comparison with `start` is an inclusive
-            // `<=`, but the comparison with `end` is an exclusive `>`
-            (handler.start <= frame.pc) &&
-            (handler.end > frame.pc) &&
-            (handler.blockType.isEmpty ||
-            handler.blockType.exists(ex.cls.typeAncestry))
-          }
-
-        handler match{
-          case None =>
-            threadStack.pop()
-            throwException(ex, false)
-          case Some(TryCatchBlock(start, end, handler, dest, blockType)) =>
-            frame.locals(dest) = ex.address()
-            frame.pc = (handler, 0)
-
+    if (threadStack.length == stackStarts.head){
+      throw new UncaughtVmException(
+        Virtualizer.toRealObj[Throwable](ex.address())(bindingsInterface, implicitly)
+      )
+    } else {
+      val handler =
+        frame.method.code.tryCatches.find{handler =>
+          // Inclusive start index, exclusive end index.
+          //
+          // This is due to the way many bytecode instructions do not survive
+          // during the SSA transform (e.g. swap, dup, all the *load ops).
+          // As a result, the handler's start and end indices are actually
+          // the start and end index of the *next* surviving instruction.
+          // The next surviving instruction after `start` is indeed covered
+          // by the try-catch range, but the next surviving instruction after
+          // `end` is *not*. Hence the comparison with `start` is an inclusive
+          // `<=`, but the comparison with `end` is an exclusive `>`
+          (handler.start <= frame.pc) &&
+          (handler.end > frame.pc) &&
+          (handler.blockType.isEmpty ||
+          handler.blockType.exists(ex.cls.typeAncestry))
         }
-      case None =>
-        throw new UncaughtVmException(
-          Virtualizer.toRealObj[Throwable](ex.address())(bindingsInterface, implicitly)
-        )
+//        val sig =
+//          frame.runningClass.tpe.javaName +
+//          "." +
+//          frame.method.sig.name + " " +
+//          threadStack.length
+
+      handler match{
+        case None =>
+//            println("Popping... " + sig)
+          threadStack.pop()
+          throwException(ex, false)
+        case Some(TryCatchBlock(start, end, handler, dest, blockType)) =>
+//            println("Handler! " + sig)
+          frame.locals(dest) = ex.address()
+          frame.pc = (handler, 0)
+
+      }
+
     }
   }
   val bindingsInterface = new Bindings.Interface{
@@ -987,11 +996,21 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     Virtualizer.popVirtual(mRef.sig.desc.ret, Util.reader(returnedVal, 0))(bindingsInterface)
   }
 
-  def invoke0(mRef: rt.Method, args: Array[Int]): Unit = {
+  def preserveStackStarts[T](t: Int => T) = {
     val startHeight = threadStack.length
-    prepInvoke(mRef, args, Util.writer(returnedVal, 0), -1)
+    val originalStackStarts = stackStarts
+    stackStarts = startHeight :: stackStarts
+    try t(startHeight)
+    finally stackStarts = originalStackStarts
 
-    while(threadStack.length != startHeight) step()
+  }
+  def invoke0(mRef: rt.Method, args: Array[Int]): Unit = {
+
+    preserveStackStarts { startHeight =>
+      prepInvoke(mRef, args, Util.writer(returnedVal, 0), -1)
+
+      while (threadStack.length != startHeight) step()
+    }
   }
 
   def invoke(cls: imm.Type.Cls, sig: imm.Sig, args: Agg[Any]): Any = {
@@ -1000,17 +1019,19 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
   }
 
   def invoke0(cls: imm.Type.Cls, sig: imm.Sig, args: Agg[Any]): Unit = {
-    val startHeight = threadStack.length
-    prepInvoke(cls, sig, args, Util.writer(returnedVal, 0))
+    preserveStackStarts { startHeight =>
+      prepInvoke(cls, sig, args, Util.writer(returnedVal, 0))
 
-    while(threadStack.length != startHeight) step()
+      while (threadStack.length != startHeight) step()
+    }
   }
 
   def invoke1(cls: imm.Type.Cls, sig: imm.Sig, args: Agg[Int]): Unit = {
-    val startHeight = threadStack.length
-    prepInvoke(cls, sig, args, Util.writer(returnedVal, 0))
+    preserveStackStarts { startHeight =>
+      prepInvoke(cls, sig, args, Util.writer(returnedVal, 0))
 
-    while(threadStack.length != startHeight) step()
+      while (threadStack.length != startHeight) step()
+    }
   }
 }
 
