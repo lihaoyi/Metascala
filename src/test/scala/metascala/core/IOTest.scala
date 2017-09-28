@@ -15,23 +15,23 @@ object IOTest extends utest.TestSuite {
     "primitives" - {
       "retInt" - tester.testSafe(1337)
       "retDouble" - tester.testSafe(3.1337)
-      "argInt" - tester.testFuncSafe((i: Int) => i)(10)
-      "argDouble" - tester.testFuncSafe((i: Double) => i)(10.01)
-      "multiArgD" - tester.testFuncSafe((i: Int, d: Double) => d)(27, 3.14)
-      "multiArgI" - tester.testFuncSafe((i: Int, d: Double) => i)(27, 3.14)
+      "argInt" - tester.testFunc((i: Int) => i)(10)
+      "argDouble" - tester.testFunc((i: Double) => i)(10.01)
+      "multiArgD" - tester.testFunc((i: Int, d: Double) => d)(27, 3.14)
+      "multiArgI" - tester.testFunc((i: Int, d: Double) => i)(27, 3.14)
 
-      "stringLiteral" - tester.testFuncSafe(() => "omgwtfbbq")
-      "nullStringLiteral" - tester.testFuncSafe(() => null: String)
-      "strings" - tester.testFuncSafe((s: String) => s + "a")("mooo")
-      "nullReturn" - tester.testFuncSafe(() => null)
-      "arrayObj" - tester.testFuncSafe{ () =>
+      "stringLiteral" - tester.testFunc(() => "omgwtfbbq")
+      "nullStringLiteral" - tester.testFunc(() => null: String)
+      "strings" - tester.testFunc((s: String) => s + "a")("mooo")
+      "nullReturn" - tester.testFunc(() => null)
+      "arrayObj" - tester.testFunc{ () =>
         val arr = new Array[Int](3)
         arr(0) = 1
         arr(1) = 2
         arr(2) = 4
         arr
       }
-      "longArrayObj" - tester.testFuncSafe{ () =>
+      "longArrayObj" - tester.testFunc{ () =>
         val arr = new Array[Long](3)
         arr(0) = Long.MinValue
         arr(1) = Long.MaxValue
@@ -42,7 +42,7 @@ object IOTest extends utest.TestSuite {
     }
     "exceptions" - {
       "runtime" - {
-        val svmRes = Try(tester.testFuncSafe{ () =>
+        val svmRes = Try(tester.testFunc{ () =>
           val s: String = null
           s.charAt(0)
           10

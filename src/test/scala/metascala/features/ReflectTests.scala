@@ -28,7 +28,7 @@ object ReflectTests extends utest.TestSuite {
         val f = classOf[String].getDeclaredField("value")
         f.setAccessible(true)
         f.set(string, Array('o', 'm', 'g'))
-        f.get(string)
+        f.get(string).asInstanceOf[Array[Char]]
       }
       "bool" - tester.testFunc { () =>
         val bool = new java.lang.Boolean(false)
