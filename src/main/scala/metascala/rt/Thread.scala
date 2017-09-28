@@ -8,6 +8,7 @@ import Insn._
 import Insn.Push
 import Insn.InvokeStatic
 import Insn.ReturnVal
+import metascala.VReader.ObjectReader
 import metascala.imm.{Desc, Sig, Type}
 import metascala.natives.Bindings
 import metascala.util._
@@ -499,9 +500,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     val owner = vm.getTypeForTypeObj(vm.obj(memberName).apply("clazz"))
 
     val mn = vm.obj(memberName)
-    val name = Virtualizer.toRealObjSafe[String](
-      mn.address() + mn.cls.fieldInfo.getIndex("name") + Constants.objectHeaderSize
-    )(implicitly, bindingsInterface)
+    val name = VReader.obj[String].readAnyRef(mn.apply("name"), vm.heap.memory)
 
     val desc = {
       val tpeAddr = vm.obj(memberName).apply("type")
@@ -806,10 +805,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
 
     if (print) {
-      val msg =
-        Virtualizer.toRealObjSafe[String](
-          ex.address() + ex.cls.fieldInfo.getIndex("detailMessage") + Constants.objectHeaderSize
-        )(implicitly, bindingsInterface)
+      val msg = VReader.obj[String].readAnyRef(ex.apply("detailMessage"), vm.heap.memory)
 
       vm.logger.logException(ex.cls.tpe, msg, trace)
     }
@@ -880,22 +876,14 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     }
     def newInstance(constr: Int, argArr: Int): Int = alloc{r =>
       val cls = r.obj(constr).apply("clazz")
-      // val name = toRealObj[String](r.obj(cls).apply("name")).replace('.', '/')
-      val name = Virtualizer.toRealObjSafe[String](
-        cls + r.obj(cls).cls.fieldInfo.getIndex("name") + Constants.objectHeaderSize
-      )(implicitly, this).replace('.', '/')
+
+      val name = VReader.obj[String].readAnyRef(r.obj(cls).apply("name"), vm.heap.memory)
+
       val newObj = alloc { implicit r =>
         r.newObj(name).address()
       }
 
-      // val descStr = toRealObj[String](r.obj(constr).apply("signature"))
-      val descStr = Virtualizer.toRealObjSafe[String](
-        constr + r.obj(constr).cls.fieldInfo.getIndex("signature") + Constants.objectHeaderSize
-      )(implicitly, this)
-
-
-
-
+      val descStr = VReader.obj[String].readAnyRef(r.obj(constr).apply("signature"), vm.heap.memory)
 
       val mRef = vm.clsTable(name).method(
         "<init>",
@@ -928,6 +916,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     def theUnsafe = vm.theUnsafe
 
     def toRealObj[T](x: Int)(implicit ct: ClassTag[T]) = Virtualizer.toRealObj(x)(this, ct)
+    def readAnyRef[T >: Null: ObjectReader](x: Int): T = VReader.obj[T].readAnyRef(x, vm.heap.memory)
 
     def toVirtObj(x: Any)(implicit registrar: rt.Allocator) = vm.obj(Virtualizer.toVirtObj(x))
 
@@ -1037,7 +1026,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
   }
   def invokeSafe[T: VReader](cls: imm.Type.Cls, sig: imm.Sig, args: Agg[Any]): T = {
     invoke0(cls, sig, args)
-    implicitly[VReader[T]].readAny(0, returnedVal, vm.heap.memory)
+    VReader[T].readAny(0, returnedVal, vm.heap.memory)
   }
 
   def invoke0(cls: imm.Type.Cls, sig: imm.Sig, args: Agg[Any]): Unit = {
