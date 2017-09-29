@@ -67,5 +67,15 @@ object VReader{
       new String(chars)
     }
   }
+  implicit object StackTraceElementReader extends ObjectReader[StackTraceElement] {
+    def readAnyRefValue(heapAddress: Int, heap: IndexedSeq[I]) = {
+      new StackTraceElement(
+        StringReader.readAny(heapAddress + Constants.objectHeaderSize, heap, heap),
+        StringReader.readAny(heapAddress + Constants.objectHeaderSize + 1, heap, heap),
+        StringReader.readAny(heapAddress + Constants.objectHeaderSize + 2, heap, heap),
+        IntReader.readAny(heapAddress + Constants.objectHeaderSize + 3, heap, heap)
+      )
+    }
+  }
 
 }

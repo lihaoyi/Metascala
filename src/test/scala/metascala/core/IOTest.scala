@@ -41,18 +41,64 @@ object IOTest extends utest.TestSuite {
 
     }
     "exceptions" - {
-      "runtime" - {
-        val svmRes = Try(tester.testFunc{ () =>
-          val s: String = null
-          s.charAt(0)
-          10
-        })
+      "simple" - {
+        val UncaughtVmException(wrapped) = intercept[UncaughtVmException]{
+          tester.test{
+            simpleException()
+          }
+        }
 
-        val Failure(u@UncaughtVmException(wrapped)) = svmRes
+        assert(
+          wrapped.clsName == "java.lang.NullPointerException",
+          wrapped.msg == "null",
+          wrapped.cause == null,
+          wrapped.getStackTrace.head.getClassName == "metascala.core.IOTest$",
+          wrapped.getStackTrace.head.getMethodName == "simpleException"
+        )
+        wrapped.getStackTrace.mkString("\n")
+      }
+      "chained" - {
+        val UncaughtVmException(wrapped) = intercept[UncaughtVmException]{
+          tester.test{
+            chainedException()
+          }
+        }
 
+        assert(
+          wrapped.clsName == "java.lang.Exception",
+          wrapped.msg == "Wrapper2!",
+          // get third element, to skip first two stack frames inside exception constructor
+          wrapped.getStackTrace.apply(2).getClassName == "metascala.core.IOTest$",
+          wrapped.getStackTrace.apply(2).getMethodName == "chainedException",
+          wrapped.cause.clsName == "java.lang.Exception",
+          wrapped.cause.msg == "Wrapper!",
+          wrapped.cause.getStackTrace.apply(2).getClassName == "metascala.core.IOTest$",
+          wrapped.cause.getStackTrace.apply(2).getMethodName == "chainedException0",
+          wrapped.cause.cause.clsName == "java.lang.NullPointerException",
+          wrapped.cause.cause.msg == "null",
+          wrapped.cause.cause.getStackTrace.head.getClassName == "metascala.core.IOTest$",
+          wrapped.cause.cause.getStackTrace.head.getMethodName == "simpleException"
+        )
       }
     }
-
   }
-
+  def simpleException() = {
+    val s: String = null
+    s.charAt(0)
+    10
+  }
+  def chainedException0() = {
+    try{
+      simpleException()
+    }catch{ case e: Throwable =>
+      throw new Exception("Wrapper!", e)
+    }
+  }
+  def chainedException() = {
+    try{
+      chainedException0()
+    }catch{ case e: Throwable =>
+      throw new Exception("Wrapper2!", e)
+    }
+  }
 }

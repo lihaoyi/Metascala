@@ -811,9 +811,24 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     }
 
     if (threadStack.length == stackStarts.head){
-      throw new UncaughtVmException(
-        Virtualizer.toRealObj[Throwable](ex.address())(bindingsInterface, implicitly)
-      )
+      def rec(ex: Obj): ExtractedVmException = {
+        val extracted = ExtractedVmException(
+          ex.cls.tpe.javaName,
+          VReader.obj[String].readAnyRef(ex.apply("detailMessage"), vm.heap.memory),
+          ex.apply("cause") match{
+            case 0 => null
+            case addr if addr == ex.address() => null
+            case addr => rec(vm.obj(addr))
+          }
+        )
+
+        extracted.setStackTrace(
+          VReader.obj[Array[StackTraceElement]].readAnyRef(ex.apply("stackTrace"), vm.heap.memory)
+        )
+        extracted
+      }
+
+      throw UncaughtVmException(rec(ex))
     } else {
       val handler =
         frame.method.code.tryCatches.find{handler =>

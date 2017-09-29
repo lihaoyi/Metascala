@@ -7,9 +7,6 @@ import metascala.util.{Constants, Ref, Util}
 import scala.reflect.ClassTag
 
 object Virtualizer {
-  def toRealObjSafe[T: VReader](v: Int)(implicit vm: Bindings.Interface) = {
-    implicitly[VReader[T]].readAny(v, vm.heap.memory, vm.heap.memory)
-  }
   def toRealObj[T](v: Int)(implicit vm: Bindings.Interface, ct: ClassTag[T]) = {
     Virtualizer.popVirtual(ct.runtimeClass.getName.replace('.', '/'), () => v)
       .asInstanceOf[T]

@@ -71,9 +71,17 @@ class WrappedVmException(wrapped: Throwable) extends Exception(wrapped)
 /**
   * Something blew up within the code the VM is interpreting
   */
-case class UncaughtVmException(wrapped: Throwable) extends WrappedVmException(wrapped)
+case class UncaughtVmException(wrapped: ExtractedVmException) extends WrappedVmException(wrapped)
+
 
 /**
   * Something blew up within the VM's own code
   */
 case class InternalVmException(wrapped: Throwable) extends WrappedVmException(wrapped)
+
+
+/**
+  * Something blew up within the code the VM is interpreting
+  */
+case class ExtractedVmException(clsName: String, msg: String, cause: ExtractedVmException)
+  extends Exception(clsName + ": " + msg, cause)
