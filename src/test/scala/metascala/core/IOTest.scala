@@ -4,7 +4,7 @@ package core
 import utest._
 
 import scala.util.{Failure, Try}
-import metascala.util.UncaughtVmException
+import metascala.util.{InternalVmException, UncaughtVmException}
 
 object IOTest extends utest.TestSuite {
 
@@ -80,6 +80,21 @@ object IOTest extends utest.TestSuite {
           wrapped.cause.cause.getStackTrace.head.getMethodName == "simpleException"
         )
       }
+      "internal" - {
+        val ex = intercept[InternalVmException]{
+          tester.test{
+            internalVmException()
+          }
+        }
+        assert(
+          ex.getStackTrace.apply(0).getClassName == "metascala.core.IOTest$",
+          ex.getStackTrace.apply(0).getMethodName == "internalVmException",
+          ex.getCause.isInstanceOf[java.lang.AssertionError],
+          ex.getCause.getMessage.contains("Unknown native method"),
+          ex.getCause.getStackTrace.exists(_.getClassName == "metascala.VM"),
+          ex.getCause.getStackTrace.exists(_.getClassName == "metascala.rt.Thread")
+        )
+      }
     }
   }
   def simpleException() = {
@@ -100,5 +115,8 @@ object IOTest extends utest.TestSuite {
     }catch{ case e: Throwable =>
       throw new Exception("Wrapper2!", e)
     }
+  }
+  def internalVmException() = {
+    metascala.Fail.missingNativeMethodImplementation()
   }
 }
