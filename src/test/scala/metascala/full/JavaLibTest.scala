@@ -15,7 +15,7 @@ object JavaLibTest extends utest.TestSuite {
   def tests = Tests {
     "sudoku" - {
       val tester = new Tester("metascala.full.Sudoku")
-      tester.run[Array[Array[Int]]]("run")
+      tester.run[String]("run")
     }
     "stuff" - {
       val tester = new VM()

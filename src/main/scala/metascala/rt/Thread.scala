@@ -278,7 +278,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         val args = new ArrayFiller(mRef.localsSize)
         args.append(methodHandleLookup.address())
         args.append(vm.typeObjCache(ownerName)())
-        args.append(Virtualizer.toVirtObj(methodName))
+        args.append(VWriter.toVirtObj(methodName))
         args.append(getMethodType(desc))
 
         invoke0(mRef, args.arr)
@@ -334,7 +334,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         //        val mRef = vm.resolveDirectRef(bsOwner, imm.Sig(bsName, bsDesc)).get
         val staticArguments = mutable.Buffer.empty[Int]
         staticArguments.append(methodHandleLookup.address())
-        staticArguments.append(Virtualizer.toVirtObj(name))
+        staticArguments.append(VWriter.toVirtObj(name))
         staticArguments.append(methodType)
 
         bsArgs.foreach {
@@ -345,13 +345,13 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
           // All these virtualize to the boxed versions of their values, because
           // they end up getting put into a array of java.lang.Objects
-          case x: java.lang.Byte => Virtualizer.toVirtObj(x: AnyRef)
-          case x: java.lang.Character => Virtualizer.toVirtObj(x: AnyRef)
-          case x: java.lang.Short => Virtualizer.toVirtObj(x: AnyRef)
-          case x: java.lang.Integer => Virtualizer.toVirtObj(x: AnyRef)
-          case x: java.lang.Float => Virtualizer.toVirtObj(x: AnyRef)
-          case x: java.lang.Long => Virtualizer.toVirtObj(x: AnyRef)
-          case x: java.lang.Double => Virtualizer.toVirtObj(x: AnyRef)
+          case x: java.lang.Byte => VWriter.toVirtObj(x: AnyRef)
+          case x: java.lang.Character => VWriter.toVirtObj(x: AnyRef)
+          case x: java.lang.Short => VWriter.toVirtObj(x: AnyRef)
+          case x: java.lang.Integer => VWriter.toVirtObj(x: AnyRef)
+          case x: java.lang.Float => VWriter.toVirtObj(x: AnyRef)
+          case x: java.lang.Long => VWriter.toVirtObj(x: AnyRef)
+          case x: java.lang.Double => VWriter.toVirtObj(x: AnyRef)
 
         }
 
@@ -379,7 +379,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         val staticArgumentsArr = r.newArr("java.lang.Object", staticArguments.map(Ref.Raw))
         linkCallSiteArgs.append(vm.typeObjCache(frame.runningClass.tpe)() /*callerObj*/)
         linkCallSiteArgs.append(bsMethodHandle /*bootstrapMethodObj*/)
-        linkCallSiteArgs.append(Virtualizer.toVirtObj(name) /*nameObj*/)
+        linkCallSiteArgs.append(VWriter.toVirtObj(name) /*nameObj*/)
         linkCallSiteArgs.append(methodType /*typeObj*/)
         linkCallSiteArgs.append(staticArgumentsArr.address() /*staticArguments*/)
         linkCallSiteArgs.append(appendixResult.address() /*appendixResult*/)
@@ -793,8 +793,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     throwException(
       vm.alloc( implicit r =>
         r.newObj(clsName,
-          "stackTrace" -> r.register(Virtualizer.toVirtObj(trace)),
-          "detailMessage" -> r.register(Virtualizer.toVirtObj(detailMessage))
+          "stackTrace" -> r.register(VWriter.toVirtObj(trace)),
+          "detailMessage" -> r.register(VWriter.toVirtObj(detailMessage))
         )
       )
     )
@@ -932,7 +932,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     def readAnyRef[T >: Null: ObjectReader](x: Int): T = VReader.obj[T].readAnyRef(x, vm.heap.memory)
 
-    def toVirtObj(x: Any)(implicit registrar: rt.Allocator) = vm.obj(Virtualizer.toVirtObj(x))
+    def toVirtObj(x: Any)(implicit registrar: rt.Allocator) = vm.obj(VWriter.toVirtObj(x))
 
     def trace = thread.trace
 
@@ -1004,7 +1004,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     vm.alloc{ implicit r =>
       for(x <- argValues){
-        Virtualizer.pushVirtual(x, args.append)
+        VWriter.pushVirtual(x, args.append)
       }
 
       prepInvoke(mRef, args.arr, returnTo, -1)

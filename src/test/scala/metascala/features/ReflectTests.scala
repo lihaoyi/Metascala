@@ -3,7 +3,7 @@ package metascala.features
 import java.awt.geom.Point2D
 
 import metascala.TestUtil._
-import metascala.{VM, Virtualizer}
+import metascala.{VM, VWriter}
 import utest._
 
 
@@ -171,7 +171,15 @@ object ReflectTests extends utest.TestSuite {
     //    }
     //  }
     "allocate" - {
-      val p = Virtualizer.unsafe
+
+      val unsafe = {
+        val field = Class.forName("sun.misc.Unsafe").getDeclaredField("theUnsafe")
+        field.setAccessible(true)
+        val f = field.get(null)
+        val g = f.asInstanceOf[sun.misc.Unsafe]
+        g
+      }
+      val p = unsafe
         .allocateInstance(classOf[Point2D.Float])
         .asInstanceOf[Point2D.Float]
       p.x = 10

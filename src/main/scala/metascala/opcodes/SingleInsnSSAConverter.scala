@@ -225,7 +225,7 @@ object SingleInsnSSAConverter {
             append(Ldc(top(nextFrame), index))
           case s: String =>
             val index = vm.interned.length
-            vm.interned.append(new Ref.UnsafeManual(vm.alloc(Virtualizer.pushVirtual(s)(_)).apply(0)))
+            vm.interned.append(new Ref.UnsafeManual(vm.alloc(VWriter.pushVirtual(s)(_)).apply(0)))
             append(Ldc(top(nextFrame), index))
           case t: org.objectweb.asm.Type =>
             val clsObj = vm.typeObjCache(imm.Type.read(t.getInternalName))

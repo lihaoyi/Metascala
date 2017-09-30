@@ -49,13 +49,8 @@ object TestUtil {
 //      println("svmRes " + svmRes)
 //      println("refRes " + refRes)
 
-      try{
-        (svmRes, refRes) match{
-          case (x: Array[_], y: Array[_]) => assert(x.toSeq == y.toSeq)
-          case _ => assert(svmRes == refRes)
-        }
-
-      }catch {case ex: utest.AssertionError =>
+      try assertEquals(svmRes, refRes)
+      catch {case ex: utest.AssertionError =>
         println("Test failed for input")
         println(inString)
 
@@ -88,14 +83,8 @@ object TestUtil {
 //      println("svmRes " + svmRes)
 //      println("refRes " + refRes)
 //      println("args " + args)
-      try{
-        (svmRes, refRes) match{
-          case (x: Array[_], y: Array[_]) => assert(x.toSeq == y.toSeq)
-          case (x: Array[Array[_]], y: Array[Array[_]]) =>
-            assert(x.toSeq.map(_.toSeq) == y.toSeq.map(_.toSeq))
-          case _ => assert(svmRes == refRes)
-        }
-      }catch {case ex: utest.AssertionError =>
+      try assertEquals(svmRes, refRes)
+      catch {case ex: utest.AssertionError =>
         println("Test failed for input")
         println(inString)
 

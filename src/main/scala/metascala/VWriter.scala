@@ -3,9 +3,9 @@ import scala.collection.mutable
 import imm.Type.Prim._
 import metascala.util.{Constants, Ref, Util}
 
-object Virtualizer {
+object VWriter {
   def toVirtObj(x: Any)(implicit registrar: rt.Allocator) = {
-    Virtualizer.pushVirtual(x).apply(0)
+    VWriter.pushVirtual(x).apply(0)
   }
 
   def pushVirtual(thing: Any)(implicit registrar: rt.Allocator): Seq[Int] = {

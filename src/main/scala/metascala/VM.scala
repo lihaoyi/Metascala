@@ -93,7 +93,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
     override def apply(x: imm.Type) = this.getOrElseUpdate(x,
       vm.alloc(implicit r =>
         r.newObj("java.lang.Class",
-          "name" -> r.register(Virtualizer.toVirtObj(x.javaName))
+          "name" -> r.register(VWriter.toVirtObj(x.javaName))
         )
       )
     )
