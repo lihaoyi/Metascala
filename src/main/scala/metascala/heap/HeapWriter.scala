@@ -1,11 +1,17 @@
-package metascala
-import scala.collection.mutable
-import imm.Type.Prim._
-import metascala.util.{Constants, Ref, Util}
+package metascala.heap
 
-object VWriter {
+import metascala.imm.Type.Prim.{B, C, D, F, I, J, S, Z}
+import metascala.util.{Constants, Ref, Util}
+import metascala.{imm, rt}
+
+import scala.collection.mutable
+
+/**
+  * Convert arbitrary external values into objects on the Metascala VM's heap
+  */
+object HeapWriter {
   def toVirtObj(x: Any)(implicit registrar: rt.Allocator) = {
-    VWriter.pushVirtual(x).apply(0)
+    HeapWriter.pushVirtual(x).apply(0)
   }
 
   def pushVirtual(thing: Any)(implicit registrar: rt.Allocator): Seq[Int] = {

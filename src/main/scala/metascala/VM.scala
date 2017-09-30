@@ -1,5 +1,7 @@
 package metascala
 
+import metascala.heap.{Heap, HeapReader, HeapWriter}
+
 import collection.mutable
 import metascala.imm.{Sig, Type}
 import metascala.rt.{Cls, ClsTable, Obj, Thread}
@@ -93,7 +95,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
     override def apply(x: imm.Type) = this.getOrElseUpdate(x,
       vm.alloc(implicit r =>
         r.newObj("java.lang.Class",
-          "name" -> r.register(VWriter.toVirtObj(x.javaName))
+          "name" -> r.register(HeapWriter.toVirtObj(x.javaName))
         )
       )
     )
@@ -220,7 +222,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
 
   lazy val threads = List(new Thread())
 
-  def invokeSafe[T: VReader](bootClass: String, mainMethod: String, args: Seq[Any] = Nil): T = {
+  def invokeSafe[T: HeapReader](bootClass: String, mainMethod: String, args: Seq[Any] = Nil): T = {
 
     val res = threads(0).invokeSafe[T](
       imm.Type.Cls.apply(bootClass),
@@ -237,11 +239,11 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
     res
   }
 
-  def exec[T: VReader](thunk: => T): T = {
+  def exec[T: HeapReader](thunk: => T): T = {
     val wrapped = () => thunk
     invokeSafe[T](wrapped.getClass.getName, "apply", Seq(wrapped))
   }
-  def execSafe[T: VReader](thunk: => T): T = {
+  def execSafe[T: HeapReader](thunk: => T): T = {
     val wrapped = () => thunk
     invokeSafe[T](wrapped.getClass.getName, "apply", Seq(wrapped))
   }

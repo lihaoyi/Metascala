@@ -1,6 +1,6 @@
-package metascala
+package metascala.heap
 
-import metascala.util.{Constants, Ref, WritableRef}
+import metascala.util.{Constants, WritableRef}
 
 class Heap(memorySize: Int,
            forEachRoot: (WritableRef => Unit) => Unit,

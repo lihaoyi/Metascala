@@ -12,6 +12,7 @@ import scala.collection.JavaConverters._
 import org.objectweb.asm.tree.analysis._
 import org.objectweb.asm.Opcodes._
 import Insn._
+import metascala.heap.HeapWriter
 import metascala.rt.Logger
 import metascala.util.{Agg, Ref, WritableRef}
 
@@ -225,7 +226,7 @@ object SingleInsnSSAConverter {
             append(Ldc(top(nextFrame), index))
           case s: String =>
             val index = vm.interned.length
-            vm.interned.append(new Ref.UnsafeManual(vm.alloc(VWriter.pushVirtual(s)(_)).apply(0)))
+            vm.interned.append(new Ref.UnsafeManual(vm.alloc(HeapWriter.pushVirtual(s)(_)).apply(0)))
             append(Ldc(top(nextFrame), index))
           case t: org.objectweb.asm.Type =>
             val clsObj = vm.typeObjCache(imm.Type.read(t.getInternalName))

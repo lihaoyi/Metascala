@@ -2,6 +2,7 @@ package metascala.rt
 
 import collection.mutable
 import metascala._
+import metascala.heap.Heap
 import metascala.imm
 import metascala.util.{Constants, Ref, WritableRef}
 

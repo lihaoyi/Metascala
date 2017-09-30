@@ -1,5 +1,7 @@
 package metascala
 
+import metascala.heap.HeapReader
+
 object TestUtil {
 
 
@@ -12,24 +14,24 @@ object TestUtil {
   }
   implicit class DoStuff(val vm: VM) {
 
-    def test[T: VReader](thunk: => T) = {
+    def test[T: HeapReader](thunk: => T) = {
       assertEquals(vm.exec(thunk), thunk)
     }
-    def testSafe[T: VReader](thunk: => T) = {
+    def testSafe[T: HeapReader](thunk: => T) = {
       assertEquals(vm.execSafe(thunk), thunk)
     }
 
-    def testFunc[A, B, R: VReader](t: (A, B) => R)(a: A, b: B) = {
+    def testFunc[A, B, R: HeapReader](t: (A, B) => R)(a: A, b: B) = {
       testFuncBase(t, Seq(a, b))
     }
-    def testFunc[A, R: VReader](t: (A) => R)(a: A) = {
+    def testFunc[A, R: HeapReader](t: (A) => R)(a: A) = {
       testFuncBase(t, Seq(a))
     }
-    def testFunc[R: VReader](t: () => R) = {
+    def testFunc[R: HeapReader](t: () => R) = {
       testFuncBase(t, Nil)
     }
 
-    def testFuncBase[T: VReader](t: Any, args: Seq[Any]): Unit = {
+    def testFuncBase[T: HeapReader](t: Any, args: Seq[Any]): Unit = {
       val path = t.getClass.getName.replace('.', '/')
 //      println(path)
 //      println(getClass.getResourceAsStream(path + ".class"))
@@ -75,7 +77,7 @@ object TestUtil {
     val svm = new VM(memorySize=memorySize)
 
     val ref = new ReflectiveRunner(className)
-    def run[T: VReader](main: String, args: Any*) = {
+    def run[T: HeapReader](main: String, args: Any*) = {
 
       val refRes = ref.run(main, args:_*)
       val svmRes = svm.invokeSafe[T](className.replace('.', '/'), main, args)

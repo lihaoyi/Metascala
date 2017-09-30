@@ -3,7 +3,7 @@ package metascala.features
 import java.awt.geom.Point2D
 
 import metascala.TestUtil._
-import metascala.{VM, VWriter}
+import metascala.VM
 import utest._
 
 

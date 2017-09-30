@@ -8,7 +8,8 @@ import Insn._
 import Insn.Push
 import Insn.InvokeStatic
 import Insn.ReturnVal
-import metascala.VReader.ObjectReader
+import metascala.heap.HeapReader.ObjectReader
+import metascala.heap.{HeapReader, HeapWriter}
 import metascala.imm.{Desc, Sig, Type}
 import metascala.natives.Bindings
 import metascala.util._
@@ -278,7 +279,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         val args = new ArrayFiller(mRef.localsSize)
         args.append(methodHandleLookup.address())
         args.append(vm.typeObjCache(ownerName)())
-        args.append(VWriter.toVirtObj(methodName))
+        args.append(HeapWriter.toVirtObj(methodName))
         args.append(getMethodType(desc))
 
         invoke0(mRef, args.arr)
@@ -334,7 +335,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         //        val mRef = vm.resolveDirectRef(bsOwner, imm.Sig(bsName, bsDesc)).get
         val staticArguments = mutable.Buffer.empty[Int]
         staticArguments.append(methodHandleLookup.address())
-        staticArguments.append(VWriter.toVirtObj(name))
+        staticArguments.append(HeapWriter.toVirtObj(name))
         staticArguments.append(methodType)
 
         bsArgs.foreach {
@@ -345,13 +346,13 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
           // All these virtualize to the boxed versions of their values, because
           // they end up getting put into a array of java.lang.Objects
-          case x: java.lang.Byte => VWriter.toVirtObj(x: AnyRef)
-          case x: java.lang.Character => VWriter.toVirtObj(x: AnyRef)
-          case x: java.lang.Short => VWriter.toVirtObj(x: AnyRef)
-          case x: java.lang.Integer => VWriter.toVirtObj(x: AnyRef)
-          case x: java.lang.Float => VWriter.toVirtObj(x: AnyRef)
-          case x: java.lang.Long => VWriter.toVirtObj(x: AnyRef)
-          case x: java.lang.Double => VWriter.toVirtObj(x: AnyRef)
+          case x: java.lang.Byte => HeapWriter.toVirtObj(x: AnyRef)
+          case x: java.lang.Character => HeapWriter.toVirtObj(x: AnyRef)
+          case x: java.lang.Short => HeapWriter.toVirtObj(x: AnyRef)
+          case x: java.lang.Integer => HeapWriter.toVirtObj(x: AnyRef)
+          case x: java.lang.Float => HeapWriter.toVirtObj(x: AnyRef)
+          case x: java.lang.Long => HeapWriter.toVirtObj(x: AnyRef)
+          case x: java.lang.Double => HeapWriter.toVirtObj(x: AnyRef)
 
         }
 
@@ -379,7 +380,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         val staticArgumentsArr = r.newArr("java.lang.Object", staticArguments.map(Ref.Raw))
         linkCallSiteArgs.append(vm.typeObjCache(frame.runningClass.tpe)() /*callerObj*/)
         linkCallSiteArgs.append(bsMethodHandle /*bootstrapMethodObj*/)
-        linkCallSiteArgs.append(VWriter.toVirtObj(name) /*nameObj*/)
+        linkCallSiteArgs.append(HeapWriter.toVirtObj(name) /*nameObj*/)
         linkCallSiteArgs.append(methodType /*typeObj*/)
         linkCallSiteArgs.append(staticArgumentsArr.address() /*staticArguments*/)
         linkCallSiteArgs.append(appendixResult.address() /*appendixResult*/)
@@ -500,7 +501,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     val owner = vm.getTypeForTypeObj(vm.obj(memberName).apply("clazz"))
 
     val mn = vm.obj(memberName)
-    val name = VReader.obj[String].readAnyRef(mn.apply("name"), vm.heap.memory)
+    val name = HeapReader.obj[String].readAnyRef(mn.apply("name"), vm.heap.memory)
 
     val desc = {
       val tpeAddr = vm.obj(memberName).apply("type")
@@ -793,8 +794,8 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     throwException(
       vm.alloc( implicit r =>
         r.newObj(clsName,
-          "stackTrace" -> r.register(VWriter.toVirtObj(trace)),
-          "detailMessage" -> r.register(VWriter.toVirtObj(detailMessage))
+          "stackTrace" -> r.register(HeapWriter.toVirtObj(trace)),
+          "detailMessage" -> r.register(HeapWriter.toVirtObj(detailMessage))
         )
       )
     )
@@ -805,7 +806,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
 
     if (print) {
-      val msg = VReader.obj[String].readAnyRef(ex.apply("detailMessage"), vm.heap.memory)
+      val msg = HeapReader.obj[String].readAnyRef(ex.apply("detailMessage"), vm.heap.memory)
 
       vm.logger.logException(ex.cls.tpe, msg, trace)
     }
@@ -814,7 +815,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
       def rec(ex: Obj): ExtractedVmException = {
         val extracted = ExtractedVmException(
           ex.cls.tpe.javaName,
-          VReader.obj[String].readAnyRef(ex.apply("detailMessage"), vm.heap.memory),
+          HeapReader.obj[String].readAnyRef(ex.apply("detailMessage"), vm.heap.memory),
           ex.apply("cause") match{
             case 0 => null
             case addr if addr == ex.address() => null
@@ -823,7 +824,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
         )
 
         extracted.setStackTrace(
-          VReader.obj[Array[StackTraceElement]].readAnyRef(ex.apply("stackTrace"), vm.heap.memory)
+          HeapReader.obj[Array[StackTraceElement]].readAnyRef(ex.apply("stackTrace"), vm.heap.memory)
         )
         extracted
       }
@@ -892,13 +893,13 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     def newInstance(constr: Int, argArr: Int): Int = alloc{r =>
       val cls = r.obj(constr).apply("clazz")
 
-      val name = VReader.obj[String].readAnyRef(r.obj(cls).apply("name"), vm.heap.memory)
+      val name = HeapReader.obj[String].readAnyRef(r.obj(cls).apply("name"), vm.heap.memory)
 
       val newObj = alloc { implicit r =>
         r.newObj(name).address()
       }
 
-      val descStr = VReader.obj[String].readAnyRef(r.obj(constr).apply("signature"), vm.heap.memory)
+      val descStr = HeapReader.obj[String].readAnyRef(r.obj(constr).apply("signature"), vm.heap.memory)
 
       val mRef = vm.clsTable(name).method(
         "<init>",
@@ -930,9 +931,9 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     def theUnsafe = vm.theUnsafe
 
-    def readAnyRef[T >: Null: ObjectReader](x: Int): T = VReader.obj[T].readAnyRef(x, vm.heap.memory)
+    def readAnyRef[T >: Null: ObjectReader](x: Int): T = HeapReader.obj[T].readAnyRef(x, vm.heap.memory)
 
-    def toVirtObj(x: Any)(implicit registrar: rt.Allocator) = vm.obj(VWriter.toVirtObj(x))
+    def toVirtObj(x: Any)(implicit registrar: rt.Allocator) = vm.obj(HeapWriter.toVirtObj(x))
 
     def trace = thread.trace
 
@@ -1004,7 +1005,7 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     vm.alloc{ implicit r =>
       for(x <- argValues){
-        VWriter.pushVirtual(x, args.append)
+        HeapWriter.pushVirtual(x, args.append)
       }
 
       prepInvoke(mRef, args.arr, returnTo, -1)
@@ -1030,9 +1031,9 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     }
   }
 
-  def invokeSafe[T: VReader](cls: imm.Type.Cls, sig: imm.Sig, args: Agg[Any]): T = {
+  def invokeSafe[T: HeapReader](cls: imm.Type.Cls, sig: imm.Sig, args: Agg[Any]): T = {
     invoke0(cls, sig, args)
-    VReader[T].readAny(0, returnedVal, vm.heap.memory)
+    HeapReader[T].readAny(0, returnedVal, vm.heap.memory)
   }
 
   def invoke0(cls: imm.Type.Cls, sig: imm.Sig, args: Agg[Any]): Unit = {

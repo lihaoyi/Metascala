@@ -1,7 +1,7 @@
 package metascala.natives
 
 
-import metascala.VReader.ObjectReader
+import metascala.heap.HeapReader.ObjectReader
 import metascala.imm.Sig
 import metascala.rt.Obj
 import metascala.util.{Agg, WritableRef}
