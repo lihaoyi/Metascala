@@ -12,7 +12,7 @@ object TestUtil {
   }
   implicit class DoStuff(val vm: VM) {
 
-    def test[T](thunk: => T) = {
+    def test[T: VReader](thunk: => T) = {
       assertEquals(vm.exec(thunk), thunk)
     }
     def testSafe[T: VReader](thunk: => T) = {
@@ -77,18 +77,13 @@ object TestUtil {
   }
   class Tester(className: String, memorySize: Int = 1 * 1024 * 1024){
 
-    val svm = new VM(memorySize=memorySize){
-      def run(main: String, args: Any*): Any ={
-        val res = invoke(className.replace('.', '/'), main, args)
-        res
-      }
-    }
+    val svm = new VM(memorySize=memorySize)
 
     val ref = new ReflectiveRunner(className)
-    def run(main: String, args: Any*) = {
+    def run[T: VReader](main: String, args: Any*) = {
 
       val refRes = ref.run(main, args:_*)
-      val svmRes = svm.run(main, args:_*)
+      val svmRes = svm.invokeSafe[T](className.replace('.', '/'), main, args)
       val inString = args.toString
 //      println("svmRes " + svmRes)
 //      println("refRes " + refRes)
@@ -96,6 +91,8 @@ object TestUtil {
       try{
         (svmRes, refRes) match{
           case (x: Array[_], y: Array[_]) => assert(x.toSeq == y.toSeq)
+          case (x: Array[Array[_]], y: Array[Array[_]]) =>
+            assert(x.toSeq.map(_.toSeq) == y.toSeq.map(_.toSeq))
           case _ => assert(svmRes == refRes)
         }
       }catch {case ex: utest.AssertionError =>

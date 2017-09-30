@@ -10,14 +10,14 @@ class StaticMethodTest extends utest.TestSuite{
   def tests = Tests {
 
     val tester = new Tester("metascala.features.methods.Statics")
-    "helloWorld" - randomInts.foreach(tester.run("helloWorld", _: Int))
+    "helloWorld" - randomInts.foreach(tester.run[Int]("helloWorld", _: Int))
 
     "helloWorld2" - randomInts.zip(randomInts).foreach { case (a, b) =>
-      tester.run("helloWorld2", a: Int, b: Int)
+      tester.run[Int]("helloWorld2", a: Int, b: Int)
     }
-    "tailFactorial" - Seq(2, 5, 10, 20, 50).foreach(tester.run("tailFactorial", _: Int))
-    "fibonacci" - Seq(2, 5, 10).foreach(tester.run("fibonacci", _: Int))
-    "callAtPhiBoundary" - tester.run("callAtPhiBoundary", 0)
+    "tailFactorial" - Seq(2, 5, 10, 20, 50).foreach(tester.run[Int]("tailFactorial", _: Int))
+    "fibonacci" - Seq(2, 5, 10).foreach(tester.run[Int]("fibonacci", _: Int))
+    "callAtPhiBoundary" - tester.run[Int]("callAtPhiBoundary", 0)
   }
 }
 

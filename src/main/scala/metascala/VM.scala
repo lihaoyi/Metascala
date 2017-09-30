@@ -51,7 +51,9 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
       )
       cls.initialized = true
       vm.resolveDirectRef(cls.tpe, Sig("<clinit>", imm.Desc.read("()V")))
-        .foreach(x => threads(0).invoke(x, new Array[Int](x.localsSize)))
+        .foreach(x =>
+          threads(0).invoke0(x, new Array[Int](x.localsSize))
+        )
 
       cls.superType.foreach{ cls =>
         checkInitialized(vm.clsTable(cls))
@@ -192,7 +194,7 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
     val mRef = clsTable("java.util.Properties").method("<init>", imm.Desc(Agg.empty, imm.Type.Prim.V)).get
     val args = new Array[Int](mRef.localsSize)
     args(0) = sysProps
-    threads(0).invoke(mRef, args)
+    threads(0).invoke0(mRef, args)
 
   }
 
@@ -218,23 +220,6 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
 
   lazy val threads = List(new Thread())
 
-  def invoke(bootClass: String, mainMethod: String, args: Seq[Any] = Nil): Any = {
-
-    val res = threads(0).invoke(
-      imm.Type.Cls.apply(bootClass),
-      imm.Sig(
-        mainMethod,
-        clsTable(bootClass)
-          .methods
-          .find(x => x.sig.name == mainMethod)
-          .map(_.sig.desc)
-          .getOrElse(throw new IllegalArgumentException("Can't find method: " + mainMethod))
-      ),
-      Agg.from(args)
-    )
-    res
-  }
-
   def invokeSafe[T: VReader](bootClass: String, mainMethod: String, args: Seq[Any] = Nil): T = {
 
     val res = threads(0).invokeSafe[T](
@@ -252,9 +237,9 @@ class VM(val natives: DefaultBindings.type = DefaultBindings,
     res
   }
 
-  def exec[T](thunk: => T): T = {
+  def exec[T: VReader](thunk: => T): T = {
     val wrapped = () => thunk
-    invoke(wrapped.getClass.getName, "apply", Seq(wrapped)).asInstanceOf[T]
+    invokeSafe[T](wrapped.getClass.getName, "apply", Seq(wrapped))
   }
   def execSafe[T: VReader](thunk: => T): T = {
     val wrapped = () => thunk

@@ -70,7 +70,7 @@ object GetClassTest extends utest.TestSuite {
         )
       }
       "isInstance" - tester.test {
-        Seq(
+        Array(
           classOf[java.lang.Object].isInstance(new java.lang.Object()), // true
           classOf[java.lang.Object].isInstance(new java.lang.Integer(1)), // true
           classOf[java.lang.Object].isInstance(new Array[Int](1)), // true

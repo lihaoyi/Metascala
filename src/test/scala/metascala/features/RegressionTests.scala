@@ -24,7 +24,7 @@ object RegressionTests extends utest.TestSuite{
       // Minimized repro for a bug caused by advancePc() and gathering of
       // InvokeVirtual arguments happening in the wrong order resulting in
       // NullPointerExceptions
-      if ("A" eq "B") ()
+      if ("A" eq "B") true
       else BooleanProp.toString != null
     }
 

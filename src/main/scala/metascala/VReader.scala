@@ -34,6 +34,10 @@ object VReader{
     }
     def size = 1
   }
+  implicit object UnitReader extends VReader[Unit]{
+    def readAny(address: I, locals: IndexedSeq[I], heap: IndexedSeq[I]) = ()
+    def size = 0
+  }
 
   abstract class ObjectReader[T >: Null] extends VReader[T]{
     def size = 1
@@ -77,5 +81,7 @@ object VReader{
       )
     }
   }
+
+
 
 }

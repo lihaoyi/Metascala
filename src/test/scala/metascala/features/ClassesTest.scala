@@ -50,16 +50,16 @@ object ClassesTest extends utest.TestSuite {
 
     "inheritance" - {
       val tester = new Tester("metascala.features.classes.Inheritance")
-      "implement" - tester.run("implement", 10)
-      "abstractClass" - tester.run("abstractClass")
-      "shadowedInheritedGet" - tester.run("shadowedInheritedGet")
-      "shadowedInheritedSet" - tester.run("shadowedInheritedSet")
-      "superMethod" - tester.run("superMethod")
-      "staticInheritance" - tester.run("staticInheritance")
-      "staticInheritanceMethod" - tester.run("staticInheritanceMethod")
-      "interfaceDefault" - tester.run("interfaceDefault", 19)
-      "indirectInterfaceDefault" - tester.run("indirectInterfaceDefault", 19)
-      "overridenDefault" - tester.run("overridenDefault", 19)
+      "implement" - tester.run[String]("implement", 10)
+      "abstractClass" - tester.run[String]("abstractClass")
+      "shadowedInheritedSet" - tester.run[String]("shadowedInheritedSet")
+      "shadowedInheritedGet" - tester.run[String]("shadowedInheritedGet")
+      "superMethod" - tester.run[String]("superMethod")
+      "staticInheritance" - tester.run[Int]("staticInheritance")
+      "staticInheritanceMethod" - tester.run[Int]("staticInheritanceMethod")
+      "interfaceDefault" - tester.run[Int]("interfaceDefault", 19)
+      "indirectInterfaceDefault" - tester.run[Int]("indirectInterfaceDefault", 19)
+      "overridenDefault" - tester.run[Int]("overridenDefault", 19)
     }
   }
 }

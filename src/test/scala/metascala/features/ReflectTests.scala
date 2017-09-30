@@ -9,15 +9,12 @@ import utest._
 
 object ReflectTests extends utest.TestSuite {
   def sortNames[T <: java.lang.reflect.Member](in: Array[T]) = {
-    in.map(_.getName).sorted.toList
+    in.map(_.getName).sorted
   }
   def sortModifiers[T <: java.lang.reflect.Member](in: Array[T]) = {
-    in.map(x => x.getName -> x.getModifiers)
+    in.map(x => x.getName + " "+ x.getModifiers)
       .sorted
-      .toList
   }
-
-
 
   def tests = Tests {
     val tester = new VM()
@@ -159,10 +156,12 @@ object ReflectTests extends utest.TestSuite {
     'invoke - tester.test{
       classOf[String].getMethod("substring", classOf[Int], classOf[Int])
         .invoke("hello", 1: Integer, 3: Integer)
+        .asInstanceOf[String]
     }
     'invokeStatic - tester.test{
       classOf[Math].getMethod("sqrt", classOf[Double])
         .invoke(null, 2.25: java.lang.Double)
+        .asInstanceOf[Double]
     }
     //  "getSetStatic" - {
     //    "double" - tester.testFunc{ () =>

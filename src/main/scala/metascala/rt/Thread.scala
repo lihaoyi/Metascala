@@ -1012,10 +1012,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
   }
 
-  def invoke(mRef: rt.Method, args: Array[Int]): Any = {
-    invoke0(mRef, args)
-    Virtualizer.popVirtual(mRef.sig.desc.ret, Util.reader(returnedVal, 0))(bindingsInterface)
-  }
 
   def preserveStackStarts[T](t: Int => T) = {
     val startHeight = threadStack.length
@@ -1034,10 +1030,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
     }
   }
 
-  def invoke(cls: imm.Type.Cls, sig: imm.Sig, args: Agg[Any]): Any = {
-    invoke0(cls, sig, args)
-    Virtualizer.popVirtual(sig.desc.ret, Util.reader(returnedVal, 0))(bindingsInterface)
-  }
   def invokeSafe[T: VReader](cls: imm.Type.Cls, sig: imm.Sig, args: Agg[Any]): T = {
     invoke0(cls, sig, args)
     VReader[T].readAny(0, returnedVal, vm.heap.memory)

@@ -62,7 +62,7 @@ object ExternalLibTest extends utest.TestSuite {
             )
           )
         )
-      )
+      ).toString
     }
 
     //  "javac" - {
@@ -89,7 +89,7 @@ object ExternalLibTest extends utest.TestSuite {
         val scope = cx.initStandardObjects()
         val script = "(function(suffix){ return 'hello ' + suffix})('world')"
         val obj = cx.evaluateString(scope, script, "Test Script", 1, null)
-        obj
+        obj.asInstanceOf[String]
       }
     }
     //  "rhinoFail" - {

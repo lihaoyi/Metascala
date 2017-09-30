@@ -10,14 +10,14 @@ object MetacircularTest extends utest.TestSuite {
     "sqrtFinder" - {
       new VM(memorySize = 500 * 1024).test {
         val x = new VM(memorySize = 1024)
-        x.invoke("metascala.features.controlflow.Loops", "sqrtFinder", Seq(5.0))
+        x.invokeSafe[Double]("metascala.features.controlflow.Loops", "sqrtFinder", Seq(5.0))
       }
     }
 
     "fibonacci" - {
       new VM(memorySize = 4 * 1024 * 1024).test {
         val x = new metascala.VM()
-        x.invoke("metascala.features.methods.Statics", "fibonacci", Seq(12))
+        x.invokeSafe[Int]("metascala.features.methods.Statics", "fibonacci", Seq(12))
       }
     }
 
@@ -36,23 +36,22 @@ object MetacircularTest extends utest.TestSuite {
     "bubbleSort" - {
       new VM(memorySize = 24 * 1014 * 1024).test {
         val x = new metascala.VM()
-        x.invoke("metascala.features.ArrayTest", "bubbleSort", Seq(Array(6, 5, 2, 7, 3, 4, 9, 1, 8)))
+        x.invokeSafe[Array[Int]]("metascala.features.ArrayTest", "bubbleSort", Seq(Array(6, 5, 2, 7, 3, 4, 9, 1, 8)))
           .asInstanceOf[Array[Int]]
-          .toSeq
       }
     }
 
     "getAndSet" - {
       new VM(memorySize = 15 * 1014 * 1024).test {
         val x = new metascala.VM()
-        x.invoke("metascala.features.arrays.MultiDimArrays", "getAndSet")
+        x.invokeSafe[Int]("metascala.features.arrays.MultiDimArrays", "getAndSet")
       }
     }
 
     "multiCatch" - {
       new VM(memorySize = 16 * 1014 * 1024).test {
         val x = new metascala.VM()
-        x.invoke("metascala.features.exceptions.Exceptions", "multiCatch", Seq(2))
+        x.invokeSafe[Int]("metascala.features.exceptions.Exceptions", "multiCatch", Seq(2))
       }
     }
 
@@ -65,7 +64,7 @@ object MetacircularTest extends utest.TestSuite {
           val f = classOf[String].getDeclaredField("value")
           f.setAccessible(true)
           f.set(string, Array('o', 'm', 'g'))
-          f.get(string)
+          f.get(string).asInstanceOf[Array[Char]]
         }
       }
     }

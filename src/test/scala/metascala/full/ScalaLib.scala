@@ -53,7 +53,7 @@ object ScalaLib extends utest.TestSuite {
           p = a * b
           if isPalindrome(p.toString)
         } yield p
-        palindromes
+        palindromes.toArray
 
       }
     }

@@ -1,83 +1,11 @@
 package metascala
 import scala.collection.mutable
 import imm.Type.Prim._
-import metascala.natives.Bindings
 import metascala.util.{Constants, Ref, Util}
 
 object Virtualizer {
   def toVirtObj(x: Any)(implicit registrar: rt.Allocator) = {
     Virtualizer.pushVirtual(x).apply(0)
-  }
-
-  lazy val unsafe = {
-    val field = Class.forName("sun.misc.Unsafe").getDeclaredField("theUnsafe")
-    field.setAccessible(true)
-    val f = field.get(null)
-    val g = f.asInstanceOf[sun.misc.Unsafe]
-    g
-  }
-
-  def popVirtual(tpe: imm.Type,
-                 src: () => Int,
-                 refs: mutable.Map[Int, Any] = mutable.Map.empty)
-                (implicit vm: Bindings.Interface): Any = {
-    val x = tpe match {
-      case V => ()
-      case p: imm.Type.Prim[_] => p.read(src)
-      case _ => //reference type
-        val address = src()
-        if(address == 0) null
-        else if (refs.contains(address)) refs(address)
-        else tpe match{
-          case imm.Type.Cls("java.lang.Object") | imm.Type.Arr(_) if vm.isArr(address) =>
-
-            val tpe = vm.arr(address).innerType
-
-            val clsObj = tpe match{
-              case v: imm.Type.Prim[_] => v.primClass
-              case _ => Class.forName(tpe.javaName)
-            }
-
-            val newArr = java.lang.reflect.Array.newInstance(clsObj, vm.arr(address).arrayLength)
-
-            for(i <- 0 until vm.arr(address).arrayLength){
-
-              val cooked = tpe match{
-                case p: imm.Type.Prim[_] => p.read(Util.reader(vm.heap.memory, address + Constants.arrayHeaderSize + i * tpe.size))
-                case x => popVirtual(tpe, Util.reader(vm.heap.memory, address + Constants.arrayHeaderSize + i * tpe.size))
-              }
-              java.lang.reflect.Array.set(newArr, i, cooked)
-            }
-
-            newArr
-          case t @ name=>
-            val obj = unsafe.allocateInstance(Class.forName(vm.obj(address).cls.tpe.javaName))
-            refs += (address -> obj)
-            var index = 0
-            for(field <- vm.obj(address).cls.fieldList0){
-              // workaround for http://bugs.sun.com/view_bug.do?bug_id=4763881
-              if (field.name == "backtrace") index += 1 // just skip it
-              else{
-                val f = getAllFields(obj.getClass).find(_.getName == field.name).get
-                f.setAccessible(true)
-                val popped = popVirtual(field.desc, Util.reader(vm.heap.memory, address + Constants.objectHeaderSize + index), refs)
-                f.set(obj, popped )
-                index += field.desc.size
-              }
-            }
-            obj
-
-        }
-    }
-
-    x
-  }
-
-  def getAllFields(cls: Class[_]): Seq[java.lang.reflect.Field] = {
-    Option(cls.getSuperclass)
-      .toSeq
-      .flatMap(getAllFields)
-      .++(cls.getDeclaredFields)
   }
 
   def pushVirtual(thing: Any)(implicit registrar: rt.Allocator): Seq[Int] = {

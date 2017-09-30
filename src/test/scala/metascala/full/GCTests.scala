@@ -108,9 +108,10 @@ object GCTests extends utest.TestSuite {
         o
       }
     }
+
     "parseClass" - {
       val tester = new Tester("metascala.full.ScalaLib", memorySize = 12 * 1024)
-      for (i <- 1 to 5) tester.run("parseClass")
+      for (i <- 1 to 5) tester.run[String]("parseClass")
     }
 
     "gcInterrupt" - {
