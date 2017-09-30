@@ -91,7 +91,12 @@ object Util{
 //
 //
 
-class WrappedVmException(wrapped: Throwable) extends Exception(wrapped)
+class WrappedVmException(wrapped: Throwable) extends Exception(
+  // disable default toString (toString of cause), since
+  // the cause will get shown in any stack traces anyway
+  "",
+  wrapped
+)
 
 /**
   * Something blew up within the code the VM is interpreting
