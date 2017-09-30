@@ -752,16 +752,11 @@ object DefaultBindings extends Bindings{
       vt.alloc(r => vt.toVirtObj("GMT+08:00")(r)).address()
     },
     native("scala.Predef$", "println(Ljava/lang/Object;)V").func(I, I, V){ (vt, predef, o) =>
-      if (vt.isObj(o)){
-        val thing = vt.obj(o)
-        println("Virtual\t" + vt.toRealObj[Object](thing.address()))
-      }else if(vt.isArr(o)){
-        val s = Virtualizer.popVirtual(
-          vt.arr(o + 1).tpe, () => o
-        )(vt)
-        println("Virtual\t" + s)
-      }else{
-        println("Virtual\t" + null)
+
+      if (o == 0) println("Virtual\t" + null)
+      else {
+        vt.invoke1("java.lang.Object", imm.Sig.read("toString()Ljava/lang/String;"), Agg(o))
+        println("Virtual\t" + vt.readAnyRef[String](vt.returnedVal(0)))
       }
     },
     native("sun.misc.Hashing", "randomHashSeed(Ljava/lang/Object;)I").value(I)(31337), // sufficiently random

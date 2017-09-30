@@ -930,7 +930,6 @@ class Thread(val threadStack: mutable.ArrayStack[Frame] = mutable.ArrayStack())
 
     def theUnsafe = vm.theUnsafe
 
-    def toRealObj[T](x: Int)(implicit ct: ClassTag[T]) = Virtualizer.toRealObj(x)(this, ct)
     def readAnyRef[T >: Null: ObjectReader](x: Int): T = VReader.obj[T].readAnyRef(x, vm.heap.memory)
 
     def toVirtObj(x: Any)(implicit registrar: rt.Allocator) = vm.obj(Virtualizer.toVirtObj(x))

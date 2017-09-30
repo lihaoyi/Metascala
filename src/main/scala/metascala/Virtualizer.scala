@@ -4,13 +4,7 @@ import imm.Type.Prim._
 import metascala.natives.Bindings
 import metascala.util.{Constants, Ref, Util}
 
-import scala.reflect.ClassTag
-
 object Virtualizer {
-  def toRealObj[T](v: Int)(implicit vm: Bindings.Interface, ct: ClassTag[T]) = {
-    Virtualizer.popVirtual(ct.runtimeClass.getName.replace('.', '/'), () => v)
-      .asInstanceOf[T]
-  }
   def toVirtObj(x: Any)(implicit registrar: rt.Allocator) = {
     Virtualizer.pushVirtual(x).apply(0)
   }

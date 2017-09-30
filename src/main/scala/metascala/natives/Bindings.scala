@@ -5,10 +5,9 @@ import metascala.VReader.ObjectReader
 import metascala.imm.Sig
 import metascala.rt.Obj
 import metascala.util.{Agg, WritableRef}
-import metascala.{VReader, imm, rt}
+import metascala.{imm, rt}
 
 import scala.collection.mutable
-import scala.reflect.ClassTag
 object Bindings{
   trait Interface extends Obj.VMInterface{
     def throwExWithTrace(clsName: String, detailMessage: String): Unit
@@ -25,7 +24,7 @@ object Bindings{
     def runningClassName(n: Int): String // vt.threadStack(n).runningClass.name
     def threadStackLength: Int // vt.threadStack.length
     def internedStrings: mutable.Map[String, WritableRef]
-    def toRealObj[T](x: Int)(implicit ct: ClassTag[T]): T
+
     def readAnyRef[T >: Null: ObjectReader](x: Int): T
     def toVirtObj(x: Any)(implicit registrar: rt.Allocator): rt.Obj
     def trace: Array[StackTraceElement]
