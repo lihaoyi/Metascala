@@ -95,6 +95,27 @@ object IOTest extends utest.TestSuite {
           ex.getCause.getStackTrace.exists(_.getClassName == "metascala.rt.Thread")
         )
       }
+      "chainedInternal" - {
+        val ex = intercept[InternalVmException]{
+          tester.test{
+            indirectInternalVmException()
+          }
+        }
+        // An internal exception that propagates through multiple sections of
+        // internal/interpreted code does not have it's call stack broken up
+        // into multiple segments. Rather, the two exceptions contain the
+        // entire, parallel call stacks of internal/interpreted, which may have
+        // to be interleaved to get a good picture of what blew up inside the
+        // VM
+        assert(
+          ex.getStackTrace.apply(1).getClassName == "metascala.core.IOTest$",
+          ex.getStackTrace.apply(1).getMethodName == "indirectInternalVmException",
+          ex.getCause.isInstanceOf[java.lang.AssertionError],
+          ex.getCause.getMessage.contains("Unknown native method"),
+          ex.getCause.getStackTrace.exists(_.getClassName == "metascala.VM"),
+          ex.getCause.getStackTrace.exists(_.getClassName == "metascala.rt.Thread")
+        )
+      }
     }
   }
   def simpleException() = {
@@ -118,5 +139,8 @@ object IOTest extends utest.TestSuite {
   }
   def internalVmException() = {
     metascala.Fail.missingNativeMethodImplementation()
+  }
+  def indirectInternalVmException() = {
+    metascala.Fail.indirectMissingNativeMethodImplementation()
   }
 }

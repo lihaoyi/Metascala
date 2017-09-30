@@ -1028,6 +1028,9 @@ object DefaultBindings extends Bindings{
       val res = vt.clsTable(str).accessFlags
       res
     },
+    native("metascala.Fail", "indirectMissingNativeMethodImplementation()V").func(V) { vt =>
+      vt.invoke1("metascala.Fail", imm.Sig.read("indirectMissingNativeMethodImplementation0(I)I"), Agg(31337))
+    },
     native("metascala.Virtualizer$", "unsafe()Lsun/misc/Unsafe;").func(I){vt =>
       vt.theUnsafe.address()
     }

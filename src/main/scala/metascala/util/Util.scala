@@ -65,6 +65,31 @@ object Util{
   }
 
 }
+// Ways Metascala can throw exceptions:
+//
+//
+// UncaughtVmException
+//   - Real Stacktrace
+// ExtractedVmException
+//   - Virtual Stacktrace
+//
+// This happens when the code being interpreted by Metascala throws an
+// exception. The Virtual stacktrace tells us what code Metascala was
+// interpreting that threw, while the Real stacktrace is purely so if the
+// exception propagates out of Metascala, it gives a good stack trace
+//
+//
+// InternalVmException
+//   - Virtual Stacktrace
+// Throwable
+//   - Real Stacktrace
+//
+// This happens when Metascala's own code throws an exception while
+// interpreting some other code. Provide both stack traces to show where in
+// Metascala's code the exception was thrown, as well as what code being
+// interpreted caused metascala to throw such an exception.
+//
+//
 
 class WrappedVmException(wrapped: Throwable) extends Exception(wrapped)
 

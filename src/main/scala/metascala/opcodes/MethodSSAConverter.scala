@@ -100,7 +100,7 @@ object MethodSSAConverter {
 
     assert(
       method.instructions.size != 0,
-      "Unknown native method: " + clsName + " " + method.name + " " + method.desc
+      "Unknown native method: " + clsName.replace('/', '.') + "." + method.name + method.desc
     )
     val insnIndexMap = allInsns.zipWithIndex.toMap
 
