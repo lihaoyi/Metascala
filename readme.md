@@ -13,11 +13,11 @@ Although it is far from a complete implementation, Metascala already provides th
 
 # Getting Started
 <!-- --------------- -->
-Metascala requires [Scala 2.10](http://www.scala-lang.org/downloads) and is built using [SBT 12](http://www.scala-sbt.org/). After checking out the repository, if you have SBT installed, all you need to do is run
+Metascala requires Scala 2.11 and is built using [sbt](https://www.scala-sbt.org). After checking out the repository, if you have sbt installed, all you need to do is run
 
 ```
 sbt
-> test-only metascala.features.*
+> testOnly metascala.features.*
 ```
 
 Which will download the dependencies (currently just [asm](http://asm.ow2.org/)), compile the code, and run the unit tests in the [test/scala/features](test/scala/features) folder. Compiling Metascala could take a minute, but running the unit tests should take less than 10 seconds. These tests exercise individual pieces of functionality available on the JVM: math, methods, classes, exceptions, etc., and verify that the result of executing a method via Metascala is identical to the result of executing it directly via [reflection](http://docs.oracle.com/javase/tutorial/reflect/).
